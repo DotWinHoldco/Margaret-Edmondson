@@ -16,9 +16,9 @@ interface AboutSplitConfig {
 
 export default function AboutSplitBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as AboutSplitConfig
-  const imageUrl = c.image_url || '/Margaret Edmondson/ARTWORK/Custom Portrait Options/image1.jpg'
-  const heading = c.heading || 'Meet the Artists'
-  const body = c.body_html || 'Two working artists with a passion for mixed media, oil painting, and sharing the joy of creating. From our studio to your walls — every piece carries a story.'
+  const imageUrl = c.image_url || '/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg'
+  const heading = c.heading || 'Meet the Artist'
+  const body = c.body_html || '<p>Margaret Edmondson is a Texas-based artist with a BS in Art Education from Murray State University and an MFA in Painting from the Savannah College of Art and Design. Her work captures the beauty she sees around her — cattle and wild sunflowers in Texas, the captivating saguaro cactuses of Arizona, and beach scenes from family vacations to Alabama and California.</p><p>Recently, she has been experimenting with textures, printmaking, text, and sewing in mixed media collages. Her motto: "Do something creative at least once a day."</p>'
   const linkText = c.link_text || 'Our Story'
   const linkUrl = c.link_url || '/about'
   const imageSide = c.image_side || 'left'
