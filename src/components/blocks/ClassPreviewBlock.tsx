@@ -24,9 +24,9 @@ export default function ClassPreviewBlock({ config }: { config: Record<string, u
   const heading = c.heading || 'Art Classes'
 
   const courses = c.courses || [
-    { id: '1', title: 'Introduction to Mixed Media Collage', slug: 'intro-mixed-media', description: 'Learn the fundamentals of collage art using vintage papers, textiles, and found objects.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/image3.png', price: 89, difficulty_level: 'Beginner' },
-    { id: '2', title: 'Landscape Painting in Oils', slug: 'landscape-oils', description: 'Capture the beauty of nature with oil paints. From composition to color mixing.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Texas Themed/image4.jpg', price: 129, difficulty_level: 'Intermediate' },
-    { id: '3', title: 'Finding Your Creative Voice', slug: 'creative-voice', description: 'A free workshop on discovering your unique artistic style and overcoming creative blocks.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/image7.png', price: null, difficulty_level: 'All Levels' },
+    { id: '1', title: 'Introduction to Mixed Media Collage', slug: 'intro-mixed-media', description: 'Learn the fundamentals of collage art using vintage papers, textiles, and found objects.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/Seeds.png', price: 89, difficulty_level: 'Beginner' },
+    { id: '2', title: 'Landscape Painting in Oils', slug: 'landscape-oils', description: 'Capture the beauty of nature with oil paints. From composition to color mixing.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Texas Themed/Keepsake_1.jpg', price: 129, difficulty_level: 'Intermediate' },
+    { id: '3', title: 'Finding Your Creative Voice', slug: 'creative-voice', description: 'A free workshop on discovering your unique artistic style and overcoming creative blocks.', thumbnail_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/Perspective Play_1.png', price: null, difficulty_level: 'All Levels' },
   ]
 
   return (

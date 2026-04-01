@@ -27,10 +27,10 @@ export default function FeaturedGridBlock({ config }: { config: Record<string, u
 
   // Fallback demo products using actual artwork
   const products = c.products || [
-    { id: '1', title: 'Mountain Lodge at Sunset', slug: 'mountain-lodge', base_price: 450, image_url: '/Margaret Edmondson/ARTWORK/Texas Themed/image2.jpg', medium: 'Oil on Canvas' },
-    { id: '2', title: 'Discover Your Potential', slug: 'discover-your-potential', base_price: 375, image_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/image1.jpg', medium: 'Mixed Media Collage' },
-    { id: '3', title: 'Coastal Morning', slug: 'coastal-morning', base_price: 325, image_url: '/Margaret Edmondson/ARTWORK/Beach and SC/image1.jpg', medium: 'Oil on Canvas' },
-    { id: '4', title: 'Desert Bloom', slug: 'desert-bloom', base_price: 295, image_url: '/Margaret Edmondson/ARTWORK/Cactuses/image1.jpg', medium: 'Watercolor' },
+    { id: '1', title: 'Spring Break / Mountain Boat Dock', slug: 'spring-break-mountain-boat-dock', base_price: 1500, image_url: '/Margaret Edmondson/ARTWORK/Texas Themed/Spring Break Mountain Boat Dock.jpg', medium: 'Acrylic on Canvas' },
+    { id: '2', title: 'Flower Power', slug: 'flower-power', base_price: 450, image_url: '/Margaret Edmondson/ARTWORK/Texas Themed/Flower Power_1.jpg', medium: 'Acrylic on Canvas' },
+    { id: '3', title: 'Hot Air', slug: 'hot-air', base_price: 450, image_url: '/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg', medium: 'Water Gouache on Paper' },
+    { id: '4', title: 'Unexpected', slug: 'unexpected', base_price: 0, image_url: '/Margaret Edmondson/ARTWORK/Encouragement Series/Unexpected.jpg', medium: 'Mixed Media Collage' },
   ]
 
   const gridCols = columns === 2 ? 'sm:grid-cols-2' : columns === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'
