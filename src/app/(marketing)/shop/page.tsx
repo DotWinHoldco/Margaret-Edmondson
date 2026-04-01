@@ -2,7 +2,7 @@ import { getProducts, getCategories } from '@/lib/supabase/queries'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
-import { getProductBadge } from '@/components/shop/ProductDetail'
+import { getProductBadge } from '@/lib/product-utils'
 import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 
 export const metadata: Metadata = {
