@@ -4,21 +4,23 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Commissions',
-  description: 'Commission a custom piece of artwork by Margaret Edmondson. From concept to completion, we bring your vision to life.',
+  description: 'Commission a custom pet portrait or house portrait by Margaret Edmondson. Acrylic, watercolor, pastel, charcoal, and mixed media options available.',
 }
 
 const STEPS = [
-  { num: 1, title: 'Inquire', desc: 'Share your vision, reference photos, preferred medium, size, and budget. We\'ll discuss your ideas and provide a quote.' },
-  { num: 2, title: 'Approve Sketch', desc: 'Once the deposit is paid, we create initial sketches for your approval. We\'ll refine until you\'re delighted.' },
-  { num: 3, title: 'Creation', desc: 'Your piece comes to life in the studio. Receive progress photos along the way so you can follow the journey.' },
-  { num: 4, title: 'Delivery', desc: 'Final payment, professional packaging, and insured shipping straight to your door. Your story, on your walls.' },
+  { num: 1, title: 'Inquire', desc: 'Reach out with your vision, reference photos, preferred medium, and size. Margaret will discuss your ideas and provide a personalized quote.' },
+  { num: 2, title: 'Deposit & Sketch', desc: 'A 50% deposit secures your spot. Margaret creates initial sketches for your approval and refines until you are delighted.' },
+  { num: 3, title: 'Creation', desc: 'Your piece comes to life in the studio. Expect 2 to 8 weeks depending on complexity, with progress photos along the way.' },
+  { num: 4, title: 'Delivery', desc: 'Final payment upon completion, professional packaging, and shipping straight to your door. Your story, on your walls.' },
 ]
 
-const PRICING = [
-  { size: 'Small (up to 12×16")', range: '$200 – $400' },
-  { size: 'Medium (16×20" – 20×24")', range: '$400 – $700' },
-  { size: 'Large (24×30" – 30×40")', range: '$700 – $1,200' },
-  { size: 'Extra Large (36×48"+)', range: '$1,200+' },
+const PET_MEDIA = [
+  'Acrylic',
+  'Watercolor',
+  'Water Gouache',
+  'Pastel',
+  'Charcoal',
+  'Mixed Media',
 ]
 
 export default function CommissionsPage() {
@@ -32,20 +34,20 @@ export default function CommissionsPage() {
           </h1>
           <div className="mt-3 mx-auto w-16 h-px bg-gold" />
           <p className="mt-4 font-body text-lg text-charcoal/60 max-w-2xl mx-auto">
-            Your story, our canvas. Commission a one-of-a-kind piece of art created just for you.
+            A one-of-a-kind piece created just for you. Pet portraits, house portraits, and more — each made with care from your reference photos.
           </p>
         </div>
 
         {/* Example Work */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-20">
           {[
-            '/Margaret Edmondson/ARTWORK/Custom Portrait Options/image2.jpg',
-            '/Margaret Edmondson/ARTWORK/Custom Portrait Options/image3.jpg',
-            '/Margaret Edmondson/ARTWORK/Custom Portrait Options/image4.jpg',
-            '/Margaret Edmondson/ARTWORK/Custom Portrait Options/image5.jpg',
-          ].map((src, i) => (
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_1.jpg', alt: 'Custom pet portrait example' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_2.jpg', alt: 'Custom pet portrait example' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom House Portrait Example_1.jpg', alt: 'Custom house portrait example' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom House Portrait Example_2.jpg', alt: 'Custom house portrait example' },
+          ].map((img, i) => (
             <div key={i} className="relative aspect-square overflow-hidden rounded-sm">
-              <Image src={src} alt={`Commission example ${i + 1}`} fill className="object-cover" sizes="25vw" />
+              <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="25vw" />
             </div>
           ))}
         </div>
@@ -68,22 +70,83 @@ export default function CommissionsPage() {
           </div>
         </div>
 
-        {/* Pricing Guide */}
-        <div className="bg-white rounded-sm p-8 sm:p-12 mb-20">
-          <h2 className="font-display text-2xl font-light text-charcoal text-center mb-8">
-            Pricing Guide
+        {/* Pricing: Pet Portraits */}
+        <div className="bg-white rounded-sm p-8 sm:p-12 mb-10">
+          <h2 className="font-display text-2xl font-light text-charcoal text-center mb-3">
+            Pet Portraits
           </h2>
-          <div className="max-w-lg mx-auto space-y-3">
-            {PRICING.map((tier) => (
-              <div key={tier.size} className="flex justify-between items-center py-3 border-b border-charcoal/5 last:border-0">
-                <span className="font-body text-sm text-charcoal/70">{tier.size}</span>
-                <span className="font-body text-sm font-semibold text-charcoal">{tier.range}</span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-6 text-center font-body text-xs text-charcoal/40">
-            Prices vary by medium, complexity, and materials. Final quote provided after consultation.
+          <p className="font-body text-sm text-charcoal/60 text-center max-w-xl mx-auto mb-8">
+            Capture the personality of your furry, feathered, or four-legged family member. Provide reference photos, choose your preferred medium, and Margaret will bring them to life.
           </p>
+
+          <div className="max-w-lg mx-auto space-y-3 mb-6">
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Starting price</span>
+              <span className="font-body text-sm font-semibold text-charcoal">$250 minimum</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Timeline</span>
+              <span className="font-body text-sm font-semibold text-charcoal">2 – 8 weeks</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Deposit</span>
+              <span className="font-body text-sm font-semibold text-charcoal">50% upfront</span>
+            </div>
+          </div>
+
+          <div className="max-w-lg mx-auto">
+            <p className="font-body text-xs text-charcoal/50 mb-2 uppercase tracking-wider">Available Media</p>
+            <div className="flex flex-wrap gap-2">
+              {PET_MEDIA.map((medium) => (
+                <span key={medium} className="inline-block px-3 py-1 bg-charcoal/5 rounded-full font-body text-xs text-charcoal/70">
+                  {medium}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Pricing: House Portraits */}
+        <div className="bg-white rounded-sm p-8 sm:p-12 mb-10">
+          <h2 className="font-display text-2xl font-light text-charcoal text-center mb-3">
+            House Portraits
+          </h2>
+          <p className="font-body text-sm text-charcoal/60 text-center max-w-xl mx-auto mb-8">
+            A beautiful keepsake of a home that holds special memories. Watercolor is the preferred medium for house portraits. Provide photos of the home and Margaret will create a warm, detailed rendering.
+          </p>
+
+          <div className="max-w-lg mx-auto space-y-3 mb-6">
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Price range</span>
+              <span className="font-body text-sm font-semibold text-charcoal">$150 – $500</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Preferred medium</span>
+              <span className="font-body text-sm font-semibold text-charcoal">Watercolor</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-charcoal/5">
+              <span className="font-body text-sm text-charcoal/70">Deposit</span>
+              <span className="font-body text-sm font-semibold text-charcoal">50% upfront</span>
+            </div>
+          </div>
+
+          <p className="text-center font-body text-xs text-charcoal/40">
+            Final price depends on complexity, size, and detail. A personalized quote is provided after consultation.
+          </p>
+        </div>
+
+        {/* More Examples */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-20">
+          {[
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_3.jpg', alt: 'Custom pet portrait example' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Dog and Daughter Drawing_1.jpg', alt: 'Dog and daughter drawing commission' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Family Gift Painting.jpg', alt: 'Family gift painting commission' },
+            { src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Stylized Color Portrait Example.jpg', alt: 'Stylized color portrait example' },
+          ].map((img, i) => (
+            <div key={i} className="relative aspect-square overflow-hidden rounded-sm">
+              <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="25vw" />
+            </div>
+          ))}
         </div>
 
         {/* CTA */}

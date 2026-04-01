@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Meet Margaret Edmondson — mixed media artist, painter, and art educator. Learn about the story behind ArtByMe.',
+  description: 'Meet Margaret Edmondson — mixed media artist, painter, and art educator with a BS in Art Education from Murray State and an MFA in Painting from SCAD.',
 }
 
 export default function AboutPage() {
@@ -13,7 +13,7 @@ export default function AboutPage() {
         {/* Hero */}
         <div className="text-center mb-16">
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-light text-charcoal">
-            Our Story
+            Meet the Artist
           </h1>
           <div className="mt-3 mx-auto w-16 h-px bg-gold" />
         </div>
@@ -22,8 +22,8 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
           <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
             <Image
-              src="/Margaret Edmondson/ARTWORK/Custom Portrait Options/image1.jpg"
-              alt="Margaret Edmondson in the studio"
+              src="/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg"
+              alt="Margaret Edmondson with award-winning cactus painting"
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
@@ -32,35 +32,64 @@ export default function AboutPage() {
           </div>
           <div>
             <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal mb-6">
-              Art That Tells a Story
+              Margaret Loraine Edmondson
             </h2>
             <div className="font-body text-base leading-relaxed text-charcoal/70 space-y-4">
               <p>
-                ArtByMe is the creative studio of Margaret Edmondson, a working artist specializing in mixed-media collage, oil painting, and art education.
+                Margaret grew up in a small town in Southern Illinois and discovered her love of art early. She earned her BS in Art Education from Murray State University in Murray, Kentucky in 2000, and later completed her MFA in Painting from the Savannah College of Art and Design (SCAD), commuting weekly to Georgia to pursue that dream.
               </p>
               <p>
-                Every piece begins with a story — whether it&apos;s the quiet beauty of a mountain lodge at sunset, the vibrant energy of a desert in bloom, or the layered meaning found in vintage book pages and gold leaf.
+                She met her husband Shawn their freshman year at Murray State, and over the course of their marriage they have moved out of state ten times in thirty years following his career. Along the way, Margaret worked as an interior designer in Southeast Missouri for three years and has taught art to all ages across multiple states, including Florida, Tennessee, East Texas, Northern California, North Texas, and the St. Louis and Dallas-Fort Worth areas.
               </p>
               <p>
-                Margaret&apos;s work spans landscapes, nature studies, inspirational text art, and richly layered collage compositions incorporating found materials: vintage book pages, sheet music, stamps, textured papers, stitching, and gold leaf.
+                Now celebrating 26 years of marriage with two children in high school, Margaret continues to create and teach wherever life takes her. Her motto says it all: &ldquo;Do something creative at least once a day.&rdquo;
               </p>
-              <p>
-                Beyond creating, Margaret is passionate about teaching. Through art classes and workshops, she shares techniques, encourages experimentation, and helps others discover their creative voice.
+              <p className="italic text-charcoal/50">
+                &ldquo;Use your talents, that is what they are intended for.&rdquo;
               </p>
             </div>
           </div>
         </div>
 
-        {/* Process Section */}
+        {/* Art Philosophy Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
+          <div className="order-2 lg:order-1">
+            <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal mb-6">
+              What You&apos;ll Find in My Work
+            </h2>
+            <div className="font-body text-base leading-relaxed text-charcoal/70 space-y-4">
+              <p>
+                &ldquo;What you will find in my artwork is the beauty of what I see around me.&rdquo; Margaret favors drawing and painting to express realism, using her camera as an initial sketch before pairing down and combining scenes by hand.
+              </p>
+              <p>
+                Her subjects are drawn from her travels and environment: cattle, farm animals, and wild sunflowers from her years in Texas; cactus and the vivid colors of Arizona that she became obsessed with; and beach scenes from family vacations to Alabama and California.
+              </p>
+              <p>
+                Recently, Margaret has been experimenting with textures, printmaking, text, and sewing for mixed media collages. Her Encouragement Series was a collaborative project with friend Jenny Donaldson, inspired by Rick Rubin&apos;s <em>The Creative Act: A Way of Being</em>.
+              </p>
+            </div>
+          </div>
+          <div className="relative aspect-[4/5] overflow-hidden rounded-sm order-1 lg:order-2">
+            <Image
+              src="/Margaret Edmondson/ARTWORK/Texas Themed/Spring Break Mountain Boat Dock.jpg"
+              alt="Spring Break Mountain Boat Dock painting by Margaret Edmondson"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+          </div>
+        </div>
+
+        {/* Creative Process */}
         <div className="bg-white rounded-sm p-8 sm:p-12 lg:p-16 mb-24">
           <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal text-center mb-12">
             The Creative Process
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {[
-              { title: 'Gather', description: 'Hours spent in antique shops and estate sales, seeking the perfect vintage materials that will tell a story.' },
-              { title: 'Layer', description: 'Building depth through gesso, torn paper, and carefully placed elements — each layer adding meaning.' },
-              { title: 'Finish', description: 'Gold leaf, hand-stitching, and final touches that bring warmth and a handcrafted quality to every piece.' },
+              { title: 'Observe', description: 'Every piece begins with seeing. Margaret uses her camera to capture the beauty around her — landscapes, animals, light on water — as the first sketch for what comes next.' },
+              { title: 'Compose', description: 'Reference photos are paired down and combined by hand, distilling multiple scenes into a single composition that captures the feeling of being there.' },
+              { title: 'Create', description: 'Whether through painting, drawing, printmaking, or mixed media collage with textures, text, and sewing, Margaret brings each piece to life with warmth and attention to detail.' },
             ].map((step, i) => (
               <div key={i} className="text-center">
                 <span className="font-hand text-4xl text-gold">{i + 1}</span>
@@ -74,13 +103,13 @@ export default function AboutPage() {
         {/* Gallery Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            '/Margaret Edmondson/ARTWORK/Encouragement Series/image1.jpg',
-            '/Margaret Edmondson/ARTWORK/Texas Themed/image5.jpg',
-            '/Margaret Edmondson/ARTWORK/Beach and SC/image3.jpg',
-            '/Margaret Edmondson/ARTWORK/Cactuses/image3.jpg',
-          ].map((src, i) => (
+            { src: '/Margaret Edmondson/ARTWORK/Encouragement Series/Unexpected.jpg', alt: 'Unexpected — from the Encouragement Series' },
+            { src: '/Margaret Edmondson/ARTWORK/Texas Themed/Spring Break Mountain Boat Dock.jpg', alt: 'Spring Break Mountain Boat Dock' },
+            { src: '/Margaret Edmondson/ARTWORK/Beach and SC/Road Trip.jpg', alt: 'Road Trip — beach scene painting' },
+            { src: '/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg', alt: 'Hot Air — cactus series painting' },
+          ].map((img, i) => (
             <div key={i} className="relative aspect-square overflow-hidden rounded-sm">
-              <Image src={src} alt={`Studio work ${i + 1}`} fill className="object-cover" sizes="25vw" />
+              <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="25vw" />
             </div>
           ))}
         </div>
