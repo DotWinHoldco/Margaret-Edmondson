@@ -27,7 +27,7 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
 
   const heading = c.heading || 'Margaret Edmondson'
   const subheading = c.subheading || 'Mixed Media & Fine Art'
-  const imageUrl = c.image_url || '/Margaret Edmondson/ARTWORK/Texas Themed/image9.jpg'
+  const imageUrl = c.image_url || '/Margaret Edmondson/ARTWORK/Texas Themed/image1.jpg'
   const ctaText = c.cta_text || 'Enter Gallery'
   const ctaLink = c.cta_link || '/gallery'
   const cta2Text = c.cta2_text || 'Commission a Piece'
