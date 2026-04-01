@@ -5,6 +5,7 @@ import { createContext, useContext, useReducer, useEffect, type ReactNode } from
 export interface CartItem {
   productId: string
   variantId?: string
+  variantType?: string
   title: string
   image: string
   price: number
@@ -34,12 +35,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         (i) => (i.variantId || i.productId) === key
       )
       if (existing) {
+        const maxQty = action.payload.variantType === 'original' ? 1 : Infinity
         return {
           ...state,
           isOpen: true,
           items: state.items.map((i) =>
             (i.variantId || i.productId) === key
-              ? { ...i, quantity: i.quantity + action.payload.quantity }
+              ? { ...i, quantity: Math.min(i.quantity + action.payload.quantity, maxQty) }
               : i
           ),
         }

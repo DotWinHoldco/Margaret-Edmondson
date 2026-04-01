@@ -90,7 +90,7 @@ export async function getProducts(options?: {
   const supabase = await createClient()
   let query = supabase
     .from('products')
-    .select('*, product_images(*), categories(*)', { count: 'exact' })
+    .select('*, product_images(*), categories(*), product_variants(id, variant_type, inventory_count, price)', { count: 'exact' })
     .eq('status', 'active')
 
   if (options?.category) {

@@ -72,6 +72,7 @@ export interface Database {
           status: 'active' | 'draft' | 'archived' | 'sold'
           is_original: boolean
           is_featured: boolean
+          prints_enabled: boolean
           tags: string[] | null
           seo_title: string | null
           seo_description: string | null
@@ -107,6 +108,7 @@ export interface Database {
           external_variant_id: string | null
           fulfillment_metadata: Json | null
           inventory_count: number | null
+          variant_type: 'original' | 'canvas_print' | 'framed_canvas_print' | null
           sort_order: number
         }
         Insert: Omit<Database['public']['Tables']['product_variants']['Row'], 'id'> & { id?: string }

@@ -70,10 +70,19 @@ export async function POST(request: Request) {
           if (item.variantId) {
             const { data: variant } = await supabase
               .from('product_variants')
-              .select('price')
+              .select('price, variant_type')
               .eq('id', item.variantId)
               .single()
-            if (variant) price = variant.price
+            if (variant) {
+              price = variant.price
+              // Mark original as sold when purchased
+              if (variant.variant_type === 'original') {
+                await supabase
+                  .from('product_variants')
+                  .update({ inventory_count: 0 })
+                  .eq('id', item.variantId)
+              }
+            }
           }
 
           await supabase.from('order_items').insert({

@@ -2,6 +2,8 @@ import { getProducts, getCategories } from '@/lib/supabase/queries'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import { getProductBadge } from '@/components/shop/ProductDetail'
+import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 
 export const metadata: Metadata = {
   title: 'Shop',
@@ -54,11 +56,14 @@ export default async function ShopPage() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
                   )}
-                  {product.is_original && (
-                    <span className="absolute top-3 left-3 px-2 py-0.5 bg-gold/90 text-white text-[10px] font-body font-semibold uppercase tracking-wider rounded-sm">
-                      Original
-                    </span>
-                  )}
+                  {(() => {
+                    const badge = getProductBadge(product as { status: string; is_original: boolean; prints_enabled: boolean; product_variants?: Array<{ variant_type: string | null; inventory_count: number | null }> })
+                    return badge ? (
+                      <span className={`absolute top-3 left-3 px-2 py-0.5 ${badge.color} text-white text-[10px] font-body font-semibold uppercase tracking-wider rounded-sm`}>
+                        {badge.text}
+                      </span>
+                    ) : null
+                  })()}
                 </div>
                 <div className="mt-4">
                   <h3 className="font-body text-sm font-medium text-charcoal group-hover:text-teal transition-colors">
@@ -68,14 +73,10 @@ export default async function ShopPage() {
                     <p className="font-hand text-sm text-charcoal/50 mt-0.5">{product.medium}</p>
                   )}
                   <p className="font-body text-sm text-charcoal/70 mt-1">
-                    {product.compare_at_price ? (
-                      <>
-                        <span className="line-through text-charcoal/40 mr-2">${product.compare_at_price}</span>
-                        <span>${product.base_price}</span>
-                      </>
-                    ) : (
-                      `$${product.base_price}`
-                    )}
+                    {(product as Record<string, unknown>).prints_enabled
+                      ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
+                      : `$${product.base_price}`
+                    }
                   </p>
                 </div>
               </Link>

@@ -30,11 +30,15 @@ export async function POST(request: Request) {
     if (item.variantId) {
       const { data: variant } = await supabase
         .from('product_variants')
-        .select('id, name, price')
+        .select('id, name, price, variant_type, inventory_count')
         .eq('id', item.variantId)
         .single()
 
       if (variant) {
+        // Block purchase of sold originals
+        if (variant.variant_type === 'original' && variant.inventory_count !== null && variant.inventory_count <= 0) {
+          return Response.json({ error: `"${product.title}" original is no longer available` }, { status: 400 })
+        }
         price = variant.price
         variantName = ` — ${variant.name}`
       }
