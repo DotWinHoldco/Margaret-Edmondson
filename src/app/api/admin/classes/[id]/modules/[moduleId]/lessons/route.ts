@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -15,7 +15,7 @@ export async function POST(
   try {
     const { moduleId } = await params
     const body = await request.json()
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       return Response.json({ error: 'Title is required' }, { status: 400 })

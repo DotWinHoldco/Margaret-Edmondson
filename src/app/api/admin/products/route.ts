@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const slug = body.slug?.trim() || generateSlug(body.title)
 
     // Check for slug uniqueness

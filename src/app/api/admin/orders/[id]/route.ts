@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 const VALID_STATUSES = [
   'pending',
@@ -33,7 +33,7 @@ export async function PATCH(
     )
   }
 
-  const supabase = await createServiceClient()
+  const supabase = await createClient()
 
   // Verify the order exists
   const { data: existing, error: fetchError } = await supabase

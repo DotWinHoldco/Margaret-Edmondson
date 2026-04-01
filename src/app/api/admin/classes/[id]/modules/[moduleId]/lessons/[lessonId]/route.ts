@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 export async function PATCH(
@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const { lessonId } = await params
     const body = await request.json()
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const updateFields: Record<string, unknown> = {}
     const allowedFields = [
@@ -62,7 +62,7 @@ export async function DELETE(
 ) {
   try {
     const { lessonId } = await params
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('lessons')

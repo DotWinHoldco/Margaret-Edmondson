@@ -1,10 +1,10 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     if (id) {
       const { data: post, error } = await supabase
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const postData: Record<string, unknown> = {
       title,
@@ -105,7 +105,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: 'Post ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const updateData: Record<string, unknown> = {}
 
@@ -151,7 +151,7 @@ export async function DELETE(request: Request) {
       return Response.json({ error: 'Post ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('blog_posts')

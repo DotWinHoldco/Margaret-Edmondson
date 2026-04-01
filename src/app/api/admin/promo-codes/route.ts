@@ -1,9 +1,9 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('promo_codes')
       .select('*')
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('promo_codes')
       .insert({
@@ -81,7 +81,7 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ error: 'ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('promo_codes')
       .update(updates)

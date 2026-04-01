@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 export async function GET(
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('course_modules')
@@ -33,7 +33,7 @@ export async function POST(
   try {
     const { id } = await params
     const body = await request.json()
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       return Response.json({ error: 'Title is required' }, { status: 400 })

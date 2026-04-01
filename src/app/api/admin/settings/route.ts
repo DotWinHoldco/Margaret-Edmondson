@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
 
 const INTEGRATION_KEYS = [
@@ -17,7 +17,7 @@ export async function GET() {
       configured: !!process.env[key],
     }))
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data: globalContent } = await supabase
       .from('site_content')
       .select('*')
@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { seo_title, seo_description } = body
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
     // Upsert global site_content row
     const { data: existing } = await supabase

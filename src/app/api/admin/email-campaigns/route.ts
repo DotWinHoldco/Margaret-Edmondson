@@ -1,8 +1,8 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('email_campaigns')
       .select('*')

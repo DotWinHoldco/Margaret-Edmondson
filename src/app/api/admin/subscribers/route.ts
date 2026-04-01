@@ -1,8 +1,8 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('newsletter_subscribers')
       .select('*')
@@ -30,7 +30,7 @@ export async function DELETE(request: Request) {
       return Response.json({ error: 'ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { error } = await supabase
       .from('newsletter_subscribers')
       .update({ unsubscribed_at: new Date().toISOString() })

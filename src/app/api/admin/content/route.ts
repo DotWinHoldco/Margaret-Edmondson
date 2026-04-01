@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function PATCH(request: Request) {
   try {
@@ -9,7 +9,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: 'ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
       .from('site_content')
       .update({ content_value, updated_at: new Date().toISOString() })
