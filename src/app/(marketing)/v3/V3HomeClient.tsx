@@ -156,8 +156,8 @@ function HeroSection() {
           className="absolute inset-[-30px]"
         >
           <Image
-            src="/Margaret Edmondson/ARTWORK/Beach and SC/Dolphin Watch.jpg"
-            alt="Mixed media artwork by Margaret Edmondson"
+            src="/Margaret Edmondson/ARTWORK/Encouragement Series/Unexpected.jpg"
+            alt="Unexpected — three squirrels painting with brushes, mixed media by Margaret Edmondson"
             fill
             className="object-cover scale-110"
             priority
@@ -199,8 +199,8 @@ function HeroSection() {
       >
         <StampFrame>
           <Image
-            src="/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg"
-            alt="Hot Air cactus artwork"
+            src="/Margaret Edmondson/ARTWORK/Cactuses/Sometime.jpg"
+            alt="Sometime saguaro cactus painting"
             width={160}
             height={200}
             className="object-cover w-full h-auto"

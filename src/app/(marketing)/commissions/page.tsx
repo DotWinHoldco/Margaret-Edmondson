@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const STEPS = [
   { num: 1, title: 'Inquire', desc: 'Reach out with your vision, reference photos, preferred medium, and size. Margaret will discuss your ideas and provide a personalized quote.' },
-  { num: 2, title: 'Deposit & Sketch', desc: 'A 50% deposit secures your spot. Margaret creates initial sketches for your approval and refines until you are delighted.' },
+  { num: 2, title: 'Deposit & Begin', desc: 'A 50% deposit secures your spot. Margaret begins work after agreement and reference images are received.' },
   { num: 3, title: 'Creation', desc: 'Your piece comes to life in the studio. Expect 2 to 8 weeks depending on complexity, with progress photos along the way.' },
   { num: 4, title: 'Delivery', desc: 'Final payment upon completion, professional packaging, and shipping straight to your door. Your story, on your walls.' },
 ]

@@ -6,6 +6,7 @@ import TestimonialsBlock from './TestimonialsBlock'
 import CTABannerBlock from './CTABannerBlock'
 import ClassPreviewBlock from './ClassPreviewBlock'
 import NewsletterBlock from './NewsletterBlock'
+import CategoriesShowcaseBlock from './CategoriesShowcaseBlock'
 
 interface BlockProps {
   type: string
@@ -17,10 +18,12 @@ const BLOCK_MAP: Record<string, React.ComponentType<{ config: Record<string, unk
   hero: HeroBlock,
   featured_grid: FeaturedGridBlock,
   about_split: AboutSplitBlock,
+  about_preview: AboutSplitBlock,
   testimonials: TestimonialsBlock,
   cta_banner: CTABannerBlock,
   class_preview: ClassPreviewBlock,
   newsletter: NewsletterBlock,
+  categories_showcase: CategoriesShowcaseBlock,
 }
 
 export default function BlockRenderer({ type, config, variant = 'v1' }: BlockProps) {

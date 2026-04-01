@@ -35,7 +35,8 @@ function FallbackHomepage() {
     <>
       <BlockRenderer type="hero" config={{}} variant="v1" />
       <BlockRenderer type="featured_grid" config={{}} variant="v1" />
-      <BlockRenderer type="about_split" config={{}} variant="v1" />
+      <BlockRenderer type="about_preview" config={{}} variant="v1" />
+      <BlockRenderer type="categories_showcase" config={{}} variant="v1" />
       <BlockRenderer type="cta_banner" config={{}} variant="v1" />
       <BlockRenderer type="class_preview" config={{}} variant="v1" />
       <BlockRenderer type="testimonials" config={{}} variant="v1" />

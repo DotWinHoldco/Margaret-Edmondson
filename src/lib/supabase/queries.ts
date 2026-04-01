@@ -149,3 +149,56 @@ export async function getCategories() {
 
   return data || []
 }
+
+export async function getCategoryBySlug(slug: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+
+  return data
+}
+
+export async function getProductsByCategory(categorySlug: string) {
+  const supabase = await createClient()
+  const { data: category } = await supabase
+    .from('categories')
+    .select('id, name, slug, description')
+    .eq('slug', categorySlug)
+    .single()
+
+  if (!category) return { category: null, products: [] }
+
+  const { data: products } = await supabase
+    .from('products')
+    .select('*, product_images(*)')
+    .eq('category_id', category.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  return { category, products: products || [] }
+}
+
+export async function getCourseBySlug(slug: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+
+  return data
+}
+
+export async function getCourseModules(courseId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('course_modules')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('sort_order', { ascending: true })
+
+  return data || []
+}
