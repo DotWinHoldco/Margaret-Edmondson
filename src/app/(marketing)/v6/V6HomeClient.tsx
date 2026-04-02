@@ -442,8 +442,8 @@ function AboutSection() {
                 />
                 <div className="bg-white p-2 shadow-md rotate-1">
                   <Image
-                    src="/Margaret Edmondson/ARTWORK/Cactuses/Sometime.jpg"
-                    alt="Sometime by Margaret Edmondson"
+                    src="/Margaret Edmondson/Margaret Bio Photos/Margaret with Fun at the Beach Painting.jpeg"
+                    alt="Margaret Edmondson with her Fun at the Beach painting"
                     width={400}
                     height={500}
                     className="w-full h-auto"

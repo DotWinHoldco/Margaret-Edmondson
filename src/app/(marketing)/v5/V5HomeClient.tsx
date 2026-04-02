@@ -320,8 +320,8 @@ function AboutEditorial() {
             className="float-right ml-6 mb-4 mt-2 w-[180px] md:w-[220px] relative aspect-[3/4] overflow-hidden hidden md:block"
           >
             <Image
-              src={art.pinsNeedles}
-              alt="Pins and Needles — cactus detail"
+              src="/Margaret Edmondson/Margaret Bio Photos/Margaret at Outdoor Art Show.jpeg"
+              alt="Margaret Edmondson at an outdoor art show"
               fill
               className="object-cover"
               sizes="220px"

@@ -509,8 +509,8 @@ function AboutSection() {
               {/* main image */}
               <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
                 <Image
-                  src={`${ART.portrait}/Custom House Portrait Example_1.jpg`}
-                  alt="Custom House Portrait Example by Margaret Edmondson"
+                  src="/Margaret Edmondson/Margaret Bio Photos/Margaret Presenting Cactus Painting.jpeg"
+                  alt="Margaret Edmondson presenting her cactus painting"
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 55vw"

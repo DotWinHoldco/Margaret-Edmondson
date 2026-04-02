@@ -22,8 +22,8 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
           <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
             <Image
-              src="/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg"
-              alt="Margaret Edmondson with award-winning cactus painting"
+              src="/Margaret Edmondson/Margaret Bio Photos/Margaret Plein Air Wildflower Field.jpeg"
+              alt="Margaret Edmondson painting outdoors in a wildflower field"
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"

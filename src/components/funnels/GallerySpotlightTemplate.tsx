@@ -249,8 +249,8 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
               </FadeUp>
               <FadeUp delay={0.25}>
                 <div className="mt-8 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-charcoal/10 flex items-center justify-center">
-                    <span className="font-hand text-lg text-charcoal">ME</span>
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    <img src="/Margaret Edmondson/Margaret Bio Photos/Margaret Selfie with Hot Air Painting.jpeg" alt="Margaret Edmondson" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="font-display text-charcoal font-semibold">Margaret Edmondson</p>

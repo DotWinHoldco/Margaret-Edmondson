@@ -279,8 +279,8 @@ function ArtistStatement() {
           variants={scaleIn}
         >
           <Image
-            src="/Margaret Edmondson/ARTWORK/Cactuses/Pins and Needles.jpg"
-            alt="Pins and Needles"
+            src="/Margaret Edmondson/Margaret Bio Photos/Margaret Plein Air Painting at Lake.jpeg"
+            alt="Margaret Edmondson painting plein air at a lake"
             fill
             className="object-cover"
             sizes="(min-width:768px) 50vw, 100vw"

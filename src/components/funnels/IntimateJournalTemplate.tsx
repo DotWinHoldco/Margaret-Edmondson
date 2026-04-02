@@ -268,8 +268,8 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
           {/* Artist info */}
           <Reveal delay={0.2}>
             <div className="flex items-center gap-4 mt-16 max-w-2xl mx-auto justify-center">
-              <div className="w-14 h-14 rounded-full bg-[#F0EAE0] flex items-center justify-center border-2 border-charcoal/10">
-                <span className="font-hand text-xl text-charcoal">ME</span>
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-charcoal/10">
+                <img src="/Margaret Edmondson/Margaret Bio Photos/Margaret Selfie with Hot Air Painting.jpeg" alt="Margaret Edmondson" className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="font-serif-display text-lg text-charcoal">Margaret Edmondson</p>

@@ -526,8 +526,8 @@ function AboutSection() {
             >
               <StampFrame>
                 <Image
-                  src="/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom House Portrait Example_1.jpg"
-                  alt="Custom house portrait example"
+                  src="/Margaret Edmondson/Margaret Bio Photos/Margaret with Solo Award Full Length.jpeg"
+                  alt="Margaret Edmondson with her Solo award at a gallery show"
                   width={400}
                   height={500}
                   className="object-cover w-full h-auto"
