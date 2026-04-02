@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import RichTextEditor from '@/components/admin/RichTextEditor'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface FeedbackItem {
@@ -520,6 +521,8 @@ export default function ProjectHubClient({
   const [noteContent, setNoteContent] = useState('')
   const [noteSubmitting, setNoteSubmitting] = useState(false)
   const [showNoteForm, setShowNoteForm] = useState(false)
+  const [editingNote, setEditingNote] = useState<{ id: string; title: string; content: string } | null>(null)
+  const [editNoteSubmitting, setEditNoteSubmitting] = useState(false)
 
   const feedbackRef = useRef<HTMLDivElement>(null)
 
@@ -711,6 +714,62 @@ export default function ProjectHubClient({
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           })
         })
+      }
+    } catch {
+      /* silently fail */
+    }
+  }
+
+  // ── Update note ─────────────────────────────────────────────────────
+  async function updateNote(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingNote || editNoteSubmitting) return
+    setEditNoteSubmitting(true)
+
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingNote.id,
+          title: editingNote.title,
+          content: editingNote.content,
+        }),
+      })
+      const json = await res.json()
+
+      if (json.data) {
+        setNotes((p) =>
+          p.map((n) =>
+            n.id === editingNote.id
+              ? { ...n, title: editingNote.title, content: editingNote.content }
+              : n
+          )
+        )
+        setEditingNote(null)
+      }
+    } catch {
+      /* silently fail */
+    } finally {
+      setEditNoteSubmitting(false)
+    }
+  }
+
+  // ── Delete note ────────────────────────────────────────────────────
+  async function deleteNote(noteId: string) {
+    if (!confirm('Delete this note? This cannot be undone.')) return
+
+    try {
+      const res = await fetch('/api/admin/notes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: noteId }),
+      })
+      const json = await res.json()
+
+      if (json.success) {
+        setNotes((p) => p.filter((n) => n.id !== noteId))
+        if (expandedNote === noteId) setExpandedNote(null)
       }
     } catch {
       /* silently fail */
@@ -1187,12 +1246,11 @@ export default function ProjectHubClient({
             <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">
               Description
             </label>
-            <textarea
-              value={fbDescription}
-              onChange={(e) => setFbDescription(e.target.value)}
-              rows={3}
+            <RichTextEditor
+              content={fbDescription}
+              onChange={setFbDescription}
               placeholder="Describe your feedback in detail..."
-              className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/25 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all resize-none"
+              minHeight="80px"
             />
           </div>
           <button
@@ -1270,9 +1328,10 @@ export default function ProjectHubClient({
                     >
                       <div className="px-5 pb-5 border-t border-charcoal/6">
                         {item.description && (
-                          <p className="font-body text-sm text-charcoal/60 leading-relaxed mt-3 whitespace-pre-wrap">
-                            {item.description}
-                          </p>
+                          <div
+                            className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mt-3"
+                            dangerouslySetInnerHTML={{ __html: item.description }}
+                          />
                         )}
                         <CommentThread
                           comments={feedbackComments[item.id] || []}
@@ -1342,12 +1401,11 @@ export default function ProjectHubClient({
             <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">
               Description
             </label>
-            <textarea
-              value={wrDescription}
-              onChange={(e) => setWrDescription(e.target.value)}
-              rows={3}
+            <RichTextEditor
+              content={wrDescription}
+              onChange={setWrDescription}
               placeholder="Describe what you need in detail..."
-              className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/25 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all resize-none"
+              minHeight="80px"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -1474,9 +1532,10 @@ export default function ProjectHubClient({
                           ))}
                         </div>
                         {item.description && (
-                          <p className="font-body text-sm text-charcoal/60 leading-relaxed whitespace-pre-wrap">
-                            {item.description}
-                          </p>
+                          <div
+                            className="rich-content font-body text-sm text-charcoal/60 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: item.description }}
+                          />
                         )}
                         <CommentThread
                           comments={workComments[item.id] || []}
@@ -1542,12 +1601,11 @@ export default function ProjectHubClient({
               <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">
                 Content
               </label>
-              <textarea
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                rows={4}
+              <RichTextEditor
+                content={noteContent}
+                onChange={setNoteContent}
                 placeholder="Write your note here..."
-                className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/25 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all resize-none"
+                minHeight="120px"
               />
             </div>
             <div className="flex gap-2">
@@ -1601,7 +1659,7 @@ export default function ProjectHubClient({
                     </h4>
                     {note.content && (
                       <p className="font-body text-xs text-charcoal/40 mt-0.5 truncate">
-                        {note.content.slice(0, 100)}
+                        {note.content.replace(/<[^>]*>/g, '').slice(0, 100)}
                       </p>
                     )}
                   </div>
@@ -1655,12 +1713,78 @@ export default function ProjectHubClient({
                             </svg>
                             {note.is_pinned ? 'Unpin' : 'Pin'}
                           </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingNote({ id: note.id, title: note.title, content: note.content || '' })
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium bg-charcoal/5 text-charcoal/40 hover:bg-charcoal/10 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                            </svg>
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteNote(note.id)
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium bg-coral/8 text-coral hover:bg-coral/15 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                            Delete
+                          </button>
                         </div>
-                        {note.content && (
-                          <p className="font-body text-sm text-charcoal/60 leading-relaxed whitespace-pre-wrap">
-                            {note.content}
-                          </p>
-                        )}
+                        {editingNote?.id === note.id ? (
+                          <form onSubmit={updateNote} className="mb-4">
+                            <div className="mb-3">
+                              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">
+                                Title
+                              </label>
+                              <input
+                                type="text"
+                                value={editingNote.title}
+                                onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+                                className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all"
+                              />
+                            </div>
+                            <div className="mb-3">
+                              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">
+                                Content
+                              </label>
+                              <RichTextEditor
+                                content={editingNote.content}
+                                onChange={(html) => setEditingNote({ ...editingNote, content: html })}
+                                placeholder="Edit note content..."
+                                minHeight="120px"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="submit"
+                                disabled={editNoteSubmitting || !editingNote.title.trim()}
+                                className="rounded-lg bg-teal px-5 py-2 font-body text-sm font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40"
+                              >
+                                {editNoteSubmitting ? 'Saving...' : 'Save Changes'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingNote(null)}
+                                className="rounded-lg bg-charcoal/5 px-4 py-2 font-body text-sm text-charcoal/50 hover:bg-charcoal/10 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : note.content ? (
+                          <div
+                            className="rich-content font-body text-sm text-charcoal/60 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: note.content }}
+                          />
+                        ) : null}
                         <CommentThread
                           comments={noteComments[note.id] || []}
                           isLoading={!!loadingComments[`notes-${note.id}`]}

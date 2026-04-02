@@ -106,3 +106,39 @@ export async function PATCH(request: NextRequest) {
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { id } = await request.json()
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!id) {
+      return Response.json({ error: 'Note ID is required' }, { status: 400 })
+    }
+
+    // Delete comments first
+    await supabase.from('project_note_comments').delete().eq('note_id', id)
+
+    const { error } = await supabase
+      .from('project_notes')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return Response.json({ error: error.message }, { status: 500 })
+    }
+
+    return Response.json({ success: true })
+  } catch (err) {
+    console.error('DELETE /api/admin/notes error:', err)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
