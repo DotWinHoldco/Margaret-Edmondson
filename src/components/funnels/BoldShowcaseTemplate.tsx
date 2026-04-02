@@ -28,93 +28,128 @@ function Pop({ children, className = '', delay = 0 }: { children: React.ReactNod
   )
 }
 
-/* --- Horizontally scrollable mosaic with zoom-on-hover --- */
-function MosaicStrip({ imageUrl }: { imageUrl: string }) {
-  const stripRef = useRef<HTMLDivElement>(null)
+/* --- Mosaic viewport: fixed grid, image pans behind tiles on interaction --- */
+function MosaicViewport({ imageUrl }: { imageUrl: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   const inView = useInView(sectionRef, { once: true, margin: '-60px' })
+  const [panX, setPanX] = useState(50) // 0-100, percentage of image offset
+  const [panY, setPanY] = useState(50)
   const [zoomedTile, setZoomedTile] = useState<number | null>(null)
+  const isDragging = useRef(false)
+  const lastTouch = useRef({ x: 0, y: 0 })
 
-  const cols = 8
-  const rows = 3
-  const tiles = Array.from({ length: cols * rows }, (_, i) => i)
+  const cols = 5
+  const rows = 4
 
-  // Mouse/touch horizontal scroll
-  const handleWheel = (e: React.WheelEvent) => {
-    if (stripRef.current && Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-      e.preventDefault()
-      stripRef.current.scrollLeft += e.deltaY
-    }
+  // Mouse move pans the image behind the grid
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current || zoomedTile !== null) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setPanX(x)
+    setPanY(y)
   }
+
+  // Touch drag pans
+  const handleTouchStart = (e: React.TouchEvent) => {
+    isDragging.current = true
+    lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return
+    const dx = e.touches[0].clientX - lastTouch.current.x
+    const dy = e.touches[0].clientY - lastTouch.current.y
+    lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    setPanX((prev) => Math.max(0, Math.min(100, prev - dx * 0.3)))
+    setPanY((prev) => Math.max(0, Math.min(100, prev - dy * 0.3)))
+  }
+  const handleTouchEnd = () => { isDragging.current = false }
+
+  // The image is 2.5x the grid size, panX/panY control which portion is visible
+  // Each tile shows its slice of the panned image
+  const imgScale = 2.5
+  const offsetX = -(panX / 100) * (imgScale - 1) * 100 // range: 0 to -(imgScale-1)*100
+  const offsetY = -(panY / 100) * (imgScale - 1) * 100
 
   return (
     <div ref={sectionRef}>
-      {/* Scroll hint */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={inView ? { opacity: 1 } : { opacity: 0 }}
         transition={{ delay: 0.8 }}
         className="text-center font-body text-xs uppercase tracking-[0.3em] text-cream/30 mb-4"
       >
-        ← Scroll to explore the artwork →
+        Move your cursor to explore the artwork
       </motion.p>
 
       <div
-        ref={stripRef}
-        onWheel={handleWheel}
-        className="overflow-x-auto cursor-grab active:cursor-grabbing"
-        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative max-w-4xl mx-auto cursor-crosshair"
       >
         <div
-          className="grid gap-[2px]"
+          className="grid gap-[3px]"
           style={{
-            gridTemplateColumns: `repeat(${cols}, minmax(120px, 1fr))`,
-            gridTemplateRows: `repeat(${rows}, 120px)`,
-            width: `max(100%, ${cols * 130}px)`,
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, 90px)`,
           }}
         >
-          {tiles.map((index) => {
+          {Array.from({ length: cols * rows }, (_, index) => {
             const col = index % cols
             const row = Math.floor(index / cols)
-            const rotation = ((index * 7 + 3) % 9) / 2.25 - 2
-            const fadeDelay = 0.1 + ((index * 3) % 12) * 0.06
             const isZoomed = zoomedTile === index
+            const fadeDelay = 0.08 + ((index * 3 + 1) % 15) * 0.04
 
             return (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.85 }}
                 transition={{ duration: 0.5, ease, delay: fadeDelay }}
-                onClick={() => setZoomedTile(isZoomed ? null : index)}
-                onHoverStart={() => setZoomedTile(index)}
-                onHoverEnd={() => setZoomedTile(null)}
-                className="relative overflow-hidden cursor-pointer"
+                className="relative overflow-hidden rounded-sm cursor-pointer"
                 style={{
-                  zIndex: isZoomed ? 20 : 1,
-                  transform: isZoomed ? 'scale(1.6) rotate(0deg)' : `rotate(${rotation * 0.3}deg)`,
-                  transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), z-index 0s',
+                  zIndex: isZoomed ? 30 : 1,
                 }}
+                onClick={() => setZoomedTile(isZoomed ? null : index)}
+                onMouseEnter={() => setZoomedTile(index)}
+                onMouseLeave={() => setZoomedTile(null)}
               >
-                <div className="absolute inset-0 overflow-hidden rounded-sm">
+                {/* The artwork image — pans with mouse, each tile shows its portion */}
+                <div
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: isZoomed ? 'scale(2.2)' : 'scale(1)',
+                    transition: 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                >
                   <img
                     src={imageUrl}
                     alt=""
                     draggable={false}
+                    className="pointer-events-none"
                     style={{
                       position: 'absolute',
-                      width: `${cols * 100}%`,
-                      height: `${rows * 100}%`,
+                      width: `${cols * imgScale * 100}%`,
+                      height: `${rows * imgScale * 100}%`,
                       maxWidth: 'none',
                       objectFit: 'cover',
-                      left: `${-col * 100}%`,
-                      top: `${-row * 100}%`,
+                      left: `calc(${-col * imgScale * 100}% + ${offsetX}%)`,
+                      top: `calc(${-row * imgScale * 100}% + ${offsetY}%)`,
+                      transition: 'left 0.6s cubic-bezier(0.22, 1, 0.36, 1), top 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                     }}
                   />
                 </div>
+
                 {/* Glass edge */}
-                <div className={`absolute inset-0 border rounded-sm pointer-events-none transition-colors duration-300 ${isZoomed ? 'border-gold/50' : 'border-white/10'}`} />
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className={`absolute inset-0 border rounded-sm pointer-events-none transition-all duration-300 ${
+                  isZoomed ? 'border-gold/60 shadow-lg shadow-gold/20' : 'border-white/10'
+                }`} />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
               </motion.div>
             )
           })}
@@ -347,7 +382,7 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
         {/* Horizontally scrollable mosaic reveal */}
         {heroImage && (
           <div className="mt-20 px-6">
-            <MosaicStrip imageUrl={heroImage.url} />
+            <MosaicViewport imageUrl={heroImage.url} />
             <div className="mt-4 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent max-w-5xl mx-auto" />
           </div>
         )}
