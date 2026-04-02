@@ -15,8 +15,13 @@ export default function WelcomeClient() {
 
   useEffect(() => {
     // If user already dismissed the welcome letter permanently, skip straight to dashboard
+    // Clean up stale session-level values from old implementation
+    const val = localStorage.getItem('artbyme_welcome_dismissed')
+    if (val && val !== 'permanent') {
+      localStorage.removeItem('artbyme_welcome_dismissed')
+    }
     // Only skip the letter if permanently dismissed
-    if (localStorage.getItem('artbyme_welcome_dismissed') === 'permanent') {
+    if (val === 'permanent') {
       router.replace('/admin')
       return
     }
