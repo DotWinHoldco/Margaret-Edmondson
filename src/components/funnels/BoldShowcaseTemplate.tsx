@@ -369,14 +369,10 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
               </div>
             </Pop>
 
-            {/* Detail image with gold frame effect */}
+            {/* Detail image with gold frame on container border */}
             {detailImage && (
               <Pop delay={0.1}>
-                <div className="relative aspect-square md:aspect-auto md:h-full group">
-                  {/* Gold frame with shadow */}
-                  <div className="absolute inset-3 md:inset-5 z-10 pointer-events-none border-[3px] border-gold/70 shadow-[0_0_20px_rgba(201,168,76,0.15)]" />
-                  {/* Inner subtle shadow for depth */}
-                  <div className="absolute inset-3 md:inset-5 z-10 pointer-events-none shadow-[inset_0_0_30px_rgba(0,0,0,0.3)]" />
+                <div className="relative aspect-square md:aspect-auto md:h-full group border-[3px] border-gold/70 overflow-hidden">
                   <Image
                     src={detailImage.url}
                     alt="Artwork detail"
@@ -439,8 +435,8 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
                   <div className="absolute -inset-8 bg-gradient-to-b from-[#e8e3dd] to-[#ddd8d2] rounded-sm" />
                   {/* Frame shadow */}
                   <div className="absolute -inset-4 shadow-[8px_12px_40px_rgba(0,0,0,0.25),_-2px_-2px_20px_rgba(255,255,255,0.3)] bg-charcoal/5 rounded-sm" />
-                  {/* Gold frame */}
-                  <div className="relative border-[6px] border-gold/60 shadow-[inset_0_0_0_2px_rgba(201,168,76,0.3)]">
+                  {/* Gold frame flush on container edge */}
+                  <div className="relative border-[4px] border-gold/60 overflow-hidden">
                     <div className="relative w-[280px] h-[350px] sm:w-[360px] sm:h-[450px] md:w-[440px] md:h-[550px]">
                       <Image
                         src={heroImage.url}

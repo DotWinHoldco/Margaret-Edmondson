@@ -1036,7 +1036,7 @@ export default function ProjectHubClient({
           {[
             { value: '25', label: 'Public Pages' },
             { value: '27', label: 'Admin Pages' },
-            { value: '6', label: 'Sales Funnels' },
+            { value: '15', label: 'Sales Funnels' },
             { value: '45', label: 'API Routes' },
             { value: '28k+', label: 'Lines of Code' },
           ].map((stat) => (
