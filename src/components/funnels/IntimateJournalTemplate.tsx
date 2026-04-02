@@ -52,7 +52,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
   const printVariants = variants.filter((v) => v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print')
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
-  const originalSold = originalVariant && originalVariant.inventory_count <= 0
+  const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
 
   const fullImageRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress: imageProgress } = useScroll({ target: fullImageRef, offset: ['start end', 'end start'] })
@@ -96,17 +96,17 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease }}
-              className="lg:col-span-3 relative h-[60vh] lg:h-screen"
+              className="lg:col-span-3 relative h-[60vh] lg:h-screen bg-cream flex items-center justify-center"
             >
               <Image
                 src={heroImage.url}
                 alt={heroImage.alt_text || product.title}
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority
                 sizes="(min-width: 1024px) 60vw, 100vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-cream/30 lg:block hidden" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-cream/30 lg:block hidden pointer-events-none" />
             </motion.div>
           )}
 
@@ -191,13 +191,11 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
             </div>
             {detailImage && (
               <ImageSlide delay={0.2} className="hidden md:block">
-                <div className="relative aspect-[3/4] rounded-sm overflow-hidden shadow-lg">
-                  <Image
+                <div className="relative rounded-sm overflow-hidden shadow-lg bg-[#F8F4EE] flex items-center justify-center">
+                  <img
                     src={detailImage.url}
                     alt="Detail"
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 768px) 250px, 0px"
+                    className="w-full h-auto max-h-[60vh] object-contain"
                   />
                 </div>
                 <p className="font-hand text-sm text-charcoal/40 mt-3 text-center -rotate-1">detail</p>
@@ -213,14 +211,12 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
           {/* Full-width artwork image with parallax */}
           {heroImage && (
             <Reveal>
-              <div ref={fullImageRef} className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-sm overflow-hidden shadow-2xl mb-16">
-                <motion.div style={{ y: imageY }} className="absolute inset-[-30px]">
-                  <Image
+              <div ref={fullImageRef} className="relative w-full rounded-sm overflow-hidden shadow-2xl mb-16 bg-cream flex items-center justify-center">
+                <motion.div style={{ y: imageY }} className="relative w-full">
+                  <img
                     src={heroImage.url}
                     alt={product.title}
-                    fill
-                    className="object-cover"
-                    sizes="100vw"
+                    className="w-full h-auto max-h-[70vh] object-contain"
                   />
                 </motion.div>
               </div>
@@ -249,13 +245,11 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
           <div className="grid md:grid-cols-2 gap-8 mt-16 max-w-4xl mx-auto">
             {images.slice(1, 3).map((img, i) => (
               <ImageSlide key={img.id} delay={i * 0.1}>
-                <div className="relative aspect-square rounded-sm overflow-hidden shadow-lg">
-                  <Image
+                <div className="relative rounded-sm overflow-hidden shadow-lg bg-cream flex items-center justify-center">
+                  <img
                     src={img.url}
                     alt={img.alt_text || 'Artwork detail'}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 768px) 45vw, 100vw"
+                    className="w-full h-auto max-h-[60vh] object-contain"
                   />
                 </div>
                 <p className="font-hand text-sm text-charcoal/40 mt-3 text-center -rotate-1">

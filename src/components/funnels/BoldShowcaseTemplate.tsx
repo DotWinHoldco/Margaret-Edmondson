@@ -150,7 +150,7 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
   const printVariants = variants.filter((v) => v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print')
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
-  const originalSold = originalVariant && originalVariant.inventory_count <= 0
+  const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
 
   const offerRef = useRef<HTMLElement>(null)
   const scrollToOffer = () => offerRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -372,13 +372,11 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
             {/* Detail image with gold frame on container border */}
             {detailImage && (
               <Pop delay={0.1}>
-                <div className="relative aspect-square md:aspect-auto md:h-full group border-[3px] border-gold/70 overflow-hidden">
-                  <Image
+                <div className="relative md:h-full group border-[3px] border-gold/70 overflow-hidden bg-charcoal flex items-center justify-center min-h-[500px]">
+                  <img
                     src={detailImage.url}
                     alt="Artwork detail"
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="w-full h-auto max-h-[70vh] object-contain transition-transform duration-700 group-hover:scale-[1.02]"
                   />
                 </div>
               </Pop>
@@ -437,12 +435,12 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
                   <div className="absolute -inset-4 shadow-[8px_12px_40px_rgba(0,0,0,0.25),_-2px_-2px_20px_rgba(255,255,255,0.3)] bg-charcoal/5 rounded-sm" />
                   {/* Gold frame flush on container edge */}
                   <div className="relative border-[4px] border-gold/60 overflow-hidden">
-                    <div className="relative w-[280px] h-[350px] sm:w-[360px] sm:h-[450px] md:w-[440px] md:h-[550px]">
+                    <div className="relative w-[280px] h-[350px] sm:w-[360px] sm:h-[450px] md:w-[440px] md:h-[550px] bg-white flex items-center justify-center">
                       <Image
                         src={heroImage.url}
                         alt={product.title}
                         fill
-                        className="object-cover"
+                        className="object-contain"
                         sizes="440px"
                       />
                     </div>
@@ -474,14 +472,12 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   transition={spring}
-                  className="relative aspect-[4/5] rounded-sm overflow-hidden shadow-2xl"
+                  className="relative rounded-sm overflow-hidden shadow-2xl bg-cream flex items-center justify-center"
                 >
-                  <Image
+                  <img
                     src={heroImage.url}
                     alt={product.title}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="w-full h-auto max-h-[70vh] object-contain"
                   />
                 </motion.div>
               </Pop>

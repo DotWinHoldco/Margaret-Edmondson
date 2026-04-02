@@ -40,7 +40,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
   const printVariants = variants.filter((v) => v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print')
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
-  const originalSold = originalVariant && originalVariant.inventory_count <= 0
+  const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
 
   const offerRef = useRef<HTMLElement>(null)
   const scrollToOffer = () => offerRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -163,13 +163,11 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
           </div>
           {detailImage && (
             <FadeUp delay={0.3} className="hidden md:block">
-              <div className="relative aspect-[3/4] rounded-sm overflow-hidden opacity-60">
-                <Image
+              <div className="relative rounded-sm overflow-hidden opacity-60 bg-[#1A1A1A] flex items-center justify-center">
+                <img
                   src={detailImage.url}
                   alt="Detail"
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 768px) 33vw, 0px"
+                  className="w-full h-auto max-h-[70vh] object-contain"
                 />
               </div>
             </FadeUp>
@@ -182,13 +180,11 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-3 gap-12 items-center">
           {detailImage && (
             <FadeUp className="hidden md:block">
-              <div className="relative aspect-square rounded-sm overflow-hidden shadow-xl">
-                <Image
+              <div className="relative rounded-sm overflow-hidden shadow-xl bg-cream flex items-center justify-center">
+                <img
                   src={detailImage.url}
                   alt="Artwork detail"
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 768px) 33vw, 0px"
+                  className="w-full h-auto max-h-[70vh] object-contain"
                 />
               </div>
             </FadeUp>
@@ -221,13 +217,11 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
           <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-start">
             {heroImage && (
               <FadeUp>
-                <div className="relative aspect-[4/5] rounded-sm overflow-hidden shadow-2xl">
-                  <Image
+                <div className="relative rounded-sm overflow-hidden shadow-2xl bg-[#F5F0E8] flex items-center justify-center">
+                  <img
                     src={heroImage.url}
                     alt={product.title}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="w-full h-auto max-h-[70vh] object-contain"
                   />
                 </div>
               </FadeUp>
