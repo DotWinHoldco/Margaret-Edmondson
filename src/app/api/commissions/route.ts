@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     .single()
 
   if (error) {
-    return Response.json({ error: 'Failed to submit commission' }, { status: 500 })
+    console.error('Commission insert error:', error)
+    return Response.json({ error: error.message || 'Failed to submit commission' }, { status: 500 })
   }
 
   // Send notification email to Margaret

@@ -57,7 +57,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
         image: heroImage?.url || '',
         price: variant.price,
         quantity: 1,
-        fulfillmentType: variant.variant_type === 'original' ? 'self_ship' : 'drop_ship',
+        fulfillmentType: variant.variant_type === 'original' ? 'self_ship' : 'lumaprints',
       },
     })
   }

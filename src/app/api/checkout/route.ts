@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       ...item,
       title: product.title + variantName,
       price,
-      fulfillmentType: product.fulfillment_type,
+      fulfillmentType: item.fulfillmentType || (item.variantType === 'original' ? 'self_ship' : 'lumaprints'),
     })
   }
 
