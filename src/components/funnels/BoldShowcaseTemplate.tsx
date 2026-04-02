@@ -66,12 +66,17 @@ function MosaicFragment({
       style={{ aspectRatio: '1' }}
     >
       <div className="absolute inset-0.5 overflow-hidden rounded-sm">
-        <div
-          className="absolute inset-0"
+        <img
+          src={imageUrl}
+          alt=""
+          className="absolute w-full h-full"
           style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: `${cols * 100}% ${rows * 100}%`,
-            backgroundPosition: `${(col / (cols - 1)) * 100}% ${(row / (rows - 1)) * 100}%`,
+            width: `${cols * 100}%`,
+            height: `${rows * 100}%`,
+            maxWidth: 'none',
+            objectFit: 'cover',
+            left: `${-(col / (cols - 1)) * (cols - 1) * 100}%`,
+            top: `${-(row / (rows - 1)) * (rows - 1) * 100}%`,
           }}
         />
       </div>
