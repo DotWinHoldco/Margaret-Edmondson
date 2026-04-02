@@ -465,6 +465,217 @@ function CommentThread({
   )
 }
 
+// ─── Welcome Letter (inline) ──────────────────────────────────────────
+function WelcomeLetter({ onStartTutorial }: { onStartTutorial: () => void }) {
+  const S = ({ children }: { children: React.ReactNode }) => <div className="mb-12">{children}</div>
+  const SLabel = ({ children, color = '#C4724E' }: { children: React.ReactNode; color?: string }) => (
+    <div className="flex items-center gap-2 mb-3" style={{ color }}>
+      <div className="w-5 h-0.5" style={{ background: color }} />
+      <span className="text-[11px] font-bold tracking-[2.5px] uppercase">{children}</span>
+    </div>
+  )
+  const H2 = ({ children }: { children: React.ReactNode }) => (
+    <h2 className="font-editorial text-[26px] font-semibold text-[#2C2A26] mb-5 leading-tight">{children}</h2>
+  )
+  const P = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-[16px] text-[#5A5650] mb-4 leading-[1.7]">{children}</p>
+  )
+  const Callout = ({ children }: { children: React.ReactNode }) => (
+    <div className="bg-[#F5F0E8] border-l-[3px] border-[#C4724E] rounded-r-xl px-7 py-6 my-7">{children}</div>
+  )
+
+  return (
+    <div className="mt-4 rounded-xl border border-[#E5DFD5] bg-[#FAF6F0] shadow-lg overflow-hidden">
+      <div className="max-w-[780px] mx-auto px-10 py-14 sm:px-6">
+
+        {/* Header */}
+        <div className="text-center mb-14 pb-12 border-b border-[#E5DFD5]">
+          <p className="font-hand text-[22px] text-[#C4724E] mb-2">Welcome to</p>
+          <h1 className="font-editorial text-[38px] font-bold text-[#2C2A26] leading-tight mb-3">
+            ArtByME <span className="italic text-[#C4724E]">artOS</span> 🎨
+          </h1>
+          <p className="text-[17px] text-[#5A5650] max-w-[540px] mx-auto">Your brand new art management and operating system.<br />We built this just for you, and we really hope you love it.</p>
+        </div>
+
+        {/* Greeting */}
+        <div className="mb-12">
+          <p className="text-[18px] text-[#2C2A26] mb-4">Hi Margaret!</p>
+          <P>We are so excited to share this with you. When this system is fully complete, you&apos;ll be able to do everything you need to effectively run your art business — all from this one place.</P>
+          <P>We&apos;ve built the substantial bones for your entire art operating system. Because of that, changes from here on out can happen very quickly.</P>
+        </div>
+
+        {/* What We Built */}
+        <S>
+          <SLabel>What We Built For You</SLabel>
+          <H2>Everything you need, one place.</H2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-7">
+            {[
+              { icon: '🖼️', t: 'Manage Your Artwork', d: 'Add new pieces, update prices, swap images, and organize your collections.' },
+              { icon: '🛒', t: 'Run Your Online Store', d: 'Process orders, track fulfillment through Lumaprints, Printful, and ShipStation, and manage inventory.' },
+              { icon: '🎨', t: 'Handle Commissions', d: 'Receive requests, communicate with clients, track progress, and send invoices.' },
+              { icon: '📚', t: 'Teach Art Classes', d: 'Create courses, upload lesson content, and manage student enrollments.' },
+              { icon: '✍️', t: 'Write Your Blog', d: 'Share your process, studio updates, and stories behind your pieces with a beautiful editor.' },
+              { icon: '📧', t: 'Send Marketing Emails', d: 'Newsletters, promotions, abandoned cart reminders, and welcome series — all automated.' },
+              { icon: '✏️', t: 'Edit Your Website', d: 'Swap hero images, reorder page sections, update text and CTAs — all without touching any code.' },
+              { icon: '🛠️', t: 'Request Custom Changes', d: 'Submit a request right from this dashboard and we\'ll build it with a live preview before it goes live.' },
+            ].map((f) => (
+              <div key={f.t} className="bg-[#FFFDF9] border border-[#E5DFD5] rounded-xl px-5 py-5 hover:-translate-y-0.5 transition-transform">
+                <div className="text-[22px] mb-2">{f.icon}</div>
+                <h4 className="text-[14px] font-bold text-[#2C2A26] mb-1.5">{f.t}</h4>
+                <p className="text-[13.5px] text-[#8A857D] leading-[1.55]">{f.d}</p>
+              </div>
+            ))}
+          </div>
+        </S>
+
+        {/* Homepage Designs */}
+        <S>
+          <SLabel>Your Homepage</SLabel>
+          <H2>6 designs to choose from.</H2>
+          <P>We built six different homepage designs for you to explore. Please click on <strong className="text-[#2C2A26]">all six</strong> and take your time with each one. Here&apos;s what we need from you:</P>
+          <Callout>
+            <p className="text-[#5A5650] mb-3"><strong className="text-[#2C2A26]">Which direction speaks to you the most?</strong></p>
+            <p className="text-[#5A5650] mb-3"><strong className="text-[#2C2A26]">What do you love about it?</strong></p>
+            <p className="text-[#5A5650] mb-3"><strong className="text-[#2C2A26]">What would you want to remove or change?</strong></p>
+            <p className="text-[#5A5650]"><strong className="text-[#2C2A26]">Do you see elements in other versions that you&apos;d want to pull into your favorite?</strong></p>
+          </Callout>
+          <P>If you love the clean simplicity of one version but the handcrafted notebook-page feel of another — tell us! We can mix and match. Colors, fonts, layouts — everything can be tweaked to match your vision.</P>
+        </S>
+
+        {/* Artwork Funnels */}
+        <S>
+          <SLabel>A Powerful New Sales Tool</SLabel>
+          <H2>Artwork Funnels.</H2>
+          <P>In addition to your homepage options, we&apos;ve built three funnel templates for selling individual pieces of art.</P>
+          <P>Here&apos;s the idea: your shop page shows all your artwork in a grid. But what about when you want to sell a <strong className="text-[#2C2A26]">specific piece</strong> — say you just finished something you&apos;re really excited about and want to share it on Instagram, text it to a collector, or include it in an email?</P>
+          <P>That&apos;s what Artwork Funnels are for. Think of a funnel page as a <strong className="text-[#2C2A26]">product page on steroids</strong> — a dedicated, beautiful, single-page experience built around one piece of art.</P>
+
+          <P>Each funnel follows a storytelling structure:</P>
+          <div className="my-7">
+            {[
+              { l: 'The hook', d: 'a stunning full-screen view that stops the scroll' },
+              { l: 'The emotional connection', d: 'why original art matters, why mass-produced prints feel empty' },
+              { l: 'The story', d: 'YOUR real story about this piece. This is the heart of the page.' },
+              { l: 'The vision', d: 'helping them imagine it on their wall, sparking conversations' },
+              { l: 'The offer', d: 'the original (if available) or prints in any size, clearly presented' },
+              { l: 'The promise', d: 'shipping and satisfaction guarantees so they buy with confidence' },
+            ].map((s) => (
+              <div key={s.l} className="flex gap-4 items-baseline py-2.5">
+                <span className="text-[#C4724E] font-semibold shrink-0">&rarr;</span>
+                <span className="text-[15px]"><strong className="text-[#2C2A26]">{s.l}</strong> — <span className="text-[#8A857D]">{s.d}</span></span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-4 my-7">
+            {[
+              { emoji: '🖼️', t: 'Gallery Spotlight', d: 'Dramatic, cinematic, full-screen. Great for big, bold pieces like "Hot Air" and "Flower Power."' },
+              { emoji: '📓', t: 'Intimate Journal', d: 'Warm, personal, like reading a page from your sketchbook. Perfect for collage and encouragement series.' },
+              { emoji: '🎨', t: 'Bold Showcase', d: 'High-energy, vibrant, contemporary. Ideal for colorful pieces like "Road Trip" and your animal paintings.' },
+            ].map((f) => (
+              <div key={f.t} className="flex gap-5 items-start bg-[#FFFDF9] border border-[#E5DFD5] rounded-xl p-6">
+                <div className="text-[32px] shrink-0">{f.emoji}</div>
+                <div>
+                  <h4 className="font-editorial text-[18px] font-semibold text-[#2C2A26] mb-1.5">{f.t}</h4>
+                  <p className="text-[14.5px] text-[#8A857D] leading-[1.6]">{f.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <P>Eventually, every piece of art will have <strong className="text-[#2C2A26]">both</strong> its own product page <strong className="text-[#2C2A26]">and</strong> its own dedicated sales funnel page with a clean, shareable link like <strong className="text-[#2C2A26]">artbyme.studio/art/flower-power</strong>.</P>
+        </S>
+
+        {/* About the Name */}
+        <S>
+          <SLabel>About the Name</SLabel>
+          <H2>ArtByME.Studio</H2>
+          <P>We chose ArtByME.Studio as a fun platform name. <strong className="text-[#2C2A26]">&ldquo;ByME&rdquo; is a play on your initials</strong> (Margaret Edmondson), but &ldquo;ME&rdquo; could also be any aspiring artist. Your public art website can use any domain you choose.</P>
+          <div className="flex items-center gap-4 my-6 flex-wrap">
+            <span className="bg-[#C4724E] text-white rounded-full px-5 py-2.5 text-[14px] font-semibold">ArtByME.Studio</span>
+            <span className="text-[18px] text-[#8A857D] font-semibold">+</span>
+            <span className="bg-[#FFFDF9] border border-[#E5DFD5] rounded-full px-5 py-2.5 text-[14px] font-semibold text-[#2C2A26]">MargaretEdmondsonArt.com</span>
+          </div>
+        </S>
+
+        {/* Why Section */}
+        <div className="bg-[#F5F0E8] rounded-2xl px-8 py-9 my-10">
+          <SLabel color="#7A9A82">A Note From Us</SLabel>
+          <h2 className="font-editorial text-[24px] font-semibold text-[#2C2A26] mb-5">Why we went ahead and built the whole thing.</h2>
+          <P>Frankly, at DotWin we specialize in ensuring that our clients are successful. You needed a platform that allows you to create an experience for your visitors — classes, commissions, sales analytics, and fulfillment.</P>
+          <P>You&apos;ve become a friend over the last few years, and Skylar and I wanted to ensure that your platform is second to none. Selfishly, we hope you&apos;ll share your platform with your artist friends.</P>
+          <P>When you&apos;re ready, we&apos;ll show you how we can leverage ArtByME.Studio as the ultimate artist distribution platform to help your students and friends gain exposure too. 😊</P>
+          <p className="font-hand text-[20px] text-[#C4724E] mt-2">— from our hearts to yours</p>
+        </div>
+
+        {/* Things to Remember */}
+        <S>
+          <SLabel>Good to Know</SLabel>
+          <H2>A few things to remember.</H2>
+          <div className="my-6">
+            {[
+              { n: '1', text: <><strong className="text-[#2C2A26]">All designs, colors, and structures are preliminary.</strong> Now that the bones are built, we can iterate very quickly. Use the feedback section to let us know what you want to change.</> },
+              { n: '2', text: <><strong className="text-[#2C2A26]">Some functionality doesn&apos;t work yet</strong> because we need to sit down together and open a few accounts to complete the integrations. All the code work has been done.</> },
+              { n: '3', text: <><strong className="text-[#2C2A26]">There are 6 homepage variants, but everything else is uniform.</strong> Once we know what kind of feel and colors you like, we&apos;ll update the entire platform to match.</> },
+            ].map((r) => (
+              <div key={r.n} className="flex gap-5 py-5 border-b border-[#E5DFD5] last:border-b-0">
+                <div className="w-9 h-9 bg-[#C4724E] text-white rounded-full flex items-center justify-center text-[15px] font-bold shrink-0 mt-0.5">{r.n}</div>
+                <p className="text-[15.5px] text-[#5A5650]">{r.text}</p>
+              </div>
+            ))}
+          </div>
+        </S>
+
+        {/* Next Steps */}
+        <div className="bg-[#2C2A26] rounded-2xl px-8 py-9 my-10">
+          <div className="flex items-center gap-2 mb-3" style={{ color: '#E8D89A' }}>
+            <div className="w-5 h-0.5 bg-[#E8D89A]" />
+            <span className="text-[11px] font-bold tracking-[2.5px] uppercase">Let&apos;s Go</span>
+          </div>
+          <h2 className="font-editorial text-[26px] font-semibold text-[#FAF6F0] mb-5">Next steps.</h2>
+          {[
+            { n: '1', text: <>Review your <strong className="text-[#FAF6F0]">6 homepage designs</strong> — click every single one and take your time</> },
+            { n: '2', text: <>Tell us which direction speaks to you — what you love, what you&apos;d change, what to mix and match</> },
+            { n: '3', text: <>Browse the <strong className="text-[#FAF6F0]">3 funnel template styles</strong> and let us know your thoughts</> },
+            { n: '4', text: <>Use the <strong className="text-[#FAF6F0]">feedback section</strong> in your dashboard to send us any notes</> },
+            { n: '5', text: <>Once we land on your direction, we&apos;ll schedule a <strong className="text-[#FAF6F0]">setup meeting</strong> to open your integration accounts and go live 🚀</> },
+          ].map((s) => (
+            <div key={s.n} className="flex gap-4 items-center py-3.5 border-b border-white/[0.08] last:border-b-0">
+              <div className="w-8 h-8 bg-[#C4724E] text-white rounded-full flex items-center justify-center text-[14px] font-bold shrink-0">{s.n}</div>
+              <p className="text-[15.5px] text-[#FAF6F0]/85">{s.text}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Transition Banner */}
+        <div className="bg-gradient-to-br from-[#7A9A82] to-[#5C8A66] rounded-xl px-8 py-7 text-center my-10">
+          <p className="text-white text-[16px] mb-2"><strong className="text-[18px] block mb-1.5">Everything lives here now.</strong></p>
+          <p className="text-white text-[16px]">From now on, we&apos;ll manage your project 100% inside your platform.<br /><span className="line-through opacity-60 text-[14px]">portal.businesses.win</span> — you don&apos;t need it anymore!</p>
+        </div>
+
+        {/* Sign Off */}
+        <div className="text-center pt-10 border-t border-[#E5DFD5] mt-12">
+          <p className="text-[17px] text-[#5A5650] mb-3">This platform was designed around how you work — your art, your process, your business. Let&apos;s make it perfect.</p>
+          <p className="font-hand text-[28px] text-[#2C2A26]">— Skylar &amp; Shelby <span className="text-[#C4724E]">&#9829;</span></p>
+        </div>
+
+        {/* Start Tutorial Button */}
+        <div className="text-center mt-10 pb-2">
+          <button
+            onClick={onStartTutorial}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#C4724E] px-8 py-3.5 text-white font-semibold text-[15px] hover:bg-[#b5654a] transition-colors shadow-lg shadow-[#C4724E]/20"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+            </svg>
+            Start Dashboard Tutorial
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────
 const TEMPLATE_LABELS: Record<string, { label: string; accent: string }> = {
   gallery_spotlight: { label: 'Gallery Spotlight', accent: 'bg-charcoal' },
@@ -526,15 +737,11 @@ export default function ProjectHubClient({
 
   const feedbackRef = useRef<HTMLDivElement>(null)
 
-  // Tutorial
+  // Tutorial & Welcome Letter
   const [tutorialStep, setTutorialStep] = useState<number | null>(null)
   const [showWelcomeLetter, setShowWelcomeLetter] = useState(false)
   useEffect(() => {
-    const tutorialSeen = localStorage.getItem('artbyme_tutorial_seen')
     const letterHidden = localStorage.getItem('artbyme_letter_hidden')
-    if (!tutorialSeen) {
-      setTutorialStep(0)
-    }
     if (!letterHidden) {
       setShowWelcomeLetter(true)
     }
@@ -926,11 +1133,13 @@ export default function ProjectHubClient({
       <div className="mb-8">
         <button
           onClick={() => {
-            const next = !showWelcomeLetter
-            setShowWelcomeLetter(next)
-            localStorage.setItem('artbyme_letter_hidden', next ? '' : '1')
-            if (!next) localStorage.setItem('artbyme_letter_hidden', '1')
-            else localStorage.removeItem('artbyme_letter_hidden')
+            if (showWelcomeLetter) {
+              localStorage.setItem('artbyme_letter_hidden', '1')
+              setShowWelcomeLetter(false)
+            } else {
+              localStorage.removeItem('artbyme_letter_hidden')
+              setShowWelcomeLetter(true)
+            }
           }}
           className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#C4724E]/10 to-[#C9A84C]/10 border border-[#C4724E]/20 px-4 py-2.5 font-body text-sm font-medium text-[#C4724E] hover:from-[#C4724E]/15 hover:to-[#C9A84C]/15 transition-all"
         >
@@ -960,14 +1169,7 @@ export default function ProjectHubClient({
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-4 rounded-xl border border-[#C4724E]/15 overflow-hidden shadow-lg">
-                <iframe
-                  src="/welcome"
-                  className="w-full border-0"
-                  style={{ height: '80vh', minHeight: 600 }}
-                  title="Welcome Letter"
-                />
-              </div>
+              <WelcomeLetter onStartTutorial={() => { setTutorialStep(0); setShowWelcomeLetter(false); localStorage.setItem('artbyme_letter_hidden', '1') }} />
             </motion.div>
           )}
         </AnimatePresence>
