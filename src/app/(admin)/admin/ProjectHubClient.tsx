@@ -532,8 +532,10 @@ export default function ProjectHubClient({
   // Welcome gate + tutorial
   const [tutorialStep, setTutorialStep] = useState<number | null>(null)
   useEffect(() => {
-    // Redirect to welcome letter if user hasn't dismissed it
-    if (!localStorage.getItem('artbyme_welcome_dismissed')) {
+    // Redirect to welcome letter unless permanently dismissed or just entered from welcome
+    const permanent = localStorage.getItem('artbyme_welcome_dismissed') === 'permanent'
+    const fromWelcome = sessionStorage.getItem('artbyme_entered_from_welcome')
+    if (!permanent && !fromWelcome) {
       router.replace('/welcome')
       return
     }

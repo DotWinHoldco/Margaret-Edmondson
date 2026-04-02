@@ -20,14 +20,15 @@ export default function WelcomeClient() {
       router.replace('/admin')
       return
     }
-    // Clear session-level dismiss so letter shows again on next visit
-    localStorage.removeItem('artbyme_welcome_dismissed')
     setReady(true)
   }, [router])
 
   function enterDashboard(dismissPermanently: boolean) {
-    // Always mark as dismissed so dashboard doesn't redirect back
-    localStorage.setItem('artbyme_welcome_dismissed', dismissPermanently ? 'permanent' : 'session')
+    if (dismissPermanently) {
+      localStorage.setItem('artbyme_welcome_dismissed', 'permanent')
+    }
+    // Session flag so dashboard doesn't redirect back during this tab session
+    sessionStorage.setItem('artbyme_entered_from_welcome', '1')
     router.push('/admin?tutorial=1')
   }
 
