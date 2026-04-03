@@ -13,7 +13,7 @@ export default async function AdminDashboard() {
   const [feedbackResult, workRequestsResult, notesResult, funnelsResult] = await Promise.all([
     supabase
       .from('feedback_items')
-      .select('*, feedback_comments(id)')
+      .select('*, feedback_comments(id), feedback_audit_log(id, action, old_value, new_value, created_at)')
       .order('created_at', { ascending: false }),
     supabase
       .from('work_requests')
@@ -33,7 +33,9 @@ export default async function AdminDashboard() {
   const feedbackItems = (feedbackResult.data || []).map((item) => ({
     ...item,
     comment_count: item.feedback_comments?.length || 0,
+    audit_log: item.feedback_audit_log || [],
     feedback_comments: undefined,
+    feedback_audit_log: undefined,
   }))
 
   const workRequests = (workRequestsResult.data || []).map((item) => ({

@@ -7,6 +7,14 @@ import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 
 // ─── Types ────────────────────────────────────────────────────────────
+interface AuditEntry {
+  id: string
+  action: string
+  old_value: string | null
+  new_value: string | null
+  created_at: string
+}
+
 interface FeedbackItem {
   id: string
   category: string
@@ -16,6 +24,7 @@ interface FeedbackItem {
   priority: string
   status: string
   comment_count: number
+  audit_log: AuditEntry[]
   created_at: string
   updated_at: string
 }
@@ -122,12 +131,19 @@ const HOMEPAGE_VARIANTS = [
   },
 ]
 
-const FEEDBACK_CATEGORIES = [
-  'I Love This',
-  'I Want to Change This',
-  'Please Add This',
-  'Bug Report',
-  'General Feedback',
+const FEEDBACK_CATEGORIES: { value: string; label: string }[] = [
+  { value: 'love', label: 'I Love This' },
+  { value: 'change', label: 'I Want to Change This' },
+  { value: 'add', label: 'Please Add This' },
+  { value: 'bug', label: 'Bug Report' },
+  { value: 'general', label: 'General Feedback' },
+]
+
+const FEEDBACK_STATUSES: { value: string; label: string }[] = [
+  { value: 'received', label: 'Received' },
+  { value: 'reviewed', label: 'Reviewed' },
+  { value: 'working', label: 'Working' },
+  { value: 'completed', label: 'Completed' },
 ]
 
 const PAGES_AND_FEATURES = [
@@ -142,9 +158,13 @@ const PAGES_AND_FEATURES = [
   'Cart',
   'Checkout',
   'Commissions',
+  'Gallery',
   'Classes',
   'Blog',
   'Admin Panel',
+  'About',
+  'Contact',
+  'Sales Funnels',
   'Other',
 ]
 
@@ -160,11 +180,10 @@ const WORK_REQUEST_CATEGORIES = [
 const PRIORITIES = ['low', 'medium', 'high', 'urgent']
 
 const FEEDBACK_STATUS_COLORS: Record<string, string> = {
-  new: 'bg-gold/15 text-gold',
+  received: 'bg-gold/15 text-gold',
   reviewed: 'bg-teal/15 text-teal',
-  in_progress: 'bg-deep-teal/15 text-deep-teal',
+  working: 'bg-deep-teal/15 text-deep-teal',
   completed: 'bg-olive/15 text-olive',
-  deferred: 'bg-charcoal/15 text-charcoal/60',
 }
 
 const WORK_STATUS_COLORS: Record<string, string> = {
@@ -176,11 +195,29 @@ const WORK_STATUS_COLORS: Record<string, string> = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'I Love This': 'bg-coral/15 text-coral',
-  'I Want to Change This': 'bg-teal/15 text-teal',
-  'Please Add This': 'bg-olive/15 text-olive',
-  'Bug Report': 'bg-charcoal/15 text-charcoal/70',
-  'General Feedback': 'bg-gold/15 text-gold',
+  love: 'bg-coral/15 text-coral',
+  change: 'bg-teal/15 text-teal',
+  add: 'bg-olive/15 text-olive',
+  bug: 'bg-charcoal/15 text-charcoal/70',
+  general: 'bg-gold/15 text-gold',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  love: 'I Love This',
+  change: 'Change This',
+  add: 'Please Add',
+  bug: 'Bug Report',
+  general: 'General',
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  created: 'Created',
+  status_changed: 'Status changed',
+  title_edited: 'Title edited',
+  description_edited: 'Description edited',
+  category_changed: 'Category changed',
+  priority_changed: 'Priority changed',
+  page_changed: 'Page/feature changed',
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -502,12 +539,28 @@ export default function ProjectHubClient({
   const [newNoteComment, setNewNoteComment] = useState('')
 
   // Feedback form
-  const [fbCategory, setFbCategory] = useState('General Feedback')
+  const [fbCategory, setFbCategory] = useState('general')
   const [fbPage, setFbPage] = useState('')
   const [fbTitle, setFbTitle] = useState('')
   const [fbDescription, setFbDescription] = useState('')
   const [fbPriority, setFbPriority] = useState('medium')
   const [fbSubmitting, setFbSubmitting] = useState(false)
+
+  // Feedback filters & pagination
+  const [fbFilterStatus, setFbFilterStatus] = useState('')
+  const [fbFilterCategory, setFbFilterCategory] = useState('')
+  const [fbFilterPage, setFbFilterPage] = useState('')
+  const [fbPageSize, setFbPageSize] = useState(5)
+  const [fbCurrentPage, setFbCurrentPage] = useState(1)
+
+  // Feedback edit
+  const [editingFeedback, setEditingFeedback] = useState<string | null>(null)
+  const [editFbTitle, setEditFbTitle] = useState('')
+  const [editFbDescription, setEditFbDescription] = useState('')
+  const [editFbCategory, setEditFbCategory] = useState('')
+  const [editFbPriority, setEditFbPriority] = useState('')
+  const [editFbPage, setEditFbPage] = useState('')
+  const [editFbSubmitting, setEditFbSubmitting] = useState(false)
 
   // Work request form
   const [wrTitle, setWrTitle] = useState('')
@@ -639,18 +692,81 @@ export default function ProjectHubClient({
       const json = await res.json()
 
       if (json.data) {
-        setFeedbackItems((p) => [{ ...json.data, comment_count: 0 }, ...p])
+        setFeedbackItems((p) => [{ ...json.data, comment_count: 0, audit_log: [] }, ...p])
         setFbTitle('')
         setFbDescription('')
-        setFbCategory('General Feedback')
+        setFbCategory('general')
         setFbPage('')
         setFbPriority('medium')
+        setFbCurrentPage(1)
       }
     } catch {
       /* silently fail */
     } finally {
       setFbSubmitting(false)
     }
+  }
+
+  async function updateFeedbackStatus(id: string, status: string) {
+    try {
+      const res = await fetch('/api/admin/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      const json = await res.json()
+      if (json.data) {
+        setFeedbackItems((p) => p.map((item) => item.id === id ? { ...item, ...json.data, comment_count: item.comment_count, audit_log: item.audit_log } : item))
+        // Refresh to get updated audit log
+        refreshFeedback()
+      }
+    } catch { /* silently fail */ }
+  }
+
+  async function saveFeedbackEdit(id: string) {
+    if (editFbSubmitting) return
+    setEditFbSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          title: editFbTitle,
+          description: editFbDescription,
+          category: editFbCategory,
+          priority: editFbPriority,
+          page_or_feature: editFbPage,
+        }),
+      })
+      const json = await res.json()
+      if (json.data) {
+        setEditingFeedback(null)
+        refreshFeedback()
+      }
+    } catch { /* silently fail */ }
+    finally { setEditFbSubmitting(false) }
+  }
+
+  async function deleteFeedback(id: string) {
+    if (!confirm('Delete this feedback permanently?')) return
+    try {
+      await fetch('/api/admin/feedback', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      setFeedbackItems((p) => p.filter((item) => item.id !== id))
+      if (expandedFeedback === id) setExpandedFeedback(null)
+    } catch { /* silently fail */ }
+  }
+
+  async function refreshFeedback() {
+    try {
+      const res = await fetch('/api/admin/feedback')
+      const json = await res.json()
+      if (json.data) setFeedbackItems(json.data)
+    } catch { /* silently fail */ }
   }
 
   // ── Submit work request ─────────────────────────────────────────────
@@ -1333,7 +1449,7 @@ export default function ProjectHubClient({
                 className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all"
               >
                 {FEEDBACK_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
             </div>
@@ -1402,96 +1518,325 @@ export default function ProjectHubClient({
           </button>
         </form>
 
-        {/* Feedback List */}
-        {feedbackItems.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="font-body text-sm text-charcoal/30">No feedback yet. Be the first to share your thoughts!</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {feedbackItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl border border-charcoal/8 overflow-hidden">
-                <button
-                  onClick={() => setExpandedFeedback(expandedFeedback === item.id ? null : item.id)}
-                  className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-charcoal/[0.02] transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium ${CATEGORY_COLORS[item.category] || 'bg-charcoal/8 text-charcoal/50'}`}>
-                        {item.category}
-                      </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${FEEDBACK_STATUS_COLORS[item.status] || 'bg-charcoal/8 text-charcoal/50'}`}>
-                        {item.status.replace('_', ' ')}
-                      </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${PRIORITY_COLORS[item.priority] || 'bg-charcoal/8 text-charcoal/50'}`}>
-                        {item.priority}
-                      </span>
-                    </div>
-                    <h4 className="font-display text-sm font-semibold text-charcoal truncate">
-                      {item.title}
-                    </h4>
-                    {item.page_or_feature && (
-                      <p className="font-body text-xs text-charcoal/30 mt-0.5">{item.page_or_feature}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 pt-1">
-                    {item.comment_count > 0 && (
-                      <span className="font-body text-xs text-charcoal/30 flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                        </svg>
-                        {item.comment_count}
-                      </span>
-                    )}
-                    <span className="font-body text-xs text-charcoal/25">{formatDate(item.created_at)}</span>
-                    <motion.svg
-                      animate={{ rotate: expandedFeedback === item.id ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-4 h-4 text-charcoal/25"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </motion.svg>
-                  </div>
-                </button>
-                <AnimatePresence>
-                  {expandedFeedback === item.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-5 pb-5 border-t border-charcoal/6">
-                        {item.description && (
-                          <div
-                            className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mt-3"
-                            dangerouslySetInnerHTML={{ __html: item.description }}
-                          />
-                        )}
-                        <CommentThread
-                          comments={feedbackComments[item.id] || []}
-                          isLoading={!!loadingComments[`feedback-${item.id}`]}
-                          newComment={newFeedbackComment}
-                          setNewComment={setNewFeedbackComment}
-                          onSubmit={() =>
-                            submitComment('feedback', item.id, newFeedbackComment, () =>
-                              setNewFeedbackComment('')
-                            )
-                          }
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+        {/* Feedback Filters */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <select
+            value={fbFilterStatus}
+            onChange={(e) => { setFbFilterStatus(e.target.value); setFbCurrentPage(1) }}
+            className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30"
+          >
+            <option value="">All Statuses</option>
+            {FEEDBACK_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
             ))}
-          </div>
-        )}
+          </select>
+          <select
+            value={fbFilterCategory}
+            onChange={(e) => { setFbFilterCategory(e.target.value); setFbCurrentPage(1) }}
+            className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30"
+          >
+            <option value="">All Categories</option>
+            {FEEDBACK_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+          <select
+            value={fbFilterPage}
+            onChange={(e) => { setFbFilterPage(e.target.value); setFbCurrentPage(1) }}
+            className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30"
+          >
+            <option value="">All Pages</option>
+            {PAGES_AND_FEATURES.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          {(fbFilterStatus || fbFilterCategory || fbFilterPage) && (
+            <button
+              onClick={() => { setFbFilterStatus(''); setFbFilterCategory(''); setFbFilterPage(''); setFbCurrentPage(1) }}
+              className="font-body text-xs text-coral hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Feedback List */}
+        {(() => {
+          const filtered = feedbackItems.filter((item) => {
+            if (fbFilterStatus && item.status !== fbFilterStatus) return false
+            if (fbFilterCategory && item.category !== fbFilterCategory) return false
+            if (fbFilterPage && item.page_or_feature !== fbFilterPage) return false
+            return true
+          })
+          const totalPages = Math.ceil(filtered.length / fbPageSize)
+          const paginated = filtered.slice((fbCurrentPage - 1) * fbPageSize, fbCurrentPage * fbPageSize)
+
+          return filtered.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="font-body text-sm text-charcoal/30">
+                {feedbackItems.length === 0 ? 'No feedback yet. Be the first to share your thoughts!' : 'No feedback matches your filters.'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {paginated.map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl border border-charcoal/8 overflow-hidden">
+                    <button
+                      onClick={() => setExpandedFeedback(expandedFeedback === item.id ? null : item.id)}
+                      className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-charcoal/[0.02] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium ${CATEGORY_COLORS[item.category] || 'bg-charcoal/8 text-charcoal/50'}`}>
+                            {CATEGORY_LABELS[item.category] || item.category}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${FEEDBACK_STATUS_COLORS[item.status] || 'bg-charcoal/8 text-charcoal/50'}`}>
+                            {item.status}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${PRIORITY_COLORS[item.priority] || 'bg-charcoal/8 text-charcoal/50'}`}>
+                            {item.priority}
+                          </span>
+                        </div>
+                        <h4 className="font-display text-sm font-semibold text-charcoal truncate">
+                          {item.title}
+                        </h4>
+                        {item.page_or_feature && (
+                          <p className="font-body text-xs text-charcoal/30 mt-0.5">{item.page_or_feature}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 pt-1">
+                        {item.comment_count > 0 && (
+                          <span className="font-body text-xs text-charcoal/30 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                            </svg>
+                            {item.comment_count}
+                          </span>
+                        )}
+                        <span className="font-body text-xs text-charcoal/25">{formatDate(item.created_at)}</span>
+                        <motion.svg
+                          animate={{ rotate: expandedFeedback === item.id ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-4 h-4 text-charcoal/25"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                        </motion.svg>
+                      </div>
+                    </button>
+                    <AnimatePresence>
+                      {expandedFeedback === item.id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-5 pb-5 border-t border-charcoal/6">
+                            {/* Status change + actions */}
+                            <div className="flex flex-wrap items-center gap-2 mt-3 mb-3">
+                              <span className="font-body text-xs text-charcoal/40 mr-1">Status:</span>
+                              {FEEDBACK_STATUSES.map((s) => (
+                                <button
+                                  key={s.value}
+                                  onClick={() => updateFeedbackStatus(item.id, s.value)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-body font-medium transition-all ${
+                                    item.status === s.value
+                                      ? FEEDBACK_STATUS_COLORS[s.value]
+                                      : 'bg-charcoal/5 text-charcoal/30 hover:bg-charcoal/10'
+                                  }`}
+                                >
+                                  {s.label}
+                                </button>
+                              ))}
+                              <div className="ml-auto flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingFeedback(item.id)
+                                    setEditFbTitle(item.title)
+                                    setEditFbDescription(item.description || '')
+                                    setEditFbCategory(item.category)
+                                    setEditFbPriority(item.priority)
+                                    setEditFbPage(item.page_or_feature || '')
+                                  }}
+                                  className="font-body text-xs text-teal hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => deleteFeedback(item.id)}
+                                  className="font-body text-xs text-coral hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Edit form */}
+                            {editingFeedback === item.id ? (
+                              <div className="bg-charcoal/[0.02] rounded-lg p-4 mb-3 space-y-3">
+                                <input
+                                  type="text"
+                                  value={editFbTitle}
+                                  onChange={(e) => setEditFbTitle(e.target.value)}
+                                  className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30"
+                                />
+                                <div className="grid grid-cols-3 gap-2">
+                                  <select
+                                    value={editFbCategory}
+                                    onChange={(e) => setEditFbCategory(e.target.value)}
+                                    className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal"
+                                  >
+                                    {FEEDBACK_CATEGORIES.map((c) => (
+                                      <option key={c.value} value={c.value}>{c.label}</option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={editFbPriority}
+                                    onChange={(e) => setEditFbPriority(e.target.value)}
+                                    className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal capitalize"
+                                  >
+                                    {PRIORITIES.map((p) => (
+                                      <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={editFbPage}
+                                    onChange={(e) => setEditFbPage(e.target.value)}
+                                    className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal"
+                                  >
+                                    <option value="">No page</option>
+                                    {PAGES_AND_FEATURES.map((p) => (
+                                      <option key={p} value={p}>{p}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <RichTextEditor
+                                  content={editFbDescription}
+                                  onChange={setEditFbDescription}
+                                  placeholder="Description..."
+                                  minHeight="60px"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => saveFeedbackEdit(item.id)}
+                                    disabled={editFbSubmitting}
+                                    className="rounded-lg bg-teal px-4 py-1.5 font-body text-xs font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40"
+                                  >
+                                    {editFbSubmitting ? 'Saving...' : 'Save'}
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingFeedback(null)}
+                                    className="rounded-lg bg-charcoal/5 px-4 py-1.5 font-body text-xs font-medium text-charcoal/50 hover:bg-charcoal/10 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : item.description ? (
+                              <div
+                                className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3"
+                                dangerouslySetInnerHTML={{ __html: item.description }}
+                              />
+                            ) : null}
+
+                            {/* Comment thread */}
+                            <CommentThread
+                              comments={feedbackComments[item.id] || []}
+                              isLoading={!!loadingComments[`feedback-${item.id}`]}
+                              newComment={newFeedbackComment}
+                              setNewComment={setNewFeedbackComment}
+                              onSubmit={() =>
+                                submitComment('feedback', item.id, newFeedbackComment, () =>
+                                  setNewFeedbackComment('')
+                                )
+                              }
+                            />
+
+                            {/* Audit trail */}
+                            {item.audit_log && item.audit_log.length > 0 && (
+                              <div className="mt-4 pt-3 border-t border-charcoal/6">
+                                <p className="font-body text-xs font-medium text-charcoal/30 uppercase tracking-wider mb-2">Activity Log</p>
+                                <div className="space-y-1">
+                                  {item.audit_log
+                                    .sort((a: AuditEntry, b: AuditEntry) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                    .map((entry: AuditEntry) => (
+                                    <div key={entry.id} className="flex items-baseline gap-2 font-body text-xs text-charcoal/40">
+                                      <span className="text-charcoal/25 shrink-0">{formatDate(entry.created_at)}</span>
+                                      <span>
+                                        {AUDIT_ACTION_LABELS[entry.action] || entry.action}
+                                        {entry.old_value && entry.new_value && entry.action !== 'created' && (
+                                          <span className="text-charcoal/30"> — {entry.old_value} → {entry.new_value}</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mt-4 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-body text-xs text-charcoal/40">Show</span>
+                  <select
+                    value={fbPageSize}
+                    onChange={(e) => { setFbPageSize(Number(e.target.value)); setFbCurrentPage(1) }}
+                    className="rounded border border-charcoal/12 bg-white px-2 py-1 font-body text-xs text-charcoal"
+                  >
+                    {[5, 10, 25, 100].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <span className="font-body text-xs text-charcoal/40">of {filtered.length}</span>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setFbCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={fbCurrentPage === 1}
+                      className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setFbCurrentPage(p)}
+                        className={`w-7 h-7 rounded font-body text-xs ${
+                          fbCurrentPage === p
+                            ? 'bg-teal text-white'
+                            : 'text-charcoal/50 hover:bg-charcoal/5'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setFbCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={fbCurrentPage === totalPages}
+                      className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )
+        })()}
       </motion.section>
 
       {/* ── Section 5: Work Requests ───────────────────────────────── */}
