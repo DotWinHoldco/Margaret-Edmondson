@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
       .order('created_at', { ascending: false }),
     supabase
       .from('work_requests')
-      .select('*, work_request_comments(id)')
+      .select('*, work_request_comments(id), work_request_audit_log(id, action, old_value, new_value, created_at)')
       .order('created_at', { ascending: false }),
     supabase
       .from('project_notes')
@@ -41,7 +41,9 @@ export default async function AdminDashboard() {
   const workRequests = (workRequestsResult.data || []).map((item) => ({
     ...item,
     comment_count: item.work_request_comments?.length || 0,
+    audit_log: item.work_request_audit_log || [],
     work_request_comments: undefined,
+    work_request_audit_log: undefined,
   }))
 
   const notes = (notesResult.data || []).map((item) => ({
