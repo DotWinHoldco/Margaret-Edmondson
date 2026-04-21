@@ -32,6 +32,7 @@ interface Testimonial {
   is_featured: boolean
   sort_order: number
   avatar_url: string | null
+  image_url: string | null
   created_at: string
   media: Media[]
 }
@@ -281,6 +282,14 @@ function TestimonialRow({
   return (
     <div className="rounded-sm border border-charcoal/10 bg-white p-4 transition-colors hover:border-charcoal/20">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        {t.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={t.image_url}
+            alt=""
+            className="h-20 w-20 shrink-0 rounded-sm border border-charcoal/10 object-cover"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             {t.title && (
@@ -390,6 +399,7 @@ function TestimonialEditor({
     is_featured: initial?.is_featured ?? false,
     sort_order: initial?.sort_order ?? 0,
     avatar_url: initial?.avatar_url || '',
+    image_url: initial?.image_url || '',
   })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -416,6 +426,7 @@ function TestimonialEditor({
       event_context: form.event_context || null,
       date_received: form.date_received || null,
       avatar_url: form.avatar_url || null,
+      image_url: form.image_url || null,
     }
     const res = await fetch('/api/admin/testimonials', {
       method: initial ? 'PATCH' : 'POST',
@@ -570,7 +581,7 @@ function TestimonialEditor({
             </Field>
           </div>
 
-          <Field label="Avatar URL (optional)">
+          <Field label="Avatar URL (optional, a small headshot for the person)">
             <input
               type="url"
               value={form.avatar_url}
@@ -578,6 +589,39 @@ function TestimonialEditor({
               placeholder="https://..."
               className={inputCls}
             />
+          </Field>
+
+          <Field label="Testimonial image (a photo from the document — auto-populated by AI extraction)">
+            <div className="space-y-2">
+              {form.image_url ? (
+                <div className="relative inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.image_url}
+                    alt=""
+                    className="max-h-40 rounded-sm border border-charcoal/10 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, image_url: '' }))}
+                    className="absolute -right-2 -top-2 rounded-full bg-coral/90 px-2 py-0.5 font-body text-[10px] text-cream hover:bg-coral"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <p className="font-body text-xs text-charcoal/40">
+                  No image yet. Run &ldquo;Extract with AI&rdquo; on a .docx/.pdf to auto-fill this.
+                </p>
+              )}
+              <input
+                type="url"
+                value={form.image_url}
+                onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+                placeholder="Or paste an image URL…"
+                className={inputCls}
+              />
+            </div>
           </Field>
 
           <label className="flex items-center gap-2 font-body text-sm text-charcoal/70">

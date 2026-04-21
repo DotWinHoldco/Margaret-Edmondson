@@ -39,6 +39,8 @@ export default function FilesClient() {
   const [draft, setDraft] = useState<EditDraft>({ tag: '', file_name: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -86,6 +88,29 @@ export default function FilesClient() {
     if (!confirm('Delete this file? This cannot be undone.')) return
     await fetch(`/api/admin/shared-files?id=${id}`, { method: 'DELETE' })
     load()
+  }
+
+  async function extractWithAi(id: string, fileName: string) {
+    setErr(null)
+    setFlash(null)
+    setProcessingId(id)
+    try {
+      const res = await fetch('/api/admin/shared-files/process-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Extraction failed')
+      setFlash(
+        `✓ "${fileName}" → draft testimonial created for ${json.extracted?.name || 'the customer'} (pending review).`,
+      )
+      load()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Extraction failed')
+    } finally {
+      setProcessingId(null)
+    }
   }
 
   function startEdit(f: SharedFile) {
@@ -144,6 +169,11 @@ export default function FilesClient() {
       {err && (
         <div className="rounded-sm border border-coral/30 bg-coral/10 px-3 py-2 font-body text-xs text-coral">
           {err}
+        </div>
+      )}
+      {flash && (
+        <div className="rounded-sm border border-teal/30 bg-teal/10 px-3 py-2 font-body text-xs text-teal">
+          {flash}
         </div>
       )}
 
@@ -296,6 +326,22 @@ export default function FilesClient() {
                         </>
                       ) : (
                         <>
+                          {f.tag === 'testimonial' &&
+                            /\.(docx|pdf)$/i.test(f.file_name) &&
+                            !f.ai_processed && (
+                              <button
+                                onClick={() => extractWithAi(f.id, f.file_name)}
+                                disabled={processingId === f.id}
+                                className="mr-1 rounded-sm bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold hover:bg-gold/25 disabled:opacity-60"
+                              >
+                                {processingId === f.id ? 'Extracting…' : 'Extract with AI'}
+                              </button>
+                            )}
+                          {f.ai_processed && (
+                            <span className="mr-1 inline-block rounded-full bg-gold/15 px-2 py-0.5 text-[11px] text-gold">
+                              ✨ AI processed
+                            </span>
+                          )}
                           <button
                             onClick={() => download(f.id)}
                             className="mr-1 rounded-sm bg-charcoal px-2.5 py-1 text-xs text-cream hover:bg-deep-teal"

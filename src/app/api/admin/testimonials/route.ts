@@ -13,6 +13,7 @@ const MUTABLE_FIELDS = [
   'is_featured',
   'sort_order',
   'avatar_url',
+  'image_url',
 ] as const
 
 type MutableField = (typeof MUTABLE_FIELDS)[number]
