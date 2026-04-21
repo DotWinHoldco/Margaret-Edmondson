@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import SharedFilesModal from '@/components/admin/SharedFilesModal'
 
 type Tab = 'faqs' | 'testimonials'
 
@@ -320,6 +321,7 @@ function TestimonialsTab() {
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [showFiles, setShowFiles] = useState(false)
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -358,14 +360,38 @@ function TestimonialsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowAdd(true)}
-          className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
-        >
-          Add Testimonial
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-body text-sm text-charcoal/55">
+          Margaret can upload testimonial documents (photos, letters, scans, .docx, .pdf) and Claude will draft formatted testimonials for review.
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFiles(true)}
+            className="rounded-sm border border-charcoal/15 bg-white px-4 py-2 font-body text-sm font-medium text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            Upload testimonial documents
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
+          >
+            Add Testimonial
+          </button>
+        </div>
       </div>
+
+      <SharedFilesModal
+        open={showFiles}
+        onClose={() => {
+          setShowFiles(false)
+          fetchItems()
+        }}
+        entityType="testimonial"
+        entityId={null}
+        defaultTag="testimonial"
+        title="Testimonial documents from Margaret"
+        description="Upload any files (photos, letters, screenshots, .docx, .pdf). Use 'Extract with AI' on .docx or .pdf files to auto-draft a pending testimonial."
+      />
 
       {showAdd && (
         <TestimonialForm

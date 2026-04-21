@@ -1952,6 +1952,24 @@ export default function ProjectHubClient({
           subtitle="Request new features, design changes, content updates, or fixes."
         />
 
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() =>
+              setFilesModal({
+                entityType: 'work_request',
+                entityId: null,
+                title: 'Work-request files',
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-charcoal/15 bg-white px-4 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+            </svg>
+            Upload / view files
+          </button>
+        </div>
+
         {/* Work Request Form */}
         <form onSubmit={submitWorkRequest} className="bg-white rounded-xl border border-charcoal/8 p-6 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -2149,6 +2167,24 @@ export default function ProjectHubClient({
           title="Project Notes"
           subtitle="Shared notes, ideas, and reference materials for the project."
         />
+
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() =>
+              setFilesModal({
+                entityType: 'note',
+                entityId: null,
+                title: 'Note attachments',
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-charcoal/15 bg-white px-4 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+            </svg>
+            Upload / view files
+          </button>
+        </div>
 
         {/* Add Note Button / Form */}
         {!showNoteForm ? (
