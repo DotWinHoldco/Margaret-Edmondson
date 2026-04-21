@@ -1,7 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import SharedFilesModal, { type SharedFile, type SharedEntity } from '@/components/admin/SharedFilesModal'
+import SharedFilesModal, {
+  type SharedFile,
+  type SharedEntity,
+  type SharedFileTag,
+} from '@/components/admin/SharedFilesModal'
 
 const ENTITY_LABELS: Record<SharedEntity, string> = {
   testimonial: 'Testimonial',
@@ -17,35 +21,45 @@ function fmtBytes(b: number | null) {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`
 }
 
+interface EditDraft {
+  tag: string
+  file_name: string
+  notes: string
+}
+
 export default function FilesClient() {
   const [files, setFiles] = useState<SharedFile[]>([])
+  const [tags, setTags] = useState<SharedFileTag[]>([])
   const [loading, setLoading] = useState(true)
   const [entity, setEntity] = useState<'all' | SharedEntity>('all')
-  const [tag, setTag] = useState('all')
+  const [tagFilter, setTagFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<EditDraft>({ tag: '', file_name: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     const qs = new URLSearchParams()
     if (entity !== 'all') qs.set('entity_type', entity)
-    if (tag !== 'all') qs.set('tag', tag)
-    const res = await fetch(`/api/admin/shared-files?${qs.toString()}`)
-    const json = await res.json()
-    setFiles((json.data as SharedFile[]) || [])
+    if (tagFilter !== 'all') qs.set('tag', tagFilter)
+    const [filesRes, tagsRes] = await Promise.all([
+      fetch(`/api/admin/shared-files?${qs.toString()}`),
+      fetch('/api/admin/shared-file-tags'),
+    ])
+    const filesJson = await filesRes.json()
+    const tagsJson = await tagsRes.json()
+    setFiles((filesJson.data as SharedFile[]) || [])
+    setTags((tagsJson.data as SharedFileTag[]) || [])
     setLoading(false)
-  }, [entity, tag])
+  }, [entity, tagFilter])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
-
-  const tags = useMemo(() => {
-    const s = new Set<string>()
-    files.forEach((f) => s.add(f.tag))
-    return Array.from(s).sort()
-  }, [files])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return files
@@ -57,6 +71,10 @@ export default function FilesClient() {
         (f.notes || '').toLowerCase().includes(q),
     )
   }, [files, search])
+
+  function labelForTag(slug: string) {
+    return tags.find((t) => t.slug === slug)?.label || slug
+  }
 
   async function download(id: string) {
     const res = await fetch(`/api/admin/shared-files/signed-url?id=${id}`)
@@ -70,14 +88,49 @@ export default function FilesClient() {
     load()
   }
 
+  function startEdit(f: SharedFile) {
+    setEditingId(f.id)
+    setDraft({
+      tag: f.tag,
+      file_name: f.file_name,
+      notes: f.notes || '',
+    })
+    setErr(null)
+  }
+
+  async function saveEdit() {
+    if (!editingId) return
+    setSaving(true)
+    setErr(null)
+    const res = await fetch('/api/admin/shared-files', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editingId,
+        tag: draft.tag,
+        file_name: draft.file_name,
+        notes: draft.notes,
+      }),
+    })
+    const json = await res.json()
+    setSaving(false)
+    if (!res.ok) {
+      setErr(json.error || 'Save failed')
+      return
+    }
+    setEditingId(null)
+    load()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl text-charcoal">Shared Files</h1>
           <p className="mt-1 font-body text-sm text-charcoal/55">
-            Every file shared between Margaret and the team — testimonial scans,
-            work-request attachments, note docs, and anything else.
+            Every file shared between Margaret and the team. Tags route files to the
+            right area of the site — testimonial docs appear under testimonials,
+            social posts in the social area, etc.
           </p>
         </div>
         <button
@@ -88,27 +141,33 @@ export default function FilesClient() {
         </button>
       </div>
 
+      {err && (
+        <div className="rounded-sm border border-coral/30 bg-coral/10 px-3 py-2 font-body text-xs text-coral">
+          {err}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={entity}
           onChange={(e) => setEntity(e.target.value as typeof entity)}
           className="rounded-sm border border-charcoal/12 bg-white px-2 py-1.5 font-body text-xs text-charcoal"
         >
-          <option value="all">All types</option>
+          <option value="all">All scopes</option>
           <option value="testimonial">Testimonials</option>
           <option value="work_request">Work requests</option>
           <option value="note">Notes</option>
           <option value="general">General</option>
         </select>
         <select
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
           className="rounded-sm border border-charcoal/12 bg-white px-2 py-1.5 font-body text-xs text-charcoal"
         >
           <option value="all">All tags</option>
           {tags.map((t) => (
-            <option key={t} value={t}>
-              {t}
+            <option key={t.slug} value={t.slug}>
+              {t.label}
             </option>
           ))}
         </select>
@@ -135,7 +194,7 @@ export default function FilesClient() {
             <thead className="bg-charcoal/[0.02] font-body text-[11px] uppercase tracking-wider text-charcoal/45">
               <tr>
                 <th className="px-3 py-2 text-left">File</th>
-                <th className="px-3 py-2 text-left">Type</th>
+                <th className="px-3 py-2 text-left">Scope</th>
                 <th className="px-3 py-2 text-left">Tag</th>
                 <th className="px-3 py-2 text-left">Size</th>
                 <th className="px-3 py-2 text-left">Uploaded</th>
@@ -143,50 +202,124 @@ export default function FilesClient() {
               </tr>
             </thead>
             <tbody className="divide-y divide-charcoal/6">
-              {filtered.map((f) => (
-                <tr key={f.id} className="font-body text-sm">
-                  <td className="px-3 py-2.5">
-                    <div className="truncate text-charcoal">{f.file_name}</div>
-                    {f.notes && (
-                      <div className="mt-0.5 text-xs italic text-charcoal/45">
-                        {f.notes}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-charcoal/70">
-                    {ENTITY_LABELS[f.entity_type as SharedEntity] || f.entity_type}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs text-teal">
-                      {f.tag}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 text-charcoal/60">
-                    {fmtBytes(f.size_bytes)}
-                  </td>
-                  <td className="px-3 py-2.5 text-charcoal/60">
-                    {new Date(f.created_at).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => download(f.id)}
-                      className="mr-2 rounded-sm bg-charcoal px-2.5 py-1 text-xs text-cream hover:bg-deep-teal"
-                    >
-                      Download
-                    </button>
-                    <button
-                      onClick={() => remove(f.id)}
-                      className="rounded-sm px-2 py-1 text-xs text-coral hover:bg-coral/10"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((f) => {
+                const editing = editingId === f.id
+                return (
+                  <tr key={f.id} className="font-body text-sm align-top">
+                    <td className="px-3 py-2.5">
+                      {editing ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            value={draft.file_name}
+                            onChange={(e) =>
+                              setDraft((d) => ({ ...d, file_name: e.target.value }))
+                            }
+                            className="w-full rounded-sm border border-charcoal/15 bg-white px-2 py-1 text-sm text-charcoal focus:border-teal focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={draft.notes}
+                            onChange={(e) =>
+                              setDraft((d) => ({ ...d, notes: e.target.value }))
+                            }
+                            placeholder="Notes (optional)"
+                            className="w-full rounded-sm border border-charcoal/15 bg-white px-2 py-1 text-xs text-charcoal focus:border-teal focus:outline-none"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="truncate text-charcoal">
+                            {f.file_name}
+                          </div>
+                          {f.notes && (
+                            <div className="mt-0.5 text-xs italic text-charcoal/45">
+                              {f.notes}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-charcoal/70">
+                      {ENTITY_LABELS[f.entity_type as SharedEntity] || f.entity_type}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {editing ? (
+                        <select
+                          value={draft.tag}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, tag: e.target.value }))
+                          }
+                          className="rounded-sm border border-charcoal/15 bg-white px-1.5 py-1 text-xs text-charcoal focus:border-teal focus:outline-none"
+                        >
+                          {!tags.some((t) => t.slug === draft.tag) && (
+                            <option value={draft.tag}>{draft.tag}</option>
+                          )}
+                          {tags.map((t) => (
+                            <option key={t.slug} value={t.slug}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs text-teal">
+                          {labelForTag(f.tag)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-charcoal/60">
+                      {fmtBytes(f.size_bytes)}
+                    </td>
+                    <td className="px-3 py-2.5 text-charcoal/60">
+                      {new Date(f.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {editing ? (
+                        <>
+                          <button
+                            onClick={saveEdit}
+                            disabled={saving}
+                            className="mr-1 rounded-sm bg-teal px-2.5 py-1 text-xs text-cream hover:bg-deep-teal disabled:opacity-60"
+                          >
+                            {saving ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="rounded-sm px-2 py-1 text-xs text-charcoal/60 hover:bg-charcoal/5"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => download(f.id)}
+                            className="mr-1 rounded-sm bg-charcoal px-2.5 py-1 text-xs text-cream hover:bg-deep-teal"
+                          >
+                            Download
+                          </button>
+                          <button
+                            onClick={() => startEdit(f)}
+                            className="mr-1 rounded-sm border border-charcoal/15 bg-white px-2 py-1 text-xs text-charcoal hover:bg-charcoal/5"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => remove(f.id)}
+                            className="rounded-sm px-2 py-1 text-xs text-coral hover:bg-coral/10"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -201,7 +334,7 @@ export default function FilesClient() {
         entityType="general"
         defaultTag="general"
         title="Upload files"
-        description="General uploads — not tied to a specific testimonial, note, or work request."
+        description="Pick a tag so the file shows up in the right area of the admin (social media, testimonials, work requests, etc.). Use + Other to create a new tag."
         onChanged={load}
       />
     </div>

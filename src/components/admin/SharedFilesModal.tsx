@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type SharedEntity = 'testimonial' | 'work_request' | 'note' | 'general'
 
+export interface SharedFileTag {
+  slug: string
+  label: string
+  sort_order: number
+  is_default: boolean
+}
+
 export interface SharedFile {
   id: string
   uploaded_by: string
@@ -56,7 +63,44 @@ export default function SharedFilesModal({
   const [notes, setNotes] = useState('')
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [processResult, setProcessResult] = useState<string | null>(null)
+  const [tags, setTags] = useState<SharedFileTag[]>([])
+  const [creatingTag, setCreatingTag] = useState(false)
+  const [newTagLabel, setNewTagLabel] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const loadTags = useCallback(async () => {
+    const res = await fetch('/api/admin/shared-file-tags')
+    const json = await res.json()
+    if (res.ok) setTags(json.data || [])
+  }, [])
+
+  useEffect(() => {
+    if (open) loadTags()
+  }, [open, loadTags])
+
+  async function handleCreateTag() {
+    const label = newTagLabel.trim()
+    if (!label) return
+    const res = await fetch('/api/admin/shared-file-tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setErr(json.error || 'Failed to create tag')
+      return
+    }
+    const created: SharedFileTag = json.data
+    setTags((prev) =>
+      prev.some((t) => t.slug === created.slug)
+        ? prev
+        : [...prev, created].sort((a, b) => a.sort_order - b.sort_order),
+    )
+    setTag(created.slug)
+    setCreatingTag(false)
+    setNewTagLabel('')
+  }
 
   const refresh = useCallback(async () => {
     if (!open) return
@@ -208,13 +252,72 @@ export default function SharedFilesModal({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="font-body text-xs text-charcoal/55">
                 Tag
-                <input
-                  type="text"
-                  value={tag}
-                  onChange={(e) => setTag(e.target.value)}
-                  placeholder="e.g. testimonial, invoice, reference"
-                  className="mt-1 w-full rounded-sm border border-charcoal/12 bg-white px-2 py-1.5 font-body text-sm text-charcoal focus:border-teal focus:outline-none"
-                />
+                {creatingTag ? (
+                  <div className="mt-1 flex gap-1">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newTagLabel}
+                      onChange={(e) => setNewTagLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleCreateTag()
+                        }
+                        if (e.key === 'Escape') {
+                          setCreatingTag(false)
+                          setNewTagLabel('')
+                        }
+                      }}
+                      placeholder="New tag name…"
+                      className="flex-1 rounded-sm border border-charcoal/12 bg-white px-2 py-1.5 font-body text-sm text-charcoal focus:border-teal focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateTag}
+                      className="rounded-sm bg-teal px-2.5 py-1.5 font-body text-xs font-medium text-cream hover:bg-deep-teal"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreatingTag(false)
+                        setNewTagLabel('')
+                      }}
+                      className="rounded-sm px-2 py-1.5 font-body text-xs text-charcoal/60 hover:bg-charcoal/5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={
+                      tags.some((t) => t.slug === tag) ? tag : '__fallback__'
+                    }
+                    onChange={(e) => {
+                      if (e.target.value === '__create__') {
+                        setCreatingTag(true)
+                        return
+                      }
+                      if (e.target.value === '__fallback__') return
+                      setTag(e.target.value)
+                    }}
+                    className="mt-1 w-full rounded-sm border border-charcoal/12 bg-white px-2 py-1.5 font-body text-sm text-charcoal focus:border-teal focus:outline-none"
+                  >
+                    {!tags.some((t) => t.slug === tag) && (
+                      <option value="__fallback__" disabled>
+                        {tag || 'Select a tag…'}
+                      </option>
+                    )}
+                    {tags.map((t) => (
+                      <option key={t.slug} value={t.slug}>
+                        {t.label}
+                      </option>
+                    ))}
+                    <option value="__create__">+ Other (create new tag)…</option>
+                  </select>
+                )}
               </label>
               <label className="font-body text-xs text-charcoal/55">
                 Notes (optional)
@@ -281,7 +384,7 @@ export default function SharedFilesModal({
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-body text-[11px] text-charcoal/45">
                           <span className="rounded-full bg-teal/10 px-1.5 py-0.5 text-teal">
-                            {f.tag}
+                            {tags.find((t) => t.slug === f.tag)?.label || f.tag}
                           </span>
                           <span>{fmtBytes(f.size_bytes)}</span>
                           <span>

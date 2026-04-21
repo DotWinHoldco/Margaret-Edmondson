@@ -98,6 +98,38 @@ export async function POST(request: NextRequest) {
   return Response.json({ data }, { status: 201 })
 }
 
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json()
+  const { id } = body as { id?: string }
+  if (!id) return Response.json({ error: 'id required' }, { status: 400 })
+
+  const updates: Record<string, unknown> = {}
+  if (typeof body.tag === 'string' && body.tag.trim()) updates.tag = body.tag.trim()
+  if (typeof body.file_name === 'string' && body.file_name.trim())
+    updates.file_name = body.file_name.trim()
+  if (body.notes !== undefined)
+    updates.notes = typeof body.notes === 'string' ? body.notes.trim() || null : null
+
+  if (Object.keys(updates).length === 0)
+    return Response.json({ error: 'nothing to update' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('shared_files')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  return Response.json({ data })
+}
+
 export async function DELETE(request: NextRequest) {
   const supabase = await createClient()
   const {
