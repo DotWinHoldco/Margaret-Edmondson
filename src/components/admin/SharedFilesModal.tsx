@@ -16,6 +16,8 @@ export interface SharedFile {
   tag: string
   notes: string | null
   created_at: string
+  ai_processed?: boolean
+  ai_result?: Record<string, unknown> | null
 }
 
 interface Props {
@@ -52,6 +54,8 @@ export default function SharedFilesModal({
   const [err, setErr] = useState<string | null>(null)
   const [tag, setTag] = useState<string>(defaultTag || entityType)
   const [notes, setNotes] = useState('')
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [processResult, setProcessResult] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(async () => {
@@ -131,6 +135,30 @@ export default function SharedFilesModal({
     onChanged?.()
   }
 
+  async function handleProcessAi(id: string, fileName: string) {
+    setErr(null)
+    setProcessResult(null)
+    setProcessingId(id)
+    try {
+      const res = await fetch('/api/admin/shared-files/process-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Processing failed')
+      setProcessResult(
+        `✓ "${fileName}" → draft testimonial created for ${json.extracted?.name || 'the customer'} (pending review).`,
+      )
+      await refresh()
+      onChanged?.()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Processing failed')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   if (!open) return null
 
   const headline = title || (
@@ -168,6 +196,11 @@ export default function SharedFilesModal({
           {err && (
             <div className="rounded-sm border border-coral/30 bg-coral/10 px-3 py-2 font-body text-xs text-coral">
               {err}
+            </div>
+          )}
+          {processResult && (
+            <div className="rounded-sm border border-teal/30 bg-teal/10 px-3 py-2 font-body text-xs text-teal">
+              {processResult}
             </div>
           )}
 
@@ -235,41 +268,61 @@ export default function SharedFilesModal({
               </div>
             ) : (
               <ul className="divide-y divide-charcoal/6 rounded-sm border border-charcoal/8">
-                {files.map((f) => (
-                  <li key={f.id} className="flex items-center gap-3 px-3 py-2.5">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-body text-sm text-charcoal">
-                        {f.file_name}
+                {files.map((f) => {
+                  const canAiProcess =
+                    entityType === 'testimonial' &&
+                    /\.(docx|pdf)$/i.test(f.file_name)
+                  const processing = processingId === f.id
+                  return (
+                    <li key={f.id} className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-body text-sm text-charcoal">
+                          {f.file_name}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-body text-[11px] text-charcoal/45">
+                          <span className="rounded-full bg-teal/10 px-1.5 py-0.5 text-teal">
+                            {f.tag}
+                          </span>
+                          <span>{fmtBytes(f.size_bytes)}</span>
+                          <span>
+                            {new Date(f.created_at).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          {f.ai_processed && (
+                            <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-gold">
+                              ✨ AI processed
+                            </span>
+                          )}
+                          {f.notes && <span className="italic">— {f.notes}</span>}
+                        </div>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-body text-[11px] text-charcoal/45">
-                        <span className="rounded-full bg-teal/10 px-1.5 py-0.5 text-teal">
-                          {f.tag}
-                        </span>
-                        <span>{fmtBytes(f.size_bytes)}</span>
-                        <span>
-                          {new Date(f.created_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        {f.notes && <span className="italic">— {f.notes}</span>}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDownload(f.id)}
-                      className="rounded-sm bg-charcoal px-2.5 py-1 font-body text-xs text-cream transition-colors hover:bg-deep-teal"
-                    >
-                      Download
-                    </button>
-                    <button
-                      onClick={() => handleDelete(f.id)}
-                      className="rounded-sm px-2 py-1 font-body text-xs text-coral hover:bg-coral/10"
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
+                      {canAiProcess && !f.ai_processed && (
+                        <button
+                          onClick={() => handleProcessAi(f.id, f.file_name)}
+                          disabled={processing}
+                          className="rounded-sm bg-gold/15 px-2.5 py-1 font-body text-xs font-medium text-gold transition-colors hover:bg-gold/25 disabled:opacity-60"
+                        >
+                          {processing ? 'Processing…' : 'Extract with AI'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDownload(f.id)}
+                        className="rounded-sm bg-charcoal px-2.5 py-1 font-body text-xs text-cream transition-colors hover:bg-deep-teal"
+                      >
+                        Download
+                      </button>
+                      <button
+                        onClick={() => handleDelete(f.id)}
+                        className="rounded-sm px-2 py-1 font-body text-xs text-coral hover:bg-coral/10"
+                      >
+                        Delete
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
