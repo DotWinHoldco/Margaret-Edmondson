@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
+import SharedFilesModal, { type SharedEntity } from '@/components/admin/SharedFilesModal'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface AuditEntry {
@@ -542,6 +543,13 @@ export default function ProjectHubClient({
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(initialFeedback)
   const [workRequests, setWorkRequests] = useState<WorkRequest[]>(initialWorkRequests)
   const [notes, setNotes] = useState<ProjectNote[]>(initialNotes)
+
+  // Shared-files modal state
+  const [filesModal, setFilesModal] = useState<{
+    entityType: SharedEntity
+    entityId: string | null
+    title: string
+  } | null>(null)
 
   // Expanded items
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null)
@@ -1443,9 +1451,9 @@ export default function ProjectHubClient({
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-4 py-3 bg-charcoal/[0.03] rounded-lg border border-charcoal/6">
           {[
             { value: '28', label: 'Public Pages' },
-            { value: '27', label: 'Admin Pages' },
+            { value: '28', label: 'Admin Pages' },
             { value: '15', label: 'Sales Funnels' },
-            { value: '45', label: 'API Routes' },
+            { value: '50', label: 'API Routes' },
             { value: '28k+', label: 'Lines of Code' },
           ].map((stat) => (
             <div key={stat.label} className="flex items-baseline gap-1.5">
@@ -2054,6 +2062,7 @@ export default function ProjectHubClient({
                               ))}
                               <div className="ml-auto flex gap-2">
                                 <button onClick={() => { setEditingWr(item.id); setEditWrTitle(item.title); setEditWrDescription(item.description || ''); setEditWrCategory(item.category); setEditWrPriority(item.priority); setEditWrDueDate(item.due_date || '') }} className="font-body text-xs text-teal hover:underline">Edit</button>
+                                <button onClick={() => setFilesModal({ entityType: 'work_request', entityId: item.id, title: `Files for "${item.title}"` })} className="font-body text-xs text-charcoal/60 hover:underline">Files</button>
                                 <button onClick={() => deleteWorkRequest(item.id)} className="font-body text-xs text-coral hover:underline">Delete</button>
                               </div>
                             </div>
@@ -2299,6 +2308,18 @@ export default function ProjectHubClient({
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
+                              setFilesModal({ entityType: 'note', entityId: note.id, title: `Files for "${note.title}"` })
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium bg-charcoal/5 text-charcoal/40 hover:bg-charcoal/10 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                            </svg>
+                            Files
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
                               deleteNote(note.id)
                             }}
                             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-body text-xs font-medium bg-coral/8 text-coral hover:bg-coral/15 transition-colors"
@@ -2383,6 +2404,15 @@ export default function ProjectHubClient({
           ArtByME Project Hub — Built with care for Margaret
         </p>
       </div>
+
+      <SharedFilesModal
+        open={filesModal !== null}
+        onClose={() => setFilesModal(null)}
+        entityType={filesModal?.entityType ?? 'general'}
+        entityId={filesModal?.entityId ?? null}
+        defaultTag={filesModal?.entityType ?? 'general'}
+        title={filesModal?.title}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import SharedFilesModal from '@/components/admin/SharedFilesModal'
 
 type MediaType = 'image' | 'video' | 'document'
 
@@ -69,6 +70,7 @@ export default function TestimonialsClient() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Testimonial | null>(null)
   const [creating, setCreating] = useState(false)
+  const [filesFor, setFilesFor] = useState<{ id: string | null; name: string } | null>(null)
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -135,15 +137,23 @@ export default function TestimonialsClient() {
             videos. Anything saved here can be pulled into any page of the site.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setCreating(true)
-            setEditing(null)
-          }}
-          className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
-        >
-          + New Testimonial
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => setFilesFor({ id: null, name: 'All testimonial documents' })}
+            className="rounded-sm border border-charcoal/15 bg-white px-4 py-2 font-body text-sm font-medium text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            Upload testimonial documents
+          </button>
+          <button
+            onClick={() => {
+              setCreating(true)
+              setEditing(null)
+            }}
+            className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
+          >
+            + New Testimonial
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -221,11 +231,33 @@ export default function TestimonialsClient() {
                   setEditing(t)
                 }}
                 onToggleFeatured={() => handleToggleFeatured(t)}
+                onAttach={() => setFilesFor({ id: t.id, name: t.name })}
               />
             ),
           )}
         </div>
       )}
+
+      <SharedFilesModal
+        open={filesFor !== null}
+        onClose={() => {
+          setFilesFor(null)
+          fetchItems()
+        }}
+        entityType="testimonial"
+        entityId={filesFor?.id || null}
+        defaultTag="testimonial"
+        title={
+          filesFor?.id
+            ? `Files for ${filesFor.name}`
+            : 'Testimonial documents from Margaret'
+        }
+        description={
+          filesFor?.id
+            ? undefined
+            : 'Upload testimonial files (photos, letters, screenshots). They will be reviewed and formatted into testimonials.'
+        }
+      />
     </div>
   )
 }
@@ -236,10 +268,12 @@ function TestimonialRow({
   t,
   onEdit,
   onToggleFeatured,
+  onAttach,
 }: {
   t: Testimonial
   onEdit: () => void
   onToggleFeatured: () => void
+  onAttach?: () => void
 }) {
   const mediaCount = t.media?.length || 0
   const preview = t.content || t.quote || ''
@@ -291,6 +325,14 @@ function TestimonialRow({
           >
             {t.is_featured ? '★ Featured' : '☆ Feature'}
           </button>
+          {onAttach && (
+            <button
+              onClick={onAttach}
+              className="rounded-sm border border-charcoal/15 bg-white px-2.5 py-1 font-body text-xs text-charcoal/70 transition-colors hover:bg-charcoal/5"
+            >
+              Files
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="rounded-sm bg-charcoal px-3 py-1 font-body text-xs text-cream transition-colors hover:bg-deep-teal"
