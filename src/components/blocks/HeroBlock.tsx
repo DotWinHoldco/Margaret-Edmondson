@@ -27,74 +27,47 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
 
   const heading = c.heading || 'Margaret Edmondson'
   const subheading = c.subheading || 'Mixed Media & Fine Art'
-  const imageUrl = c.image_url || '/Margaret Edmondson/ARTWORK/Texas Themed/Graze Daze_3.jpg'
+  const imageUrl = c.image_url || '/ME-Share-Image.jpg'
   const ctaText = c.cta_text || 'Enter Gallery'
   const ctaLink = c.cta_link || '/gallery'
   const cta2Text = c.cta2_text || 'Commission a Piece'
   const cta2Link = c.cta2_link || '/commissions'
 
   return (
-    <section ref={ref} className="relative h-screen min-h-[600px] max-h-[900px] overflow-hidden texture-paper">
-      {/* Parallax Image */}
-      <motion.div style={{ y }} className="absolute inset-0">
-        <Image
-          src={imageUrl}
-          alt={heading}
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-          quality={90}
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-charcoal/60 via-charcoal/20 to-transparent"
-          style={{ opacity: c.overlay_opacity ?? 0.5 }}
-        />
+    <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper pt-8 pb-12 sm:pt-12 sm:pb-16">
+      <motion.div style={{ y }} className="relative w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full aspect-[1200/630] max-h-[78vh]">
+          <Image
+            src={imageUrl}
+            alt={heading}
+            fill
+            priority
+            className="object-contain"
+            sizes="100vw"
+            quality={90}
+          />
+        </div>
       </motion.div>
 
-      {/* Content */}
-      <div className="relative z-10 flex h-full items-end pb-24 sm:items-center sm:pb-0">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-          >
-            <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-white tracking-tight">
-              {heading.includes('Margaret Edmondson')
-                ? <>{heading.replace('Margaret Edmondson', '')}<span className="whitespace-nowrap">Margaret Edmondson</span></>
-                : heading}
-            </h1>
-          </motion.div>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, delay: 0.5, ease: 'easeOut' }}
-            className="mt-4 font-body text-lg sm:text-xl text-white/80 tracking-wide"
-          >
-            {subheading}
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.8, ease: 'easeOut' }}
-            className="mt-8 flex flex-col sm:flex-row gap-4"
-          >
-            <Link
-              href={ctaLink}
-              className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-white font-body text-sm font-medium tracking-wider uppercase hover:bg-white hover:text-charcoal transition-all duration-300"
-            >
-              {ctaText}
-            </Link>
-            <Link
-              href={cta2Link}
-              className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-white font-body text-sm font-medium tracking-wider uppercase hover:bg-gold hover:border-gold hover:text-charcoal transition-all duration-300"
-            >
-              {cta2Text}
-            </Link>
-          </motion.div>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
+        className="mt-10 flex flex-col sm:flex-row gap-5"
+      >
+        <Link
+          href={ctaLink}
+          className="inline-flex items-center justify-center px-12 py-5 border-2 border-charcoal bg-charcoal text-cream font-body text-base font-semibold tracking-widest uppercase hover:bg-charcoal/90 transition-colors"
+        >
+          {ctaText}
+        </Link>
+        <Link
+          href={cta2Link}
+          className="inline-flex items-center justify-center px-12 py-5 border-2 border-charcoal text-charcoal font-body text-base font-semibold tracking-widest uppercase hover:bg-charcoal hover:text-cream transition-colors"
+        >
+          {cta2Text}
+        </Link>
+      </motion.div>
     </section>
   )
 }
