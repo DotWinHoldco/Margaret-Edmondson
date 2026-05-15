@@ -25,7 +25,15 @@ async function request(path: string, options: RequestInit = {}) {
 }
 
 export async function getCategories() {
-  return request(`/api/v1/stores/${STORE_ID}/categories`)
+  return request(`/api/v1/products/categories`)
+}
+
+export async function getSubcategories(categoryId: number | string) {
+  return request(`/api/v1/products/categories/${categoryId}/subcategories`)
+}
+
+export async function getSubcategoryOptions(subcategoryId: number | string) {
+  return request(`/api/v1/products/subcategories/${subcategoryId}/options`)
 }
 
 export async function submitOrder(orderData: {
@@ -61,11 +69,35 @@ export async function getShipments(orderNumber: string) {
   return request(`/api/v1/stores/${STORE_ID}/shipments/${orderNumber}`)
 }
 
+export interface LumaPrintsShippingRecipient {
+  firstName?: string
+  lastName?: string
+  addressLine1: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  phone?: string
+}
+
+export interface LumaPrintsShippingItem {
+  subcategoryId: number
+  quantity: number
+  width: number
+  height: number
+  orderItemOptions: number[]
+}
+
+export interface LumaPrintsShippingResponse {
+  message: string
+  shippingMethods: Array<{ carrier: string; method: string; cost: number }>
+}
+
 export async function getShippingCost(payload: {
-  items: Array<{ categoryId: string; subcategoryId: string; quantity: number }>
-  destination: { zip: string; country: string }
-}) {
-  return request(`/api/v1/stores/${STORE_ID}/shipping/estimate`, {
+  recipient: LumaPrintsShippingRecipient
+  orderItems: LumaPrintsShippingItem[]
+}): Promise<LumaPrintsShippingResponse> {
+  return request(`/api/v1/pricing/shipping`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })

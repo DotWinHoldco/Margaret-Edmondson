@@ -57,6 +57,10 @@ export default function EditProductPage({
   const [dimensions, setDimensions] = useState('')
   const [basePrice, setBasePrice] = useState('')
   const [compareAtPrice, setCompareAtPrice] = useState('')
+  const [marginPct, setMarginPct] = useState('')
+  const [siteDefaultMargin, setSiteDefaultMargin] = useState<number>(0.65)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
   const [fulfillmentType, setFulfillmentType] = useState('self_ship')
   const [status, setStatus] = useState('draft')
   const [isOriginal, setIsOriginal] = useState(false)
@@ -69,13 +73,18 @@ export default function EditProductPage({
     async function fetchData() {
       const supabase = createClient()
 
-      const [categoriesRes, productRes] = await Promise.all([
+      const [categoriesRes, productRes, settingsRes] = await Promise.all([
         supabase
           .from('categories')
           .select('id, name, slug')
           .order('sort_order', { ascending: true }),
         fetch(`/api/admin/products/${id}`).then((r) => r.json()),
+        fetch(`/api/admin/pricing/settings`).then((r) => r.json()).catch(() => null),
       ])
+
+      if (settingsRes?.data?.default_margin_pct != null) {
+        setSiteDefaultMargin(Number(settingsRes.data.default_margin_pct))
+      }
 
       if (categoriesRes.data) setCategories(categoriesRes.data)
 
@@ -94,6 +103,7 @@ export default function EditProductPage({
       setDimensions(product.dimensions || '')
       setBasePrice(product.base_price?.toString() || '')
       setCompareAtPrice(product.compare_at_price?.toString() || '')
+      setMarginPct(product.margin_pct != null ? (Number(product.margin_pct) * 100).toString() : '')
       setFulfillmentType(product.fulfillment_type || 'self_ship')
       setStatus(product.status || 'draft')
       setIsOriginal(product.is_original || false)
@@ -154,6 +164,25 @@ export default function EditProductPage({
     setVariants((prev) => prev.filter((v) => v.id !== variantId))
   }
 
+  async function refreshPricing() {
+    setRefreshing(true)
+    setRefreshMsg(null)
+    try {
+      const r = await fetch('/api/admin/pricing/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: id }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Refresh failed')
+      setRefreshMsg(`Recomputed ${d.updated} variant${d.updated === 1 ? '' : 's'} (source: ${d.source}).`)
+    } catch (err) {
+      setRefreshMsg(err instanceof Error ? err.message : 'Refresh failed')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -169,6 +198,7 @@ export default function EditProductPage({
         dimensions,
         base_price: basePrice ? parseFloat(basePrice) : 0,
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
+        margin_pct: marginPct.trim() === '' ? null : parseFloat(marginPct) / 100,
         fulfillment_type: fulfillmentType,
         status,
         is_original: isOriginal,
@@ -507,6 +537,41 @@ export default function EditProductPage({
                     placeholder="0.00"
                   />
                 </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="mb-1 block font-body text-sm font-medium text-charcoal">
+                  Margin Override (%)
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-40">
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      step="0.1"
+                      value={marginPct}
+                      onChange={(e) => setMarginPct(e.target.value)}
+                      className="w-full rounded-lg border border-charcoal/15 bg-cream py-2.5 pl-4 pr-8 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                      placeholder={(siteDefaultMargin * 100).toFixed(0)}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshPricing}
+                    disabled={refreshing}
+                    className="rounded-md border border-charcoal/15 bg-cream px-3 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
+                  >
+                    {refreshing ? 'Refreshing…' : 'Refresh variant prices'}
+                  </button>
+                  {refreshMsg && (
+                    <span className="font-body text-xs text-charcoal/60">{refreshMsg}</span>
+                  )}
+                </div>
+                <p className="mt-1 font-body text-xs text-charcoal/40">
+                  Leave blank to use the site default ({(siteDefaultMargin * 100).toFixed(0)}%). Variant prices are computed from (wholesale + worst-case CONUS shipping) ÷ (1 − margin).
+                </p>
               </div>
             </div>
           </section>

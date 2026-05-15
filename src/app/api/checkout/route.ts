@@ -1,9 +1,10 @@
+import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 
 export async function POST(request: Request) {
-  const { items, email, cartId } = await request.json()
+  const { items, email, cartId, shippingSurcharge, shippingSurchargeLabel } = await request.json()
 
   if (!items?.length) {
     return Response.json({ error: 'No items provided' }, { status: 400 })
@@ -64,7 +65,11 @@ export async function POST(request: Request) {
     if (img) imageUrls[item.productId] = img.url
   }
 
-  const session = await getStripe().checkout.sessions.create({
+  const surchargeCents = typeof shippingSurcharge === 'number' && shippingSurcharge > 0
+    ? Math.round(shippingSurcharge * 100)
+    : 0
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     customer_email: email || undefined,
     line_items: validatedItems.map((item) => ({
@@ -91,7 +96,19 @@ export async function POST(request: Request) {
     },
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/{CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
-  })
+  }
+
+  if (surchargeCents > 0) {
+    sessionParams.shipping_options = [{
+      shipping_rate_data: {
+        type: 'fixed_amount',
+        fixed_amount: { amount: surchargeCents, currency: 'usd' },
+        display_name: shippingSurchargeLabel || 'Outside contiguous US shipping surcharge',
+      },
+    }]
+  }
+
+  const session = await getStripe().checkout.sessions.create(sessionParams)
 
   // Fire Meta CAPI InitiateCheckout
   const totalValue = validatedItems.reduce((sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity, 0)

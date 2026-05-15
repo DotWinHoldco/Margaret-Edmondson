@@ -59,6 +59,7 @@ export async function PATCH(
       // NOTE: Requires `funnel_eligible BOOLEAN DEFAULT true` column on products table in Supabase
       'funnel_eligible',
       'tags',
+      'margin_pct',
     ]
 
     for (const field of allowedFields) {
@@ -91,38 +92,37 @@ export async function PATCH(
       }
     }
 
-    // Handle variants if provided
+    // Handle variants if provided — preserve pricing columns (wholesale_cost,
+    // worst_case_shipping, shipping_quoted_at) by updating existing rows in
+    // place and only inserting/deleting the diff.
     if (Array.isArray(body.variants)) {
-      // Delete existing variants and re-insert
-      const { error: deleteError } = await supabase
+      const incoming = body.variants as Array<{ id?: string; name: string; price: number; sku: string }>
+      const incomingIds = new Set(incoming.filter((v) => v.id).map((v) => v.id!))
+
+      const { data: existingRows } = await supabase
         .from('product_variants')
-        .delete()
+        .select('id')
         .eq('product_id', id)
 
-      if (deleteError) {
-        console.error('Failed to delete variants:', deleteError.message)
+      const existingIds = new Set((existingRows || []).map((r) => r.id))
+      const idsToDelete = [...existingIds].filter((eid) => !incomingIds.has(eid))
+
+      if (idsToDelete.length > 0) {
+        await supabase.from('product_variants').delete().in('id', idsToDelete)
       }
 
-      if (body.variants.length > 0) {
-        const variantRows = body.variants.map(
-          (
-            v: { name: string; price: number; sku: string },
-            index: number
-          ) => ({
-            product_id: id,
-            name: v.name,
-            price: v.price || 0,
-            sku: v.sku || null,
-            sort_order: index,
-          })
-        )
-
-        const { error: insertError } = await supabase
-          .from('product_variants')
-          .insert(variantRows)
-
-        if (insertError) {
-          console.error('Failed to insert variants:', insertError.message)
+      for (let index = 0; index < incoming.length; index++) {
+        const v = incoming[index]
+        const row = {
+          name: v.name,
+          price: v.price || 0,
+          sku: v.sku || null,
+          sort_order: index,
+        }
+        if (v.id && existingIds.has(v.id)) {
+          await supabase.from('product_variants').update(row).eq('id', v.id)
+        } else {
+          await supabase.from('product_variants').insert({ ...row, product_id: id })
         }
       }
     }

@@ -9,6 +9,47 @@ export default function CartPage() {
   const { state, dispatch, subtotal, itemCount } = useCart()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [country, setCountry] = useState('US')
+  const [zip, setZip] = useState('')
+  const [surcharge, setSurcharge] = useState<number | null>(null)
+  const [surchargeLabel, setSurchargeLabel] = useState<string | null>(null)
+  const [quoting, setQuoting] = useState(false)
+  const [quoteError, setQuoteError] = useState('')
+
+  const needsSurcharge = country !== 'US' || /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
+
+  async function fetchSurcharge() {
+    setQuoteError('')
+    setSurcharge(null)
+    setSurchargeLabel(null)
+    if (!zip.trim()) return
+    if (!needsSurcharge) return
+    setQuoting(true)
+    try {
+      const variantItems = state.items
+        .filter((i) => i.variantId)
+        .map((i) => ({ variantId: i.variantId!, quantity: i.quantity }))
+      if (variantItems.length === 0) return
+      const res = await fetch('/api/cart/shipping-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country, zip, items: variantItems }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not quote shipping')
+      setSurcharge(data.surcharge || 0)
+      const label =
+        data.zone === 'AK' ? 'Alaska shipping surcharge'
+        : data.zone === 'HI' ? 'Hawaii shipping surcharge'
+        : data.zone === 'CA' ? 'Canada shipping surcharge'
+        : 'Outside contiguous US shipping surcharge'
+      setSurchargeLabel(label)
+    } catch (err) {
+      setQuoteError(err instanceof Error ? err.message : 'Could not quote shipping')
+    } finally {
+      setQuoting(false)
+    }
+  }
 
   async function handleCheckout() {
     setLoading(true)
@@ -24,6 +65,8 @@ export default function CartPage() {
             variantId: item.variantId,
             quantity: item.quantity,
           })),
+          shippingSurcharge: surcharge ?? 0,
+          shippingSurchargeLabel: surchargeLabel,
         }),
       })
 
@@ -191,14 +234,57 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between font-body text-sm">
                   <span className="text-charcoal/60">Shipping</span>
-                  <span className="text-charcoal/50">Calculated at checkout</span>
+                  <span className="text-charcoal">{needsSurcharge && surcharge != null ? `+ $${surcharge.toFixed(2)}` : 'Included'}</span>
                 </div>
+              </div>
+
+              <div className="mb-4 rounded-sm border border-charcoal/10 bg-charcoal/[0.02] p-3">
+                <p className="mb-2 font-body text-xs text-charcoal/60">
+                  Shipping is included for the contiguous US. Alaska, Hawaii, and Canada incur a calculated surcharge.
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={country}
+                    onChange={(e) => { setCountry(e.target.value); setSurcharge(null); setSurchargeLabel(null) }}
+                    className="col-span-1 rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal focus:border-teal focus:outline-none"
+                  >
+                    <option value="US">US</option>
+                    <option value="CA">Canada</option>
+                  </select>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={zip}
+                    onChange={(e) => { setZip(e.target.value); setSurcharge(null); setSurchargeLabel(null) }}
+                    placeholder={country === 'CA' ? 'A1A 1A1' : 'ZIP'}
+                    className="col-span-1 rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={fetchSurcharge}
+                    disabled={quoting || !zip.trim() || !needsSurcharge}
+                    className="col-span-1 rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-40"
+                  >
+                    {quoting ? '…' : 'Quote'}
+                  </button>
+                </div>
+                {needsSurcharge && surcharge != null && (
+                  <p className="mt-2 font-body text-xs text-charcoal/60">{surchargeLabel}: ${surcharge.toFixed(2)}</p>
+                )}
+                {quoteError && (
+                  <p className="mt-2 font-body text-xs text-coral">{quoteError}</p>
+                )}
+                {!needsSurcharge && zip.trim() && (
+                  <p className="mt-2 font-body text-xs text-teal">Contiguous US — no surcharge.</p>
+                )}
               </div>
 
               <div className="border-t border-charcoal/10 pt-4 mb-6">
                 <div className="flex justify-between font-body">
                   <span className="font-semibold text-charcoal">Total</span>
-                  <span className="font-semibold text-charcoal">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-charcoal">
+                    ${(subtotal + (needsSurcharge && surcharge ? surcharge : 0)).toFixed(2)}
+                  </span>
                 </div>
               </div>
 

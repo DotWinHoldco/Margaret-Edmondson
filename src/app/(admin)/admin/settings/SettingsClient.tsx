@@ -35,9 +35,157 @@ export default function SettingsClient() {
     <div className="space-y-8">
       <AccountSection />
       <SiteSettingsSection />
+      <PricingSettingsSection />
       <IntegrationStatusSection />
       <PromoCodesSection />
       <DangerZoneSection />
+    </div>
+  )
+}
+
+/* ─── Pricing Settings ─── */
+
+function PricingSettingsSection() {
+  const [marginPct, setMarginPct] = useState('')
+  const [zips, setZips] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [savedMsg, setSavedMsg] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetch('/api/admin/pricing/settings')
+      const data = await res.json()
+      if (data.data) {
+        setMarginPct((Number(data.data.default_margin_pct) * 100).toString())
+        setZips((data.data.shipping_quote_zips || []).join(', '))
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSavedMsg(null)
+    const body = {
+      default_margin_pct: marginPct ? parseFloat(marginPct) / 100 : undefined,
+      shipping_quote_zips: zips
+        ? zips.split(',').map((z) => z.trim()).filter(Boolean)
+        : undefined,
+    }
+    const res = await fetch('/api/admin/pricing/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) {
+      setSavedMsg(data.error || 'Save failed')
+    } else {
+      setSavedMsg('Saved.')
+      setTimeout(() => setSavedMsg(null), 2500)
+    }
+  }
+
+  async function handleRefreshAll(useDefaults: boolean) {
+    setRefreshing(true)
+    setRefreshMsg(null)
+    const res = await fetch('/api/admin/pricing/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ useDefaults }),
+    })
+    const data = await res.json()
+    setRefreshing(false)
+    if (!res.ok) setRefreshMsg(data.error || 'Refresh failed')
+    else setRefreshMsg(`Recomputed ${data.updated} variants from ${data.source}. ${data.skipped?.length || 0} skipped.`)
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+        <p className="font-body text-sm text-charcoal/40">Loading pricing settings...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+      <h2 className="font-display text-xl font-semibold text-charcoal mb-2">Pricing</h2>
+      <p className="font-body text-xs text-charcoal/50 mb-5">
+        Variant prices are <code>(wholesale + worst-case CONUS shipping) / (1 − margin)</code>. Shipping is included for contiguous US; AK, HI, and Canada are surcharged at checkout.
+      </p>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block font-body text-sm font-medium text-charcoal mb-1.5">
+              Default Margin (%)
+            </label>
+            <div className="relative w-40">
+              <input
+                type="number"
+                min="0"
+                max="99"
+                step="0.1"
+                value={marginPct}
+                onChange={(e) => setMarginPct(e.target.value)}
+                className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
+            </div>
+            <p className="mt-1 font-body text-xs text-charcoal/30">Used when a product has no override.</p>
+          </div>
+          <div>
+            <label className="block font-body text-sm font-medium text-charcoal mb-1.5">
+              CONUS Quote Zips (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={zips}
+              onChange={(e) => setZips(e.target.value)}
+              placeholder="33101, 98101, 04401, 92101"
+              className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            />
+            <p className="mt-1 font-body text-xs text-charcoal/30">LumaPrints is quoted at each zip; the highest cost is baked into prices.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Pricing Settings'}
+          </button>
+          {savedMsg && (
+            <span className="font-body text-sm text-teal">{savedMsg}</span>
+          )}
+        </div>
+
+        <div className="border-t border-charcoal/8 pt-4 flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => handleRefreshAll(false)}
+            disabled={refreshing}
+            className="rounded-sm border border-charcoal/15 bg-cream px-4 py-2 font-body text-sm font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh prices (LumaPrints quote)'}
+          </button>
+          <button
+            onClick={() => handleRefreshAll(true)}
+            disabled={refreshing}
+            className="rounded-sm border border-charcoal/15 bg-cream px-4 py-2 font-body text-sm font-medium text-charcoal/70 transition-colors hover:bg-charcoal/5 disabled:opacity-50"
+          >
+            Refresh prices (use defaults)
+          </button>
+          {refreshMsg && (
+            <span className="font-body text-xs text-charcoal/60">{refreshMsg}</span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
