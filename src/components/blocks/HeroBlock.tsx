@@ -36,13 +36,13 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
   return (
     <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper pt-8 pb-12 sm:pt-12 sm:pb-16">
       <motion.div style={{ y }} className="relative w-full">
-        <div className="relative w-full aspect-[1200/630]">
+        <div className="relative w-full aspect-[1000/661]">
           <Image
             src={imageUrl}
             alt={heading}
             fill
             priority
-            className="object-cover"
+            className="object-contain"
             sizes="100vw"
             quality={90}
           />
