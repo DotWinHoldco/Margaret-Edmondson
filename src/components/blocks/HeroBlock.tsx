@@ -34,9 +34,9 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
   const cta2Link = c.cta2_link || '/commissions'
 
   return (
-    <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper pt-4 pb-8 sm:pt-6 sm:pb-10">
-      <motion.div style={{ y }} className="relative w-full flex justify-center">
-        <div className="relative w-full max-h-[70vh] aspect-[1000/661]" style={{ maxWidth: 'calc(70vh * 1000 / 661)' }}>
+    <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper">
+      <motion.div style={{ y }} className="relative w-full">
+        <div className="relative w-full aspect-[1000/661]">
           <Image
             src={imageUrl}
             alt={heading}
@@ -53,7 +53,7 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
-        className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-5"
+        className="mt-10 mb-16 flex flex-col sm:flex-row gap-5"
       >
         <Link
           href={ctaLink}
