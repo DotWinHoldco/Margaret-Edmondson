@@ -5,35 +5,38 @@ import Link from 'next/link'
 import { motion, type Easing } from 'framer-motion'
 const ease: Easing = [0.25, 0.46, 0.45, 0.94]
 
+const STORAGE_BASE =
+  'https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/public/product-images/web'
+
 const DEFAULT_CATEGORIES = [
   {
     name: 'Beach & SC',
     slug: 'beach-and-sc',
-    image: '/Margaret Edmondson/ARTWORK/Beach and SC/Dolphin Watch.jpg',
+    image: `${STORAGE_BASE}/beach-and-sc/dolphin-watch.webp`,
     description: 'Coastal scenes and Southern charm',
   },
   {
     name: 'Cactuses',
     slug: 'cactuses',
-    image: '/Margaret Edmondson/ARTWORK/Cactuses/Sometime.jpg',
+    image: `${STORAGE_BASE}/cactuses/sometime.webp`,
     description: 'Desert blooms and saguaro studies',
   },
   {
     name: 'Texas Themed',
     slug: 'texas-themed',
-    image: '/Margaret Edmondson/ARTWORK/Texas Themed/Flower Power_1.jpg',
+    image: `${STORAGE_BASE}/texas-themed/flower-power_1.webp`,
     description: 'Lone Star spirit on canvas',
   },
   {
     name: 'Encouragement Series',
     slug: 'encouragement-series',
-    image: '/Margaret Edmondson/ARTWORK/Encouragement Series/Unexpected.jpg',
+    image: `${STORAGE_BASE}/encouragement-series/unexpected.webp`,
     description: 'Uplifting words meet bold color',
   },
   {
     name: 'Custom Portraits',
     slug: 'custom-portraits',
-    image: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_1.jpg',
+    image: `${STORAGE_BASE}/custom-portrait-options/custom-pet-portrait-example_1.webp`,
     description: 'One-of-a-kind pet & people portraits',
   },
 ]
