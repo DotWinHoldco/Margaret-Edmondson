@@ -19,6 +19,7 @@ interface ShippingAddress {
 interface ProductImage {
   url: string
   position: number
+  print_master_path?: string | null
 }
 
 interface OrderItem {
@@ -70,6 +71,34 @@ function resolveImageUrl(url: string): string {
   return `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
+// Mint a 1-hour signed URL for an object in the private print-masters bucket.
+// Falls back to the (already-compressed) public web URL when no master path is
+// set or service-role env is missing, so fulfillment still works during rollout.
+async function mintLumaprintsImageUrl(image: ProductImage | undefined): Promise<string> {
+  if (!image) return ''
+  const path = image.print_master_path
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!path || !serviceKey || !supabaseUrl) {
+    return resolveImageUrl(image.url)
+  }
+  try {
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/print-masters/${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    })
+    if (!res.ok) return resolveImageUrl(image.url)
+    const { signedURL } = (await res.json()) as { signedURL: string }
+    return signedURL.startsWith('http') ? signedURL : `${supabaseUrl}/storage/v1${signedURL}`
+  } catch {
+    return resolveImageUrl(image.url)
+  }
+}
+
 function parseShippingAddress(addr: ShippingAddress) {
   return {
     name: addr.name || 'Customer',
@@ -93,11 +122,11 @@ async function submitToLumaprints(
 ): Promise<FulfillmentResult[]> {
   const addr = parseShippingAddress(shippingAddress)
 
-  const lumaprintsItems = items.map((item) => {
+  const lumaprintsItems = await Promise.all(items.map(async (item) => {
     const primaryImage = item.product.product_images
       ?.sort((a: ProductImage, b: ProductImage) => a.position - b.position)
       ?.[0]
-    const imageUrl = resolveImageUrl(primaryImage?.url || '')
+    const imageUrl = await mintLumaprintsImageUrl(primaryImage)
 
     // Fulfillment metadata may contain categoryId, subcategoryId, and options.
     // Fall back to empty strings so the request still goes through — admin can
@@ -115,7 +144,7 @@ async function submitToLumaprints(
       ),
       quantity: item.quantity,
     }
-  })
+  }))
 
   const response = await lumaprintsSubmitOrder({
     reference: orderId,
@@ -214,7 +243,7 @@ export async function routeOrderToFulfillment(
         id,
         name,
         printful_sync_product_id,
-        product_images ( url, position )
+        product_images ( url, position, print_master_path )
       ),
       variant:product_variants (
         id,
@@ -352,7 +381,7 @@ export async function retryFulfillmentForItem(
         id,
         name,
         printful_sync_product_id,
-        product_images ( url, position )
+        product_images ( url, position, print_master_path )
       ),
       variant:product_variants (
         id,

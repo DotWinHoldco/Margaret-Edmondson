@@ -1,9 +1,104 @@
 'use client'
 
-import { useState, useEffect, useCallback, use } from 'react'
+import { useState, useEffect, useCallback, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+
+function MasterFooter({
+  productId,
+  image,
+  onChange,
+}: {
+  productId: string
+  image: { id: string; print_master_path?: string | null }
+  onChange: (path: string | null) => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const supabase = createClient()
+
+  async function handleFile(file: File) {
+    setUploading(true)
+    setError(null)
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `${productId}/${image.id}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('print-masters')
+        .upload(path, file, { contentType: file.type, upsert: true })
+      if (upErr) throw upErr
+      const res = await fetch(`/api/admin/products/${productId}/images/master`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageId: image.id, printMasterPath: path }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save path')
+      onChange(path)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ''
+    }
+  }
+
+  async function handleClear() {
+    if (!confirm('Remove the linked print master?')) return
+    if (image.print_master_path) {
+      await supabase.storage.from('print-masters').remove([image.print_master_path]).catch(() => {})
+    }
+    await fetch(`/api/admin/products/${productId}/images/master`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageId: image.id, printMasterPath: null }),
+    })
+    onChange(null)
+  }
+
+  return (
+    <div className="border-t border-charcoal/10 px-3 py-2 bg-cream/40 text-[11px] font-body">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-charcoal/60 truncate">
+          {image.print_master_path ? (
+            <>Master: <span className="text-teal">{image.print_master_path.split('/').pop()}</span></>
+          ) : (
+            <span className="text-charcoal/40">No print master</span>
+          )}
+        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/tiff,application/pdf"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="rounded bg-charcoal/5 px-2 py-0.5 text-charcoal hover:bg-charcoal/10 disabled:opacity-50"
+          >
+            {uploading ? 'Uploading…' : image.print_master_path ? 'Replace' : 'Upload'}
+          </button>
+          {image.print_master_path && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="rounded text-coral/70 hover:text-coral px-1"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+      {error && <p className="mt-1 text-coral">{error}</p>}
+    </div>
+  )
+}
 
 interface Variant {
   id: string
@@ -25,6 +120,7 @@ interface ProductImage {
   alt_text: string
   is_primary: boolean
   sort_order: number
+  print_master_path?: string | null
 }
 
 function generateSlug(title: string): string {
@@ -643,6 +739,17 @@ export default function EditProductPage({
                         Delete
                       </button>
                     </div>
+                    <MasterFooter
+                      productId={id}
+                      image={image}
+                      onChange={(newPath) =>
+                        setImages((prev) =>
+                          prev.map((img) =>
+                            img.id === image.id ? { ...img, print_master_path: newPath } : img,
+                          ),
+                        )
+                      }
+                    />
                   </div>
                 ))}
               </div>
