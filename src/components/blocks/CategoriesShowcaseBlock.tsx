@@ -10,34 +10,28 @@ const STORAGE_BASE =
 
 const DEFAULT_CATEGORIES = [
   {
-    name: 'Beach & SC',
-    slug: 'beach-and-sc',
+    name: 'Beach',
+    slug: 'beach',
     image: `${STORAGE_BASE}/beach-and-sc/dolphin-watch.webp`,
-    description: 'Coastal scenes and Southern charm',
+    description: 'Coastal scenes & Southern charm',
   },
   {
-    name: 'Cactuses',
-    slug: 'cactuses',
+    name: 'Landscapes',
+    slug: 'landscapes',
     image: `${STORAGE_BASE}/cactuses/sometime.webp`,
-    description: 'Desert blooms and saguaro studies',
+    description: 'Deserts, pastorals & vistas',
   },
   {
-    name: 'Texas Themed',
-    slug: 'texas-themed',
-    image: `${STORAGE_BASE}/texas-themed/flower-power_1.webp`,
-    description: 'Lone Star spirit on canvas',
+    name: 'Animals',
+    slug: 'animals',
+    image: `${STORAGE_BASE}/texas-themed/mad-cow.webp`,
+    description: 'Cattle, horses & the creatures who anchor a place',
   },
   {
-    name: 'Encouragement Series',
-    slug: 'encouragement-series',
+    name: 'Mixed Media',
+    slug: 'mixed-media',
     image: `${STORAGE_BASE}/encouragement-series/unexpected.webp`,
-    description: 'Uplifting words meet bold color',
-  },
-  {
-    name: 'Custom Portraits',
-    slug: 'custom-portraits',
-    image: `${STORAGE_BASE}/custom-portrait-options/custom-pet-portrait-example_1.webp`,
-    description: 'One-of-a-kind pet & people portraits',
+    description: 'Collage, found poetry & texture',
   },
 ]
 
@@ -98,26 +92,16 @@ export default function CategoriesShowcaseBlock({
           </p>
         </motion.div>
 
-        {/* Category Grid — 3 top, 2 bottom centered */}
+        {/* Category Grid — single column on mobile, 4-wide on desktop */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6"
         >
-          {categories.map((cat, i) => (
-            <motion.div
-              key={cat.slug}
-              variants={cardVariants}
-              className={
-                // Center the last two cards on large screens
-                i >= 3 && categories.length === 5
-                  ? 'sm:col-span-1 lg:col-span-1 ' +
-                    (i === 3 ? 'lg:col-start-1 lg:ml-auto lg:mr-0 lg:w-full lg:col-start-1 lg:justify-self-end' : 'lg:col-start-3 lg:justify-self-start')
-                  : ''
-              }
-            >
+          {categories.map((cat) => (
+            <motion.div key={cat.slug} variants={cardVariants}>
               <Link
                 href={`/shop/${cat.slug}`}
                 className="group block relative overflow-hidden rounded-sm bg-white shadow-sm hover:shadow-lg transition-shadow duration-300"
@@ -129,7 +113,7 @@ export default function CategoriesShowcaseBlock({
                     alt={cat.name}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/10 to-transparent" />

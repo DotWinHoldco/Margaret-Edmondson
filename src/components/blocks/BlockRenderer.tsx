@@ -7,6 +7,7 @@ import CTABannerBlock from './CTABannerBlock'
 import ClassPreviewBlock from './ClassPreviewBlock'
 import NewsletterBlock from './NewsletterBlock'
 import CategoriesShowcaseBlock from './CategoriesShowcaseBlock'
+import CommissionFeatureBlock from './CommissionFeatureBlock'
 
 interface BlockProps {
   type: string
@@ -24,6 +25,7 @@ const BLOCK_MAP: Record<string, React.ComponentType<{ config: Record<string, unk
   class_preview: ClassPreviewBlock,
   newsletter: NewsletterBlock,
   categories_showcase: CategoriesShowcaseBlock,
+  commission_feature: CommissionFeatureBlock,
 }
 
 export default function BlockRenderer({ type, config, variant = 'v1' }: BlockProps) {

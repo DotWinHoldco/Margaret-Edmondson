@@ -14,7 +14,7 @@ const FOOTER_LINKS = {
     { href: '/commissions', label: 'Commissions' },
   ],
   About: [
-    { href: '/about', label: 'Our Story' },
+    { href: '/about', label: 'About the Artist' },
     { href: '/contact', label: 'Contact' },
     { href: '/gallery', label: 'Gallery' },
   ],
