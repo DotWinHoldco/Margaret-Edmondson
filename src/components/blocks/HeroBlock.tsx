@@ -36,7 +36,7 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
   return (
     <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper">
       <motion.div style={{ y }} className="relative w-full">
-        <div className="relative w-full aspect-[1000/661]">
+        <div className="relative w-full aspect-[2400/1590]">
           <Image
             src={imageUrl}
             alt={heading}
