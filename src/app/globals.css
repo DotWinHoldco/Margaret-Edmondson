@@ -43,13 +43,17 @@
   --color-olive: var(--olive);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-display: var(--font-cormorant);
-  --font-body: var(--font-source-sans);
-  --font-hand: var(--font-caveat);
+  --font-display: var(--font-dancing-script);
+  --font-body: var(--font-lora);
+  --font-hand: var(--font-dancing-script);
+  --font-script: var(--font-dancing-script);
+  --font-serif: var(--font-cormorant);
+  --font-sans: var(--font-source-sans);
   --font-editorial: var(--font-playfair);
   --font-friendly: var(--font-nunito);
   --font-serif-display: var(--font-dm-serif);
   --font-serif-body: var(--font-lora);
+  --font-cormorant-alt: var(--font-cormorant);
 }
 
 body {

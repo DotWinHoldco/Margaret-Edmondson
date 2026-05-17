@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Source_Sans_3, Caveat, Playfair_Display, Nunito, DM_Serif_Display, Lora } from "next/font/google";
+import { Cormorant_Garamond, Source_Sans_3, Caveat, Playfair_Display, Nunito, DM_Serif_Display, Lora, Dancing_Script } from "next/font/google";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -51,6 +51,13 @@ const lora = Lora({
   display: "swap",
 });
 
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dancing-script",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "ArtByMe — Mixed Media & Fine Art by Margaret Edmondson",
@@ -94,7 +101,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${sourceSans.variable} ${caveat.variable} ${playfair.variable} ${nunito.variable} ${dmSerif.variable} ${lora.variable}`}
+      className={`${cormorant.variable} ${sourceSans.variable} ${caveat.variable} ${playfair.variable} ${nunito.variable} ${dmSerif.variable} ${lora.variable} ${dancingScript.variable}`}
     >
       <body className="min-h-screen bg-cream text-charcoal antialiased">
         {children}
