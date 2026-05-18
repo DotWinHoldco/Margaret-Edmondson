@@ -6,7 +6,6 @@ import { useState } from 'react'
 import { useCart } from '@/lib/cart/context'
 
 const NAV_LINKS = [
-  { href: '/gallery', label: 'Gallery' },
   { href: '/shop', label: 'Shop' },
   { href: '/commissions', label: 'Commissions' },
   { href: '/classes', label: 'Classes' },

@@ -71,8 +71,8 @@ export default function AboutPage() {
           </div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-sm order-1 lg:order-2">
             <Image
-              src="/Margaret Edmondson/ARTWORK/Texas Themed/Spring Break Mountain Boat Dock.jpg"
-              alt="Spring Break Mountain Boat Dock painting by Margaret Edmondson"
+              src="https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/public/product-images/web/texas-themed/deep-in-the-heart-of-texas_1.webp"
+              alt="Deep in the Heart of Texas painting by Margaret Edmondson"
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
