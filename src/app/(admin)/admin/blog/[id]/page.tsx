@@ -19,6 +19,7 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
   const [deleting, setDeleting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const [form, setForm] = useState({
@@ -116,13 +117,13 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
         }),
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to save post.')
+        throw new Error(json.error || 'Failed to save post.')
       }
 
-      router.push('/admin/blog')
-      router.refresh()
+      setSavedAt(new Date())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -179,6 +180,19 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
       {error && (
         <div className="rounded-sm border border-coral/30 bg-coral/10 px-4 py-3 font-body text-sm text-coral">
           {error}
+        </div>
+      )}
+
+      {savedAt && !error && (
+        <div className="rounded-sm border border-teal/30 bg-teal/10 px-4 py-3 font-body text-sm text-teal flex items-center justify-between">
+          <span>Saved {savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</span>
+          <button
+            type="button"
+            onClick={() => { router.push('/admin/blog'); router.refresh() }}
+            className="font-body text-xs font-semibold uppercase tracking-wider text-teal/80 hover:text-teal transition-colors"
+          >
+            Back to Posts →
+          </button>
         </div>
       )}
 

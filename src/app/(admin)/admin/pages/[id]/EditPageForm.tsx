@@ -17,6 +17,7 @@ export default function EditPageForm({ page }: { page: Page }) {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [form, setForm] = useState({
     title: page.title || '',
     slug: page.slug || '',
@@ -55,7 +56,18 @@ export default function EditPageForm({ page }: { page: Page }) {
         return
       }
 
-      router.push('/admin/pages')
+      if (data.data) {
+        setForm({
+          title: data.data.title || '',
+          slug: data.data.slug || '',
+          seo_title: data.data.seo_title || '',
+          seo_description: data.data.seo_description || '',
+          content_html: data.data.content_html || '',
+        })
+      }
+      setSavedAt(new Date())
+      setSaving(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       setError('An unexpected error occurred.')
       setSaving(false)
@@ -94,6 +106,19 @@ export default function EditPageForm({ page }: { page: Page }) {
       {error && (
         <div className="rounded-sm border border-coral/30 bg-coral/10 p-4">
           <p className="font-body text-sm text-coral">{error}</p>
+        </div>
+      )}
+
+      {savedAt && !error && (
+        <div className="rounded-sm border border-teal/30 bg-teal/10 px-4 py-3 font-body text-sm text-teal flex items-center justify-between">
+          <span>Saved {savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</span>
+          <button
+            type="button"
+            onClick={() => router.push('/admin/pages')}
+            className="font-body text-xs font-semibold uppercase tracking-wider text-teal/80 hover:text-teal transition-colors"
+          >
+            Back to Pages →
+          </button>
         </div>
       )}
 
