@@ -66,6 +66,18 @@ html {
   overflow-x: clip;
 }
 
+/* Tailwind v4 dropped the cursor: pointer default on <button>; the spec
+   reverted to cursor: default to match Safari. Restore the v3 behavior
+   for any interactive element so links and buttons feel clickable. */
+a[href],
+button:not([disabled]),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary,
+select:not([disabled]) {
+  cursor: pointer;
+}
+
 /* === Paper/Canvas Texture (V1) === */
 .texture-paper {
   position: relative;
