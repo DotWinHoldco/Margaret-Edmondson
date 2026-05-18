@@ -74,7 +74,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('products')
-    .select('*, product_images(*), product_variants(*), categories(*), product_categories(category_id, is_primary)')
+    .select('*, product_images(*), product_variants(*), product_categories(category_id, is_primary)')
     .eq('id', id)
     .single()
 
@@ -169,7 +169,7 @@ export async function PATCH(
 
   const { data: product, error: fetchError } = await supabase
     .from('products')
-    .select('*, product_images(*), product_variants(*), categories(*), product_categories(category_id, is_primary)')
+    .select('*, product_images(*), product_variants(*), product_categories(category_id, is_primary)')
     .eq('id', id)
     .single()
 

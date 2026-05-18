@@ -2,13 +2,14 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 
 interface Testimonial {
   id: string
   name: string
-  role?: string
+  role?: string | null
   quote: string
-  avatar_url?: string
+  avatar_url?: string | null
 }
 
 interface TestimonialsConfig {
@@ -16,20 +17,42 @@ interface TestimonialsConfig {
   testimonials?: Testimonial[]
   auto_rotate?: boolean
   display_style?: 'carousel' | 'grid'
+  // When true, the block reads testimonials from the testimonials table
+  // (filtered to featured + approved). Defaults to true so the homepage
+  // surfaces what's actually configured in the admin.
+  fetch_from_db?: boolean
 }
 
-const FALLBACK_TESTIMONIALS: Testimonial[] = [
-  { id: '1', name: 'Sarah Mitchell', role: 'Collector', quote: 'The mixed media collage I commissioned for our living room is absolutely breathtaking. Margaret captured exactly what I envisioned — layers of texture and meaning that tell our family\'s story.' },
-  { id: '2', name: 'James Porter', role: 'Student', quote: 'Taking the watercolor class opened up a whole new world for me. Margaret\'s teaching style is warm, patient, and incredibly inspiring. I\'ve never felt more creative.' },
-  { id: '3', name: 'Linda Chen', role: 'Commission Client', quote: 'From the first sketch to the final piece, the commission process was wonderful. Communication was clear, updates were frequent, and the result exceeded my wildest expectations.' },
-]
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+)
 
 export default function TestimonialsBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as TestimonialsConfig
-  const heading = c.heading || 'What People Are Saying'
-  const testimonials = c.testimonials || FALLBACK_TESTIMONIALS
+  const heading = c.heading || 'What Collectors Say'
   const autoRotate = c.auto_rotate !== false
+  const fetchFromDb = c.fetch_from_db !== false
+
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(c.testimonials || [])
   const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    if (!fetchFromDb) return
+    let cancelled = false
+    ;(async () => {
+      // Public can read featured + approved testimonials via RLS.
+      const { data } = await supabase
+        .from('testimonials')
+        .select('id, name, role, quote, avatar_url')
+        .eq('is_featured', true)
+        .order('sort_order', { ascending: true })
+      if (!cancelled && data && data.length > 0) setTestimonials(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fetchFromDb])
 
   useEffect(() => {
     if (!autoRotate || testimonials.length <= 1) return
@@ -38,6 +61,8 @@ export default function TestimonialsBlock({ config }: { config: Record<string, u
     }, 6000)
     return () => clearInterval(timer)
   }, [autoRotate, testimonials.length])
+
+  if (testimonials.length === 0) return null
 
   return (
     <section className="py-24 sm:py-32 bg-cream">
@@ -81,7 +106,6 @@ export default function TestimonialsBlock({ config }: { config: Record<string, u
           </AnimatePresence>
         </div>
 
-        {/* Dots */}
         {testimonials.length > 1 && (
           <div className="mt-8 flex justify-center gap-2">
             {testimonials.map((_, i) => (
