@@ -1,7 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeSubscriber } from '@/lib/email/send'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 export async function POST(request: Request) {
+  const rl = rateLimit(request, { limit: 3, windowMs: 60_000, keyPrefix: 'newsletter' })
+  if (!rl.ok) return rateLimitResponse(rl)
+
   const { email, source, first_name } = await request.json()
 
   if (!email || !email.includes('@')) {

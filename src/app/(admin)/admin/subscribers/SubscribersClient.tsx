@@ -26,6 +26,7 @@ export default function SubscribersClient() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchSubscribers()
   }, [fetchSubscribers])
 

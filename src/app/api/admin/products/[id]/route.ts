@@ -1,192 +1,167 @@
-import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
+import { z } from 'zod'
+import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { logChanges } from '@/lib/api/audit-log'
+
+const VariantInput = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  price: z.number().nonnegative().default(0),
+  sku: z.string().nullable().optional(),
+})
+
+const ProductPatch = z.object({
+  title: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  description_html: z.string().optional(),
+  medium: z.string().nullable().optional(),
+  dimensions: z.string().nullable().optional(),
+  base_price: z.number().nonnegative().optional(),
+  compare_at_price: z.number().nonnegative().nullable().optional(),
+  fulfillment_type: z.enum(['lumaprints', 'printful', 'self_ship']).optional(),
+  status: z.enum(['draft', 'active', 'archived', 'sold']).optional(),
+  is_original: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
+  funnel_eligible: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+  margin_pct: z.number().min(0).max(0.99).nullable().optional(),
+  variants: z.array(VariantInput).optional(),
+})
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params
-    const auth = await requireAdmin()
-    if (!auth.ok) return auth.response
-    const supabase = auth.supabase
+  const { id } = await params
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+  const { supabase } = auth
 
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, product_images(*), product_variants(*), categories(*)')
-      .eq('id', id)
-      .single()
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, product_images(*), product_variants(*), categories(*)')
+    .eq('id', id)
+    .single()
 
-    if (error) {
-      return Response.json(
-        { error: error.message },
-        { status: error.code === 'PGRST116' ? 404 : 500 }
-      )
-    }
-
-    return Response.json({ data })
-  } catch (err) {
-    console.error('GET /api/admin/products/[id] error:', err)
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  if (error) {
+    return apiError(error.message, error.code === 'PGRST116' ? 404 : 500, 'DB_ERROR')
   }
+  return apiOk(data)
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params
-    const body = await request.json()
-    const auth = await requireAdmin()
-    if (!auth.ok) return auth.response
-    const supabase = auth.supabase
+  const { id } = await params
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+  const { supabase, user } = auth
 
-    // Build update object with only provided fields
-    const updateFields: Record<string, unknown> = {}
-    const allowedFields = [
-      'title',
-      'slug',
-      'category_id',
-      'description_html',
-      'medium',
-      'dimensions',
-      'base_price',
-      'compare_at_price',
-      'fulfillment_type',
-      'status',
-      'is_original',
-      'is_featured',
-      // NOTE: Requires `funnel_eligible BOOLEAN DEFAULT true` column on products table in Supabase
-      'funnel_eligible',
-      'tags',
-      'margin_pct',
-    ]
+  const parsed = await parseBody(request, ProductPatch)
+  if (!parsed.ok) return parsed.response
+  const body = parsed.data
 
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateFields[field] = body[field]
-      }
-    }
+  const { variants, ...productFields } = body
+  const hasProductChanges = Object.keys(productFields).length > 0
 
-    if (Object.keys(updateFields).length === 0 && !body.variants) {
-      return Response.json(
-        { error: 'No fields to update' },
-        { status: 400 }
-      )
-    }
-
-    // Update product fields
-    if (Object.keys(updateFields).length > 0) {
-      updateFields.updated_at = new Date().toISOString()
-
-      const { error: updateError } = await supabase
-        .from('products')
-        .update(updateFields)
-        .eq('id', id)
-
-      if (updateError) {
-        return Response.json(
-          { error: updateError.message },
-          { status: 500 }
-        )
-      }
-    }
-
-    // Handle variants if provided — preserve pricing columns (wholesale_cost,
-    // worst_case_shipping, shipping_quoted_at) by updating existing rows in
-    // place and only inserting/deleting the diff.
-    if (Array.isArray(body.variants)) {
-      const incoming = body.variants as Array<{ id?: string; name: string; price: number; sku: string }>
-      const incomingIds = new Set(incoming.filter((v) => v.id).map((v) => v.id!))
-
-      const { data: existingRows } = await supabase
-        .from('product_variants')
-        .select('id')
-        .eq('product_id', id)
-
-      const existingIds = new Set((existingRows || []).map((r) => r.id))
-      const idsToDelete = [...existingIds].filter((eid) => !incomingIds.has(eid))
-
-      if (idsToDelete.length > 0) {
-        await supabase.from('product_variants').delete().in('id', idsToDelete)
-      }
-
-      for (let index = 0; index < incoming.length; index++) {
-        const v = incoming[index]
-        const row = {
-          name: v.name,
-          price: v.price || 0,
-          sku: v.sku || null,
-          sort_order: index,
-        }
-        if (v.id && existingIds.has(v.id)) {
-          await supabase.from('product_variants').update(row).eq('id', v.id)
-        } else {
-          await supabase.from('product_variants').insert({ ...row, product_id: id })
-        }
-      }
-    }
-
-    // Fetch updated product
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('*, product_images(*), product_variants(*), categories(*)')
-      .eq('id', id)
-      .single()
-
-    if (fetchError) {
-      return Response.json(
-        { error: fetchError.message },
-        { status: 500 }
-      )
-    }
-
-    return Response.json({ data: product })
-  } catch (err) {
-    console.error('PATCH /api/admin/products/[id] error:', err)
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  if (!hasProductChanges && !Array.isArray(variants)) {
+    return apiError('No fields to update', 400, 'NO_CHANGES')
   }
+
+  // Snapshot the before state so we can write per-field audit rows.
+  const { data: before } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (hasProductChanges) {
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ ...productFields, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (updateError) return apiError(updateError.message, 500, 'DB_ERROR')
+  }
+
+  if (Array.isArray(variants)) {
+    const incomingIds = new Set(variants.filter((v) => v.id).map((v) => v.id!))
+    const { data: existingRows } = await supabase
+      .from('product_variants')
+      .select('id')
+      .eq('product_id', id)
+    const existingIds = new Set((existingRows || []).map((r) => r.id))
+    const idsToDelete = [...existingIds].filter((eid) => !incomingIds.has(eid))
+    if (idsToDelete.length > 0) {
+      await supabase.from('product_variants').delete().in('id', idsToDelete)
+    }
+    for (let index = 0; index < variants.length; index++) {
+      const v = variants[index]
+      const row = {
+        name: v.name,
+        price: v.price || 0,
+        sku: v.sku || null,
+        sort_order: index,
+      }
+      if (v.id && existingIds.has(v.id)) {
+        await supabase.from('product_variants').update(row).eq('id', v.id)
+      } else {
+        await supabase.from('product_variants').insert({ ...row, product_id: id })
+      }
+    }
+  }
+
+  if (before && hasProductChanges) {
+    await logChanges(supabase, {
+      tableName: 'products',
+      recordId: id,
+      userId: user.id,
+      before,
+      after: productFields,
+    })
+  }
+
+  const { data: product, error: fetchError } = await supabase
+    .from('products')
+    .select('*, product_images(*), product_variants(*), categories(*)')
+    .eq('id', id)
+    .single()
+
+  if (fetchError) return apiError(fetchError.message, 500, 'DB_ERROR')
+  return apiOk(product)
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params
-    const auth = await requireAdmin()
-    if (!auth.ok) return auth.response
-    const supabase = auth.supabase
+  const { id } = await params
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+  const { supabase, user } = auth
 
-    // Soft delete: set status to archived
-    const { error } = await supabase
-      .from('products')
-      .update({
-        status: 'archived',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
+  const { data: before } = await supabase
+    .from('products')
+    .select('status')
+    .eq('id', id)
+    .single()
 
-    if (error) {
-      return Response.json(
-        { error: error.message },
-        { status: 500 }
-      )
-    }
+  const { error } = await supabase
+    .from('products')
+    .update({ status: 'archived', updated_at: new Date().toISOString() })
+    .eq('id', id)
 
-    return Response.json({ success: true })
-  } catch (err) {
-    console.error('DELETE /api/admin/products/[id] error:', err)
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  if (error) return apiError(error.message, 500, 'DB_ERROR')
+
+  await logChanges(supabase, {
+    tableName: 'products',
+    recordId: id,
+    userId: user.id,
+    before,
+    after: { status: 'archived' },
+  })
+
+  return apiOk({ success: true })
 }

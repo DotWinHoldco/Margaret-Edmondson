@@ -1,6 +1,10 @@
 import { sendEmail } from '@/lib/email/send'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 export async function POST(request: Request) {
+  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'contact' })
+  if (!rl.ok) return rateLimitResponse(rl)
+
   const { name, email, subject, message } = await request.json()
 
   if (!name || !email || !message) {

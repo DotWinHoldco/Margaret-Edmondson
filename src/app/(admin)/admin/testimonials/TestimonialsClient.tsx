@@ -82,6 +82,7 @@ export default function TestimonialsClient() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 

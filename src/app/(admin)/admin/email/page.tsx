@@ -89,6 +89,7 @@ function TemplatesTab() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchTemplates()
   }, [fetchTemplates])
 
@@ -224,6 +225,7 @@ function CampaignsTab() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchCampaigns()
   }, [fetchCampaigns])
 
@@ -330,6 +332,7 @@ function SubscribersTab() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchSubscribers()
   }, [fetchSubscribers])
 

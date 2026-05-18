@@ -627,6 +627,7 @@ function PromoCodesSection() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchCodes()
   }, [fetchCodes])
 

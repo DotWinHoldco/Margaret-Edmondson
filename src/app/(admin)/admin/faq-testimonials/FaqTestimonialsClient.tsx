@@ -78,6 +78,7 @@ function FaqsTab() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 
@@ -332,6 +333,7 @@ function TestimonialsTab() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 

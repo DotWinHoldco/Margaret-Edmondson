@@ -1,7 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 export async function POST(request: Request) {
+  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
+  if (!rl.ok) return rateLimitResponse(rl)
+
   const body = await request.json()
   const { client_name, client_email, client_phone, description, preferred_medium, preferred_size, budget_range, timeline } = body
 
