@@ -66,7 +66,8 @@ export default function PageForm() {
         return
       }
 
-      router.push('/admin/pages')
+      const newId = data.page?.id
+      router.push(newId ? `/admin/pages/${newId}` : '/admin/pages')
     } catch {
       setError('An unexpected error occurred.')
       setSaving(false)

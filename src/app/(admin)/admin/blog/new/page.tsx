@@ -66,12 +66,13 @@ export default function NewBlogPostPage() {
         }),
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to save post.')
+        throw new Error(json.error || 'Failed to save post.')
       }
 
-      router.push('/admin/blog')
+      const newId = json.post?.id
+      router.push(newId ? `/admin/blog/${newId}` : '/admin/blog')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')

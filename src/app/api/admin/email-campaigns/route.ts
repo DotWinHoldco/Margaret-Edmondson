@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('email_campaigns')
       .select('*')

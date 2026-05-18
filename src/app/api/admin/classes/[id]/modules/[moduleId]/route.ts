@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 export async function PATCH(
@@ -8,7 +8,9 @@ export async function PATCH(
   try {
     const { moduleId } = await params
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const updateFields: Record<string, unknown> = {}
     const allowedFields = ['title', 'description', 'sort_order']
@@ -47,7 +49,9 @@ export async function DELETE(
 ) {
   try {
     const { moduleId } = await params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     // Delete lessons within this module first
     await supabase.from('lessons').delete().eq('module_id', moduleId)

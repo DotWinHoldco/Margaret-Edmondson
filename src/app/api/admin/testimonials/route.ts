@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 const MUTABLE_FIELDS = [
   'name',
   'role',
@@ -28,7 +27,9 @@ function pickFields(body: Record<string, unknown>) {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('testimonials')
       .select('*, media:testimonial_media(*)')
@@ -47,7 +48,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -86,7 +89,9 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -115,7 +120,9 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()

@@ -1,9 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { data, error } = await supabase
       .from('project_notes')
@@ -31,7 +33,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const {
       data: { user },
@@ -70,7 +74,9 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const {
       data: { user },
@@ -110,7 +116,9 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const {
       data: { user },

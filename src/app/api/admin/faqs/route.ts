@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('faqs')
       .select('*')
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('faqs')
       .insert({
@@ -68,7 +71,9 @@ export async function PATCH(request: Request) {
       return Response.json({ error: 'ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('faqs')
       .update(updates)

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
 import { computeCustomerPrice, resolveMargin } from '@/lib/pricing/compute'
 import { quoteWorstCaseCONUS } from '@/lib/pricing/shipping-quote'
@@ -18,11 +18,10 @@ const LUMAPRINTS_KEYS_PRESENT = Boolean(
 )
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const body = await request.json().catch(() => ({})) as { variantId?: string; productId?: string; useDefaults?: boolean }
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const body = await request.json().catch(() => ({})) as { variantId?: string; productId?: string; useDefaults?: boolean }
 
   const { data: settings } = await supabase
     .from('site_settings')

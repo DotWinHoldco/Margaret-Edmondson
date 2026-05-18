@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 export async function PATCH(
@@ -10,7 +10,9 @@ export async function PATCH(
   try {
     const { lessonId } = await params
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const updateFields: Record<string, unknown> = {}
     const allowedFields = [
@@ -62,7 +64,9 @@ export async function DELETE(
 ) {
   try {
     const { lessonId } = await params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { error } = await supabase
       .from('lessons')

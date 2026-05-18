@@ -1,9 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('products')
       .select('id, title, slug, status, is_original, base_price, funnel_eligible, product_images(id, url, alt_text, sort_order, is_primary)')
@@ -46,7 +48,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const slug = body.slug?.trim() || generateSlug(body.title)
 
     // Check for slug uniqueness

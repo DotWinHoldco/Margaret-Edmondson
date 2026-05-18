@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 // Record a print-master storage key against a product_images row.
@@ -10,12 +10,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { imageId, printMasterPath } = (await request.json()) as {
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const { imageId, printMasterPath } = (await request.json()) as {
     imageId?: string
     printMasterPath?: string | null
   }

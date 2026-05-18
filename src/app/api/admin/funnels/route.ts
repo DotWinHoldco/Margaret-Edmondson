@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { data: funnels, error } = await supabase
       .from('artwork_funnels')
@@ -34,7 +35,9 @@ function generateSlug(title: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     if (!body.product_id) {
       return Response.json({ error: 'Product is required.' }, { status: 400 })

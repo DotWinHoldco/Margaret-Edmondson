@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -10,7 +10,9 @@ function generateSlug(title: string): string {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('pages')
       .select('*')
@@ -41,7 +43,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const slug = body.slug?.trim() || generateSlug(title)
 
     // Check for slug uniqueness

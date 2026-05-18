@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 function slugify(input: string) {
@@ -11,7 +11,9 @@ function slugify(input: string) {
 }
 
 export async function GET() {
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -28,7 +30,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
   const {
     data: { user },
   } = await supabase.auth.getUser()

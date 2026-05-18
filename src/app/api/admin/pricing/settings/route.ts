@@ -1,12 +1,10 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data, error } = await supabase
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const { data, error } = await supabase
     .from('site_settings')
     .select('default_margin_pct, shipping_quote_zips, updated_at')
     .eq('id', true)
@@ -17,11 +15,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const body = await request.json() as {
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const body = await request.json() as {
     default_margin_pct?: number
     shipping_quote_zips?: string[]
   }

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 const INTEGRATION_KEYS = [
@@ -17,7 +17,9 @@ export async function GET() {
       configured: !!process.env[key],
     }))
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data: globalContent } = await supabase
       .from('site_content')
       .select('*')
@@ -43,7 +45,9 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { seo_title, seo_description } = body
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     // Upsert global site_content row
     const { data: existing } = await supabase

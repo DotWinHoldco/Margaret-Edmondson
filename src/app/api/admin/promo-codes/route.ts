@@ -1,9 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('promo_codes')
       .select('*')
@@ -42,7 +44,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('promo_codes')
       .insert({
@@ -81,7 +85,9 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ error: 'ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const { data, error } = await supabase
       .from('promo_codes')
       .update(updates)

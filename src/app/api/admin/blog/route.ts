@@ -1,10 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     if (id) {
       const { data: post, error } = await supabase
@@ -57,7 +58,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const postData: Record<string, unknown> = {
       title,
@@ -105,7 +108,9 @@ export async function PATCH(request: Request) {
       return Response.json({ error: 'Post ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const updateData: Record<string, unknown> = {}
 
@@ -151,7 +156,9 @@ export async function DELETE(request: Request) {
       return Response.json({ error: 'Post ID is required.' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { error } = await supabase
       .from('blog_posts')

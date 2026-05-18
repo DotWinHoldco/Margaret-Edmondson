@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -15,7 +15,9 @@ export async function POST(
   try {
     const { moduleId } = await params
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       return Response.json({ error: 'Title is required' }, { status: 400 })

@@ -128,12 +128,15 @@ export default function NewProductPage() {
         body: JSON.stringify(body),
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create product')
+        throw new Error(json.error || 'Failed to create product')
       }
 
-      router.push('/admin/products')
+      // Land on the new item's edit page so the Saved banner + full form
+      // editing experience flow naturally from "create" to "refine".
+      const newId = json.data?.id
+      router.push(newId ? `/admin/products/${newId}/edit` : '/admin/products')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

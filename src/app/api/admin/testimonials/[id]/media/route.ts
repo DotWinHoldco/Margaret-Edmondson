@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
 function mediaTypeFor(mime: string): 'image' | 'video' | 'document' {
@@ -17,7 +17,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const {
       data: { user },
@@ -89,7 +91,9 @@ export async function PATCH(
 ) {
   try {
     await params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -128,7 +132,9 @@ export async function DELETE(
 ) {
   try {
     await params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()

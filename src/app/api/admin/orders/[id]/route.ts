@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 const VALID_STATUSES = [
   'pending',
   'processing',
@@ -33,7 +32,9 @@ export async function PATCH(
     )
   }
 
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
   // Verify the order exists
   const { data: existing, error: fetchError } = await supabase

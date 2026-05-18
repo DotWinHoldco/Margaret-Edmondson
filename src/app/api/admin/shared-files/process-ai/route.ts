@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 import mammoth from 'mammoth'
 import JSZip from 'jszip'
@@ -43,7 +44,7 @@ function getAnthropic() {
 }
 
 async function downloadSharedFile(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   path: string,
 ) {
   const { data, error } = await supabase.storage.from(SHARED_BUCKET).download(path)
@@ -208,7 +209,9 @@ async function extractFieldsFromPdf(client: Anthropic, pdfBuf: Buffer) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
     const {
       data: { user },
     } = await supabase.auth.getUser()

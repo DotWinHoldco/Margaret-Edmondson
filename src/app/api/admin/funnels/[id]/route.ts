@@ -1,12 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
-
+import { requireAdmin } from '@/lib/auth/require-admin'
 export async function GET(
   _request: Request,
   props: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await props.params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { data: funnel, error } = await supabase
       .from('artwork_funnels')
@@ -43,7 +44,9 @@ export async function PATCH(
   try {
     const { id } = await props.params
     const body = await request.json()
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     // Handle view count increment separately via RPC-style
     if (body.views_count_increment) {
@@ -111,7 +114,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await props.params
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
 
     const { error } = await supabase
       .from('artwork_funnels')
