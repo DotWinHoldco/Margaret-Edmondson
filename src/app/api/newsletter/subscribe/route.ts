@@ -15,31 +15,28 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const normalizedEmail = email.toLowerCase().trim()
 
-  // Check if already subscribed (don't re-send welcome)
-  const { data: existing } = await supabase
-    .from('newsletter_subscribers')
-    .select('id')
-    .eq('email', normalizedEmail)
-    .single()
-
+  // Anon users have INSERT but not SELECT/UPDATE on newsletter_subscribers.
+  // ignoreDuplicates makes the upsert behave as ON CONFLICT DO NOTHING so
+  // a re-subscribe is silently a no-op and we never trigger the UPDATE path
+  // that RLS would block.
   const { error } = await supabase
     .from('newsletter_subscribers')
     .upsert(
       { email: normalizedEmail, first_name, source },
-      { onConflict: 'email' }
+      { onConflict: 'email', ignoreDuplicates: true },
     )
 
   if (error) {
+    console.error('Newsletter subscribe error:', error)
     return Response.json({ error: 'Failed to subscribe' }, { status: 500 })
   }
 
-  // Send welcome email only for new subscribers
-  if (!existing) {
-    try {
-      await sendWelcomeSubscriber(normalizedEmail, first_name)
-    } catch (err) {
-      console.error('Welcome email failed:', err)
-    }
+  // The welcome is best-effort; we accept the small cost of an occasional
+  // duplicate welcome to a re-subscriber rather than risk failing the form.
+  try {
+    await sendWelcomeSubscriber(normalizedEmail, first_name)
+  } catch (err) {
+    console.error('Welcome email failed:', err)
   }
 
   return Response.json({ success: true })

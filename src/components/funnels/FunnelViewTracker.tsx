@@ -17,11 +17,11 @@ export default function FunnelViewTracker({ funnelId, productId, productTitle, b
     if (tracked.current) return
     tracked.current = true
 
-    // Increment views_count
-    fetch(`/api/admin/funnels/${funnelId}`, {
-      method: 'PATCH',
+    // Increment views_count via public SECURITY DEFINER RPC
+    fetch(`/api/funnels/${funnelId}/track`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ views_count_increment: true }),
+      body: JSON.stringify({ metric: 'views' }),
     }).catch(() => {})
 
     // Meta pixel ViewContent

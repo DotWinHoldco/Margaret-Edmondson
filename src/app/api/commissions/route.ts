@@ -15,7 +15,9 @@ export async function POST(request: Request) {
 
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  // No .select() here — RLS only allows admins to SELECT commissions,
+  // and the public submitter doesn't need to read back the inserted row.
+  const { error } = await supabase
     .from('commissions')
     .insert({
       client_name,
@@ -28,8 +30,6 @@ export async function POST(request: Request) {
       timeline,
       status: 'inquiry',
     })
-    .select()
-    .single()
 
   if (error) {
     console.error('Commission insert error:', error)
@@ -44,5 +44,5 @@ export async function POST(request: Request) {
     replyTo: client_email,
   })
 
-  return Response.json({ success: true, commission: data })
+  return Response.json({ success: true })
 }
