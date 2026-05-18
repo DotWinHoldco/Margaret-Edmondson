@@ -147,6 +147,18 @@ export async function PATCH(
     }
   }
 
+  // Keep the Original variant's price in lock-step with products.base_price.
+  // For one-of-a-kind originals, base_price is the canonical "headline" price.
+  // If admin edits base_price, propagate to the matching original variant so
+  // the editor, the product list, and the product detail page never disagree.
+  if (productFields.base_price !== undefined) {
+    await supabase
+      .from('product_variants')
+      .update({ price: productFields.base_price })
+      .eq('product_id', id)
+      .eq('variant_type', 'original')
+  }
+
   if (hasCategoryChanges) {
     // If the PATCH doesn't include category_id but does include additionals,
     // we still need to know the current primary to keep it in the junction.

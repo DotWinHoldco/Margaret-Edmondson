@@ -42,6 +42,7 @@ interface Product {
   is_original: boolean
   prints_enabled: boolean
   status: string
+  tags: string[] | null
   product_images: ProductImage[]
   product_variants: ProductVariant[]
 }
@@ -625,6 +626,13 @@ export default function ProductDetail({
 
             {/* Price display */}
             <div className="mt-6 mb-6">
+              {/* Compare-at price renders as a strikethrough when it's higher
+                  than the displayed price — typical "marked down from" UI. */}
+              {product.compare_at_price != null && product.compare_at_price > price && (
+                <span className="font-body text-base text-charcoal/40 line-through mr-2">
+                  ${Number(product.compare_at_price).toFixed(2)}
+                </span>
+              )}
               <span className="font-body text-2xl font-semibold text-charcoal">
                 ${price.toFixed(2)}
               </span>
@@ -679,6 +687,20 @@ export default function ProductDetail({
                 className="mt-8 font-body text-sm leading-relaxed text-charcoal/70 prose prose-sm"
                 dangerouslySetInnerHTML={{ __html: product.description_html }}
               />
+            )}
+
+            {/* Tags */}
+            {Array.isArray(product.tags) && product.tags.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-1.5">
+                {product.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-sm bg-charcoal/[0.04] px-2.5 py-1 font-body text-xs text-charcoal/60"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             )}
 
             {/* Story accordion */}
