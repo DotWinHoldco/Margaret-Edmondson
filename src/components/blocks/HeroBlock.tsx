@@ -2,8 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { useRef } from 'react'
+import { motion } from 'framer-motion'
 
 interface HeroConfig {
   heading?: string
@@ -13,20 +12,11 @@ interface HeroConfig {
   cta_link?: string
   cta2_text?: string
   cta2_link?: string
-  overlay_opacity?: number
 }
 
-export default function HeroBlock({ config, variant }: { config: Record<string, unknown>; variant?: string }) {
+export default function HeroBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as HeroConfig
-  const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end start'],
-  })
-  const y = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
-
   const heading = c.heading || 'Margaret Edmondson'
-  const subheading = c.subheading || 'Mixed Media & Fine Art'
   const imageUrl = c.image_url || '/ME-Share-Image.jpg'
   const ctaText = c.cta_text || 'Enter Gallery'
   const ctaLink = c.cta_link || '/gallery'
@@ -34,26 +24,24 @@ export default function HeroBlock({ config, variant }: { config: Record<string, 
   const cta2Link = c.cta2_link || '/commissions'
 
   return (
-    <section ref={ref} className="relative flex flex-col items-center bg-cream texture-paper">
-      <motion.div style={{ y }} className="relative w-full">
-        <div className="relative w-full aspect-[2400/1590]">
-          <Image
-            src={imageUrl}
-            alt={heading}
-            fill
-            priority
-            className="object-contain"
-            sizes="100vw"
-            quality={90}
-          />
-        </div>
-      </motion.div>
+    <section className="relative flex flex-col items-center bg-cream texture-paper">
+      <div className="relative w-full aspect-[2400/1590]">
+        <Image
+          src={imageUrl}
+          alt={heading}
+          fill
+          priority
+          className="object-contain"
+          sizes="100vw"
+          quality={90}
+        />
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.4, ease: 'easeOut' }}
-        className="mt-10 mb-16 flex flex-col sm:flex-row gap-5"
+        className="relative z-10 mt-10 mb-16 flex flex-col sm:flex-row gap-5"
       >
         <Link
           href={ctaLink}
