@@ -28,7 +28,40 @@ const ProductPatch = z.object({
   tags: z.array(z.string()).optional(),
   margin_pct: z.number().min(0).max(0.99).nullable().optional(),
   variants: z.array(VariantInput).optional(),
+  // Additional categories to cross-post the product into, beyond the
+  // primary category_id. The admin form sends the full set of NON-primary
+  // categories on every save; we reconcile by replacing all non-primary
+  // junction rows for this product.
+  additional_category_ids: z.array(z.string().uuid()).optional(),
 })
+
+async function syncProductCategories(
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+  productId: string,
+  primaryCategoryId: string | null | undefined,
+  additionalCategoryIds: string[] | undefined,
+) {
+  // We sync only if at least one was provided — otherwise leave junction alone.
+  if (primaryCategoryId === undefined && additionalCategoryIds === undefined) return
+
+  // Determine the full target set: primary (if any) + additionals (dedup, never
+  // include primary in additionals).
+  const additionals = (additionalCategoryIds || []).filter((c) => c !== primaryCategoryId)
+  const all = new Set<string>(additionals)
+  if (primaryCategoryId) all.add(primaryCategoryId)
+
+  // Wipe existing junction rows for this product and rewrite. Cheaper to
+  // express than a 3-way diff, fine at the scale here.
+  await supabase.from('product_categories').delete().eq('product_id', productId)
+  if (all.size === 0) return
+  await supabase.from('product_categories').insert(
+    [...all].map((cid) => ({
+      product_id: productId,
+      category_id: cid,
+      is_primary: cid === primaryCategoryId,
+    })),
+  )
+}
 
 export async function GET(
   _request: NextRequest,
@@ -41,7 +74,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('products')
-    .select('*, product_images(*), product_variants(*), categories(*)')
+    .select('*, product_images(*), product_variants(*), categories(*), product_categories(category_id, is_primary)')
     .eq('id', id)
     .single()
 
@@ -64,10 +97,11 @@ export async function PATCH(
   if (!parsed.ok) return parsed.response
   const body = parsed.data
 
-  const { variants, ...productFields } = body
+  const { variants, additional_category_ids: additionalCategoryIds, ...productFields } = body
   const hasProductChanges = Object.keys(productFields).length > 0
+  const hasCategoryChanges = additionalCategoryIds !== undefined || productFields.category_id !== undefined
 
-  if (!hasProductChanges && !Array.isArray(variants)) {
+  if (!hasProductChanges && !Array.isArray(variants) && !hasCategoryChanges) {
     return apiError('No fields to update', 400, 'NO_CHANGES')
   }
 
@@ -113,6 +147,16 @@ export async function PATCH(
     }
   }
 
+  if (hasCategoryChanges) {
+    // If the PATCH doesn't include category_id but does include additionals,
+    // we still need to know the current primary to keep it in the junction.
+    const primary =
+      productFields.category_id !== undefined
+        ? productFields.category_id
+        : before?.category_id ?? null
+    await syncProductCategories(supabase, id, primary, additionalCategoryIds)
+  }
+
   if (before && hasProductChanges) {
     await logChanges(supabase, {
       tableName: 'products',
@@ -125,7 +169,7 @@ export async function PATCH(
 
   const { data: product, error: fetchError } = await supabase
     .from('products')
-    .select('*, product_images(*), product_variants(*), categories(*)')
+    .select('*, product_images(*), product_variants(*), categories(*), product_categories(category_id, is_primary)')
     .eq('id', id)
     .single()
 

@@ -171,10 +171,20 @@ export async function getProductsByCategory(categorySlug: string) {
 
   if (!category) return { category: null, products: [] }
 
+  // Pull product IDs from the junction so cross-posted products show in
+  // every category they belong to, not just their primary one.
+  const { data: links } = await supabase
+    .from('product_categories')
+    .select('product_id')
+    .eq('category_id', category.id)
+
+  const productIds = (links || []).map((l) => l.product_id)
+  if (productIds.length === 0) return { category, products: [] }
+
   const { data: products } = await supabase
     .from('products')
     .select('*, product_images(*), product_variants(id, variant_type, inventory_count, price)')
-    .eq('category_id', category.id)
+    .in('id', productIds)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 

@@ -147,6 +147,7 @@ export default function EditProductPage({
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [uploading, setUploading] = useState(false)
+  const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([])
 
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
@@ -198,6 +199,12 @@ export default function EditProductPage({
       setTitle(product.title || '')
       setSlug(product.slug || '')
       setCategoryId(product.category_id || '')
+      const linkedIds: string[] = Array.isArray(product.product_categories)
+        ? product.product_categories
+            .filter((l: { is_primary?: boolean; category_id: string }) => !l.is_primary && l.category_id !== product.category_id)
+            .map((l: { category_id: string }) => l.category_id)
+        : []
+      setAdditionalCategoryIds(linkedIds)
       setDescription(product.description_html || '')
       setMedium(product.medium || '')
       setDimensions(product.dimensions || '')
@@ -293,6 +300,7 @@ export default function EditProductPage({
         title,
         slug: slug || generateSlug(title),
         category_id: categoryId || null,
+        additional_category_ids: additionalCategoryIds.filter((c) => c && c !== categoryId),
         description_html: description,
         medium,
         dimensions,
@@ -338,6 +346,13 @@ export default function EditProductPage({
         setTitle(fresh.title || '')
         setSlug(fresh.slug || '')
         setCategoryId(fresh.category_id || '')
+        if (Array.isArray(fresh.product_categories)) {
+          setAdditionalCategoryIds(
+            (fresh.product_categories as Array<{ category_id: string; is_primary?: boolean }>)
+              .filter((l) => !l.is_primary && l.category_id !== fresh.category_id)
+              .map((l) => l.category_id),
+          )
+        }
         setDescription(fresh.description_html || '')
         setMedium(fresh.medium || '')
         setDimensions(fresh.dimensions || '')
@@ -494,11 +509,16 @@ export default function EditProductPage({
 
               <div>
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
-                  Category
+                  Category <span className="text-charcoal/40">(primary)</span>
                 </label>
                 <select
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setCategoryId(next)
+                    // If the new primary was previously checked as additional, drop it.
+                    setAdditionalCategoryIds((prev) => prev.filter((c) => c !== next))
+                  }}
                   className="w-full rounded-lg border border-charcoal/15 bg-cream px-4 py-2.5 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                 >
                   <option value="">Select category</option>
@@ -508,6 +528,43 @@ export default function EditProductPage({
                     </option>
                   ))}
                 </select>
+                {categories.filter((c) => c.id !== categoryId).length > 0 && (
+                  <div className="mt-3 rounded-md border border-charcoal/10 bg-cream/40 p-3">
+                    <p className="font-body text-xs font-semibold uppercase tracking-wider text-charcoal/60">
+                      Cross-post in these categories as well
+                    </p>
+                    <p className="mt-0.5 font-body text-xs text-charcoal/40">
+                      The piece will show in every checked category.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {categories
+                        .filter((c) => c.id !== categoryId)
+                        .map((cat) => {
+                          const checked = additionalCategoryIds.includes(cat.id)
+                          return (
+                            <label
+                              key={cat.id}
+                              className="flex items-center gap-2 rounded-sm bg-white px-2.5 py-1.5 font-body text-sm text-charcoal/80 hover:bg-charcoal/[0.02] cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  setAdditionalCategoryIds((prev) =>
+                                    e.target.checked
+                                      ? [...prev, cat.id]
+                                      : prev.filter((c) => c !== cat.id),
+                                  )
+                                }}
+                                className="h-4 w-4 rounded border-charcoal/30 text-teal focus:ring-teal"
+                              />
+                              <span>{cat.name}</span>
+                            </label>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
