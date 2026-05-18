@@ -173,7 +173,7 @@ export async function getProductsByCategory(categorySlug: string) {
 
   const { data: products } = await supabase
     .from('products')
-    .select('*, product_images(*)')
+    .select('*, product_images(*), product_variants(id, variant_type, inventory_count, price)')
     .eq('category_id', category.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })

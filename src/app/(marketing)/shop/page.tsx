@@ -1,91 +1,56 @@
 import { getProducts, getCategories } from '@/lib/supabase/queries'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { getProductBadge } from '@/lib/product-utils'
-import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
-import ProductCard from '@/components/shop/ProductCard'
+import MasonryGrid, { type MasonryProduct } from '@/components/shop/MasonryGrid'
 
 export const metadata: Metadata = {
   title: 'Shop',
-  description: 'Shop original artwork, canvas prints, fine art prints, and merchandise by Margaret Edmondson.',
+  description: 'Original artwork, canvas prints, and fine art commissions by Margaret Edmondson.',
 }
 
 export default async function ShopPage() {
   const [{ products }, categories] = await Promise.all([
-    getProducts({ limit: 12 }),
+    getProducts({ limit: 48 }),
     getCategories(),
   ])
 
   return (
-    <div className="py-12 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-light text-charcoal">
-            Shop
+    <div className="bg-cream pt-16 sm:pt-24 pb-28 sm:pb-36 texture-paper">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Gallery header */}
+        <header className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <p className="font-hand text-2xl sm:text-3xl text-gold tracking-wide">
+            Available Works
+          </p>
+          <h1 className="mt-3 font-display text-5xl sm:text-6xl lg:text-7xl font-light text-charcoal leading-[0.95]">
+            The Collection
           </h1>
-          <div className="mt-3 mx-auto w-16 h-px bg-gold" />
-        </div>
+          <div className="mt-6 mx-auto w-20 h-px bg-gold" />
+          <p className="mt-7 font-body text-base sm:text-lg text-charcoal/65 leading-relaxed">
+            Original watercolors, mixed-media collages, and gallery-quality prints — each piece hand-rendered in the studio. Available as one-of-a-kind originals or museum-grade reproductions.
+          </p>
+        </header>
 
-        {/* Categories */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
-          {categories.map((cat) => (
+        {/* Category pills */}
+        <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-16 sm:mb-20" aria-label="Categories">
+          <Link
+            href="/shop"
+            className="px-5 py-2 font-body text-[11px] font-semibold uppercase tracking-[0.2em] text-charcoal border-b-2 border-charcoal hover:text-teal transition-colors"
+          >
+            All
+          </Link>
+          {categories.map((c) => (
             <Link
-              key={cat.id}
-              href={`/shop/${cat.slug}`}
-              className="px-5 py-2 bg-white border border-charcoal/10 rounded-sm font-body text-sm text-charcoal/70 hover:border-teal hover:text-teal transition-colors"
+              key={c.id}
+              href={`/shop/${c.slug}`}
+              className="px-5 py-2 font-body text-[11px] font-semibold uppercase tracking-[0.2em] text-charcoal/55 border-b-2 border-transparent hover:text-charcoal hover:border-charcoal/30 transition-colors"
             >
-              {cat.name}
+              {c.name}
             </Link>
           ))}
-        </div>
+        </nav>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => {
-            const primaryImage = (product.product_images as Array<{url: string; alt_text: string | null; is_primary: boolean}>)?.find((img) => img.is_primary) || (product.product_images as Array<{url: string; alt_text: string | null}>)?.[0]
-            return (
-              <Link key={product.id} href={`/shop/art/${product.slug}`} className="group block">
-                <div className="relative">
-                  {primaryImage && (
-                    <ProductCard
-                      src={primaryImage.url}
-                      alt={primaryImage.alt_text || product.title}
-                    />
-                  )}
-                  {(() => {
-                    const badge = getProductBadge(product as { status: string; is_original: boolean; prints_enabled: boolean; product_variants?: Array<{ variant_type: string | null; inventory_count: number | null }> })
-                    return badge ? (
-                      <span className={`absolute top-3 left-3 px-2 py-0.5 ${badge.color} text-white text-[10px] font-body font-semibold uppercase tracking-wider rounded-sm`}>
-                        {badge.text}
-                      </span>
-                    ) : null
-                  })()}
-                </div>
-                <div className="mt-4">
-                  <h3 className="font-body text-sm font-medium text-charcoal group-hover:text-teal transition-colors">
-                    {product.title}
-                  </h3>
-                  {product.medium && (
-                    <p className="font-hand text-sm text-charcoal/50 mt-0.5">{product.medium}</p>
-                  )}
-                  <p className="font-body text-sm text-charcoal/70 mt-1">
-                    {(product as Record<string, unknown>).prints_enabled
-                      ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
-                      : `$${product.base_price}`
-                    }
-                  </p>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-
-        {products.length === 0 && (
-          <p className="text-center font-body text-charcoal/50 py-20">
-            Products coming soon.
-          </p>
-        )}
+        <MasonryGrid products={products as MasonryProduct[]} />
       </div>
     </div>
   )
