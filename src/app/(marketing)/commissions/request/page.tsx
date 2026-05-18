@@ -1,7 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+)
+
+const MAX_FILES = 8
+const MAX_SIZE_BYTES = 15 * 1024 * 1024 // 15 MB per file (matches bucket cap)
+const ACCEPTED_MIME = 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf'
 
 const MEDIUMS = [
   'Acrylic',
@@ -48,6 +58,50 @@ export default function CommissionRequestPage() {
     timeline: '',
   })
 
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([])
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  function addFiles(incoming: FileList | null) {
+    if (!incoming) return
+    setUploadError(null)
+    const next = [...referenceFiles]
+    for (const f of Array.from(incoming)) {
+      if (next.length >= MAX_FILES) {
+        setUploadError(`You can attach up to ${MAX_FILES} reference photos.`)
+        break
+      }
+      if (f.size > MAX_SIZE_BYTES) {
+        setUploadError(`${f.name} is larger than 15 MB.`)
+        continue
+      }
+      next.push(f)
+    }
+    setReferenceFiles(next)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function removeFile(idx: number) {
+    setReferenceFiles((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  async function uploadReferences(): Promise<string[]> {
+    if (referenceFiles.length === 0) return []
+    const folder = `pending/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const urls: string[] = []
+    for (const file of referenceFiles) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const path = `${folder}/${safeName}`
+      const { error: upErr } = await supabase.storage
+        .from('commission-references')
+        .upload(path, file, { contentType: file.type, upsert: false })
+      if (upErr) throw new Error(`${file.name}: ${upErr.message}`)
+      const { data } = supabase.storage.from('commission-references').getPublicUrl(path)
+      urls.push(data.publicUrl)
+    }
+    return urls
+  }
+
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
@@ -63,10 +117,13 @@ export default function CommissionRequestPage() {
     setError('')
 
     try {
+      // Upload reference photos first so the URLs can be saved alongside the commission.
+      const reference_images = await uploadReferences()
+
       const res = await fetch('/api/commissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, reference_images }),
       })
 
       if (!res.ok) {
@@ -255,20 +312,60 @@ export default function CommissionRequestPage() {
 
               <div>
                 <label className="block text-xs font-body font-medium text-charcoal/70 mb-2">
-                  Reference Photos
+                  Reference Photos <span className="text-charcoal/30">(optional, up to {MAX_FILES})</span>
                 </label>
-                <div className="border-2 border-dashed border-charcoal/10 rounded-sm p-8 text-center">
-                  <svg className="mx-auto h-10 w-10 text-charcoal/20 mb-3" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+                <label className="block cursor-pointer border-2 border-dashed border-charcoal/15 rounded-sm p-8 text-center hover:border-teal hover:bg-teal/[0.02] transition-colors">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPTED_MIME}
+                    multiple
+                    className="hidden"
+                    onChange={(e) => addFiles(e.target.files)}
+                  />
+                  <svg className="mx-auto h-10 w-10 text-charcoal/30 mb-3" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                   </svg>
-                  <p className="font-body text-sm text-charcoal/50">
-                    Photo upload coming soon. For now, please email your reference photos to{' '}
-                    <a href="mailto:hello@artbyme.studio" className="text-teal hover:underline">
-                      hello@artbyme.studio
-                    </a>{' '}
-                    after submitting this form.
+                  <p className="font-body text-sm text-charcoal/70">
+                    Click to add photos or drag them in
                   </p>
-                </div>
+                  <p className="mt-1 font-body text-xs text-charcoal/40">
+                    JPG, PNG, WebP, HEIC, or PDF · 15 MB max per file
+                  </p>
+                </label>
+
+                {referenceFiles.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {referenceFiles.map((file, idx) => (
+                      <li
+                        key={`${file.name}-${idx}`}
+                        className="flex items-center justify-between rounded-sm border border-charcoal/10 bg-cream/40 px-3 py-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <svg className="h-4 w-4 shrink-0 text-charcoal/40" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.25 11.25l3 3m0 0l3-3m-3 3v-6" />
+                          </svg>
+                          <span className="truncate font-body text-sm text-charcoal/80">{file.name}</span>
+                          <span className="shrink-0 font-body text-xs text-charcoal/40">
+                            {(file.size / 1024 / 1024).toFixed(1)} MB
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(idx)}
+                          className="shrink-0 font-body text-xs text-charcoal/40 hover:text-coral transition-colors"
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {uploadError && (
+                  <p className="mt-2 font-body text-xs text-coral">{uploadError}</p>
+                )}
               </div>
             </div>
           )}

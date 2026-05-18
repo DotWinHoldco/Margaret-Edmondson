@@ -24,7 +24,7 @@ export default async function AdminProductsPage({
 
   let query = supabase
     .from('products')
-    .select('*, product_images(*), categories(*)')
+    .select('*, product_images(*), categories!products_category_id_fkey(id, name, slug)')
     .order('created_at', { ascending: false })
 
   if (status && status !== 'all') {

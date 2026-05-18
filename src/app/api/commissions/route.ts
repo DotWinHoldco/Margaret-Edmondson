@@ -7,11 +7,25 @@ export async function POST(request: Request) {
   if (!rl.ok) return rateLimitResponse(rl)
 
   const body = await request.json()
-  const { client_name, client_email, client_phone, description, preferred_medium, preferred_size, budget_range, timeline } = body
+  const {
+    client_name,
+    client_email,
+    client_phone,
+    description,
+    preferred_medium,
+    preferred_size,
+    budget_range,
+    timeline,
+    reference_images,
+  } = body
 
   if (!client_name || !client_email || !description) {
     return Response.json({ error: 'Name, email, and description are required' }, { status: 400 })
   }
+
+  const refs = Array.isArray(reference_images)
+    ? reference_images.filter((u: unknown): u is string => typeof u === 'string').slice(0, 20)
+    : []
 
   const supabase = await createClient()
 
@@ -28,6 +42,7 @@ export async function POST(request: Request) {
       preferred_size,
       budget_range,
       timeline,
+      reference_images: refs,
       status: 'inquiry',
     })
 
@@ -37,10 +52,15 @@ export async function POST(request: Request) {
   }
 
   // Send notification email to Margaret
+  const refsHtml = refs.length
+    ? `<p><strong>Reference photos:</strong></p><ul>${refs
+        .map((u: string) => `<li><a href="${u}">${u.split('/').pop()}</a></li>`)
+        .join('')}</ul>`
+    : ''
   await sendEmail({
     to: 'hello@artbyme.studio',
     subject: `New Commission Request from ${client_name}`,
-    html: `<h2>New Commission Request</h2><p><strong>Name:</strong> ${client_name}</p><p><strong>Email:</strong> ${client_email}</p><p><strong>Phone:</strong> ${client_phone || 'Not provided'}</p><p><strong>Medium:</strong> ${preferred_medium || 'Not specified'}</p><p><strong>Size:</strong> ${preferred_size || 'Not specified'}</p><p><strong>Budget:</strong> ${budget_range || 'Not specified'}</p><p><strong>Timeline:</strong> ${timeline || 'Not specified'}</p><p><strong>Description:</strong></p><p>${description}</p>`,
+    html: `<h2>New Commission Request</h2><p><strong>Name:</strong> ${client_name}</p><p><strong>Email:</strong> ${client_email}</p><p><strong>Phone:</strong> ${client_phone || 'Not provided'}</p><p><strong>Medium:</strong> ${preferred_medium || 'Not specified'}</p><p><strong>Size:</strong> ${preferred_size || 'Not specified'}</p><p><strong>Budget:</strong> ${budget_range || 'Not specified'}</p><p><strong>Timeline:</strong> ${timeline || 'Not specified'}</p><p><strong>Description:</strong></p><p>${description}</p>${refsHtml}`,
     replyTo: client_email,
   })
 
