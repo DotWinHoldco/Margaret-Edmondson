@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, use, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -136,10 +135,10 @@ export default function EditProductPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [uploading, setUploading] = useState(false)
@@ -322,12 +321,46 @@ export default function EditProductPage({
         body: JSON.stringify(body),
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to update product')
+        throw new Error(json.error || 'Failed to update product')
       }
 
-      router.push('/admin/products')
+      // Re-hydrate the form with the saved record so any server-side
+      // normalization (auto-slug, default flags, etc.) is reflected.
+      const fresh = json.data
+      if (fresh) {
+        setTitle(fresh.title || '')
+        setSlug(fresh.slug || '')
+        setCategoryId(fresh.category_id || '')
+        setDescription(fresh.description_html || '')
+        setMedium(fresh.medium || '')
+        setDimensions(fresh.dimensions || '')
+        setBasePrice(fresh.base_price?.toString() || '')
+        setCompareAtPrice(fresh.compare_at_price?.toString() || '')
+        setMarginPct(fresh.margin_pct != null ? (Number(fresh.margin_pct) * 100).toString() : '')
+        setFulfillmentType(fresh.fulfillment_type || 'self_ship')
+        setStatus(fresh.status || 'draft')
+        setIsOriginal(fresh.is_original || false)
+        setIsFeatured(fresh.is_featured || false)
+        setFunnelEligible(fresh.funnel_eligible !== false)
+        setTags(Array.isArray(fresh.tags) ? fresh.tags.join(', ') : '')
+        if (Array.isArray(fresh.product_variants)) {
+          setVariants(
+            fresh.product_variants.map(
+              (v: { id: string; name: string; price: number; sku: string }) => ({
+                id: v.id,
+                name: v.name || '',
+                price: v.price?.toString() || '',
+                sku: v.sku || '',
+                isExisting: true,
+              }),
+            ),
+          )
+        }
+      }
+      setSavedAt(new Date())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -399,6 +432,20 @@ export default function EditProductPage({
         {error && (
           <div className="mb-6 rounded-lg border border-coral/30 bg-coral/10 p-4">
             <p className="font-body text-sm text-coral">{error}</p>
+          </div>
+        )}
+
+        {savedAt && !error && (
+          <div className="mb-6 rounded-lg border border-teal/30 bg-teal/10 p-4 flex items-center justify-between">
+            <p className="font-body text-sm text-teal">
+              Saved {savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.
+            </p>
+            <Link
+              href="/admin/products"
+              className="font-body text-xs font-semibold uppercase tracking-wider text-teal/80 hover:text-teal transition-colors"
+            >
+              Back to Products →
+            </Link>
           </div>
         )}
 
