@@ -75,7 +75,7 @@ export default function EditPageForm({ page }: { page: Page }) {
   }
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this page? This cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this page? This cannot be undone.')) {
       return
     }
 

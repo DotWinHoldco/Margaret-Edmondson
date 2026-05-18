@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, use, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import ConfirmDialog from '@/components/admin/ConfirmDialog'
 
 function MasterFooter({
   productId,
@@ -139,6 +141,9 @@ export default function EditProductPage({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
+  const [confirm, setConfirm] = useState<{ title: string; message?: string; action: () => void } | null>(null)
+  useUnsavedChanges(isDirty)
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [uploading, setUploading] = useState(false)
@@ -360,6 +365,7 @@ export default function EditProductPage({
         }
       }
       setSavedAt(new Date())
+      setIsDirty(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -449,7 +455,7 @@ export default function EditProductPage({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="space-y-8">
           {/* Basic Info */}
           <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
             <h2 className="mb-4 font-display text-lg font-semibold text-charcoal">
@@ -770,17 +776,21 @@ export default function EditProductPage({
                       )}
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (!confirm('Delete this image?')) return
-                          const res = await fetch(`/api/admin/products/${id}/images`, {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ imageId: image.id }),
-                          })
-                          if (res.ok) {
-                            setImages((prev) => prev.filter((img) => img.id !== image.id))
-                          }
-                        }}
+                        onClick={() => setConfirm({
+                          title: 'Delete this image?',
+                          message: 'This will remove it from the product gallery.',
+                          action: async () => {
+                            const res = await fetch(`/api/admin/products/${id}/images`, {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ imageId: image.id }),
+                            })
+                            if (res.ok) {
+                              setImages((prev) => prev.filter((img) => img.id !== image.id))
+                            }
+                            setConfirm(null)
+                          },
+                        })}
                         className="rounded-md bg-coral/90 px-2.5 py-1 font-body text-[11px] font-medium text-white hover:bg-coral transition-colors"
                       >
                         Delete
@@ -1001,6 +1011,15 @@ export default function EditProductPage({
           </div>
         </form>
       </div>
+      <ConfirmDialog
+        open={!!confirm}
+        title={confirm?.title || ''}
+        message={confirm?.message}
+        variant="danger"
+        confirmText="Delete"
+        onConfirm={() => confirm?.action()}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   )
 }
