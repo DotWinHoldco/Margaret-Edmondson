@@ -10,7 +10,7 @@ export default async function AdminAboutPage() {
   const [sectionsRes, calloutsRes, credsRes] = await Promise.all([
     supabase
       .from('bio_sections')
-      .select('section_key, heading, body_markdown, display_order, is_published, updated_at')
+      .select('section_key, heading, body_markdown, display_order, is_published, image_url, image_alt, updated_at')
       .order('display_order', { ascending: true }),
     supabase
       .from('bio_callouts')

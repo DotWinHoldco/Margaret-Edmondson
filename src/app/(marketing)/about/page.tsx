@@ -16,6 +16,8 @@ interface SectionRow {
   heading: string
   body_markdown: string
   display_order: number
+  image_url: string | null
+  image_alt: string | null
   updated_at: string
 }
 
@@ -41,7 +43,7 @@ interface CredentialsRow {
 async function loadAbout() {
   const supabase = await createClient()
   const [sectionsRes, calloutsRes, credsRes] = await Promise.all([
-    supabase.from('bio_sections').select('section_key, heading, body_markdown, display_order, updated_at').eq('is_published', true).order('display_order', { ascending: true }),
+    supabase.from('bio_sections').select('section_key, heading, body_markdown, display_order, image_url, image_alt, updated_at').eq('is_published', true).order('display_order', { ascending: true }),
     supabase.from('bio_callouts').select('id, kind, label, body_markdown, display_order, updated_at').eq('is_published', true).order('display_order', { ascending: true }),
     supabase.from('bio_credentials_block').select('full_name, degrees, hero_image_url, contact_email, updated_at').eq('id', true).maybeSingle(),
   ])
@@ -110,26 +112,53 @@ export default async function AboutPage() {
         )}
 
         <div className="space-y-20">
-          {sections.map((s, idx) => (
-            <article key={s.section_key} className="max-w-2xl mx-auto">
-              <h2 className="font-display text-3xl sm:text-4xl font-light text-charcoal text-center">
-                {s.heading}
-              </h2>
-              <div className="mt-3 mx-auto w-12 h-px bg-gold" />
-              <div
-                className="mt-6 font-body text-base sm:text-lg text-charcoal/75 leading-relaxed prose prose-sm sm:prose-base max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body_markdown) }}
-              />
-              {mottosAndQuotes[idx] && (
-                <aside className="mt-10 rounded-sm border-l-4 border-gold bg-white/60 px-6 py-5 max-w-xl mx-auto">
-                  <p className="font-hand text-xs uppercase tracking-widest text-charcoal/50">{mottosAndQuotes[idx].label}</p>
-                  <p className="mt-2 font-display text-xl sm:text-2xl font-light text-charcoal italic">
-                    &ldquo;{mottosAndQuotes[idx].body_markdown}&rdquo;
-                  </p>
-                </aside>
-              )}
-            </article>
-          ))}
+          {sections.map((s, idx) => {
+            const hasImage = Boolean(s.image_url)
+            const imageRight = hasImage && idx % 2 === 0
+            const imageLeft = hasImage && idx % 2 === 1
+            return (
+              <article key={s.section_key} className={hasImage ? 'max-w-4xl mx-auto' : 'max-w-2xl mx-auto'}>
+                <h2 className="font-display text-3xl sm:text-4xl font-light text-charcoal text-center">
+                  {s.heading}
+                </h2>
+                <div className="mt-3 mx-auto w-12 h-px bg-gold" />
+                <div className={`mt-6 ${hasImage ? 'grid grid-cols-1 md:grid-cols-2 gap-10 items-center' : ''}`}>
+                  {imageLeft && (
+                    <Image
+                      src={s.image_url!}
+                      alt={s.image_alt || s.heading}
+                      width={900}
+                      height={1100}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="block w-full h-auto rounded-sm shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)]"
+                    />
+                  )}
+                  <div
+                    className="font-body text-base sm:text-lg text-charcoal/75 leading-relaxed prose prose-sm sm:prose-base max-w-none"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body_markdown) }}
+                  />
+                  {imageRight && (
+                    <Image
+                      src={s.image_url!}
+                      alt={s.image_alt || s.heading}
+                      width={900}
+                      height={1100}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="block w-full h-auto rounded-sm shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)]"
+                    />
+                  )}
+                </div>
+                {mottosAndQuotes[idx] && (
+                  <aside className="mt-10 rounded-sm border-l-4 border-gold bg-white/60 px-6 py-5 max-w-xl mx-auto">
+                    <p className="font-hand text-xs uppercase tracking-widest text-charcoal/50">{mottosAndQuotes[idx].label}</p>
+                    <p className="mt-2 font-display text-xl sm:text-2xl font-light text-charcoal italic">
+                      &ldquo;{mottosAndQuotes[idx].body_markdown}&rdquo;
+                    </p>
+                  </aside>
+                )}
+              </article>
+            )
+          })}
         </div>
 
         {lists.length > 0 && (

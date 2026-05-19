@@ -8,6 +8,8 @@ const Patch = z.object({
   body_markdown: z.string().optional(),
   display_order: z.number().int().nonnegative().optional(),
   is_published: z.boolean().optional(),
+  image_url: z.string().url().nullable().optional(),
+  image_alt: z.string().nullable().optional(),
 })
 
 const ALLOWED_KEYS = new Set(['origin', 'journey', 'voice', 'subjects', 'direction'])

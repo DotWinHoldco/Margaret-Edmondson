@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 
 interface Section {
@@ -10,6 +11,8 @@ interface Section {
   body_markdown: string
   display_order: number
   is_published: boolean
+  image_url: string | null
+  image_alt: string | null
   updated_at: string
 }
 
@@ -104,9 +107,43 @@ function SectionsTab({ sections }: { sections: Section[] }) {
   const router = useRouter()
   const [rows, setRows] = useState(sections)
   const [status, setStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({})
+  const [uploading, setUploading] = useState<Record<string, boolean>>({})
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 
   const update = (key: string, patch: Partial<Section>) => {
     setRows((prev) => prev.map((r) => (r.section_key === key ? { ...r, ...patch } : r)))
+  }
+
+  const uploadImage = async (s: Section, file: File) => {
+    setUploading((p) => ({ ...p, [s.section_key]: true }))
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const path = `${s.section_key}-${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('about-images').upload(path, file, { upsert: true, contentType: file.type })
+    if (!error) {
+      const { data: pub } = supabase.storage.from('about-images').getPublicUrl(path)
+      update(s.section_key, { image_url: pub.publicUrl })
+      // Persist immediately so the upload survives a page refresh.
+      await fetch(`/api/admin/about/sections/${s.section_key}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image_url: pub.publicUrl }),
+      })
+      router.refresh()
+    }
+    setUploading((p) => ({ ...p, [s.section_key]: false }))
+  }
+
+  const removeImage = async (s: Section) => {
+    update(s.section_key, { image_url: null, image_alt: null })
+    await fetch(`/api/admin/about/sections/${s.section_key}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image_url: null, image_alt: null }),
+    })
+    router.refresh()
   }
 
   const save = async (s: Section) => {
@@ -119,6 +156,8 @@ function SectionsTab({ sections }: { sections: Section[] }) {
         body_markdown: s.body_markdown,
         display_order: s.display_order,
         is_published: s.is_published,
+        image_url: s.image_url,
+        image_alt: s.image_alt,
       }),
     })
     if (res.ok) {
@@ -174,6 +213,54 @@ function SectionsTab({ sections }: { sections: Section[] }) {
             className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm text-charcoal/85 leading-relaxed"
             placeholder="Markdown body — supports **bold**, *italic*, [links](https://...). Blank line for new paragraph."
           />
+
+          {/* Section image */}
+          <div className="mt-4 rounded-md border border-dashed border-charcoal/15 p-3">
+            <div className="flex items-start gap-4">
+              {s.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.image_url} alt={s.image_alt || s.heading} className="w-32 h-32 object-cover rounded border border-charcoal/10" />
+              ) : (
+                <div className="w-32 h-32 rounded border border-dashed border-charcoal/20 bg-charcoal/[0.03] flex items-center justify-center font-body text-[10px] uppercase tracking-wider text-charcoal/40">
+                  No image
+                </div>
+              )}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors">
+                    {uploading[s.section_key] ? 'Uploading…' : s.image_url ? 'Replace image' : 'Upload image'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) uploadImage(s, file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {s.image_url && (
+                    <button
+                      type="button"
+                      onClick={() => removeImage(s)}
+                      className="font-body text-xs uppercase tracking-wider text-coral hover:text-coral/80"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={s.image_alt || ''}
+                  onChange={(e) => update(s.section_key, { image_alt: e.target.value || null })}
+                  placeholder="Image alt text (for screen readers)"
+                  className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end mt-3">
             <button
               type="button"

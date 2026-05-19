@@ -284,27 +284,6 @@ export default function EditProductPage({
     [slugManual]
   )
 
-  function addVariant() {
-    setVariants((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), name: '', price: '', sku: '' },
-    ])
-  }
-
-  function updateVariant(
-    variantId: string,
-    field: keyof Omit<Variant, 'id' | 'isExisting'>,
-    value: string
-  ) {
-    setVariants((prev) =>
-      prev.map((v) => (v.id === variantId ? { ...v, [field]: value } : v))
-    )
-  }
-
-  function removeVariant(variantId: string) {
-    setVariants((prev) => prev.filter((v) => v.id !== variantId))
-  }
-
   async function refreshPricing() {
     setRefreshing(true)
     setRefreshMsg(null)
@@ -401,15 +380,17 @@ export default function EditProductPage({
         setTags(Array.isArray(fresh.tags) ? fresh.tags.join(', ') : '')
         if (Array.isArray(fresh.product_variants)) {
           setVariants(
-            fresh.product_variants.map(
-              (v: { id: string; name: string; price: number; sku: string }) => ({
-                id: v.id,
-                name: v.name || '',
-                price: v.price?.toString() || '',
-                sku: v.sku || '',
-                isExisting: true,
-              }),
-            ),
+            fresh.product_variants
+              .filter((v: { medium?: string | null }) => !v.medium)
+              .map(
+                (v: { id: string; name: string; price: number; sku: string }) => ({
+                  id: v.id,
+                  name: v.name || '',
+                  price: v.price?.toString() || '',
+                  sku: v.sku || '',
+                  isExisting: true,
+                }),
+              ),
           )
         }
       }
@@ -955,109 +936,22 @@ export default function EditProductPage({
             </label>
           </section>
 
-          {/* Variants */}
-          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold text-charcoal">
-                Variants
-              </h2>
-              <button
-                type="button"
-                onClick={addVariant}
-                className="inline-flex items-center rounded-md bg-charcoal/5 px-3 py-1.5 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/10"
-              >
-                <svg
-                  className="mr-1 h-3.5 w-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Add Variant
-              </button>
-            </div>
-
-            {variants.length === 0 ? (
-              <p className="py-4 text-center font-body text-sm text-charcoal/40">
-                No variants. Add variants for different sizes, frames, etc.
+          {/* Original-piece price hint. The "Original" variant's price is
+              kept in lock-step with products.base_price by the PATCH route,
+              so the headline price field above IS the original price. Print
+              sizes live in the new variant builder below. */}
+          {isOriginal && (
+            <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
+              <h2 className="font-display text-lg font-semibold text-charcoal">Original piece</h2>
+              <p className="mt-1 font-body text-sm text-charcoal/60">
+                The original price is set by the <span className="font-medium text-charcoal">Base price</span> field above. Print sizes live in the variant builder below.
               </p>
-            ) : (
-              <div className="space-y-3">
-                {variants.map((variant) => (
-                  <div
-                    key={variant.id}
-                    className="flex items-start gap-3 rounded-lg border border-charcoal/10 bg-cream/50 p-3"
-                  >
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={variant.name}
-                        onChange={(e) =>
-                          updateVariant(variant.id, 'name', e.target.value)
-                        }
-                        className="w-full rounded-md border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                        placeholder="Variant name"
-                      />
-                    </div>
-                    <div className="w-28">
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-body text-xs text-charcoal/50">
-                          $
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={variant.price}
-                          onChange={(e) =>
-                            updateVariant(variant.id, 'price', e.target.value)
-                          }
-                          className="w-full rounded-md border border-charcoal/15 bg-cream py-2 pl-6 pr-2 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    <div className="w-32">
-                      <input
-                        type="text"
-                        value={variant.sku}
-                        onChange={(e) =>
-                          updateVariant(variant.id, 'sku', e.target.value)
-                        }
-                        className="w-full rounded-md border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                        placeholder="SKU"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVariant(variant.id)}
-                      className="mt-1 rounded-md p-1.5 text-charcoal/40 transition-colors hover:bg-coral/10 hover:text-coral"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
+              <div className="mt-3 inline-flex items-center gap-2 rounded-md bg-cream px-3 py-2">
+                <span className="font-body text-xs uppercase tracking-wider text-charcoal/60">Original price</span>
+                <span className="font-display text-lg text-charcoal">${basePrice || '—'}</span>
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           <VariantsTab
             productId={id}
