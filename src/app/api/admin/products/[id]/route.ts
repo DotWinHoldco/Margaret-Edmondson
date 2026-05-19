@@ -122,12 +122,17 @@ export async function PATCH(
 
   if (Array.isArray(variants)) {
     const incomingIds = new Set(variants.filter((v) => v.id).map((v) => v.id!))
+    // Only consider the simple (non-Lumaprints) rows for delete-by-omission.
+    // Print variants (medium not null) are managed entirely by the new
+    // VariantsTab and its dedicated API; the legacy save flow must not
+    // touch them.
     const { data: existingRows } = await supabase
       .from('product_variants')
-      .select('id')
+      .select('id, medium')
       .eq('product_id', id)
     const existingIds = new Set((existingRows || []).map((r) => r.id))
-    const idsToDelete = [...existingIds].filter((eid) => !incomingIds.has(eid))
+    const simpleExistingIds = new Set((existingRows || []).filter((r) => !r.medium).map((r) => r.id))
+    const idsToDelete = [...simpleExistingIds].filter((eid) => !incomingIds.has(eid))
     if (idsToDelete.length > 0) {
       await supabase.from('product_variants').delete().in('id', idsToDelete)
     }

@@ -26,6 +26,8 @@ interface ProductVariant {
   variant_type: 'original' | 'canvas_print' | 'framed_canvas_print' | null
   inventory_count: number | null
   sort_order: number
+  is_active?: boolean
+  is_lumaprints_available?: boolean
 }
 
 interface Product {
@@ -502,12 +504,14 @@ export default function ProductDetail({
     [product.product_variants]
   )
   const originalAvailable = originalVariant && (originalVariant.inventory_count === null || originalVariant.inventory_count > 0)
+  const isPubliclyAvailable = (v: ProductVariant) =>
+    v.is_active !== false && v.is_lumaprints_available !== false
   const canvasVariants = useMemo(
-    () => (product.product_variants?.filter((v) => v.variant_type === 'canvas_print') || []).sort((a, b) => a.sort_order - b.sort_order),
+    () => (product.product_variants?.filter((v) => v.variant_type === 'canvas_print' && isPubliclyAvailable(v)) || []).sort((a, b) => a.sort_order - b.sort_order),
     [product.product_variants]
   )
   const framedVariants = useMemo(
-    () => (product.product_variants?.filter((v) => v.variant_type === 'framed_canvas_print') || []).sort((a, b) => a.sort_order - b.sort_order),
+    () => (product.product_variants?.filter((v) => v.variant_type === 'framed_canvas_print' && isPubliclyAvailable(v)) || []).sort((a, b) => a.sort_order - b.sort_order),
     [product.product_variants]
   )
 

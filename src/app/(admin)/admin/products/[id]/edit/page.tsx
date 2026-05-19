@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import VariantsTab, { type Variant as PrintVariant } from '@/components/admin/VariantsTab'
+import type { Medium } from '@/lib/pricing/mediums'
 
 function MasterFooter({
   productId,
@@ -169,6 +171,8 @@ export default function EditProductPage({
   const [funnelEligible, setFunnelEligible] = useState(true)
   const [tags, setTags] = useState('')
   const [variants, setVariants] = useState<Variant[]>([])
+  const [printVariants, setPrintVariants] = useState<PrintVariant[]>([])
+  const [productDefaultMargin, setProductDefaultMargin] = useState<number>(100)
 
   useEffect(() => {
     async function fetchData() {
@@ -221,17 +225,47 @@ export default function EditProductPage({
       setImages(product.product_images || [])
 
       if (Array.isArray(product.product_variants)) {
+        const allVariants = product.product_variants as Array<{
+          id: string; name: string; price: number; sku: string;
+          medium: string | null; size_label: string | null;
+          lumaprints_cost_cents: number | null; shipping_cost_cents: number | null;
+          margin_override_pct: number | null; manual_price_override_cents: number | null;
+          is_active: boolean; is_lumaprints_available: boolean;
+          last_priced_at: string | null;
+        }>
         setVariants(
-          product.product_variants.map(
-            (v: { id: string; name: string; price: number; sku: string }) => ({
+          allVariants
+            .filter((v) => !v.medium)
+            .map((v) => ({
               id: v.id,
               name: v.name || '',
               price: v.price?.toString() || '',
               sku: v.sku || '',
               isExisting: true,
-            })
-          )
+            })),
         )
+        setPrintVariants(
+          allVariants
+            .filter((v) => Boolean(v.medium))
+            .map((v) => ({
+              id: v.id,
+              product_id: id,
+              medium: v.medium as Medium,
+              size_label: v.size_label,
+              lumaprints_cost_cents: v.lumaprints_cost_cents,
+              shipping_cost_cents: v.shipping_cost_cents,
+              margin_override_pct: v.margin_override_pct,
+              manual_price_override_cents: v.manual_price_override_cents,
+              is_active: v.is_active ?? true,
+              is_lumaprints_available: v.is_lumaprints_available ?? true,
+              last_priced_at: v.last_priced_at,
+            })),
+        )
+      }
+      if (product.default_margin_pct != null) {
+        setProductDefaultMargin(Number(product.default_margin_pct))
+      } else if (product.margin_pct != null) {
+        setProductDefaultMargin(Number(product.margin_pct) * 100)
       }
 
       setLoading(false)
@@ -1024,6 +1058,12 @@ export default function EditProductPage({
               </div>
             )}
           </section>
+
+          <VariantsTab
+            productId={id}
+            productDefaultMargin={productDefaultMargin}
+            variants={printVariants}
+          />
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-charcoal/10 pt-6">
