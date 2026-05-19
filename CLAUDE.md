@@ -19,3 +19,14 @@
 ## Supabase
 - Use `createClient` (not `createServiceClient`) for ALL admin pages and API routes — `SUPABASE_SERVICE_ROLE_KEY` is not set in Vercel
 - `createServiceClient` should only be used in webhook handlers or cron jobs that don't have user sessions
+
+## Artwork inventory
+
+The canonical list of every original artwork lives in docs/artwork-inventory.md. Read this file before any of:
+- Creating, editing, or listing products
+- Building or modifying the variant configurator
+- Wiring CV award-piece links to artwork pages
+- Touching any artwork-detail page UI
+- Generating SEO descriptions or metadata for artwork
+
+If Margaret adds, sells, or reclassifies an artwork, update this file in the same PR.
