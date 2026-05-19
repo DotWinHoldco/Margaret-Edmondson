@@ -66,9 +66,11 @@ export default function RichTextEditor({
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing editor content into state; safe
       setHtmlSource(content)
     }
-  }, [content]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content])
 
   if (!editor) return null
 

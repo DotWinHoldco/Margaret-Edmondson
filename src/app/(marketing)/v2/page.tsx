@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import {
   motion,
@@ -829,12 +830,12 @@ function ClassesSection() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mt-14 text-center"
         >
-          <a
+          <Link
             href="/classes"
             className="font-friendly inline-flex items-center gap-2 rounded-sm border-2 border-[#1A1A1A] px-8 py-3 text-sm font-bold uppercase tracking-widest text-[#1A1A1A] transition-all duration-300 hover:bg-[#1A1A1A] hover:text-white"
           >
             View All Classes
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

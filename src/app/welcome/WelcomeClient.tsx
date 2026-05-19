@@ -25,6 +25,7 @@ export default function WelcomeClient() {
       router.replace('/admin')
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot ready flag; safe
     setReady(true)
   }, [router])
 

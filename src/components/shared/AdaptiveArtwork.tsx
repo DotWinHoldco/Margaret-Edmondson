@@ -61,6 +61,7 @@ export default function AdaptiveArtwork({
       setLoaded(true)
 
       if (mode === 'fill' && imgElement && canvasRef.current) {
+        // eslint-disable-next-line react-hooks/immutability -- function declaration hoisted; reference is stable
         sampleEdgeColor(imgElement, canvasRef.current)
       }
     },

@@ -842,12 +842,12 @@ function ClassesSection() {
                     <p className="font-serif-body text-charcoal/70 text-sm md:text-base leading-relaxed mb-4">
                       {cls.description}
                     </p>
-                    <a
+                    <Link
                       href="/classes"
                       className="font-hand text-deep-teal text-lg hover:text-coral transition-colors"
                     >
                       Learn more &rarr;
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </motion.div>

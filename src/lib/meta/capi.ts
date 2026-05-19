@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+
 const PIXEL_ID = process.env.META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID
 const ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN
 const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE
@@ -44,6 +46,5 @@ export async function sendServerEvent(event: ServerEvent) {
 }
 
 export function hashSHA256(value: string): string {
-  const crypto = require('crypto')
-  return crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex')
+  return createHash('sha256').update(value.trim().toLowerCase()).digest('hex')
 }

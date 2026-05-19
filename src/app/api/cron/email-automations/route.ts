@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     .select('*, email_automation_steps(*, email_templates(*))')
     .eq('is_active', true)
 
-  let sent = 0
+  const sent = 0
 
   // Process each automation
   for (const automation of automations || []) {
