@@ -1,120 +1,180 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
+import { renderMarkdown } from '@/lib/markdown'
 
 export const metadata: Metadata = {
   title: 'About',
   description: 'Meet Margaret Edmondson — mixed media artist, painter, and art educator with a BS in Art Education from Murray State and an MFA in Painting from SCAD.',
 }
 
-export default function AboutPage() {
+export const dynamic = 'force-dynamic'
+
+interface SectionRow {
+  section_key: string
+  heading: string
+  body_markdown: string
+  display_order: number
+  updated_at: string
+}
+
+interface CalloutRow {
+  id: string
+  kind: 'motto' | 'quote' | 'list'
+  label: string
+  body_markdown: string
+  display_order: number
+  updated_at: string
+}
+
+interface Degree { year: string; degree: string; institution: string; location: string; honors?: string }
+
+interface CredentialsRow {
+  full_name: string
+  degrees: Degree[]
+  hero_image_url: string | null
+  contact_email: string
+  updated_at: string
+}
+
+async function loadAbout() {
+  const supabase = await createClient()
+  const [sectionsRes, calloutsRes, credsRes] = await Promise.all([
+    supabase.from('bio_sections').select('section_key, heading, body_markdown, display_order, updated_at').eq('is_published', true).order('display_order', { ascending: true }),
+    supabase.from('bio_callouts').select('id, kind, label, body_markdown, display_order, updated_at').eq('is_published', true).order('display_order', { ascending: true }),
+    supabase.from('bio_credentials_block').select('full_name, degrees, hero_image_url, contact_email, updated_at').eq('id', true).maybeSingle(),
+  ])
+  return {
+    sections: (sectionsRes.data || []) as SectionRow[],
+    callouts: (calloutsRes.data || []) as CalloutRow[],
+    credentials: (credsRes.data as CredentialsRow | null),
+  }
+}
+
+function lastUpdated(s: SectionRow[], c: CalloutRow[], cr: CredentialsRow | null): string {
+  const dates = [...s.map((x) => x.updated_at), ...c.map((x) => x.updated_at)]
+  if (cr) dates.push(cr.updated_at)
+  if (dates.length === 0) return ''
+  const max = dates.reduce((a, b) => (a > b ? a : b))
+  return new Date(max).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+export default async function AboutPage() {
+  const { sections, callouts, credentials } = await loadAbout()
+
+  if (sections.length === 0) {
+    return (
+      <div className="py-20 text-center">
+        <p className="font-body text-charcoal/60">This page is being updated — check back soon.</p>
+      </div>
+    )
+  }
+
+  const mottosAndQuotes = callouts.filter((c) => c.kind !== 'list')
+  const lists = callouts.filter((c) => c.kind === 'list')
+  const updated = lastUpdated(sections, callouts, credentials)
+
   return (
-    <div className="py-12 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Hero */}
-        <div className="text-center mb-16">
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-light text-charcoal">
-            Meet the Artist
-          </h1>
-          <div className="mt-3 mx-auto w-16 h-px bg-gold" />
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
-            <Image
-              src="/Margaret Edmondson/Margaret Bio Photos/Margaret Plein Air Wildflower Field.jpeg"
-              alt="Margaret Edmondson painting outdoors in a wildflower field"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
-            />
-          </div>
-          <div>
-            <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal mb-6">
-              Margaret Loraine Edmondson
-            </h2>
-            <div className="font-body text-base leading-relaxed text-charcoal/70 space-y-4">
-              <p>
-                Margaret grew up in a small town in Southern Illinois and discovered her love of art early. She earned her BS in Art Education from Murray State University in Murray, Kentucky in 2000, and later completed her MFA in Painting from the Savannah College of Art and Design (SCAD), commuting weekly to Georgia to pursue that dream.
-              </p>
-              <p>
-                She met her husband Shawn their freshman year at Murray State, and over the course of their marriage they have moved out of state ten times in thirty years following his career. Along the way, Margaret worked as an interior designer in Southeast Missouri for three years and has taught art to all ages across multiple states, including Florida, Tennessee, East Texas, Northern California, North Texas, and the St. Louis and Dallas-Fort Worth areas.
-              </p>
-              <p>
-                Now celebrating 26 years of marriage with two children in high school, Margaret continues to create and teach wherever life takes her. Her motto says it all: &ldquo;Do something creative at least once a day.&rdquo;
-              </p>
-              <p className="italic text-charcoal/50">
-                &ldquo;Use your talents, that is what they are intended for.&rdquo;
-              </p>
+    <div className="bg-cream pt-12 sm:pt-20 pb-24 sm:pb-32">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        {credentials && (
+          <header className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-10 lg:gap-14 items-center mb-20">
+            <div>
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-light text-charcoal leading-tight">
+                {credentials.full_name}
+              </h1>
+              <div className="mt-4 w-16 h-px bg-gold" />
+              <ul className="mt-6 space-y-2 font-body text-sm sm:text-base text-charcoal/70 uppercase tracking-wide">
+                {credentials.degrees.map((d) => (
+                  <li key={`${d.year}-${d.degree}`}>
+                    <strong className="text-charcoal">{d.degree}</strong> · {d.year} · {d.institution}, {d.location}
+                    {d.honors && <span className="ml-2 normal-case text-charcoal/60 italic">({d.honors})</span>}
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-        </div>
-
-        {/* Art Philosophy Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-24">
-          <div className="order-2 lg:order-1">
-            <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal mb-6">
-              What You&apos;ll Find in My Work
-            </h2>
-            <div className="font-body text-base leading-relaxed text-charcoal/70 space-y-4">
-              <p>
-                &ldquo;What you will find in my artwork is the beauty of what I see around me.&rdquo; Margaret favors drawing and painting to express realism, using her camera as an initial sketch before pairing down and combining scenes by hand.
-              </p>
-              <p>
-                Her subjects are drawn from her travels and environment: cattle, farm animals, and wild sunflowers from her years in Texas; cactus and the vivid colors of Arizona that she became obsessed with; and beach scenes from family vacations to Alabama and California.
-              </p>
-              <p>
-                Recently, Margaret has been experimenting with textures, printmaking, text, and sewing for mixed media collages. Her Encouragement Series was a collaborative project with friend Jenny Donaldson, inspired by Rick Rubin&apos;s <em>The Creative Act: A Way of Being</em>.
-              </p>
-            </div>
-          </div>
-          <div className="order-1 lg:order-2">
-            <Image
-              src="https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/public/product-images/web/texas-themed/deep-in-the-heart-of-texas_1.webp"
-              alt="Deep in the Heart of Texas painting by Margaret Edmondson"
-              width={2048}
-              height={1536}
-              className="block w-full h-auto rounded-sm shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)]"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Creative Process */}
-        <div className="bg-white rounded-sm p-8 sm:p-12 lg:p-16 mb-24">
-          <h2 className="font-display text-2xl sm:text-3xl font-light text-charcoal text-center mb-12">
-            The Creative Process
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {[
-              { title: 'Observe', description: 'Every piece begins with seeing. Margaret uses her camera to capture the beauty around her — landscapes, animals, light on water — as the first sketch for what comes next.' },
-              { title: 'Compose', description: 'Reference photos are paired down and combined by hand, distilling multiple scenes into a single composition that captures the feeling of being there.' },
-              { title: 'Create', description: 'Whether through painting, drawing, printmaking, or mixed media collage with textures, text, and sewing, Margaret brings each piece to life with warmth and attention to detail.' },
-            ].map((step, i) => (
-              <div key={i} className="text-center">
-                <span className="font-hand text-4xl text-gold">{i + 1}</span>
-                <h3 className="mt-2 font-display text-xl font-light text-charcoal">{step.title}</h3>
-                <p className="mt-2 font-body text-sm text-charcoal/60">{step.description}</p>
+            {credentials.hero_image_url && (
+              <div className="lg:order-2">
+                <Image
+                  src={credentials.hero_image_url}
+                  alt={credentials.full_name}
+                  width={800}
+                  height={1000}
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="block w-full h-auto rounded-sm shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)]"
+                />
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+          </header>
+        )}
 
-        {/* Gallery Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { src: '/Margaret Edmondson/ARTWORK/Encouragement Series/Unexpected.jpg', alt: 'Unexpected — from the Encouragement Series' },
-            { src: '/Margaret Edmondson/ARTWORK/Texas Themed/Spring Break Mountain Boat Dock.jpg', alt: 'Spring Break Mountain Boat Dock' },
-            { src: '/Margaret Edmondson/ARTWORK/Beach and SC/Road Trip.jpg', alt: 'Road Trip — beach scene painting' },
-            { src: '/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg', alt: 'Hot Air — cactus series painting' },
-          ].map((img, i) => (
-            <div key={i} className="relative aspect-square overflow-hidden rounded-sm">
-              <Image src={img.src} alt={img.alt} fill className="object-cover" sizes="25vw" />
-            </div>
+        <div className="space-y-20">
+          {sections.map((s, idx) => (
+            <article key={s.section_key} className="max-w-2xl mx-auto">
+              <h2 className="font-display text-3xl sm:text-4xl font-light text-charcoal text-center">
+                {s.heading}
+              </h2>
+              <div className="mt-3 mx-auto w-12 h-px bg-gold" />
+              <div
+                className="mt-6 font-body text-base sm:text-lg text-charcoal/75 leading-relaxed prose prose-sm sm:prose-base max-w-none"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body_markdown) }}
+              />
+              {mottosAndQuotes[idx] && (
+                <aside className="mt-10 rounded-sm border-l-4 border-gold bg-white/60 px-6 py-5 max-w-xl mx-auto">
+                  <p className="font-hand text-xs uppercase tracking-widest text-charcoal/50">{mottosAndQuotes[idx].label}</p>
+                  <p className="mt-2 font-display text-xl sm:text-2xl font-light text-charcoal italic">
+                    &ldquo;{mottosAndQuotes[idx].body_markdown}&rdquo;
+                  </p>
+                </aside>
+              )}
+            </article>
           ))}
         </div>
+
+        {lists.length > 0 && (
+          <section className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {lists.map((l) => (
+              <div key={l.id} className="rounded-sm border border-charcoal/10 bg-white p-6">
+                <h3 className="font-hand text-base text-gold uppercase tracking-wider mb-3">{l.label}</h3>
+                <ul className="flex flex-wrap gap-1.5">
+                  {l.body_markdown.split('\n').filter(Boolean).map((item, i) => (
+                    <li key={i} className="rounded-full bg-charcoal/[0.04] px-3 py-1 font-body text-xs text-charcoal/70">
+                      {item.trim()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
+
+        <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link href="/shop" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
+            <p className="font-hand text-base text-gold uppercase tracking-wider">Browse</p>
+            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">The work</h3>
+            <p className="mt-2 font-body text-sm text-charcoal/60">Originals, prints, and recent series.</p>
+          </Link>
+          <Link href="/classes" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
+            <p className="font-hand text-base text-gold uppercase tracking-wider">Learn</p>
+            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">Join a class</h3>
+            <p className="mt-2 font-body text-sm text-charcoal/60">Paint Your Pet sessions for kids, teens, and adults.</p>
+          </Link>
+          <a
+            href={`mailto:${credentials?.contact_email || 'margaret117art@gmail.com'}?subject=Commission%20inquiry`}
+            className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors"
+          >
+            <p className="font-hand text-base text-gold uppercase tracking-wider">Connect</p>
+            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">Commission or say hi</h3>
+            <p className="mt-2 font-body text-sm text-charcoal/60">Custom portraits, questions, anything.</p>
+          </a>
+        </section>
+
+        {updated && (
+          <p className="mt-16 text-center font-body text-xs text-charcoal/40">
+            Page last updated {updated}.
+          </p>
+        )}
       </div>
     </div>
   )
