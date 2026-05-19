@@ -96,6 +96,16 @@ const navItems = [
     mobileOrder: 0,
   },
   {
+    label: 'CV',
+    href: '/admin/cv',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 12.75h6m-6 3h6m-6 3h3M6.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25V11.25a9 9 0 0 0-9-9H6.75A2.25 2.25 0 0 0 4.5 4.5v15a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
     label: 'About',
     href: '/admin/about',
     icon: (
