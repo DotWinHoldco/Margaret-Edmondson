@@ -1,175 +1,145 @@
-import { getCourseBySlug, getCourseModules } from '@/lib/supabase/queries'
+import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import ClassSignupForm from '@/components/marketing/ClassSignupForm'
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> }
-): Promise<Metadata> {
+export const dynamic = 'force-dynamic'
+
+interface SessionRow {
+  id: string
+  slug: string
+  audience: 'adult' | 'teen' | 'kids' | 'family'
+  title: string
+  starts_at: string
+  ends_at: string
+  price_cents: number
+  capacity: number
+  location_name: string
+  location_address: string
+  description: string | null
+  status: 'draft' | 'published' | 'sold_out' | 'completed' | 'cancelled'
+}
+
+async function loadSession(slug: string): Promise<{ session: SessionRow | null; reserved: number; otherSessions: SessionRow[] }> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('class_sessions')
+    .select('id, slug, audience, title, starts_at, ends_at, price_cents, capacity, location_name, location_address, description, status')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (!data) return { session: null, reserved: 0, otherSessions: [] }
+
+  const { count } = await supabase
+    .from('class_bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', data.id)
+    .in('status', ['awaiting_payment', 'paid'])
+
+  const { data: others } = await supabase
+    .from('class_sessions')
+    .select('id, slug, audience, title, starts_at, ends_at, price_cents, capacity, location_name, location_address, description, status')
+    .neq('slug', slug)
+    .in('status', ['published', 'sold_out'])
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: true })
+    .limit(3)
+
+  return { session: data as SessionRow, reserved: count || 0, otherSessions: (others || []) as SessionRow[] }
+}
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params
-  const course = await getCourseBySlug(slug)
-  if (!course) return { title: 'Class Not Found' }
-
+  const { session } = await loadSession(slug)
+  if (!session) return { title: 'Class Not Found' }
   return {
-    title: `${course.title} — Art Classes`,
-    description: course.description || `Learn ${course.title} with Margaret Edmondson.`,
+    title: session.title,
+    description: `Sign up for ${session.title} on ${new Date(session.starts_at).toLocaleDateString()}.`,
   }
 }
 
-export default async function ClassDetailPage(
-  props: { params: Promise<{ slug: string }> }
-) {
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',
+  })
+}
+
+function priceLabel(cents: number) {
+  return `$${(cents / 100).toFixed(0)}`
+}
+
+const AUDIENCE_LABEL: Record<SessionRow['audience'], string> = {
+  adult: 'Adult', teen: 'Teen', kids: 'Kids', family: 'Family',
+}
+
+export default async function ClassSessionPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params
-  const course = await getCourseBySlug(slug)
-
-  if (!course) notFound()
-
-  const modules = await getCourseModules(course.id)
+  const { session, reserved, otherSessions } = await loadSession(slug)
+  if (!session) notFound()
+  const taken = reserved
+  const soldOut = session.status === 'sold_out' || taken >= session.capacity
 
   return (
-    <div className="py-12 sm:py-20">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
+    <div className="bg-cream pt-12 sm:pt-20 pb-24 sm:pb-32">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <nav className="mb-8 font-body text-sm text-charcoal/50">
-          <Link href="/classes" className="hover:text-teal transition-colors">
-            Classes
-          </Link>
+          <Link href="/classes" className="hover:text-teal transition-colors">Classes</Link>
           <span className="mx-2">/</span>
-          <span className="text-charcoal">{course.title}</span>
+          <span className="text-charcoal">{session.title}</span>
         </nav>
 
-        {/* Hero */}
-        <div className="mb-10">
-          {course.thumbnail_url && (
-            <div className="relative aspect-[16/9] overflow-hidden rounded-sm mb-8">
-              <Image
-                src={course.thumbnail_url}
-                alt={course.title}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 896px"
-                priority
-              />
-              {course.difficulty_level && (
-                <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 text-xs font-body font-medium text-charcoal rounded-sm capitalize">
-                  {course.difficulty_level.replace('_', ' ')}
-                </span>
-              )}
-            </div>
-          )}
+        <header className="text-center mb-10">
+          <span className="inline-block rounded-full bg-charcoal/[0.04] px-3 py-1 font-body text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+            {AUDIENCE_LABEL[session.audience]}
+          </span>
+          <h1 className="mt-4 font-display text-4xl sm:text-5xl font-light text-charcoal">{session.title}</h1>
+          <div className="mt-4 mx-auto w-16 h-px bg-gold" />
+          <p className="mt-4 font-body text-lg text-charcoal/75">{formatDate(session.starts_at)}</p>
+          <p className="mt-1 font-body text-sm text-charcoal/60">{session.location_name} · {session.location_address}</p>
+          <p className="mt-4 font-body text-3xl font-semibold text-charcoal">{priceLabel(session.price_cents)}</p>
+          <p className="mt-1 font-body text-xs text-charcoal/50">{Math.max(0, session.capacity - taken)} of {session.capacity} spots left</p>
+        </header>
 
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-light text-charcoal">
-            {course.title}
-          </h1>
-          <div className="mt-3 w-16 h-px bg-gold" />
-        </div>
+        {session.description && (
+          <p className="font-body text-base text-charcoal/75 max-w-2xl mx-auto mb-10 leading-relaxed">{session.description}</p>
+        )}
 
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-16">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {course.description && (
-              <div className="mb-8">
-                <h2 className="font-display text-xl font-light text-charcoal mb-4">About This Class</h2>
-                <p className="font-body text-charcoal/70 leading-relaxed whitespace-pre-line">
-                  {course.description}
-                </p>
-              </div>
-            )}
-
-            {course.materials_needed && (
-              <div className="mb-8">
-                <h2 className="font-display text-xl font-light text-charcoal mb-4">Materials Needed</h2>
-                <p className="font-body text-charcoal/70 leading-relaxed whitespace-pre-line">
-                  {course.materials_needed}
-                </p>
-              </div>
-            )}
-
-            {/* Curriculum */}
-            {modules.length > 0 && (
-              <div>
-                <h2 className="font-display text-xl font-light text-charcoal mb-4">Curriculum</h2>
-                <div className="space-y-3">
-                  {modules.map((mod, index) => (
-                    <div
-                      key={mod.id}
-                      className="flex items-start gap-4 p-4 bg-white rounded-sm border border-charcoal/5"
-                    >
-                      <span className="flex-shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal/10 font-hand text-sm text-teal">
-                        {index + 1}
-                      </span>
-                      <div>
-                        <h3 className="font-body text-sm font-semibold text-charcoal">
-                          {mod.title}
-                        </h3>
-                        {mod.description && (
-                          <p className="mt-1 font-body text-sm text-charcoal/60">
-                            {mod.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {soldOut ? (
+          <div className="rounded-sm border border-charcoal/10 bg-charcoal/[0.04] p-8 text-center mb-12">
+            <h2 className="font-display text-2xl font-light text-charcoal mb-2">Sold out</h2>
+            <p className="font-body text-sm text-charcoal/70">
+              This session is full. Email{' '}
+              <a href="mailto:margaret117art@gmail.com" className="text-teal underline hover:text-deep-teal">
+                margaret117art@gmail.com
+              </a>{' '}
+              to join the waitlist or be notified about the next class.
+            </p>
           </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-28 bg-white rounded-sm border border-charcoal/10 p-6">
-              <p className="font-display text-3xl font-light text-charcoal mb-1">
-                {course.price ? `$${course.price}` : 'Free'}
-              </p>
-              <div className="mt-1 w-10 h-px bg-gold mb-6" />
-
-              <div className="space-y-3 mb-6">
-                {course.instructor && (
-                  <div className="flex justify-between">
-                    <span className="font-body text-xs text-charcoal/50 uppercase tracking-wider">Instructor</span>
-                    <span className="font-body text-sm text-charcoal">{course.instructor}</span>
-                  </div>
-                )}
-                {course.difficulty_level && (
-                  <div className="flex justify-between">
-                    <span className="font-body text-xs text-charcoal/50 uppercase tracking-wider">Level</span>
-                    <span className="font-body text-sm text-charcoal capitalize">
-                      {course.difficulty_level.replace('_', ' ')}
-                    </span>
-                  </div>
-                )}
-                {course.duration_hours && (
-                  <div className="flex justify-between">
-                    <span className="font-body text-xs text-charcoal/50 uppercase tracking-wider">Duration</span>
-                    <span className="font-body text-sm text-charcoal">
-                      {course.duration_hours} {course.duration_hours === 1 ? 'hour' : 'hours'}
-                    </span>
-                  </div>
-                )}
-                {course.max_students && (
-                  <div className="flex justify-between">
-                    <span className="font-body text-xs text-charcoal/50 uppercase tracking-wider">Class Size</span>
-                    <span className="font-body text-sm text-charcoal">
-                      Max {course.max_students} students
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                className="w-full py-3 bg-teal text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-teal/90 transition-colors"
-              >
-                Enroll Now
-              </button>
-
-              <p className="mt-3 text-center font-body text-xs text-charcoal/40">
-                Secure checkout powered by Stripe
-              </p>
-            </div>
+        ) : (
+          <div className="mb-12">
+            <ClassSignupForm sessionId={session.id} slug={session.slug} priceCents={session.price_cents} />
           </div>
-        </div>
+        )}
+
+        {otherSessions.length > 0 && (
+          <section className="mt-16 border-t border-charcoal/10 pt-10">
+            <h3 className="font-display text-xl font-light text-charcoal mb-4 text-center">Other upcoming sessions</h3>
+            <ul className="space-y-3">
+              {otherSessions.map((o) => (
+                <li key={o.id} className="flex items-center justify-between rounded-sm border border-charcoal/10 bg-white p-4">
+                  <div>
+                    <p className="font-body text-sm font-semibold text-charcoal">{AUDIENCE_LABEL[o.audience]} · {formatDate(o.starts_at)}</p>
+                    <p className="font-body text-xs text-charcoal/60">{o.location_name} · {priceLabel(o.price_cents)}</p>
+                  </div>
+                  <Link href={`/classes/${o.slug}`} className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal transition-colors">
+                    View →
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </div>
   )
