@@ -25,10 +25,10 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/Margaret-Edmondson-Full-Logo.png"
-              alt="Margaret Edmondson"
-              width={192}
-              height={89}
+              src="/margaret edmondson logo with art by prefix.png"
+              alt="ArtByME — Margaret Edmondson"
+              width={2365}
+              height={892}
               className="h-10 w-auto lg:h-12"
               priority
             />
