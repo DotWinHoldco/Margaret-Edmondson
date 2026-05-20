@@ -74,7 +74,6 @@ export default async function AboutPage() {
   }
 
   const mottosAndQuotes = callouts.filter((c) => c.kind !== 'list')
-  const lists = callouts.filter((c) => c.kind === 'list')
   const updated = lastUpdated(sections, callouts, credentials)
 
   return (
@@ -160,23 +159,6 @@ export default async function AboutPage() {
             )
           })}
         </div>
-
-        {lists.length > 0 && (
-          <section className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {lists.map((l) => (
-              <div key={l.id} className="rounded-sm border border-charcoal/10 bg-white p-6">
-                <h3 className="font-hand text-base text-gold uppercase tracking-wider mb-3">{l.label}</h3>
-                <ul className="flex flex-wrap gap-1.5">
-                  {l.body_markdown.split('\n').filter(Boolean).map((item, i) => (
-                    <li key={i} className="rounded-full bg-charcoal/[0.04] px-3 py-1 font-body text-xs text-charcoal/70">
-                      {item.trim()}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        )}
 
         <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/shop" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
