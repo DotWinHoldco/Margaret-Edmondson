@@ -8,6 +8,7 @@ import FieldRenderer from './FieldRenderer'
 import SortableList from './SortableList'
 import PagePicker from './PagePicker'
 import RevisionMenu from './RevisionMenu'
+import LivePreview from './LivePreview'
 
 interface SectionState {
   original: unknown
@@ -26,6 +27,8 @@ export default function PageEditorClient() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [sections, setSections] = useState<Record<string, SectionState>>({})
   const [activeTab, setActiveTab] = useState<string>(schema.sections[0]?.key ?? '')
+  const [showPreview, setShowPreview] = useState(true)
+  const [previewToken, setPreviewToken] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -92,6 +95,7 @@ export default function PageEditorClient() {
           saveToken: s[key]!.saveToken + 1,
         },
       }))
+      setPreviewToken((t) => t + 1)
     } catch (err) {
       setSections((s) => ({
         ...s,
@@ -123,19 +127,30 @@ export default function PageEditorClient() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PagePicker schemas={pageSchemas} currentSlug={schema.slug} />
-        {schema.previewPath && (
-          <a
-            href={schema.previewPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs text-charcoal/70 hover:bg-charcoal/5"
-          >
-            Open public page
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7-7 7M3 12h18" />
-            </svg>
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {schema.previewPath && (
+            <button
+              type="button"
+              onClick={() => setShowPreview((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs text-charcoal/70 hover:bg-charcoal/5"
+            >
+              {showPreview ? 'Hide preview' : 'Show preview'}
+            </button>
+          )}
+          {schema.previewPath && (
+            <a
+              href={schema.previewPath}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs text-charcoal/70 hover:bg-charcoal/5"
+            >
+              Open public page
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7-7 7M3 12h18" />
+              </svg>
+            </a>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -147,6 +162,7 @@ export default function PageEditorClient() {
           {loadError}
         </div>
       ) : (
+      <div className={`grid gap-4 ${showPreview && schema.previewPath ? 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]' : ''}`}>
         <div className="rounded-sm border border-charcoal/10 bg-white">
           {/* Tabs */}
           <div className="flex flex-wrap gap-1 border-b border-charcoal/10 bg-charcoal/[0.02] p-1">
@@ -188,7 +204,10 @@ export default function PageEditorClient() {
                     slug={schema.slug}
                     sectionKey={section.key}
                     cacheToken={state.saveToken}
-                    onReverted={load}
+                    onReverted={() => {
+                      load()
+                      setPreviewToken((t) => t + 1)
+                    }}
                   />
                 </div>
 
@@ -248,6 +267,12 @@ export default function PageEditorClient() {
             )
           })}
         </div>
+        {showPreview && schema.previewPath && (
+          <div className="hidden lg:block lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-7rem)]">
+            <LivePreview src={schema.previewPath} refreshToken={previewToken} />
+          </div>
+        )}
+      </div>
       )}
     </div>
   )

@@ -4,6 +4,7 @@ import CartDrawer from '@/components/shared/CartDrawer'
 import Providers from '@/components/shared/Providers'
 import NewsletterPopup from '@/components/marketing/NewsletterPopup'
 import PixelScript from '@/components/marketing/PixelScript'
+import PreviewReloadBridge from '@/components/admin/page-editor/PreviewReloadBridge'
 
 export default function MarketingLayout({
   children,
@@ -18,6 +19,7 @@ export default function MarketingLayout({
       <Footer />
       <CartDrawer />
       <NewsletterPopup />
+      <PreviewReloadBridge />
     </Providers>
   )
 }
