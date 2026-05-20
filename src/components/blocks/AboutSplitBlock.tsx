@@ -12,15 +12,23 @@ interface AboutSplitConfig {
   link_text?: string
   link_url?: string
   image_side?: 'left' | 'right'
+  // Legacy keys (pre-unified-editor seeds). Read as fallbacks so rows
+  // that never went through the editor still render their saved copy.
+  body?: string
+  cta_text?: string
+  cta_link?: string
 }
 
 export default function AboutSplitBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as AboutSplitConfig
   const imageUrl = c.image_url || '/Margaret Edmondson/Margaret Bio Photos/Margaret with Cactus Painting Gallery White Top.jpeg'
   const heading = c.heading || 'About the Artist'
-  const body = c.body_html || '<p>Margaret Edmondson is a Texas-based artist with a BS in Art Education from Murray State University and an MFA in Painting from the Savannah College of Art and Design. Her work captures the beauty she sees around her: cattle and wild sunflowers in Texas, the captivating saguaro cactuses of Arizona, and beach scenes from family vacations to Alabama and California.</p><p>Recently, she has been experimenting with textures, printmaking, text, and sewing in mixed media collages. Her motto: "Do something creative at least once a day."</p>'
-  const linkText = c.link_text || 'About the Artist'
-  const linkUrl = c.link_url || '/about'
+  const rawBody = c.body_html || c.body
+  const body = rawBody && rawBody.trim().length > 0
+    ? rawBody
+    : '<p>Margaret Edmondson is a Texas-based artist with a BS in Art Education from Murray State University and an MFA in Painting from the Savannah College of Art and Design. Her work captures the beauty she sees around her: cattle and wild sunflowers in Texas, the captivating saguaro cactuses of Arizona, and beach scenes from family vacations to Alabama and California.</p><p>Recently, she has been experimenting with textures, printmaking, text, and sewing in mixed media collages. Her motto: "Do something creative at least once a day."</p>'
+  const linkText = c.link_text || c.cta_text || 'About the Artist'
+  const linkUrl = c.link_url || c.cta_link || '/about'
   const imageSide = c.image_side || 'left'
 
   return (
