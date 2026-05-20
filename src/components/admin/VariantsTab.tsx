@@ -34,7 +34,9 @@ function fmtCents(c: number | null | undefined): string {
 export default function VariantsTab({ productId, productDefaultMargin, variants: initial }: Props) {
   const router = useRouter()
   const [variants, setVariants] = useState(initial)
-  const [defaultMargin, setDefaultMargin] = useState(productDefaultMargin)
+  // defaultMargin is owned by the parent product editor (Pricing card).
+  // Reflect it here so the math always uses the canonical value.
+  const defaultMargin = productDefaultMargin
   const [pending, startTransition] = useTransition()
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
   const [lastDiff, setLastDiff] = useState<string | null>(null)
@@ -65,16 +67,6 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
     }
     return out
   }, [variants])
-
-  const saveProductMargin = async (next: number) => {
-    setDefaultMargin(next)
-    await fetch(`/api/admin/products/${productId}/margin`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ default_margin_pct: next }),
-    }).catch(() => null)
-    router.refresh()
-  }
 
   const updateVariantField = (id: string, patch: Partial<Variant>) => {
     setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)))
@@ -141,17 +133,10 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 font-body text-xs text-charcoal/70">
-            Default margin
-            <input
-              type="number"
-              value={defaultMargin}
-              onChange={(e) => setDefaultMargin(Number(e.target.value))}
-              onBlur={() => saveProductMargin(defaultMargin)}
-              className="w-20 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
-            />
-            <span className="text-charcoal/40">%</span>
-          </label>
+          <span className="font-body text-xs text-charcoal/50">
+            Default margin <strong className="text-charcoal/80">{defaultMargin}%</strong>
+            <span className="ml-1 text-charcoal/40">(set in Pricing above)</span>
+          </span>
           <button
             type="button"
             disabled={pending}

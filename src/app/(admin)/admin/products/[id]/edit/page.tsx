@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import MediaPicker from '@/components/admin/MediaPicker'
+import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant } from '@/components/admin/VariantsTab'
 import type { Medium } from '@/lib/pricing/mediums'
 
@@ -290,14 +291,22 @@ export default function EditProductPage({
     setRefreshing(true)
     setRefreshMsg(null)
     try {
-      const r = await fetch('/api/admin/pricing/refresh', {
+      // First, persist the current margin so the refresh uses it.
+      await fetch(`/api/admin/products/${id}/margin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ default_margin_pct: productDefaultMargin }),
+      })
+      const r = await fetch('/api/admin/variants/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: id }),
+        body: JSON.stringify({ product_id: id }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Refresh failed')
-      setRefreshMsg(`Recomputed ${d.updated} variant${d.updated === 1 ? '' : 's'} (source: ${d.source}).`)
+      const diffs = (d.data?.diffs || []) as Array<{ cost_before: number; cost_after: number }>
+      const changes = diffs.filter((x) => x.cost_before !== x.cost_after).length
+      setRefreshMsg(`Refreshed ${d.data?.refreshed ?? 0} variant${d.data?.refreshed === 1 ? '' : 's'} — ${changes} price change${changes === 1 ? '' : 's'}.`)
     } catch (err) {
       setRefreshMsg(err instanceof Error ? err.message : 'Refresh failed')
     } finally {
@@ -604,12 +613,11 @@ export default function EditProductPage({
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
                   Description
                 </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={5}
-                  className="w-full rounded-lg border border-charcoal/15 bg-cream px-4 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                  placeholder="Describe this product..."
+                <RichTextEditor
+                  content={description}
+                  onChange={setDescription}
+                  placeholder="Describe this product…"
+                  minHeight="140px"
                 />
               </div>
             </div>
@@ -764,19 +772,17 @@ export default function EditProductPage({
 
               <div className="sm:col-span-2">
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
-                  Margin Override (%)
+                  Default margin (%)
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="relative w-40">
                     <input
                       type="number"
                       min="0"
-                      max="99"
-                      step="0.1"
-                      value={marginPct}
-                      onChange={(e) => setMarginPct(e.target.value)}
+                      step="1"
+                      value={productDefaultMargin}
+                      onChange={(e) => setProductDefaultMargin(Number(e.target.value))}
                       className="w-full rounded-lg border border-charcoal/15 bg-cream py-2.5 pl-4 pr-8 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                      placeholder={(siteDefaultMargin * 100).toFixed(0)}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
                   </div>
@@ -786,14 +792,14 @@ export default function EditProductPage({
                     disabled={refreshing}
                     className="rounded-md border border-charcoal/15 bg-cream px-3 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
                   >
-                    {refreshing ? 'Refreshing…' : 'Refresh variant prices'}
+                    {refreshing ? 'Refreshing…' : 'Save margin + refresh prices'}
                   </button>
                   {refreshMsg && (
                     <span className="font-body text-xs text-charcoal/60">{refreshMsg}</span>
                   )}
                 </div>
                 <p className="mt-1 font-body text-xs text-charcoal/40">
-                  Leave blank to use the site default ({(siteDefaultMargin * 100).toFixed(0)}%). Variant prices are computed from (wholesale + worst-case CONUS shipping) ÷ (1 − margin).
+                  Applies to every variant that doesn&apos;t set its own override. Variant price = Lumaprints cost × (1 + margin / 100) + worst-case CONUS shipping. 100% = 2× cost; 200% = 3× cost.
                 </p>
               </div>
             </div>
