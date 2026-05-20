@@ -274,16 +274,47 @@ interface PagesRow {
   is_published: boolean
 }
 
+// Columns added by 20260522_pages_extend.sql. The adapter degrades
+// gracefully when this migration has not been applied yet: a missing-
+// column PostgREST error triggers a retry with these stripped out.
+const OPTIONAL_PAGES_COLUMNS = ['hero_image_url', 'is_published', 'page_kind'] as const
+
+function isMissingColumnError(message: string | undefined | null): string | null {
+  if (!message) return null
+  const m = /Could not find the '([^']+)' column/.exec(message)
+  return m?.[1] ?? null
+}
+
+function stripColumns<T extends Record<string, unknown>>(obj: T, cols: string[]): T {
+  const out: Record<string, unknown> = { ...obj }
+  for (const c of cols) delete out[c]
+  return out as T
+}
+
 function pagesAdapterForSlug(slug: string): ServerAdapter {
   return {
     slug,
     async load(supabase) {
-      const { data } = await supabase
+      // Try the rich shape first; fall back to the legacy column set if
+      // 20260522_pages_extend.sql has not been applied yet.
+      let row: PagesRow | null = null
+      const richSelect = 'slug, title, content_html, content_json, seo_title, seo_description, hero_image_url, is_published'
+      const legacySelect = 'slug, title, content_html, content_json, seo_title, seo_description'
+      const rich = await supabase
         .from('pages')
-        .select('slug, title, content_html, content_json, seo_title, seo_description, hero_image_url, is_published')
+        .select(richSelect)
         .eq('slug', slug)
         .maybeSingle()
-      const row = (data as PagesRow | null) ?? null
+      if (rich.error && isMissingColumnError(rich.error.message)) {
+        const legacy = await supabase
+          .from('pages')
+          .select(legacySelect)
+          .eq('slug', slug)
+          .maybeSingle()
+        row = (legacy.data as PagesRow | null) ?? null
+      } else {
+        row = (rich.data as PagesRow | null) ?? null
+      }
       return {
         body: {
           title: row?.title ?? '',
@@ -302,30 +333,49 @@ function pagesAdapterForSlug(slug: string): ServerAdapter {
     async saveSection(supabase, sectionKey, value) {
       if (sectionKey !== 'body') throw new Error(`Unknown ${slug} section: ${sectionKey}`)
       const body = value as PagesRow & { hero_image_alt?: string | null }
-      const update = {
+      let update: Record<string, unknown> = {
         title: body.title,
         content_html: body.content_html,
         seo_description: body.seo_description ?? null,
         hero_image_url: body.hero_image_url ?? null,
         is_published: body.is_published ?? true,
       }
-      // Upsert so a missing row gets created on first save.
+
       const { data: existing } = await supabase
         .from('pages')
         .select('id')
         .eq('slug', slug)
         .maybeSingle()
-      if (existing) {
-        const { error } = await supabase
-          .from('pages')
-          .update({ ...update, updated_at: new Date().toISOString() })
-          .eq('slug', slug)
-        if (error) throw new Error(`pages update failed: ${error.message}`)
-      } else {
-        const { error } = await supabase
-          .from('pages')
-          .insert({ slug, ...update })
-        if (error) throw new Error(`pages insert failed: ${error.message}`)
+
+      async function attemptWrite(): Promise<{ ok: true } | { ok: false; message: string }> {
+        if (existing) {
+          const { error } = await supabase
+            .from('pages')
+            .update({ ...update, updated_at: new Date().toISOString() })
+            .eq('slug', slug)
+          if (error) return { ok: false, message: error.message }
+        } else {
+          const { error } = await supabase
+            .from('pages')
+            .insert({ slug, ...update })
+          if (error) return { ok: false, message: error.message }
+        }
+        return { ok: true }
+      }
+
+      let attempt = await attemptWrite()
+      // Retry without optional columns if the schema cache rejects them.
+      // Keeps the editor working before 20260522_pages_extend.sql runs.
+      let missing = !attempt.ok ? isMissingColumnError(attempt.message) : null
+      let safetyCounter = 0
+      while (!attempt.ok && missing && safetyCounter < OPTIONAL_PAGES_COLUMNS.length + 1) {
+        update = stripColumns(update, [missing])
+        attempt = await attemptWrite()
+        missing = !attempt.ok ? isMissingColumnError(attempt.message) : null
+        safetyCounter++
+      }
+      if (!attempt.ok) {
+        throw new Error(`pages save failed: ${attempt.message}`)
       }
     },
   }
