@@ -1,55 +1,84 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { z } from 'zod'
+
+const Create = z.object({
+  name: z.string().trim().min(1),
+  subject: z.string().trim().min(1),
+  template_type: z.enum(['transactional', 'marketing', 'automation']).default('marketing'),
+  category: z.string().nullable().optional(),
+  content_html: z.string().default(''),
+  content_json: z.unknown().optional(),
+  variables: z.array(z.string()).optional(),
+})
+
+const Update = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).optional(),
+  subject: z.string().trim().min(1).optional(),
+  template_type: z.enum(['transactional', 'marketing', 'automation']).optional(),
+  category: z.string().nullable().optional(),
+  content_html: z.string().optional(),
+  content_json: z.unknown().optional(),
+  variables: z.array(z.string()).optional(),
+  is_active: z.boolean().optional(),
+})
+
 export async function GET() {
-  try {
-    const auth = await requireAdmin()
-    if (!auth.ok) return auth.response
-    const supabase = auth.supabase
-    const { data, error } = await supabase
-      .from('email_templates')
-      .select('*')
-      .order('name', { ascending: true })
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
+  const { data, error } = await auth.supabase
+    .from('email_templates')
+    .select('*')
+    .order('name', { ascending: true })
 
-    return Response.json({ templates: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  return Response.json({ templates: data || [] })
+}
+
+export async function POST(request: Request) {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+
+  const parsed = await parseBody(request, Create)
+  if (!parsed.ok) return parsed.response
+
+  const insert = {
+    name: parsed.data.name,
+    subject: parsed.data.subject,
+    template_type: parsed.data.template_type,
+    category: parsed.data.category ?? null,
+    content_html: parsed.data.content_html,
+    content_json: parsed.data.content_json ?? {},
+    variables: parsed.data.variables ?? [],
+    is_active: true,
   }
+
+  const { data, error } = await auth.supabase
+    .from('email_templates')
+    .insert(insert)
+    .select('*')
+    .single()
+  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  return apiOk({ template: data }, 201)
 }
 
 export async function PATCH(request: Request) {
-  try {
-    const body = await request.json()
-    const { id, ...updates } = body
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
 
-    if (!id) {
-      return Response.json({ error: 'ID is required.' }, { status: 400 })
-    }
+  const parsed = await parseBody(request, Update)
+  if (!parsed.ok) return parsed.response
 
-    const auth = await requireAdmin()
-    if (!auth.ok) return auth.response
-    const supabase = auth.supabase
-    const { data, error } = await supabase
-      .from('email_templates')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single()
+  const { id, ...updates } = parsed.data
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
-
-    return Response.json({ template: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
-  }
+  const { data, error } = await auth.supabase
+    .from('email_templates')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  return Response.json({ template: data })
 }
