@@ -2,9 +2,10 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
+import { validateDiscountCode } from '@/lib/discounts/validate'
 
 export async function POST(request: Request) {
-  const { items, email, cartId, shippingSurcharge, shippingSurchargeLabel } = await request.json()
+  const { items, email, cartId, shippingSurcharge, shippingSurchargeLabel, promoCode } = await request.json()
 
   if (!items?.length) {
     return Response.json({ error: 'No items provided' }, { status: 400 })
@@ -69,6 +70,61 @@ export async function POST(request: Request) {
     ? Math.round(shippingSurcharge * 100)
     : 0
 
+  // Resolve contact id from email so codes scoped to a contact validate.
+  let contactId: string | null = null
+  if (email) {
+    const { data: contact } = await supabase
+      .from('crm_contacts')
+      .select('id')
+      .eq('email', String(email).toLowerCase().trim())
+      .maybeSingle()
+    contactId = contact?.id ?? null
+  }
+
+  const cartSubtotal = validatedItems.reduce(
+    (sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity,
+    0
+  )
+
+  // Promo code application via a one-shot Stripe coupon. The coupon is
+  // a duration:'once' coupon stored against the promo_codes row so we
+  // never re-create it for the same code.
+  let appliedCoupon: Stripe.Coupon | null = null
+  let appliedCodeId: string | null = null
+  let appliedCodeText: string | null = null
+  if (promoCode && typeof promoCode === 'string') {
+    const validation = await validateDiscountCode(
+      promoCode,
+      { contactId, email, cartId, cartSubtotal },
+      supabase
+    )
+    if (!validation.ok) {
+      return Response.json({ error: `Promo code: ${validation.reason}` }, { status: 400 })
+    }
+
+    const stripe = getStripe()
+    if (validation.code.stripe_coupon_id) {
+      try {
+        appliedCoupon = await stripe.coupons.retrieve(validation.code.stripe_coupon_id)
+      } catch {
+        appliedCoupon = null
+      }
+    }
+    if (!appliedCoupon || !appliedCoupon.valid) {
+      appliedCoupon = await stripe.coupons.create({
+        ...validation.stripeCoupon,
+        name: `ArtByME ${validation.code.code}`,
+        max_redemptions: 1,
+      })
+      await supabase
+        .from('promo_codes')
+        .update({ stripe_coupon_id: appliedCoupon.id })
+        .eq('id', validation.code.id)
+    }
+    appliedCodeId = validation.code.id
+    appliedCodeText = validation.code.code
+  }
+
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     customer_email: email || undefined,
@@ -87,6 +143,9 @@ export async function POST(request: Request) {
     shipping_address_collection: { allowed_countries: ['US', 'CA'] },
     metadata: {
       cart_id: cartId || '',
+      contact_id: contactId || '',
+      promo_code_id: appliedCodeId || '',
+      promo_code: appliedCodeText || '',
       items_json: JSON.stringify(validatedItems.map((i: { productId: string; variantId?: string; fulfillmentType: string; quantity: number }) => ({
         productId: i.productId,
         variantId: i.variantId,
@@ -108,17 +167,20 @@ export async function POST(request: Request) {
     }]
   }
 
+  if (appliedCoupon) {
+    sessionParams.discounts = [{ coupon: appliedCoupon.id }]
+  }
+
   const session = await getStripe().checkout.sessions.create(sessionParams)
 
   // Fire Meta CAPI InitiateCheckout
-  const totalValue = validatedItems.reduce((sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity, 0)
   await sendServerEvent({
     event_name: 'InitiateCheckout',
     event_id: crypto.randomUUID(),
     event_time: Math.floor(Date.now() / 1000),
     user_data: email ? { em: hashSHA256(email) } : {},
     custom_data: {
-      value: totalValue,
+      value: cartSubtotal,
       currency: 'USD',
       content_ids: validatedItems.map((i: { productId: string }) => i.productId),
       num_items: validatedItems.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0),

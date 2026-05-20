@@ -1,8 +1,27 @@
+// Cart abandonment sequence. Runs every 15 minutes via vercel.json.
+//
+// Step 1 (1h): reminder only, no code.
+// Step 2 (24h): generate a single-use 10% off code (72h expiry),
+//               attach to cart.promo_code_id, embed in email.
+// Step 3 (72h): re-use the same code from step 2.
+// After step 3: set nurture_started_at — the email-automations cron
+//               picks up these carts and sends a weekly nurture email
+//               until purchase or unsubscribe.
+
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
+import { renderHtml } from '@/lib/email/render'
+import { ctaButton, discountCallout } from '@/lib/email/shell'
+import { generateDiscountCode } from '@/lib/discounts/generate'
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
+import { upsertContact, addToList } from '@/lib/crm/contacts'
+import type { Database } from '@/lib/types/database'
+
+type CartRow = Database['public']['Tables']['carts']['Row']
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
 export async function GET(request: Request) {
-  // Verify cron secret
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -10,9 +29,13 @@ export async function GET(request: Request) {
 
   const supabase = await createClient()
   const now = new Date()
+  const nowIso = now.toISOString()
 
-  // Step 1: 1 hour abandoned carts
+  // Pull each step window.
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
+  const twentyFourAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+  const seventyTwoAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString()
+
   const { data: step1Carts } = await supabase
     .from('carts')
     .select('*')
@@ -21,8 +44,6 @@ export async function GET(request: Request) {
     .is('abandoned_email_1_sent_at', null)
     .lt('last_activity_at', oneHourAgo)
 
-  // Step 2: 24 hour carts
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
   const { data: step2Carts } = await supabase
     .from('carts')
     .select('*')
@@ -30,10 +51,8 @@ export async function GET(request: Request) {
     .is('converted_order_id', null)
     .not('abandoned_email_1_sent_at', 'is', null)
     .is('abandoned_email_2_sent_at', null)
-    .lt('last_activity_at', twentyFourHoursAgo)
+    .lt('last_activity_at', twentyFourAgo)
 
-  // Step 3: 72 hour carts
-  const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString()
   const { data: step3Carts } = await supabase
     .from('carts')
     .select('*')
@@ -41,39 +60,39 @@ export async function GET(request: Request) {
     .is('converted_order_id', null)
     .not('abandoned_email_2_sent_at', 'is', null)
     .is('abandoned_email_3_sent_at', null)
-    .lt('last_activity_at', seventyTwoHoursAgo)
+    .lt('last_activity_at', seventyTwoAgo)
 
   let sent = 0
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
-  for (const cart of step1Carts || []) {
-    await sendEmail({
-      to: cart.email,
-      subject: 'You left something beautiful behind — ArtByME',
-      html: `<div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; padding: 40px 24px; color: #2C2C2C;"><div style="text-align: center; margin-bottom: 32px;"><h1 style="font-size: 28px; font-weight: 300; margin: 0;">ArtBy<span style="font-weight: 700;">ME</span></h1></div><h2 style="font-size: 20px; font-weight: 400; text-align: center;">You left something beautiful behind</h2><p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6;">Your cart at ArtByME is waiting for you. Don't let these one-of-a-kind pieces slip away.</p><div style="text-align: center; margin: 28px 0;"><a href="${siteUrl}/cart" style="display: inline-block; background: #3A7D7B; color: white; padding: 14px 36px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">Return to Your Cart</a></div></div>`,
-    })
-    await supabase.from('carts').update({ abandoned_email_1_sent_at: now.toISOString() }).eq('id', cart.id)
-    sent++
+  for (const cart of (step1Carts || []) as CartRow[]) {
+    const ok = await sendStep1(cart, supabase)
+    if (ok) {
+      await supabase.from('carts').update({ abandoned_email_1_sent_at: nowIso }).eq('id', cart.id)
+      sent++
+    }
   }
 
-  for (const cart of step2Carts || []) {
-    await sendEmail({
-      to: cart.email,
-      subject: 'Still thinking about it? — ArtByME',
-      html: `<div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; padding: 40px 24px; color: #2C2C2C;"><div style="text-align: center; margin-bottom: 32px;"><h1 style="font-size: 28px; font-weight: 300; margin: 0;">ArtBy<span style="font-weight: 700;">ME</span></h1></div><h2 style="font-size: 20px; font-weight: 400; text-align: center;">Still thinking about it?</h2><p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6;">Margaret's originals are one-of-a-kind — once they're gone, they're gone. Your cart is still waiting.</p><div style="text-align: center; margin: 28px 0;"><a href="${siteUrl}/cart" style="display: inline-block; background: #3A7D7B; color: white; padding: 14px 36px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">Complete Your Purchase</a></div></div>`,
-    })
-    await supabase.from('carts').update({ abandoned_email_2_sent_at: now.toISOString() }).eq('id', cart.id)
-    sent++
+  for (const cart of (step2Carts || []) as CartRow[]) {
+    const ok = await sendStep2(cart, supabase)
+    if (ok) {
+      await supabase.from('carts').update({ abandoned_email_2_sent_at: nowIso }).eq('id', cart.id)
+      sent++
+    }
   }
 
-  for (const cart of step3Carts || []) {
-    await sendEmail({
-      to: cart.email,
-      subject: 'Last chance — your cart is waiting — ArtByME',
-      html: `<div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; padding: 40px 24px; color: #2C2C2C;"><div style="text-align: center; margin-bottom: 32px;"><h1 style="font-size: 28px; font-weight: 300; margin: 0;">ArtBy<span style="font-weight: 700;">ME</span></h1></div><h2 style="font-size: 20px; font-weight: 400; text-align: center;">Last chance</h2><p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6;">Your cart will expire soon. If you've been eyeing one of Margaret's pieces, now's the time.</p><div style="text-align: center; margin: 28px 0;"><a href="${siteUrl}/cart" style="display: inline-block; background: #D4654A; color: white; padding: 14px 36px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">Don't Miss Out</a></div></div>`,
-    })
-    await supabase.from('carts').update({ abandoned_email_3_sent_at: now.toISOString() }).eq('id', cart.id)
-    sent++
+  for (const cart of (step3Carts || []) as CartRow[]) {
+    const ok = await sendStep3(cart, supabase)
+    if (ok) {
+      await supabase
+        .from('carts')
+        .update({
+          abandoned_email_3_sent_at: nowIso,
+          nurture_started_at: nowIso,
+          status: 'nurture',
+        })
+        .eq('id', cart.id)
+      sent++
+    }
   }
 
   return Response.json({
@@ -85,4 +104,168 @@ export async function GET(request: Request) {
     },
     sent,
   })
+}
+
+async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  if (cart.contact_id) return cart.contact_id
+  if (!cart.email) return null
+  const contact = await upsertContact({ email: cart.email, source: 'cart_abandon' }, supabase)
+  if (!contact) return null
+  await supabase.from('carts').update({ contact_id: contact.id }).eq('id', cart.id)
+  await addToList(contact.id, 'cart-abandoners', 'cart_abandon', supabase)
+  return contact.id
+}
+
+async function sendStep1(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  if (!cart.email) return false
+  const contactId = await ensureContact(cart, supabase)
+  const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
+
+  const html = renderHtml(
+    `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">You left something behind</h2>
+     <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+       Your cart at ArtByME is waiting for you. Margaret's pieces are made one-of-a-kind, so don't let yours slip away.
+     </p>
+     ${ctaButton(`${SITE_URL}/cart`, 'Return to Your Cart')}`,
+    { preheader: 'Your saved cart is waiting for you.', unsubscribeUrl }
+  )
+
+  const result = await sendEmail({
+    to: cart.email,
+    subject: 'You left something behind — ArtByME',
+    html,
+  })
+  return result !== null || !process.env.RESEND_API_KEY
+}
+
+async function sendStep2(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  if (!cart.email) return false
+  const contactId = await ensureContact(cart, supabase)
+
+  // Generate or re-use the cart-abandon code.
+  let code = ''
+  let percentOff = 10
+  if (cart.promo_code_id) {
+    const { data: existing } = await supabase
+      .from('promo_codes')
+      .select('code, discount_value')
+      .eq('id', cart.promo_code_id)
+      .maybeSingle()
+    if (existing) {
+      code = existing.code
+      percentOff = existing.discount_value
+    }
+  }
+  if (!code) {
+    try {
+      const created = await generateDiscountCode(
+        {
+          kind: 'cart_abandon',
+          percentOff: 10,
+          expiresInHours: 72,
+          contactId,
+          cartId: cart.id,
+          singleUsePerContact: true,
+          prefix: 'SAVE10',
+          description: `Cart abandon code for cart ${cart.id}`,
+        },
+        supabase
+      )
+      code = created.code
+      percentOff = created.discount_value
+      await supabase.from('carts').update({ promo_code_id: created.id }).eq('id', cart.id)
+    } catch (err) {
+      console.error('Cart abandon step2 code generation failed', err)
+      return false
+    }
+  }
+
+  const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
+
+  const html = renderHtml(
+    `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Still thinking about it?</h2>
+     <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+       Here is 10% off your cart on us. The code is good for 72 hours.
+     </p>
+     ${discountCallout(code, percentOff, 'Valid for 72 hours')}
+     ${ctaButton(`${SITE_URL}/cart`, 'Complete Your Purchase')}`,
+    { preheader: `Use ${code} for ${percentOff}% off, good for 72 hours.`, unsubscribeUrl }
+  )
+
+  const result = await sendEmail({
+    to: cart.email,
+    subject: `Your 10% off code is ready — ${code}`,
+    html,
+  })
+  return result !== null || !process.env.RESEND_API_KEY
+}
+
+async function sendStep3(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  if (!cart.email) return false
+  const contactId = await ensureContact(cart, supabase)
+
+  let code = ''
+  let percentOff = 10
+  if (cart.promo_code_id) {
+    const { data: existing } = await supabase
+      .from('promo_codes')
+      .select('code, discount_value')
+      .eq('id', cart.promo_code_id)
+      .maybeSingle()
+    if (existing) {
+      code = existing.code
+      percentOff = existing.discount_value
+    }
+  }
+
+  // Defensive fallback: if for some reason the step2 code is missing,
+  // mint a new one rather than send a code-less "last chance" email.
+  if (!code) {
+    try {
+      const created = await generateDiscountCode(
+        {
+          kind: 'cart_abandon',
+          percentOff: 10,
+          expiresInHours: 48,
+          contactId,
+          cartId: cart.id,
+          singleUsePerContact: true,
+          prefix: 'LAST10',
+        },
+        supabase
+      )
+      code = created.code
+      percentOff = created.discount_value
+      await supabase.from('carts').update({ promo_code_id: created.id }).eq('id', cart.id)
+    } catch (err) {
+      console.error('Cart abandon step3 fallback code failed', err)
+    }
+  }
+
+  const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
+
+  const body = code
+    ? `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Last call on your cart</h2>
+       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+         Your 10% off code is still good. After this we'll release the cart so others can buy.
+       </p>
+       ${discountCallout(code, percentOff, 'Final hours')}
+       ${ctaButton(`${SITE_URL}/cart`, "Don't Miss Out", 'coral')}`
+    : `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Last call on your cart</h2>
+       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+         Margaret's originals are one-of-a-kind. We'll release the cart soon so others can buy.
+       </p>
+       ${ctaButton(`${SITE_URL}/cart`, "Don't Miss Out", 'coral')}`
+
+  const html = renderHtml(body, {
+    preheader: code ? `Final hours on ${code} — your 10% off code.` : 'Final hours on your cart.',
+    unsubscribeUrl,
+  })
+
+  const result = await sendEmail({
+    to: cart.email,
+    subject: 'Last chance — your cart is waiting',
+    html,
+  })
+  return result !== null || !process.env.RESEND_API_KEY
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
+import { upsertContact, recordOrder } from '@/lib/crm/contacts'
 import { headers } from 'next/headers'
 
 export async function POST(request: Request) {
@@ -44,9 +45,14 @@ export async function POST(request: Request) {
           profile_id?: string
           class_booking_id?: string
           class_session_id?: string
+          contact_id?: string
+          promo_code_id?: string
+          promo_code?: string
         }
         shipping_details?: { address: Record<string, string> }
         amount_total: number
+        amount_subtotal?: number
+        total_details?: { amount_discount?: number; amount_shipping?: number; amount_tax?: number }
       }
 
       // Handle class booking checkout
@@ -128,6 +134,11 @@ export async function POST(request: Request) {
 
       const items = session.metadata.items_json ? JSON.parse(session.metadata.items_json) : []
 
+      const discountCents = session.total_details?.amount_discount ?? 0
+      const shippingCents = session.total_details?.amount_shipping ?? 0
+      const taxCents = session.total_details?.amount_tax ?? 0
+      const subtotalCents = session.amount_subtotal ?? ((session.amount_total || 0) + discountCents - shippingCents - taxCents)
+
       // Create order
       const { data: order } = await supabase
         .from('orders')
@@ -136,8 +147,12 @@ export async function POST(request: Request) {
           stripe_payment_intent_id: session.payment_intent as string,
           email: session.customer_email,
           status: 'processing',
-          subtotal: (session.amount_total || 0) / 100,
+          subtotal: subtotalCents / 100,
+          shipping_cost: shippingCents / 100,
+          tax: taxCents / 100,
+          discount: discountCents / 100,
           total: (session.amount_total || 0) / 100,
+          promo_code: session.metadata.promo_code || null,
           shipping_address: session.shipping_details?.address || {},
         })
         .select()
@@ -186,8 +201,52 @@ export async function POST(request: Request) {
         if (session.metadata.cart_id) {
           await supabase
             .from('carts')
-            .update({ converted_order_id: order.id })
+            .update({ converted_order_id: order.id, status: 'converted' })
             .eq('id', session.metadata.cart_id)
+        }
+
+        // CRM: ensure the buyer exists, add to Buyers list, bump totals.
+        try {
+          if (session.customer_email) {
+            const contact = await upsertContact(
+              {
+                email: session.customer_email,
+                source: 'order',
+              },
+              supabase
+            )
+            if (contact) {
+              await recordOrder(contact.id, order.total, supabase)
+            }
+          }
+        } catch (err) {
+          console.error('Buyer CRM update failed:', err)
+        }
+
+        // Promo code redemption tracking.
+        try {
+          const promoId = session.metadata.promo_code_id
+          if (promoId) {
+            await supabase.from('promo_code_redemptions').insert({
+              promo_code_id: promoId,
+              contact_id: session.metadata.contact_id || null,
+              order_id: order.id,
+              amount_off_cents: discountCents,
+            })
+            const { data: codeRow } = await supabase
+              .from('promo_codes')
+              .select('usage_count')
+              .eq('id', promoId)
+              .maybeSingle()
+            if (codeRow) {
+              await supabase
+                .from('promo_codes')
+                .update({ usage_count: (codeRow.usage_count ?? 0) + 1 })
+                .eq('id', promoId)
+            }
+          }
+        } catch (err) {
+          console.error('Promo redemption record failed:', err)
         }
 
         // Fire Meta CAPI Purchase event

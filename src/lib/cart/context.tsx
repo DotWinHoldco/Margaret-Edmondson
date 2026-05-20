@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react'
 
 export interface CartItem {
   productId: string
@@ -16,6 +16,8 @@ export interface CartItem {
 interface CartState {
   items: CartItem[]
   isOpen: boolean
+  email: string | null
+  cartId: string | null
 }
 
 type CartAction =
@@ -26,6 +28,8 @@ type CartAction =
   | { type: 'TOGGLE_CART' }
   | { type: 'SET_OPEN'; payload: boolean }
   | { type: 'LOAD'; payload: CartItem[] }
+  | { type: 'SET_EMAIL'; payload: string | null }
+  | { type: 'SET_CART_ID'; payload: string | null }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -75,6 +79,10 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, isOpen: action.payload }
     case 'LOAD':
       return { ...state, items: action.payload }
+    case 'SET_EMAIL':
+      return { ...state, email: action.payload }
+    case 'SET_CART_ID':
+      return { ...state, cartId: action.payload }
     default:
       return state
   }
@@ -85,29 +93,102 @@ const CartContext = createContext<{
   dispatch: React.Dispatch<CartAction>
   subtotal: number
   itemCount: number
+  setEmail: (email: string | null) => void
 } | null>(null)
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [], isOpen: false })
+const STORAGE_ITEMS = 'artbyme-cart'
+const STORAGE_META = 'artbyme-cart-meta'
+const SYNC_DEBOUNCE_MS = 800
 
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(cartReducer, {
+    items: [],
+    isOpen: false,
+    email: null,
+    cartId: null,
+  })
+
+  // Load persisted state on mount.
   useEffect(() => {
-    const saved = localStorage.getItem('artbyme-cart')
-    if (saved) {
-      try {
-        dispatch({ type: 'LOAD', payload: JSON.parse(saved) })
-      } catch { /* ignore */ }
-    }
+    try {
+      const saved = localStorage.getItem(STORAGE_ITEMS)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) dispatch({ type: 'LOAD', payload: parsed })
+      }
+      const meta = localStorage.getItem(STORAGE_META)
+      if (meta) {
+        const parsed = JSON.parse(meta) as { email?: string | null; cartId?: string | null }
+        if (parsed.email) dispatch({ type: 'SET_EMAIL', payload: parsed.email })
+        if (parsed.cartId) dispatch({ type: 'SET_CART_ID', payload: parsed.cartId })
+      }
+    } catch { /* ignore */ }
   }, [])
 
+  // Persist items to localStorage.
   useEffect(() => {
-    localStorage.setItem('artbyme-cart', JSON.stringify(state.items))
+    try {
+      localStorage.setItem(STORAGE_ITEMS, JSON.stringify(state.items))
+    } catch { /* ignore */ }
   }, [state.items])
+
+  // Persist meta (email, cartId).
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_META, JSON.stringify({ email: state.email, cartId: state.cartId }))
+    } catch { /* ignore */ }
+  }, [state.email, state.cartId])
+
+  // Debounced server sync. Runs whenever items/email change.
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialized = useRef(false)
+
+  useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true
+      return
+    }
+    if (syncTimer.current) clearTimeout(syncTimer.current)
+    syncTimer.current = setTimeout(() => {
+      const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      fetch('/api/cart/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartId: state.cartId,
+          email: state.email,
+          items: state.items.map((i) => ({
+            productId: i.productId,
+            variantId: i.variantId,
+            title: i.title,
+            price: i.price,
+            quantity: i.quantity,
+          })),
+          subtotal,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data: { cartId?: string | null }) => {
+          if (data?.cartId && data.cartId !== state.cartId) {
+            dispatch({ type: 'SET_CART_ID', payload: data.cartId })
+          }
+        })
+        .catch(() => { /* best effort */ })
+    }, SYNC_DEBOUNCE_MS)
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current)
+    }
+  }, [state.items, state.email, state.cartId])
 
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0)
 
+  const setEmail = useCallback((email: string | null) => {
+    dispatch({ type: 'SET_EMAIL', payload: email ? email.toLowerCase().trim() : null })
+  }, [])
+
   return (
-    <CartContext.Provider value={{ state, dispatch, subtotal, itemCount }}>
+    <CartContext.Provider value={{ state, dispatch, subtotal, itemCount, setEmail }}>
       {children}
     </CartContext.Provider>
   )

@@ -5,8 +5,23 @@ import { useCart } from '@/lib/cart/context'
 import Image from 'next/image'
 import Link from 'next/link'
 
+function promoErrorMessage(reason?: string): string {
+  switch (reason) {
+    case 'not_found': return 'That code is not recognized.'
+    case 'expired': return 'That code has expired.'
+    case 'not_yet_valid': return 'That code is not active yet.'
+    case 'inactive': return 'That code is no longer active.'
+    case 'usage_exhausted': return 'That code has been fully redeemed.'
+    case 'min_order_not_met': return 'Your cart does not meet the minimum order amount.'
+    case 'wrong_contact': return 'That code is reserved for a different customer.'
+    case 'wrong_cart': return 'That code is reserved for a different cart.'
+    case 'already_redeemed': return 'You have already used this code.'
+    default: return 'That code could not be applied.'
+  }
+}
+
 export default function CartPage() {
-  const { state, dispatch, subtotal, itemCount } = useCart()
+  const { state, dispatch, subtotal, itemCount, setEmail } = useCart()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [country, setCountry] = useState('US')
@@ -15,6 +30,11 @@ export default function CartPage() {
   const [surchargeLabel, setSurchargeLabel] = useState<string | null>(null)
   const [quoting, setQuoting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
+  const [emailDraft, setEmailDraft] = useState(state.email || '')
+  const [promoInput, setPromoInput] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; amountOffCents: number; discountValue: number; discountType: 'percentage' | 'fixed' | null } | null>(null)
+  const [promoChecking, setPromoChecking] = useState(false)
+  const [promoError, setPromoError] = useState('')
 
   const needsSurcharge = country !== 'US' || /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
 
@@ -51,9 +71,56 @@ export default function CartPage() {
     }
   }
 
+  async function handleApplyPromo() {
+    setPromoError('')
+    const code = promoInput.trim()
+    if (!code) return
+    setPromoChecking(true)
+    try {
+      const res = await fetch('/api/discounts/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          email: state.email || emailDraft.trim() || null,
+          cartId: state.cartId,
+          cartSubtotal: subtotal,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setAppliedPromo({
+          code: data.code,
+          amountOffCents: data.amountOffCents,
+          discountValue: data.discountValue,
+          discountType: data.discountType,
+        })
+        setPromoError('')
+      } else {
+        setAppliedPromo(null)
+        setPromoError(promoErrorMessage(data.reason))
+      }
+    } catch {
+      setPromoError('Could not check that code right now.')
+    } finally {
+      setPromoChecking(false)
+    }
+  }
+
+  function clearPromo() {
+    setAppliedPromo(null)
+    setPromoInput('')
+    setPromoError('')
+  }
+
   async function handleCheckout() {
     setLoading(true)
     setError('')
+
+    const trimmedEmail = emailDraft.trim()
+    if (trimmedEmail && trimmedEmail !== state.email) {
+      setEmail(trimmedEmail)
+    }
 
     try {
       const res = await fetch('/api/checkout', {
@@ -65,6 +132,9 @@ export default function CartPage() {
             variantId: item.variantId,
             quantity: item.quantity,
           })),
+          email: trimmedEmail || state.email || undefined,
+          cartId: state.cartId,
+          promoCode: appliedPromo?.code,
           shippingSurcharge: surcharge ?? 0,
           shippingSurchargeLabel: surchargeLabel,
         }),
@@ -232,10 +302,68 @@ export default function CartPage() {
                   <span className="text-charcoal/60">Subtotal</span>
                   <span className="text-charcoal">${subtotal.toFixed(2)}</span>
                 </div>
+                {appliedPromo && (
+                  <div className="flex justify-between font-body text-sm text-teal">
+                    <span>{appliedPromo.code} ({appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}% off` : 'discount'})</span>
+                    <span>- ${(appliedPromo.amountOffCents / 100).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-body text-sm">
                   <span className="text-charcoal/60">Shipping</span>
                   <span className="text-charcoal">{needsSurcharge && surcharge != null ? `+ $${surcharge.toFixed(2)}` : 'Included'}</span>
                 </div>
+              </div>
+
+              <div className="mb-4 rounded-sm border border-charcoal/10 bg-charcoal/[0.02] p-3">
+                <p className="mb-2 font-body text-xs uppercase tracking-wider text-charcoal/60">Email for receipt</p>
+                <input
+                  type="email"
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  onBlur={() => setEmail(emailDraft.trim() || null)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-sm border border-charcoal/15 bg-white px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none"
+                />
+                <p className="mt-2 font-body text-xs text-charcoal/50">
+                  We save your spot so you can return any time.
+                </p>
+              </div>
+
+              <div className="mb-4 rounded-sm border border-charcoal/10 bg-charcoal/[0.02] p-3">
+                <p className="mb-2 font-body text-xs uppercase tracking-wider text-charcoal/60">Have a code?</p>
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm text-teal">{appliedPromo.code}</span>
+                    <button
+                      type="button"
+                      onClick={clearPromo}
+                      className="rounded-sm bg-white px-2 py-1 font-body text-xs text-charcoal/50 hover:text-charcoal"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="DISCOUNT CODE"
+                      className="col-span-2 rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-mono text-xs uppercase tracking-widest text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoChecking || !promoInput.trim()}
+                      className="rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal hover:bg-charcoal/5 disabled:opacity-40"
+                    >
+                      {promoChecking ? '…' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+                {promoError && (
+                  <p className="mt-2 font-body text-xs text-coral">{promoError}</p>
+                )}
               </div>
 
               <div className="mb-4 rounded-sm border border-charcoal/10 bg-charcoal/[0.02] p-3">
@@ -283,7 +411,12 @@ export default function CartPage() {
                 <div className="flex justify-between font-body">
                   <span className="font-semibold text-charcoal">Total</span>
                   <span className="font-semibold text-charcoal">
-                    ${(subtotal + (needsSurcharge && surcharge ? surcharge : 0)).toFixed(2)}
+                    ${Math.max(
+                      0,
+                      subtotal
+                        - (appliedPromo ? appliedPromo.amountOffCents / 100 : 0)
+                        + (needsSurcharge && surcharge ? surcharge : 0)
+                    ).toFixed(2)}
                   </span>
                 </div>
               </div>
