@@ -1,4 +1,4 @@
-import { getStripe } from '@/lib/stripe'
+import { getStripe, webhookSecretFor } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
@@ -15,11 +15,28 @@ export async function POST(request: Request) {
     return Response.json({ error: 'No signature' }, { status: 400 })
   }
 
-  let event
-  try {
-    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err)
+  // Try both webhook secrets — Stripe's test endpoint and live endpoint
+  // sign with different secrets, but events land on the same URL.
+  const stripe = await getStripe()
+  const secrets = [webhookSecretFor('test'), webhookSecretFor('live')].filter(
+    (s): s is string => !!s,
+  )
+  if (secrets.length === 0) {
+    console.error('No STRIPE_WEBHOOK_SECRET[_TEST] configured in env')
+    return Response.json({ error: 'Webhook secret not configured' }, { status: 503 })
+  }
+  let event: import('stripe').Stripe.Event | null = null
+  let lastErr: unknown = null
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(body, sig, secret)
+      break
+    } catch (err) {
+      lastErr = err
+    }
+  }
+  if (!event) {
+    console.error('Webhook signature verification failed:', lastErr)
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
   }
 

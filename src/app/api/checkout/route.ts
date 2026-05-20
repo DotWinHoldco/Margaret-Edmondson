@@ -10,12 +10,18 @@ function jsonError(message: string, status: number = 400, code?: string) {
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('STRIPE_SECRET_KEY missing in env')
+    const { getStripeMode, isStripeKeyConfigured } = await import('@/lib/stripe')
+    const activeMode = await getStripeMode()
+    if (!isStripeKeyConfigured(activeMode)) {
+      console.error(
+        `Stripe ${activeMode} secret key missing — set ${
+          activeMode === 'live' ? 'STRIPE_SECRET_KEY' : 'STRIPE_SECRET_KEY_TEST'
+        } in Vercel`,
+      )
       return jsonError(
         'Checkout is temporarily unavailable. Please try again in a moment or contact us.',
         503,
-        'stripe_not_configured'
+        'stripe_not_configured',
       )
     }
 
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
         return jsonError(`Promo code: ${validation.reason}`, 400, validation.reason)
       }
 
-      const stripe = getStripe()
+      const stripe = await getStripe()
       const stripeCouponId = validation.code.stripe_coupon_id
       if (stripeCouponId) {
         try {
@@ -186,7 +192,7 @@ export async function POST(request: Request) {
       sessionParams.discounts = [{ coupon: appliedCoupon.id }]
     }
 
-    const session = await getStripe().checkout.sessions.create(sessionParams)
+    const session = await (await getStripe()).checkout.sessions.create(sessionParams)
 
     // Best-effort Meta CAPI InitiateCheckout — never fails the
     // checkout if Meta misbehaves.

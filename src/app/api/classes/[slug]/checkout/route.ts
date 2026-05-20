@@ -66,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',
   })
 
-  const stripeSession = await getStripe().checkout.sessions.create({
+  const stripeSession = await (await getStripe()).checkout.sessions.create({
     mode: 'payment',
     customer_email: body.email,
     line_items: [{

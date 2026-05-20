@@ -35,11 +35,219 @@ export default function SettingsClient() {
     <div className="space-y-8">
       <AccountSection />
       <SiteSettingsSection />
+      <StripeModeSection />
       <PricingSettingsSection />
       <IntegrationStatusSection />
       <PromoCodesSection />
       <DangerZoneSection />
     </div>
+  )
+}
+
+/* ─── Stripe Mode ─── */
+
+interface StripeModeData {
+  testMode: boolean
+  activeMode: 'test' | 'live'
+  keys: {
+    test: { secretConfigured: boolean; webhookConfigured: boolean }
+    live: { secretConfigured: boolean; webhookConfigured: boolean }
+  }
+}
+
+function StripeModeSection() {
+  const [data, setData] = useState<StripeModeData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const res = await fetch('/api/admin/settings/stripe-mode')
+      const json = await res.json()
+      if (!cancelled && res.ok) setData(json)
+      if (!cancelled) setLoading(false)
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleToggle(next: boolean) {
+    setSaving(true)
+    setMsg(null)
+    const res = await fetch('/api/admin/settings/stripe-mode', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ testMode: next }),
+    })
+    const json = await res.json()
+    setSaving(false)
+    if (!res.ok) {
+      setMsg(json.error || 'Failed to update')
+      return
+    }
+    setData(json)
+    setMsg(next ? 'Now using Stripe test keys.' : 'Now using Stripe live keys.')
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  return (
+    <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-6">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-charcoal">
+            Stripe Mode
+          </h2>
+          <p className="mt-1 font-body text-sm text-charcoal/60">
+            Toggle between Stripe test and live keys. Test mode lets you run the
+            checkout flow end-to-end with Stripe&apos;s test cards (e.g.{' '}
+            <code className="rounded-sm bg-charcoal/5 px-1 py-0.5 text-[12px]">4242 4242 4242 4242</code>)
+            without charging real cards.
+          </p>
+        </div>
+        {data && (
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wider ${
+              data.testMode
+                ? 'bg-gold/20 text-charcoal'
+                : 'bg-teal/20 text-deep-teal'
+            }`}
+          >
+            {data.testMode ? 'Test mode' : 'Live mode'}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="mt-4 font-body text-sm text-charcoal/40">Loading…</p>
+      ) : !data ? (
+        <p className="mt-4 font-body text-sm text-coral">
+          Couldn&apos;t load Stripe mode.
+        </p>
+      ) : (
+        <div className="mt-5 space-y-5">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={data.testMode}
+              onClick={() => handleToggle(!data.testMode)}
+              disabled={saving}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                data.testMode ? 'bg-gold' : 'bg-charcoal/30'
+              } ${saving ? 'opacity-50' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  data.testMode ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+            <span className="font-body text-sm text-charcoal">
+              Test mode {data.testMode ? 'is on' : 'is off'}
+            </span>
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <KeyStatusCard
+              title="Test keys"
+              active={data.testMode}
+              secretConfigured={data.keys.test.secretConfigured}
+              webhookConfigured={data.keys.test.webhookConfigured}
+              secretEnv="STRIPE_SECRET_KEY_TEST"
+              webhookEnv="STRIPE_WEBHOOK_SECRET_TEST"
+            />
+            <KeyStatusCard
+              title="Live keys"
+              active={!data.testMode}
+              secretConfigured={data.keys.live.secretConfigured}
+              webhookConfigured={data.keys.live.webhookConfigured}
+              secretEnv="STRIPE_SECRET_KEY"
+              webhookEnv="STRIPE_WEBHOOK_SECRET"
+            />
+          </div>
+
+          {msg && (
+            <p
+              className={`font-body text-sm ${
+                msg.startsWith('Now using') ? 'text-teal' : 'text-coral'
+              }`}
+            >
+              {msg}
+            </p>
+          )}
+
+          <p className="font-body text-xs text-charcoal/50">
+            Env vars are read at checkout time. Switching the toggle takes effect
+            within ~10 seconds (per-instance cache TTL).
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KeyStatusCard({
+  title,
+  active,
+  secretConfigured,
+  webhookConfigured,
+  secretEnv,
+  webhookEnv,
+}: {
+  title: string
+  active: boolean
+  secretConfigured: boolean
+  webhookConfigured: boolean
+  secretEnv: string
+  webhookEnv: string
+}) {
+  return (
+    <div
+      className={`rounded-sm border p-4 ${
+        active ? 'border-teal/40 bg-teal/[0.04]' : 'border-charcoal/10'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-body text-sm font-semibold text-charcoal">{title}</p>
+        {active && (
+          <span className="rounded-full bg-teal/15 px-2 py-0.5 font-body text-[10px] uppercase tracking-wider text-deep-teal">
+            Active
+          </span>
+        )}
+      </div>
+      <ul className="mt-3 space-y-1.5">
+        <KeyRow label="Secret" env={secretEnv} configured={secretConfigured} />
+        <KeyRow label="Webhook" env={webhookEnv} configured={webhookConfigured} />
+      </ul>
+    </div>
+  )
+}
+
+function KeyRow({
+  label,
+  env,
+  configured,
+}: {
+  label: string
+  env: string
+  configured: boolean
+}) {
+  return (
+    <li className="flex items-center gap-2 font-body text-xs">
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${
+          configured ? 'bg-teal' : 'bg-coral'
+        }`}
+      />
+      <span className="text-charcoal/70">{label}</span>
+      <code className="ml-auto rounded-sm bg-charcoal/[0.04] px-1.5 py-0.5 text-[11px] text-charcoal/60">
+        {env}
+      </code>
+    </li>
   )
 }
 
