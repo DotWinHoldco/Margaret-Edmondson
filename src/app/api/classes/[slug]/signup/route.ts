@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
+import { brandedShell } from '@/lib/email/shell'
+import { upsertContact, addToList } from '@/lib/crm/contacts'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
@@ -76,43 +78,65 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const sessionLabel = `${session.title} — ${new Date(session.starts_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Chicago' })}`
   const photoLinks = (body.pet_photo_urls || []).map((u) => `<li><a href="${u}">${u.split('/').pop()}</a></li>`).join('')
 
-  // Margaret-notify
+  // CRM record for the lead.
+  try {
+    const contact = await upsertContact(
+      {
+        email: body.email,
+        firstName: body.name.split(' ')[0] || null,
+        lastName: body.name.split(' ').slice(1).join(' ') || null,
+        phone: body.phone || null,
+        source: 'class_signup',
+      },
+      supabase
+    )
+    if (contact) await addToList(contact.id, 'contact-form', 'class_signup', supabase)
+  } catch (err) {
+    console.error('Class signup CRM upsert failed:', err)
+  }
+
+  const margaretHtml = brandedShell(
+    `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New class signup</h2>
+     <p style="margin:0 0 6px;"><strong>Class:</strong> ${sessionLabel}</p>
+     <p style="margin:0 0 6px;"><strong>Location:</strong> ${session.location_name}, ${session.location_address}</p>
+     <p style="margin:0 0 6px;"><strong>Name:</strong> ${body.name}</p>
+     <p style="margin:0 0 6px;"><strong>Email:</strong> ${body.email}</p>
+     <p style="margin:0 0 6px;"><strong>Phone:</strong> ${body.phone || '—'}</p>
+     <p style="margin:0 0 12px;"><strong>Notes:</strong> ${body.special_notes || '—'}</p>
+     ${photoLinks ? `<p><strong>Pet photos:</strong></p><ul>${photoLinks}</ul>` : '<p><em>No pet photos uploaded.</em></p>'}
+     <p style="margin-top:16px;color:#666;font-size:13px;">Mark the booking paid in admin once payment arrives.</p>`,
+    { hideUnsubscribe: true, preheader: `Signup from ${body.name} for ${session.title}` }
+  )
   await sendEmail({
     to: 'margaret117art@gmail.com',
     subject: `New class signup — ${session.title}`,
-    html: `
-      <h2>New class signup</h2>
-      <p><strong>Class:</strong> ${sessionLabel}</p>
-      <p><strong>Location:</strong> ${session.location_name}, ${session.location_address}</p>
-      <p><strong>Name:</strong> ${body.name}</p>
-      <p><strong>Email:</strong> ${body.email}</p>
-      <p><strong>Phone:</strong> ${body.phone || '—'}</p>
-      <p><strong>Notes:</strong> ${body.special_notes || '—'}</p>
-      ${photoLinks ? `<p><strong>Pet photos:</strong></p><ul>${photoLinks}</ul>` : '<p><em>No pet photos uploaded — registrant may send via email.</em></p>'}
-      <p>Mark this booking paid in the admin once you receive payment.</p>
-    `,
+    html: margaretHtml,
     replyTo: body.email,
   }).catch((e) => console.error('Margaret-notify failed:', e))
 
-  // Registrant payment instructions
+  const studentHtml = brandedShell(
+    `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">You are reserved for ${session.title}</h2>
+     <div style="background:white;border:1px solid #e5e0d8;border-radius:8px;padding:20px;margin:20px 0;">
+       <p style="margin:0 0 6px;"><strong>When:</strong> ${new Date(session.starts_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Chicago' })}</p>
+       <p style="margin:0 0 6px;"><strong>Where:</strong> ${session.location_name}, ${session.location_address}</p>
+       <p style="margin:0;"><strong>Total due:</strong> ${priceUsd(session.price_cents)}</p>
+     </div>
+     <h3 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#3A7D7B;margin-bottom:6px;">Payment</h3>
+     <p style="color:#444;font-size:14px;line-height:1.6;">
+       I accept Venmo or Zelle. <strong>Payment and your pet photo must arrive at least 2 weeks before class.</strong>
+     </p>
+     <ul style="padding-left:18px;color:#444;font-size:14px;line-height:1.6;">
+       <li><strong>Venmo:</strong> ${VENMO}</li>
+       <li><strong>Zelle:</strong> ${ZELLE}</li>
+     </ul>
+     <p style="color:#444;font-size:13px;line-height:1.6;">Use your name in the note so I can match the payment to your spot.</p>
+     <p style="color:#3A7D7B;font-size:13px;text-align:center;margin-top:16px;">— Margaret</p>`,
+    { hideUnsubscribe: true, preheader: `Payment details for ${session.title}` }
+  )
   await sendEmail({
     to: body.email,
-    subject: `You're on the list — ${session.title}`,
-    html: `
-      <h2>You&rsquo;re reserved for ${session.title}</h2>
-      <p><strong>When:</strong> ${new Date(session.starts_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Chicago' })}</p>
-      <p><strong>Where:</strong> ${session.location_name}, ${session.location_address}</p>
-      <p><strong>Total due:</strong> ${priceUsd(session.price_cents)}</p>
-      <h3>Payment</h3>
-      <p>I accept Venmo or Zelle. <strong>Payment + your pet photo must arrive at least 2 weeks before class.</strong></p>
-      <ul>
-        <li><strong>Venmo:</strong> ${VENMO}</li>
-        <li><strong>Zelle:</strong> ${ZELLE}</li>
-      </ul>
-      <p>Use your name in the note so I can match the payment to your spot.</p>
-      <p>Questions? Just reply to this email.</p>
-      <p>— Margaret</p>
-    `,
+    subject: `You are on the list — ${session.title}`,
+    html: studentHtml,
     replyTo: 'margaret117art@gmail.com',
   }).catch((e) => console.error('Payment-instructions email failed:', e))
 

@@ -83,26 +83,40 @@ export async function POST(request: Request) {
             })
             try {
               const { sendEmail } = await import('@/lib/email/send')
+              const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+              const studentHtml = brandedShell(
+                `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Your spot is confirmed</h2>
+                 <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+                   ${booking.name}, payment received. See you in class.
+                 </p>
+                 <div style="background:white;border:1px solid #e5e0d8;border-radius:8px;padding:20px;margin:20px 0;">
+                   <p style="margin:0 0 6px;"><strong>When:</strong> ${startsLabel}</p>
+                   <p style="margin:0;"><strong>Where:</strong> ${cls.location_name}, ${cls.location_address}</p>
+                 </div>
+                 <p style="text-align:center;color:#666;font-size:13px;line-height:1.6;">
+                   If you haven't already, reply to this email with a photo of your pet.
+                 </p>
+                 <p style="text-align:center;color:#3A7D7B;font-size:13px;line-height:1.6;">— Margaret</p>`,
+                { hideUnsubscribe: true, preheader: `${cls.title} on ${startsLabel}` }
+              )
               await sendEmail({
                 to: booking.email,
-                subject: `You're confirmed for ${cls.title}`,
-                html: `
-                  <h2>Your spot is confirmed 🎨</h2>
-                  <p>${booking.name}, payment received — see you in class.</p>
-                  <p><strong>When:</strong> ${startsLabel}</p>
-                  <p><strong>Where:</strong> ${cls.location_name}, ${cls.location_address}</p>
-                  <p>If you haven't already, reply to this email with a photo of your pet.</p>
-                  <p>— Margaret</p>
-                `,
+                subject: `You are confirmed for ${cls.title}`,
+                html: studentHtml,
                 replyTo: 'margaret117art@gmail.com',
               })
+              const adminHtml = brandedShell(
+                `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New paid class booking</h2>
+                 <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+                   <strong>${booking.name}</strong> (${booking.email}) just paid for ${cls.title} on ${startsLabel}.
+                 </p>
+                 ${ctaButton(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/admin`, 'Open admin')}`,
+                { hideUnsubscribe: true }
+              )
               await sendEmail({
                 to: 'margaret117art@gmail.com',
                 subject: `New paid class booking — ${cls.title}`,
-                html: `
-                  <p><strong>${booking.name}</strong> (${booking.email}) just paid for ${cls.title} — ${startsLabel}.</p>
-                  <p>View the booking in admin.</p>
-                `,
+                html: adminHtml,
                 replyTo: booking.email,
               })
             } catch (e) {

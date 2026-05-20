@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
+import { brandedShell } from '@/lib/email/shell'
+import { upsertContact, addToList } from '@/lib/crm/contacts'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 export async function POST(request: Request) {
@@ -51,16 +53,49 @@ export async function POST(request: Request) {
     return Response.json({ error: error.message || 'Failed to submit commission' }, { status: 500 })
   }
 
-  // Send notification email to Margaret
+  // Mirror lead into CRM.
+  try {
+    const contact = await upsertContact(
+      {
+        email: client_email,
+        firstName: String(client_name).split(' ')[0] || null,
+        lastName: String(client_name).split(' ').slice(1).join(' ') || null,
+        phone: client_phone || null,
+        source: 'commission_request',
+      },
+      supabase
+    )
+    if (contact) await addToList(contact.id, 'contact-form', 'commission_request', supabase)
+  } catch (err) {
+    console.error('Commission CRM upsert failed:', err)
+  }
+
+  // Send notification email to Margaret through the branded shell.
   const refsHtml = refs.length
     ? `<p><strong>Reference photos:</strong></p><ul>${refs
         .map((u: string) => `<li><a href="${u}">${u.split('/').pop()}</a></li>`)
         .join('')}</ul>`
     : ''
+  const html = brandedShell(
+    `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New Commission Request</h2>
+     <p style="margin:0 0 12px;color:#666;font-size:14px;">From <strong>${client_name}</strong> &lt;${client_email}&gt;</p>
+     <ul style="padding-left:18px;color:#444;font-size:14px;line-height:1.6;">
+       <li><strong>Phone:</strong> ${client_phone || 'Not provided'}</li>
+       <li><strong>Medium:</strong> ${preferred_medium || 'Not specified'}</li>
+       <li><strong>Size:</strong> ${preferred_size || 'Not specified'}</li>
+       <li><strong>Budget:</strong> ${budget_range || 'Not specified'}</li>
+       <li><strong>Timeline:</strong> ${timeline || 'Not specified'}</li>
+     </ul>
+     <p style="margin-top:16px;"><strong>Description</strong></p>
+     <p style="color:#444;font-size:14px;line-height:1.6;">${description}</p>
+     ${refsHtml}`,
+    { hideUnsubscribe: true, preheader: `Commission request from ${client_name}` }
+  )
+
   await sendEmail({
     to: 'hello@artbyme.studio',
     subject: `New Commission Request from ${client_name}`,
-    html: `<h2>New Commission Request</h2><p><strong>Name:</strong> ${client_name}</p><p><strong>Email:</strong> ${client_email}</p><p><strong>Phone:</strong> ${client_phone || 'Not provided'}</p><p><strong>Medium:</strong> ${preferred_medium || 'Not specified'}</p><p><strong>Size:</strong> ${preferred_size || 'Not specified'}</p><p><strong>Budget:</strong> ${budget_range || 'Not specified'}</p><p><strong>Timeline:</strong> ${timeline || 'Not specified'}</p><p><strong>Description:</strong></p><p>${description}</p>${refsHtml}`,
+    html,
     replyTo: client_email,
   })
 
