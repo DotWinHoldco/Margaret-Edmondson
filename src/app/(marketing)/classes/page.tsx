@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import Image from 'next/image'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -48,18 +47,6 @@ async function loadSessions(): Promise<{ sessions: SessionRow[]; reserved: Recor
   }
   return { sessions: rows, reserved }
 }
-
-const GALLERY_BASE = 'https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/public/product-images/web/custom-portrait-options'
-const GALLERY_IMAGES = [
-  { src: `${GALLERY_BASE}/custom-pet-portrait-example_1.webp`, alt: 'Student pet portrait, watercolor' },
-  { src: `${GALLERY_BASE}/custom-pet-portrait-example_2.webp`, alt: 'Student pet portrait, mixed media' },
-  { src: `${GALLERY_BASE}/custom-pet-portrait-example_3.webp`, alt: 'Student pet portrait, acrylic' },
-  { src: `${GALLERY_BASE}/dog-and-daughter-drawing_1.webp`, alt: 'Kids class — daughter painting her dog' },
-  { src: `${GALLERY_BASE}/dog-and-daughter-drawing_2.webp`, alt: 'Kids class — finished painting' },
-  { src: `${GALLERY_BASE}/family-gift-painting.webp`, alt: 'Family portrait gift painting' },
-  { src: `${GALLERY_BASE}/stylized-color-portrait-example.webp`, alt: 'Stylized portrait class example' },
-  { src: `${GALLERY_BASE}/custom-house-portrait-example_1.webp`, alt: 'House portrait class example' },
-]
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('en-US', {
@@ -156,24 +143,6 @@ export default async function ClassesPage() {
             <li><strong>Send payment and your pet photo at least 2 weeks before class.</strong></li>
             <li>10 people max per class. Sign up early.</li>
           </ul>
-        </section>
-
-        <section className="mb-20">
-          <h3 className="font-display text-2xl font-light text-charcoal mb-6 text-center">Past student work</h3>
-          <div className="columns-2 md:columns-4 [column-gap:1rem]">
-            {GALLERY_IMAGES.map((img) => (
-              <div key={img.src} className="break-inside-avoid mb-4">
-                <Image
-                  src={img.src}
-                  alt={img.alt}
-                  width={800}
-                  height={1000}
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className="block w-full h-auto rounded-sm shadow-[0_8px_24px_-12px_rgba(28,28,28,0.3)]"
-                />
-              </div>
-            ))}
-          </div>
         </section>
 
         <section className="text-center max-w-2xl mx-auto">
