@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { track } from '@/lib/meta/track'
 
-function promoErrorMessage(reason?: string): string {
+function promoErrorMessage(reason?: string, hadEmail?: boolean): string {
   switch (reason) {
     case 'not_found': return 'That code is not recognized.'
     case 'expired': return 'That code has expired.'
@@ -14,7 +14,10 @@ function promoErrorMessage(reason?: string): string {
     case 'inactive': return 'That code is no longer active.'
     case 'usage_exhausted': return 'That code has been fully redeemed.'
     case 'min_order_not_met': return 'Your cart does not meet the minimum order amount.'
-    case 'wrong_contact': return 'That code is reserved for a different customer.'
+    case 'wrong_contact':
+      return hadEmail
+        ? 'That code was sent to a different email. Enter the email it was issued to and apply again.'
+        : 'This code is tied to an email. Enter the email it was sent to in the field below, then apply.'
     case 'wrong_cart': return 'That code is reserved for a different cart.'
     case 'already_redeemed': return 'You have already used this code.'
     default: return 'That code could not be applied.'
@@ -81,6 +84,7 @@ export default function CartPage() {
     setPromoError('')
     const code = promoInput.trim()
     if (!code) return
+    const emailForApply = state.email || emailDraft.trim() || null
     setPromoChecking(true)
     try {
       const res = await fetch('/api/discounts/validate', {
@@ -88,7 +92,7 @@ export default function CartPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          email: state.email || emailDraft.trim() || null,
+          email: emailForApply,
           cartId: state.cartId,
           cartSubtotal: subtotal,
         }),
@@ -104,7 +108,7 @@ export default function CartPage() {
         setPromoError('')
       } else {
         setAppliedPromo(null)
-        setPromoError(promoErrorMessage(data.reason))
+        setPromoError(promoErrorMessage(data.reason, !!emailForApply))
       }
     } catch {
       setPromoError('Could not check that code right now.')
