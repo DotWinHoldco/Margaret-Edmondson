@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@/lib/meta/track'
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -23,6 +24,11 @@ export default function ContactPage() {
         body: JSON.stringify({ ...payload, joinNewsletter }),
       })
       if (res.ok) {
+        track({
+          eventName: 'Lead',
+          params: { content_name: form.subject, source: 'contact_form' },
+          userData: { email: form.email },
+        })
         if (joinNewsletter) {
           // Fire-and-forget — the contact route already records this,
           // but we also POST to the subscribe route so a welcome email

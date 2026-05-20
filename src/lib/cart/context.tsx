@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { track } from '@/lib/meta/track'
 
 export interface CartItem {
   productId: string
@@ -142,12 +143,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Debounced server sync. Runs whenever items/email change.
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initialized = useRef(false)
+  const lastItemCount = useRef(0)
 
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true
+      lastItemCount.current = state.items.reduce((s, i) => s + i.quantity, 0)
       return
     }
+    const currentCount = state.items.reduce((s, i) => s + i.quantity, 0)
+    if (currentCount > lastItemCount.current) {
+      const latest = state.items[state.items.length - 1]
+      if (latest) {
+        track({
+          eventName: 'AddToCart',
+          params: {
+            content_ids: [latest.variantId || latest.productId],
+            content_name: latest.title,
+            value: latest.price,
+            currency: 'USD',
+          },
+          userData: { email: state.email },
+        })
+      }
+    }
+    lastItemCount.current = currentCount
+
     if (syncTimer.current) clearTimeout(syncTimer.current)
     syncTimer.current = setTimeout(() => {
       const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)

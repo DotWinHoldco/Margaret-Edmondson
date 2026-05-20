@@ -3,6 +3,7 @@ import Footer from '@/components/shared/Footer'
 import CartDrawer from '@/components/shared/CartDrawer'
 import Providers from '@/components/shared/Providers'
 import NewsletterPopup from '@/components/marketing/NewsletterPopup'
+import PixelScript from '@/components/marketing/PixelScript'
 
 export default function MarketingLayout({
   children,
@@ -11,6 +12,7 @@ export default function MarketingLayout({
 }) {
   return (
     <Providers>
+      <PixelScript />
       <Header />
       <main className="pt-16 lg:pt-20">{children}</main>
       <Footer />

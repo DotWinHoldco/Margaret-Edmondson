@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { track } from '@/lib/meta/track'
 
 // Routes where the popup never appears (auth, cart, account, admin).
 const SUPPRESSED_PREFIXES = [
@@ -95,6 +96,11 @@ export default function NewsletterPopup() {
         setStatus('success')
         setDiscountCode(data.discountCode ?? null)
         try { localStorage.setItem(STORAGE_KEY, String(Date.now())) } catch { /* ignore */ }
+        track({
+          eventName: 'Subscribe',
+          params: { value: 0, currency: 'USD', source: 'popup' },
+          userData: { email: email.trim() },
+        })
       } else {
         setStatus('error')
       }

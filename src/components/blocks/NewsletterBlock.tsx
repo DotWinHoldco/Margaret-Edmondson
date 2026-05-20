@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { scrollReveal } from '@/lib/animations'
 import { useState } from 'react'
+import { track } from '@/lib/meta/track'
 
 interface NewsletterConfig {
   heading?: string
@@ -32,6 +33,11 @@ export default function NewsletterBlock({ config }: { config: Record<string, unk
       })
       if (res.ok) {
         setStatus('success')
+        track({
+          eventName: 'Subscribe',
+          params: { value: 0, currency: 'USD', source: 'homepage_block' },
+          userData: { email },
+        })
         setEmail('')
       } else {
         setStatus('error')

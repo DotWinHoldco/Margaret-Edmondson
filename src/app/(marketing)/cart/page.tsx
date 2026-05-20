@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useCart } from '@/lib/cart/context'
 import Image from 'next/image'
 import Link from 'next/link'
+import { track } from '@/lib/meta/track'
 
 function promoErrorMessage(reason?: string): string {
   switch (reason) {
@@ -121,6 +122,17 @@ export default function CartPage() {
     if (trimmedEmail && trimmedEmail !== state.email) {
       setEmail(trimmedEmail)
     }
+
+    track({
+      eventName: 'InitiateCheckout',
+      params: {
+        value: subtotal,
+        currency: 'USD',
+        num_items: itemCount,
+        content_ids: state.items.map((i) => i.variantId || i.productId),
+      },
+      userData: { email: trimmedEmail || state.email },
+    })
 
     try {
       const res = await fetch('/api/checkout', {

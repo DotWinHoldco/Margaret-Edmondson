@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@/lib/meta/track'
 
 export default function FooterNewsletter() {
   const [email, setEmail] = useState('')
@@ -22,6 +23,11 @@ export default function FooterNewsletter() {
       if (res.ok) {
         setStatus('success')
         setCode(data.discountCode ?? null)
+        track({
+          eventName: 'Subscribe',
+          params: { value: 0, currency: 'USD', source: 'footer' },
+          userData: { email: value },
+        })
         setEmail('')
       } else {
         setStatus('error')
