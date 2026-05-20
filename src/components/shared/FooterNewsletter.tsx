@@ -53,11 +53,15 @@ export default function FooterNewsletter() {
         </div>
         {status === 'success' ? (
           <div className="rounded-sm border border-gold/40 bg-white/5 p-4 text-center">
-            <p className="font-body text-sm text-white">Check your inbox for your code.</p>
-            {code && (
-              <p className="mt-2 font-mono text-lg tracking-widest text-gold">{code}</p>
+            {code ? (
+              <>
+                <p className="font-body text-sm text-white">Your 10% off code</p>
+                <p className="mt-2 font-mono text-lg tracking-widest text-gold">{code}</p>
+                <p className="mt-1 font-body text-xs text-white/50">Valid 24 hours. Also sent to your inbox.</p>
+              </>
+            ) : (
+              <p className="font-body text-sm text-white">Check your inbox for your code.</p>
             )}
-            <p className="mt-1 font-body text-xs text-white/50">Valid for 24 hours.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex w-full gap-2">

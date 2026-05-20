@@ -149,17 +149,23 @@ export default function NewsletterPopup() {
             {status === 'success' ? (
               <div className="text-center">
                 <h2 className="font-display text-2xl font-light text-charcoal">You&apos;re in.</h2>
-                <p className="mt-3 font-body text-sm text-charcoal/70">
-                  Check your inbox for a 10% off code{discountCode ? '' : ' from the studio'}.
-                </p>
-                {discountCode && (
-                  <div className="mx-auto mt-5 inline-block rounded-sm border border-dashed border-gold/70 bg-white px-5 py-3 font-mono text-lg tracking-widest text-charcoal">
-                    {discountCode}
-                  </div>
+                {discountCode ? (
+                  <>
+                    <p className="mt-3 font-body text-sm text-charcoal/70">
+                      Your 10% off code
+                    </p>
+                    <div className="mx-auto mt-3 inline-block rounded-sm border border-dashed border-gold/70 bg-white px-5 py-3 font-mono text-lg tracking-widest text-charcoal">
+                      {discountCode}
+                    </div>
+                    <p className="mt-3 font-body text-xs text-charcoal/50">
+                      Valid 24 hours on any purchase. Also sent to your inbox.
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-3 font-body text-sm text-charcoal/70">
+                    Check your inbox for a 10% off code from the studio.
+                  </p>
                 )}
-                <p className="mt-3 font-body text-xs text-charcoal/50">
-                  Valid for 24 hours on any purchase.
-                </p>
                 <button
                   type="button"
                   onClick={dismiss}
