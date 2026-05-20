@@ -43,6 +43,7 @@ interface Credentials {
 }
 
 type Tab = 'sections' | 'callouts' | 'credentials'
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 interface Props {
   sections: Section[]
@@ -56,11 +57,94 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'credentials', label: 'Credentials' },
 ]
 
+const FALLBACK_CREDS: Credentials = {
+  full_name: 'Margaret Edmondson',
+  degrees: [],
+  hero_image_url: null,
+  contact_email: 'margaret117art@gmail.com',
+  updated_at: new Date().toISOString(),
+}
+
 export default function AboutEditor({ sections, callouts, credentials }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('sections')
+  const [sectionRows, setSectionRows] = useState(sections)
+  const [calloutRows, setCalloutRows] = useState(callouts)
+  const [creds, setCreds] = useState<Credentials>(credentials || FALLBACK_CREDS)
+  const [saveAllStatus, setSaveAllStatus] = useState<SaveStatus>('idle')
+
+  const saveAll = async () => {
+    setSaveAllStatus('saving')
+    const calls: Array<Promise<Response>> = []
+    for (const s of sectionRows) {
+      calls.push(
+        fetch(`/api/admin/about/sections/${s.section_key}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            heading: s.heading,
+            body_markdown: s.body_markdown,
+            display_order: s.display_order,
+            is_published: s.is_published,
+            image_url: s.image_url,
+            image_alt: s.image_alt,
+          }),
+        }),
+      )
+    }
+    for (const c of calloutRows) {
+      calls.push(
+        fetch(`/api/admin/about/callouts/${c.id}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            kind: c.kind,
+            label: c.label,
+            body_markdown: c.body_markdown,
+            display_order: c.display_order,
+            is_published: c.is_published,
+          }),
+        }),
+      )
+    }
+    calls.push(
+      fetch('/api/admin/about/credentials', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          full_name: creds.full_name,
+          degrees: creds.degrees,
+          hero_image_url: creds.hero_image_url,
+          contact_email: creds.contact_email,
+        }),
+      }),
+    )
+    const results = await Promise.allSettled(calls)
+    const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok))
+    setSaveAllStatus(anyFailed ? 'error' : 'saved')
+    router.refresh()
+    setTimeout(() => setSaveAllStatus('idle'), 2200)
+  }
+
+  const totalBlocks = sectionRows.length + calloutRows.length + 1
+  const saveAllButton = (
+    <button
+      type="button"
+      onClick={saveAll}
+      disabled={saveAllStatus === 'saving'}
+      className="rounded-md bg-teal px-5 py-2.5 font-body text-sm font-medium text-cream hover:bg-deep-teal transition-colors disabled:opacity-50"
+    >
+      {saveAllStatus === 'saving' ? 'Saving everything…' : 'Save all'}
+    </button>
+  )
 
   return (
     <div>
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <SaveAllStatusPill status={saveAllStatus} count={totalBlocks} />
+        {saveAllButton}
+      </div>
+
       <div className="border-b border-charcoal/10 mb-6">
         <nav className="flex gap-6">
           {TABS.map((t) => (
@@ -80,21 +164,53 @@ export default function AboutEditor({ sections, callouts, credentials }: Props) 
         </nav>
       </div>
 
-      {tab === 'sections' && <SectionsTab sections={sections} />}
-      {tab === 'callouts' && <CalloutsTab callouts={callouts} />}
-      {tab === 'credentials' && <CredentialsTab credentials={credentials} />}
+      {/* All three tabs stay mounted (just hidden when inactive) so edits in
+          one tab survive switching to another. Save All can then patch
+          every row in one click. */}
+      <div className={tab === 'sections' ? '' : 'hidden'}>
+        <SectionsTab rows={sectionRows} setRows={setSectionRows} />
+      </div>
+      <div className={tab === 'callouts' ? '' : 'hidden'}>
+        <CalloutsTab rows={calloutRows} setRows={setCalloutRows} />
+      </div>
+      <div className={tab === 'credentials' ? '' : 'hidden'}>
+        <CredentialsTab creds={creds} setCreds={setCreds} />
+      </div>
+
+      <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-charcoal/10">
+        <SaveAllStatusPill status={saveAllStatus} count={totalBlocks} />
+        {saveAllButton}
+      </div>
     </div>
   )
 }
 
-function Toast({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
+function SaveAllStatusPill({ status, count }: { status: SaveStatus; count: number }) {
+  if (status === 'idle') {
+    return (
+      <span className="font-body text-xs text-charcoal/40">
+        {count} editable {count === 1 ? 'block' : 'blocks'} on this page
+      </span>
+    )
+  }
+  const styles =
+    status === 'saving' ? 'bg-charcoal/5 text-charcoal/60' :
+    status === 'saved' ? 'bg-teal/15 text-teal' :
+    'bg-coral/15 text-coral'
+  const label = status === 'saving' ? 'Saving…' : status === 'saved' ? 'All saved' : 'Some saves failed'
+  return (
+    <span className={`inline-block rounded-full px-3 py-1 font-body text-[11px] font-semibold ${styles}`}>
+      {label}
+    </span>
+  )
+}
+
+function Toast({ status }: { status: SaveStatus }) {
   if (status === 'idle') return null
   const styles =
-    status === 'saving'
-      ? 'bg-charcoal/5 text-charcoal/60'
-      : status === 'saved'
-      ? 'bg-teal/15 text-teal'
-      : 'bg-coral/15 text-coral'
+    status === 'saving' ? 'bg-charcoal/5 text-charcoal/60' :
+    status === 'saved' ? 'bg-teal/15 text-teal' :
+    'bg-coral/15 text-coral'
   const label = status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : 'Save failed'
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[11px] font-semibold ${styles}`}>
@@ -103,10 +219,15 @@ function Toast({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
   )
 }
 
-function SectionsTab({ sections }: { sections: Section[] }) {
+function SectionsTab({
+  rows,
+  setRows,
+}: {
+  rows: Section[]
+  setRows: (updater: (prev: Section[]) => Section[]) => void
+}) {
   const router = useRouter()
-  const [rows, setRows] = useState(sections)
-  const [status, setStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({})
+  const [status, setStatus] = useState<Record<string, SaveStatus>>({})
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -125,7 +246,6 @@ function SectionsTab({ sections }: { sections: Section[] }) {
     if (!error) {
       const { data: pub } = supabase.storage.from('about-images').getPublicUrl(path)
       update(s.section_key, { image_url: pub.publicUrl })
-      // Persist immediately so the upload survives a page refresh.
       await fetch(`/api/admin/about/sections/${s.section_key}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
@@ -214,7 +334,6 @@ function SectionsTab({ sections }: { sections: Section[] }) {
             placeholder="Markdown body — supports **bold**, *italic*, [links](https://...). Blank line for new paragraph."
           />
 
-          {/* Section image */}
           <div className="mt-4 rounded-md border border-dashed border-charcoal/15 p-3">
             <div className="flex items-start gap-4">
               {s.image_url ? (
@@ -276,10 +395,15 @@ function SectionsTab({ sections }: { sections: Section[] }) {
   )
 }
 
-function CalloutsTab({ callouts }: { callouts: Callout[] }) {
+function CalloutsTab({
+  rows,
+  setRows,
+}: {
+  rows: Callout[]
+  setRows: (updater: (prev: Callout[]) => Callout[]) => void
+}) {
   const router = useRouter()
-  const [rows, setRows] = useState(callouts)
-  const [status, setStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({})
+  const [status, setStatus] = useState<Record<string, SaveStatus>>({})
   const [pending, startTransition] = useTransition()
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
@@ -430,18 +554,20 @@ function CalloutsTab({ callouts }: { callouts: Callout[] }) {
   )
 }
 
-function CredentialsTab({ credentials }: { credentials: Credentials | null }) {
+function CredentialsTab({
+  creds,
+  setCreds,
+}: {
+  creds: Credentials
+  setCreds: (updater: (prev: Credentials) => Credentials) => void
+}) {
   const router = useRouter()
-  const [c, setC] = useState<Credentials>(
-    credentials || {
-      full_name: 'Margaret Edmondson',
-      degrees: [],
-      hero_image_url: null,
-      contact_email: 'margaret117art@gmail.com',
-      updated_at: new Date().toISOString(),
-    },
-  )
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [status, setStatus] = useState<SaveStatus>('idle')
+  const c = creds
+
+  const update = (patch: Partial<Credentials>) => {
+    setCreds((prev) => ({ ...prev, ...patch }))
+  }
 
   const save = async () => {
     setStatus('saving')
@@ -465,21 +591,21 @@ function CredentialsTab({ credentials }: { credentials: Credentials | null }) {
   }
 
   const updateDegree = (idx: number, patch: Partial<Degree>) => {
-    setC((prev) => ({
+    setCreds((prev) => ({
       ...prev,
       degrees: prev.degrees.map((d, i) => (i === idx ? { ...d, ...patch } : d)),
     }))
   }
 
   const addDegree = () => {
-    setC((prev) => ({
+    setCreds((prev) => ({
       ...prev,
       degrees: [...prev.degrees, { year: '', degree: '', institution: '', location: '' }],
     }))
   }
 
   const removeDegree = (idx: number) => {
-    setC((prev) => ({ ...prev, degrees: prev.degrees.filter((_, i) => i !== idx) }))
+    setCreds((prev) => ({ ...prev, degrees: prev.degrees.filter((_, i) => i !== idx) }))
   }
 
   return (
@@ -494,7 +620,7 @@ function CredentialsTab({ credentials }: { credentials: Credentials | null }) {
         <input
           type="text"
           value={c.full_name}
-          onChange={(e) => setC({ ...c, full_name: e.target.value })}
+          onChange={(e) => update({ full_name: e.target.value })}
           className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm"
         />
       </label>
@@ -504,7 +630,7 @@ function CredentialsTab({ credentials }: { credentials: Credentials | null }) {
         <input
           type="email"
           value={c.contact_email}
-          onChange={(e) => setC({ ...c, contact_email: e.target.value })}
+          onChange={(e) => update({ contact_email: e.target.value })}
           className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm"
         />
       </label>
@@ -514,7 +640,7 @@ function CredentialsTab({ credentials }: { credentials: Credentials | null }) {
         <input
           type="url"
           value={c.hero_image_url || ''}
-          onChange={(e) => setC({ ...c, hero_image_url: e.target.value || null })}
+          onChange={(e) => update({ hero_image_url: e.target.value || null })}
           placeholder="https://…"
           className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm"
         />
