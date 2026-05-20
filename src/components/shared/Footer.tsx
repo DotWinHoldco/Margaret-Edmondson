@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import FooterNewsletter from './FooterNewsletter'
 
 const FOOTER_LINKS = {
   Shop: [
@@ -29,6 +30,7 @@ export default function Footer() {
   return (
     <footer className="bg-charcoal text-white/80">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+        <FooterNewsletter />
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1 mb-4 lg:mb-0">

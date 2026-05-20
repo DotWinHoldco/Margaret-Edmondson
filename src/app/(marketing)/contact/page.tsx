@@ -3,21 +3,42 @@
 import { useState } from 'react'
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', subject: 'general', message: '' })
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    subject: 'general',
+    message: '',
+    joinNewsletter: true,
+  })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setStatus('loading')
     try {
+      const { joinNewsletter, ...payload } = form
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...payload, joinNewsletter }),
       })
       if (res.ok) {
+        if (joinNewsletter) {
+          // Fire-and-forget — the contact route already records this,
+          // but we also POST to the subscribe route so a welcome email
+          // with a 10% off code is dispatched.
+          fetch('/api/newsletter/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: form.email,
+              source: 'contact_form',
+              first_name: form.name.split(' ')[0] || undefined,
+            }),
+          }).catch(() => {})
+        }
         setStatus('success')
-        setForm({ name: '', email: '', subject: 'general', message: '' })
+        setForm({ name: '', email: '', subject: 'general', message: '', joinNewsletter: true })
       } else {
         setStatus('error')
       }
@@ -43,6 +64,11 @@ export default function ContactPage() {
           <div className="text-center py-16">
             <p className="font-display text-2xl text-charcoal mb-2">Thank you!</p>
             <p className="font-body text-charcoal/60">We&apos;ll get back to you within 24 hours.</p>
+            {form.joinNewsletter && (
+              <p className="mt-3 font-body text-sm text-teal">
+                Check your inbox for a 10% off code from the studio.
+              </p>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -92,6 +118,18 @@ export default function ContactPage() {
                 className="w-full px-4 py-2.5 border border-charcoal/10 rounded-sm font-body text-sm focus:outline-none focus:border-teal resize-none"
               />
             </div>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.joinNewsletter}
+                onChange={(e) => setForm({ ...form, joinNewsletter: e.target.checked })}
+                className="mt-1 h-4 w-4 cursor-pointer accent-teal"
+              />
+              <span className="font-body text-sm text-charcoal/70">
+                Add me to the studio newsletter and send me <strong className="text-charcoal">10% off</strong> my first piece.
+              </span>
+            </label>
 
             {status === 'error' && (
               <p className="text-xs font-body text-coral">Something went wrong. Please try again.</p>
