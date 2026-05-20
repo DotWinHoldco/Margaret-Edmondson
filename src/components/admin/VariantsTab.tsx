@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
-import { MEDIUMS, MEDIUMS_CATALOG, mediumLabel, type Medium } from '@/lib/pricing/mediums'
+import { MEDIUMS, MEDIUMS_CATALOG, mediumLabel, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { costPlusMarginCents, customerPriceCents } from '@/lib/pricing/variant-pricing'
 
 export interface Variant {
@@ -47,6 +47,21 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
       const key = v.medium || 'other'
       if (!out[key]) out[key] = []
       out[key].push(v)
+    }
+    // Sort each medium's rows by area (width × height) ascending — smallest
+    // canvas first, then framed canvas, etc. Fall back to size_label string
+    // compare when dims aren't set.
+    const area = (v: Variant) => {
+      const dims = v.size_label ? sizeDimensions(v.size_label) : null
+      return dims ? dims.width * dims.height : 0
+    }
+    for (const key of Object.keys(out)) {
+      out[key].sort((a, b) => {
+        const aa = area(a)
+        const ab = area(b)
+        if (aa !== ab) return aa - ab
+        return (a.size_label || '').localeCompare(b.size_label || '')
+      })
     }
     return out
   }, [variants])
