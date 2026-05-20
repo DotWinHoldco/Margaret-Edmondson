@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
-import { MEDIUMS, mediumConfig, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { MEDIUMS, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { getCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 
@@ -13,18 +14,28 @@ const Body = z.object({
   margin_override_pct: z.number().nullable().optional(),
 })
 
+// Legacy column mapping for the shop's variant_type filter. Keeps the
+// existing /shop renderer working until it migrates off variant_type.
+const LEGACY_VARIANT_TYPE: Partial<Record<Medium, string>> = {
+  canvas: 'canvas_print',
+  framed_canvas: 'framed_canvas_print',
+  // The 6 newer mediums don't have a legacy mapping; they render only
+  // through the new variant-aware ProductDetail path (which filters by
+  // medium, not variant_type).
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
   const parsed = await parseBody(request, Body)
   if (!parsed.ok) return parsed.response
   const { product_id, medium, size_labels } = parsed.data
-  const cfg = mediumConfig(medium)
-  if (!cfg.enabled || cfg.subcategoryId == null) {
-    return apiError(`Medium ${medium} is not enabled in the Lumaprints integration yet`, 400, 'MEDIUM_DISABLED')
+
+  const cfg = await getMediumConfig(auth.supabase, medium)
+  if (!cfg || !cfg.subcategory_id) {
+    return apiError(`Medium ${medium} is not configured. Run the Lumaprints sync first.`, 400, 'MEDIUM_NOT_CONFIGURED')
   }
 
-  // Pull product default margin + site fallback zips for the cache lookup.
   const { data: product } = await auth.supabase
     .from('products')
     .select('default_margin_pct, margin_pct')
@@ -60,6 +71,7 @@ export async function POST(request: NextRequest) {
       },
       productDefaultMargin,
     )
+    const legacyType = LEGACY_VARIANT_TYPE[medium] || null
     rows.push({
       product_id,
       medium,
@@ -71,18 +83,22 @@ export async function POST(request: NextRequest) {
       margin_override_pct: parsed.data.margin_override_pct ?? null,
       manual_price_override_cents: null,
       is_active: true,
-      is_lumaprints_available: cost_cents > 0,
+      // A variant with zero cost from Lumaprints is treated as still
+      // available — the admin just hasn't entered a wholesale price yet.
+      // Shipping >= 0 confirms the SKU + size is shippable.
+      is_lumaprints_available: true,
       last_priced_at: new Date().toISOString(),
-      // Mirror to legacy columns so the old shop renderer keeps working.
-      name: `${size_label} — ${medium.replace('_', ' ')}`,
+      // Mirror to legacy columns so the existing shop renderer keeps working.
+      name: `${size_label} — ${(cfg.name || medium).toLowerCase()}`,
       price: customer / 100,
       wholesale_cost: cost_cents / 100,
       worst_case_shipping: shipping_cents / 100,
       shipping_quoted_at: new Date().toISOString(),
-      variant_type: medium === 'framed_canvas' ? 'framed_canvas_print' : 'canvas_print',
+      variant_type: legacyType,
       fulfillment_metadata: {
         size: size_label,
-        lumaprints_type: medium === 'framed_canvas' ? 'framed_canvas_1_25' : 'stretched_canvas_1_25',
+        lumaprints_subcategory_id: cfg.subcategory_id,
+        lumaprints_option_ids: cfg.option_ids,
       },
     })
   }

@@ -3,8 +3,18 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
-import { MEDIUMS, MEDIUMS_CATALOG, mediumLabel, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { MEDIUMS, mediumLabel, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { costPlusMarginCents, customerPriceCents } from '@/lib/pricing/variant-pricing'
+
+export interface MediumCatalogEntry {
+  medium: Medium
+  name: string | null
+  subcategory_id: number | null
+  option_ids: number[]
+  sizes: Array<{ size_label: string; width: number; height: number; cost_cents?: number }>
+  enabled: boolean
+  last_synced_at: string | null
+}
 
 export interface Variant {
   id: string
@@ -24,6 +34,7 @@ interface Props {
   productId: string
   productDefaultMargin: number
   variants: Variant[]
+  mediumCatalog: MediumCatalogEntry[]
 }
 
 function fmtCents(c: number | null | undefined): string {
@@ -31,8 +42,15 @@ function fmtCents(c: number | null | undefined): string {
   return `$${(c / 100).toFixed(2)}`
 }
 
-export default function VariantsTab({ productId, productDefaultMargin, variants: initial }: Props) {
+export default function VariantsTab({ productId, productDefaultMargin, variants: initial, mediumCatalog }: Props) {
   const router = useRouter()
+  const catalogByMedium = useMemo(() => {
+    const out: Record<string, MediumCatalogEntry> = {}
+    for (const c of mediumCatalog) out[c.medium] = c
+    return out
+  }, [mediumCatalog])
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle')
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [variants, setVariants] = useState(initial)
   // defaultMargin is owned by the parent product editor (Pricing card).
   // Reflect it here so the math always uses the canonical value.
@@ -132,11 +150,33 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
             Three prices per row: Lumaprints cost · + margin · + shipping. Inactive variants stay in the DB but hide on the public page.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="font-body text-xs text-charcoal/50">
             Default margin <strong className="text-charcoal/80">{defaultMargin}%</strong>
             <span className="ml-1 text-charcoal/40">(set in Pricing above)</span>
           </span>
+          <button
+            type="button"
+            disabled={syncStatus === 'syncing'}
+            onClick={async () => {
+              setSyncStatus('syncing')
+              setSyncMsg(null)
+              const res = await fetch('/api/admin/lumaprints/sync', { method: 'POST' })
+              if (res.ok) {
+                const body = await res.json()
+                const matched = (body.data?.summary || []).filter((s: { status: string }) => s.status === 'matched').length
+                setSyncMsg(`Synced ${matched}/${(body.data?.summary || []).length} mediums.`)
+                setSyncStatus('done')
+                router.refresh()
+              } else {
+                setSyncMsg('Sync failed — check Lumaprints credentials.')
+                setSyncStatus('error')
+              }
+            }}
+            className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-50"
+          >
+            {syncStatus === 'syncing' ? 'Syncing catalog…' : 'Sync Lumaprints'}
+          </button>
           <button
             type="button"
             disabled={pending}
@@ -147,6 +187,11 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           </button>
         </div>
       </div>
+      {syncMsg && (
+        <div className={`mb-4 rounded-md border px-3 py-2 font-body text-xs ${syncStatus === 'error' ? 'bg-coral/10 border-coral/30 text-coral' : 'bg-teal/10 border-teal/30 text-deep-teal'}`}>
+          {syncMsg}
+        </div>
+      )}
 
       {lastDiff && (
         <div className="mb-4 rounded-md bg-teal/10 border border-teal/30 px-3 py-2 font-body text-xs text-deep-teal">
@@ -155,22 +200,23 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
       )}
 
       {MEDIUMS.map((m) => {
-        const cfg = MEDIUMS_CATALOG[m]
+        const cfg = catalogByMedium[m]
         const rows = grouped[m] || []
-        if (!cfg.enabled && rows.length === 0) return null
+        const configured = Boolean(cfg && cfg.subcategory_id && cfg.sizes.length > 0)
+        if (!configured && rows.length === 0) return null
         return (
           <div key={m} className="mb-6 last:mb-0">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-display text-base font-medium text-charcoal">
-                {mediumLabel(m)}
+                {cfg?.name || mediumLabel(m)}
                 <span className="ml-2 font-body text-xs text-charcoal/40">({rows.length} variants)</span>
-                {!cfg.enabled && (
+                {!configured && (
                   <span className="ml-2 inline-block rounded-full bg-coral/10 px-2 py-0.5 font-body text-[10px] text-coral">
-                    Not yet integrated
+                    Needs sync
                   </span>
                 )}
               </h3>
-              {cfg.enabled && (
+              {configured && (
                 <button
                   type="button"
                   onClick={() => setShowAdd(m)}
@@ -275,10 +321,12 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
         )
       })}
 
-      {showAdd && (
+      {showAdd && catalogByMedium[showAdd] && (
         <AddVariantModal
           productId={productId}
           medium={showAdd}
+          mediumName={catalogByMedium[showAdd].name || mediumLabel(showAdd)}
+          availableSizes={catalogByMedium[showAdd].sizes}
           defaultMargin={defaultMargin}
           existingSizes={new Set(variants.filter((v) => v.medium === showAdd).map((v) => v.size_label || ''))}
           onClose={() => setShowAdd(null)}
@@ -305,6 +353,8 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
 function AddVariantModal({
   productId,
   medium,
+  mediumName,
+  availableSizes,
   defaultMargin,
   existingSizes,
   onClose,
@@ -312,13 +362,14 @@ function AddVariantModal({
 }: {
   productId: string
   medium: Medium
+  mediumName: string
+  availableSizes: Array<{ size_label: string; width: number; height: number; cost_cents?: number }>
   defaultMargin: number
   existingSizes: Set<string>
   onClose: () => void
   onCreated: () => void
 }) {
-  const cfg = MEDIUMS_CATALOG[medium]
-  const available = cfg.sizes.filter((s) => !existingSizes.has(s.size_label))
+  const available = availableSizes.filter((s) => !existingSizes.has(s.size_label))
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [marginOverride, setMarginOverride] = useState<string>('')
   const [creating, setCreating] = useState(false)
@@ -356,7 +407,7 @@ function AddVariantModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 p-4 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-lg bg-cream shadow-2xl">
         <div className="p-6">
-          <h2 className="font-display text-xl font-light text-charcoal">Add {mediumLabel(medium)} variants</h2>
+          <h2 className="font-display text-xl font-light text-charcoal">Add {mediumName} variants</h2>
           <p className="mt-1 font-body text-xs text-charcoal/60">
             One variant per size. Prices pull from the live Lumaprints API + your margin.
           </p>
@@ -378,6 +429,9 @@ function AddVariantModal({
             )}
             {available.map((s) => (
               <label key={s.size_label} className="flex items-center gap-2 font-body text-sm text-charcoal/80 cursor-pointer">
+                <span className="ml-auto font-body text-[10px] text-charcoal/40 order-2">
+                  {s.cost_cents ? `$${(s.cost_cents / 100).toFixed(2)}` : ''}
+                </span>
                 <input
                   type="checkbox"
                   checked={selected.has(s.size_label)}

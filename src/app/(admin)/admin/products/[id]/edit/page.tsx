@@ -7,7 +7,7 @@ import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import MediaPicker from '@/components/admin/MediaPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
-import VariantsTab, { type Variant as PrintVariant } from '@/components/admin/VariantsTab'
+import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
 import type { Medium } from '@/lib/pricing/mediums'
 
 function MasterFooter({
@@ -175,20 +175,24 @@ export default function EditProductPage({
   const [variants, setVariants] = useState<Variant[]>([])
   const [printVariants, setPrintVariants] = useState<PrintVariant[]>([])
   const [productDefaultMargin, setProductDefaultMargin] = useState<number>(100)
+  const [mediumCatalog, setMediumCatalog] = useState<MediumCatalogEntry[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient()
 
-      const [categoriesRes, productRes, settingsRes] = await Promise.all([
+      const [categoriesRes, productRes, settingsRes, catalogRes] = await Promise.all([
         supabase
           .from('categories')
           .select('id, name, slug')
           .order('sort_order', { ascending: true }),
         fetch(`/api/admin/products/${id}`).then((r) => r.json()),
         fetch(`/api/admin/pricing/settings`).then((r) => r.json()).catch(() => null),
+        fetch(`/api/admin/lumaprints/catalog`).then((r) => r.json()).catch(() => null),
       ])
+
+      if (catalogRes?.data?.items) setMediumCatalog(catalogRes.data.items as MediumCatalogEntry[])
 
       if (settingsRes?.data?.default_margin_pct != null) {
         setSiteDefaultMargin(Number(settingsRes.data.default_margin_pct))
@@ -974,6 +978,7 @@ export default function EditProductPage({
             productId={id}
             productDefaultMargin={productDefaultMargin}
             variants={printVariants}
+            mediumCatalog={mediumCatalog}
           />
 
           {/* Actions */}

@@ -5,12 +5,17 @@
  * Cache misses + expired rows hit the API, write the result, and return
  * fresh numbers. Refreshes delete + reinsert (never write-around) so we
  * don't end up with two "freshest" rows for the same key.
+ *
+ * Source of truth for (medium → subcategory_id, option_ids, cost grid)
+ * is the `lumaprints_mediums` table. The hardcoded MEDIUMS_CATALOG file
+ * is now only used for human-facing labels.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getShippingCost } from '@/lib/integrations/lumaprints'
 import { quoteWorstCaseCONUS } from '@/lib/pricing/shipping-quote'
-import { mediumConfig, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { getMediumConfig, type MediumConfig } from '@/lib/pricing/medium-config'
 
 export interface CachedPrice {
   medium: Medium
@@ -33,49 +38,45 @@ interface CacheRow {
 const FRESH_TTL_MS = 24 * 60 * 60 * 1000
 
 /**
- * The Lumaprints "pricing" endpoint we currently use only quotes shipping;
- * it does not return print cost directly. Phase 0 stores wholesale costs
- * in a hardcoded canvas-prints lookup table for the two enabled mediums.
- * Use that as the cost source until the real pricing endpoint is wired.
+ * Look up the per-size cost the admin set in lumaprints_mediums.sizes.
+ * Returns 0 if no cost is recorded yet — the variant builder surfaces
+ * that as "Set cost" so the admin knows to fix it before publishing.
  */
+function costFromMediumConfig(cfg: MediumConfig, size_label: string): number {
+  const match = cfg.sizes.find((s) => s.size_label === size_label)
+  return Number((match as { cost_cents?: number } | undefined)?.cost_cents) || 0
+}
+
 async function fetchLivePrice(
+  supabase: SupabaseClient,
   medium: Medium,
   size_label: string,
   zips: string[],
 ): Promise<{ cost_cents: number; shipping_cents: number }> {
-  const cfg = mediumConfig(medium)
-  if (!cfg.enabled || cfg.subcategoryId == null) {
-    throw new Error(`Medium ${medium} is not yet enabled in the Lumaprints integration`)
+  const cfg = await getMediumConfig(supabase, medium)
+  if (!cfg || !cfg.subcategory_id) {
+    throw new Error(`Medium ${medium} is not configured. Run the Lumaprints sync.`)
   }
   const dims = sizeDimensions(size_label)
   if (!dims) throw new Error(`Unrecognized size_label ${size_label}`)
 
-  // Cost: pull from the hardcoded wholesale grid until Lumaprints exposes a
-  // public per-SKU cost endpoint. The grid in canvas-prints.ts already maps
-  // medium+size → wholesale cost.
-  const { getWholesale } = await import('@/lib/pricing/canvas-prints')
-  const variantType: 'canvas_print' | 'framed_canvas_print' =
-    medium === 'framed_canvas' ? 'framed_canvas_print' : 'canvas_print'
-  // canvas-prints uses "8×10" with a unicode times symbol; normalize.
-  const normalized = size_label.replace(/\s*x\s*/i, '×')
-  const wholesale = getWholesale(normalized, variantType)
-  if (wholesale == null) throw new Error(`No wholesale price for ${medium}/${size_label}`)
+  const cost_cents = costFromMediumConfig(cfg, size_label)
 
-  let shipping_cents: number
+  let shipping_cents = 0
   try {
     const { worstCase } = await quoteWorstCaseCONUS(
       {
-        subcategoryId: cfg.subcategoryId,
+        subcategoryId: cfg.subcategory_id,
         width: dims.width,
         height: dims.height,
-        orderItemOptions: cfg.orderItemOptions,
+        orderItemOptions: cfg.option_ids,
         quantity: 1,
       },
       zips,
     )
     shipping_cents = Math.round(worstCase * 100)
   } catch {
-    // Live shipping API unavailable — fall back to a single-zip quote.
+    // Live worst-case API failed — try a single zip.
     try {
       const fallback = await getShippingCost({
         recipient: {
@@ -88,36 +89,27 @@ async function fetchLivePrice(
           country: 'US',
         },
         orderItems: [{
-          subcategoryId: cfg.subcategoryId,
+          subcategoryId: cfg.subcategory_id,
           quantity: 1,
           width: dims.width,
           height: dims.height,
-          orderItemOptions: cfg.orderItemOptions,
+          orderItemOptions: cfg.option_ids,
         }],
       })
       const cheapest = Math.min(...fallback.shippingMethods.map((m) => m.cost))
       shipping_cents = Math.round(cheapest * 100)
     } catch {
-      // Last-resort fallback to the canvas-prints default-worst-case so
-      // the variant still gets a price the customer can pay; refresh will
-      // update it as soon as the live API recovers.
-      const { getDefaultWorstCaseShipping } = await import('@/lib/pricing/canvas-prints')
-      const fallback = getDefaultWorstCaseShipping(normalized, variantType)
-      shipping_cents = fallback ? Math.round(fallback * 100) : 0
+      shipping_cents = 0
     }
   }
 
-  return { cost_cents: Math.round(wholesale * 100), shipping_cents }
+  return { cost_cents, shipping_cents }
 }
 
 function isFresh(row: CacheRow): boolean {
   return new Date(row.expires_at).getTime() > Date.now()
 }
 
-/**
- * Read-through cache. Returns `{cost_cents, shipping_cents}` for the
- * requested (medium × size), refreshing the row when expired.
- */
 export async function getCachedPrice(
   supabase: SupabaseClient,
   medium: Medium,
@@ -139,7 +131,7 @@ export async function getCachedPrice(
     }
   }
 
-  const live = await fetchLivePrice(medium, size_label, zips)
+  const live = await fetchLivePrice(supabase, medium, size_label, zips)
   const fetched_at = new Date().toISOString()
   const expires_at = new Date(Date.now() + FRESH_TTL_MS).toISOString()
   await supabase
@@ -151,17 +143,13 @@ export async function getCachedPrice(
   return { ...live, fromCache: false }
 }
 
-/**
- * Force-refresh: bypass the cache, delete the existing row, fetch live,
- * write the new row. Returned shape mirrors `getCachedPrice` for callers.
- */
 export async function refreshCachedPrice(
   supabase: SupabaseClient,
   medium: Medium,
   size_label: string,
   zips: string[],
 ): Promise<{ cost_cents: number; shipping_cents: number }> {
-  const live = await fetchLivePrice(medium, size_label, zips)
+  const live = await fetchLivePrice(supabase, medium, size_label, zips)
   const fetched_at = new Date().toISOString()
   const expires_at = new Date(Date.now() + FRESH_TTL_MS).toISOString()
   await supabase
