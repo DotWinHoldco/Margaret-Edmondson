@@ -2,6 +2,7 @@ import { getPublishedBlogPosts } from '@/lib/supabase/queries'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
   title: 'Blog',
@@ -56,6 +57,8 @@ export default async function BlogPage() {
         {posts.length === 0 && (
           <p className="text-center font-body text-charcoal/50 py-20">Blog posts coming soon.</p>
         )}
+
+        <DiscoverCTA className="mt-24" />
       </div>
     </div>
   )

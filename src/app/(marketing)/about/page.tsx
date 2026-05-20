@@ -1,8 +1,8 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { renderMarkdown } from '@/lib/markdown'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
   title: 'About',
@@ -160,26 +160,7 @@ export default async function AboutPage() {
           })}
         </div>
 
-        <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link href="/shop" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
-            <p className="font-hand text-base text-gold uppercase tracking-wider">Browse</p>
-            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">My Work</h3>
-            <p className="mt-2 font-body text-sm text-charcoal/60">Originals, prints, and recent series.</p>
-          </Link>
-          <Link href="/classes" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
-            <p className="font-hand text-base text-gold uppercase tracking-wider">Learn</p>
-            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">Join a class</h3>
-            <p className="mt-2 font-body text-sm text-charcoal/60">Paint Your Pet sessions for kids, teens, and adults.</p>
-          </Link>
-          <a
-            href={`mailto:${credentials?.contact_email || 'margaret117art@gmail.com'}?subject=Commission%20inquiry`}
-            className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors"
-          >
-            <p className="font-hand text-base text-gold uppercase tracking-wider">Connect</p>
-            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">Commission or say hi</h3>
-            <p className="mt-2 font-body text-sm text-charcoal/60">Custom portraits, questions, anything.</p>
-          </a>
-        </section>
+        <DiscoverCTA className="mt-24" />
 
         {updated && (
           <p className="mt-16 text-center font-body text-xs text-charcoal/40">

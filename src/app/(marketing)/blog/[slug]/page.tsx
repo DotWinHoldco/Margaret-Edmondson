@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export async function generateMetadata(
   props: { params: Promise<{ slug: string }> }
@@ -64,6 +65,8 @@ export default async function BlogPostPage(
           className="prose prose-lg max-w-none font-body text-charcoal/80 prose-headings:font-display prose-headings:font-light prose-headings:text-charcoal prose-a:text-teal"
           dangerouslySetInnerHTML={{ __html: post.content_html }}
         />
+
+        <DiscoverCTA className="mt-24" />
       </div>
     </article>
   )

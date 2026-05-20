@@ -189,7 +189,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Size</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Lumaprints</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">+ Margin</th>
-                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">+ Shipping</th>
+                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Total with shipping</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Margin %</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Active</th>
                       <th className="px-3 py-2"></th>

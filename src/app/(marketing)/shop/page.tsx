@@ -2,6 +2,7 @@ import { getProducts, getCategories } from '@/lib/supabase/queries'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import MasonryGrid, { type MasonryProduct } from '@/components/shop/MasonryGrid'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
   title: 'Shop',
@@ -51,6 +52,8 @@ export default async function ShopPage() {
         </nav>
 
         <MasonryGrid products={products as MasonryProduct[]} />
+
+        <DiscoverCTA className="mt-24" />
       </div>
     </div>
   )

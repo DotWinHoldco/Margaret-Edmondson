@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { CV_SECTIONS, type CvEntry, type CvSection, sectionLabel } from '@/lib/cv'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
   title: 'Curriculum Vitae',
@@ -96,14 +97,7 @@ export default async function CvPage() {
           })}
         </div>
 
-        <footer className="mt-20 pt-8 border-t border-charcoal/10 text-center">
-          <p className="font-body text-sm text-charcoal/70">
-            Available for commissions and exhibitions.{' '}
-            <Link className="underline decoration-gold/60 hover:text-charcoal" href="/commissions">
-              Start a commission
-            </Link>
-          </p>
-        </footer>
+        <DiscoverCTA className="mt-20" />
       </div>
     </div>
   )

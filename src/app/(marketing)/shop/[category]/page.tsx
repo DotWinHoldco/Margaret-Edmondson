@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import MasonryGrid, { type MasonryProduct } from '@/components/shop/MasonryGrid'
+import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export async function generateMetadata(
   props: { params: Promise<{ category: string }> },
@@ -76,6 +77,8 @@ export default async function CategoryPage(
         </nav>
 
         <MasonryGrid products={products as MasonryProduct[]} />
+
+        <DiscoverCTA className="mt-24" />
       </div>
     </div>
   )
