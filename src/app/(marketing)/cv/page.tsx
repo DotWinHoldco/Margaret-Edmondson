@@ -47,7 +47,7 @@ function bySection(entries: CvEntry[]): Record<CvSection, CvEntry[]> {
 }
 
 export default async function CvPage() {
-  const { entries, intro, contactEmail, liveSlugs } = await loadCv()
+  const { entries, intro, liveSlugs } = await loadCv()
   const grouped = bySection(entries)
   const updated = lastUpdated(entries)
 
@@ -99,9 +99,9 @@ export default async function CvPage() {
         <footer className="mt-20 pt-8 border-t border-charcoal/10 text-center">
           <p className="font-body text-sm text-charcoal/70">
             Available for commissions and exhibitions.{' '}
-            <a className="underline decoration-gold/60 hover:text-charcoal" href={`mailto:${contactEmail}`}>
-              {contactEmail}
-            </a>
+            <Link className="underline decoration-gold/60 hover:text-charcoal" href="/commissions">
+              Start a commission
+            </Link>
           </p>
         </footer>
       </div>
