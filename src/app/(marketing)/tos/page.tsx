@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
@@ -77,7 +78,7 @@ export default function TermsOfServicePage() {
               <li><strong>Original artwork:</strong> Returns accepted within 14 days of delivery if the piece arrives damaged or is significantly different from its description. The buyer is responsible for return shipping costs. Original artwork must be returned in its original packaging and condition.</li>
               <li><strong>Canvas prints:</strong> If your print arrives damaged or defective, contact us within 7 days and we will arrange a replacement at no cost.</li>
               <li><strong>Commissions:</strong> Non-refundable once work has begun (see Section 4).</li>
-              <li>To initiate a return or report an issue, email <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a> with your order number and photos of any damage.</li>
+              <li>To initiate a return or report an issue, use our <Link href="/contact?subject=order" className="text-gold hover:underline">contact form</Link> with your order number and photos of any damage.</li>
             </ul>
           </section>
 
@@ -135,8 +136,8 @@ export default function TermsOfServicePage() {
             </p>
             <p className="mt-2">
               <strong>ArtByME — Margaret Edmondson</strong><br />
-              Email:{' '}
-              <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a><br />
+              Contact form:{' '}
+              <Link href="/contact" className="text-gold hover:underline">artbyme.studio/contact</Link><br />
               Website: artbyme.studio
             </p>
           </section>

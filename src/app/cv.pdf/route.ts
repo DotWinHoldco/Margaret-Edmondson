@@ -27,7 +27,7 @@ async function load(): Promise<{ entries: CvEntry[]; settings: Settings }> {
     entries: (entriesRes.data || []) as CvEntry[],
     settings: (settingsRes.data as Settings | null) || {
       intro: 'Selected exhibitions, education, and teaching experience.',
-      contact_email: 'margaret117art@gmail.com',
+      contact_email: 'hello@artbyme.studio',
     },
   }
 }

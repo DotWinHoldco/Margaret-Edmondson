@@ -124,7 +124,7 @@ async function sendStep1(cart: CartRow, supabase: Awaited<ReturnType<typeof crea
   const html = renderHtml(
     `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">You left something behind</h2>
      <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-       Your cart at ArtByME is waiting for you. Margaret's pieces are made one-of-a-kind, so don't let yours slip away.
+       Your cart at ArtByME is waiting for you whenever you are ready.
      </p>
      ${ctaButton(`${SITE_URL}/cart`, 'Return to Your Cart')}`,
     { preheader: 'Your saved cart is waiting for you.', unsubscribeUrl }
@@ -247,13 +247,13 @@ async function sendStep3(cart: CartRow, supabase: Awaited<ReturnType<typeof crea
   const body = code
     ? `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Last call on your cart</h2>
        <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-         Your 10% off code is still good. After this we'll release the cart so others can buy.
+         Your 10% off code is still good. This is the final reminder we will send about this cart.
        </p>
        ${discountCallout(code, percentOff, 'Final hours')}
        ${ctaButton(`${SITE_URL}/cart`, "Don't Miss Out", 'coral')}`
     : `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Last call on your cart</h2>
        <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-         Margaret's originals are one-of-a-kind. We'll release the cart soon so others can buy.
+         This is the final reminder we will send about this cart.
        </p>
        ${ctaButton(`${SITE_URL}/cart`, "Don't Miss Out", 'coral')}`
 

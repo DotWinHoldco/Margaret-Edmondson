@@ -30,7 +30,7 @@ async function loadCv() {
   return {
     entries,
     intro: settingsRes.data?.intro || 'Selected exhibitions, education, and teaching experience.',
-    contactEmail: settingsRes.data?.contact_email || 'margaret117art@gmail.com',
+    contactEmail: settingsRes.data?.contact_email || 'hello@artbyme.studio',
     liveSlugs,
   }
 }

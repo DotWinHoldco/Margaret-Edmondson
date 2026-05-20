@@ -28,7 +28,7 @@ export default async function AdminCvPage() {
       </div>
       <CvEditor
         entries={entriesRes.data || []}
-        settings={settingsRes.data || { intro: 'Selected exhibitions, education, and teaching experience.', contact_email: 'margaret117art@gmail.com' }}
+        settings={settingsRes.data || { intro: 'Selected exhibitions, education, and teaching experience.', contact_email: 'hello@artbyme.studio' }}
         artworks={(productsRes.data || []) as { slug: string; title: string }[]}
       />
     </div>

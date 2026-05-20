@@ -111,12 +111,12 @@ export default async function ClassesPage() {
                 >
                   See upcoming classes
                 </Link>
-                <a
-                  href="mailto:margaret117art@gmail.com?subject=Class%20question"
+                <Link
+                  href="/contact?subject=class"
                   className="inline-flex items-center justify-center px-6 py-3 border border-charcoal/20 text-charcoal font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-charcoal hover:text-cream transition-colors"
                 >
                   Got questions?
-                </a>
+                </Link>
               </div>
             </div>
             <div className="relative">
@@ -142,7 +142,7 @@ export default async function ClassesPage() {
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { n: '01', t: 'Pick a class', d: 'Adult, teen, or kids — and the day that works for you. Reserve your seat in under a minute.' },
-              { n: '02', t: 'Send your pet photo', d: 'Email a clear, well-lit photo at least two weeks before class. I prep a custom outline so your portrait starts strong.' },
+              { n: '02', t: 'Send your pet photo', d: 'Upload a clear, well-lit photo when you reserve, at least two weeks before class. Margaret preps a custom outline so your portrait starts strong.' },
               { n: '03', t: 'Paint with me', d: 'Two relaxed hours, all supplies included. I teach the steps; you bring the heart. You leave with the finished canvas.' },
             ].map((s) => (
               <div key={s.n} className="text-center">
@@ -164,14 +164,14 @@ export default async function ClassesPage() {
           {sessions.length === 0 ? (
             <div className="mt-10 text-center py-16 rounded-sm border border-dashed border-charcoal/15">
               <p className="font-body text-lg text-charcoal/70 max-w-xl mx-auto">
-                No upcoming classes right now. Email me and I&rsquo;ll add you to the next-session list.
+                No upcoming classes right now. Send a note and we&rsquo;ll add you to the next-session list.
               </p>
-              <a
-                href="mailto:margaret117art@gmail.com?subject=Notify%20me%20about%20the%20next%20class"
+              <Link
+                href="/contact?subject=class"
                 className="mt-6 inline-flex items-center justify-center px-6 py-3 bg-teal text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-deep-teal transition-colors"
               >
                 Notify me
-              </a>
+              </Link>
             </div>
           ) : (
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -284,7 +284,7 @@ export default async function ClassesPage() {
           <p className="font-hand text-lg text-gold uppercase tracking-wider">About your instructor</p>
           <h3 className="mt-2 font-display text-3xl font-light text-charcoal">Margaret Edmondson</h3>
           <p className="mt-4 font-body text-base text-charcoal/75 leading-relaxed">
-            BS Art Education (Murray State University), MFA in Painting (Savannah College of Art and Design). I&rsquo;ve been teaching painting since 2013, from elementary classrooms to Saturday-morning Michaels classes to my own studio in Argyle, TX. Pets are my favorite subject; helping someone paint <em>their</em> pet is even better.
+            BS Art Education, Murray State University. MFA in Painting, Savannah College of Art and Design. Margaret has taught art to all ages across several states and now teaches from her studio in Argyle, TX.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
@@ -301,7 +301,7 @@ export default async function ClassesPage() {
             </Link>
           </div>
           <p className="mt-6 font-body text-xs text-charcoal/50">
-            Questions? Email <a href="mailto:margaret117art@gmail.com" className="text-teal underline hover:text-deep-teal">margaret117art@gmail.com</a>.
+            Questions? <Link href="/contact?subject=class" className="text-teal underline hover:text-deep-teal">Send a note through the contact form</Link>.
           </p>
         </div>
       </section>

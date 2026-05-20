@@ -109,10 +109,10 @@ export default async function ClassSessionPage(props: { params: Promise<{ slug: 
           <div className="rounded-sm border border-charcoal/10 bg-charcoal/[0.04] p-8 text-center mb-12">
             <h2 className="font-display text-2xl font-light text-charcoal mb-2">Sold out</h2>
             <p className="font-body text-sm text-charcoal/70">
-              This session is full. Email{' '}
-              <a href="mailto:margaret117art@gmail.com" className="text-teal underline hover:text-deep-teal">
-                margaret117art@gmail.com
-              </a>{' '}
+              This session is full.{' '}
+              <Link href="/contact?subject=class" className="text-teal underline hover:text-deep-teal">
+                Send a note through the contact form
+              </Link>{' '}
               to join the waitlist or be notified about the next class.
             </p>
           </div>

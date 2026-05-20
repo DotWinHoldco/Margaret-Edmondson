@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -112,8 +113,8 @@ export default function PrivacyPage() {
               <li>Request a copy of your data in a portable format</li>
             </ul>
             <p className="mt-4">
-              To exercise any of these rights, contact us at{' '}
-              <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a>.
+              To exercise any of these rights, use our{' '}
+              <Link href="/contact?subject=privacy" className="text-gold hover:underline">contact form</Link>.
               We will respond to your request within 30 days.
             </p>
           </section>
@@ -146,8 +147,8 @@ export default function PrivacyPage() {
             </p>
             <p className="mt-2">
               <strong>ArtByME — Margaret Edmondson</strong><br />
-              Email:{' '}
-              <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a><br />
+              Contact form:{' '}
+              <Link href="/contact" className="text-gold hover:underline">artbyme.studio/contact</Link><br />
               Website: artbyme.studio
             </p>
           </section>

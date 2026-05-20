@@ -61,7 +61,7 @@ const FALLBACK_CREDS: Credentials = {
   full_name: 'Margaret Edmondson',
   degrees: [],
   hero_image_url: null,
-  contact_email: 'margaret117art@gmail.com',
+  contact_email: 'hello@artbyme.studio',
   updated_at: new Date().toISOString(),
 }
 

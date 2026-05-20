@@ -33,7 +33,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
               {!error && 'Please use the unsubscribe link in any recent ArtByME email, or reply asking us to remove you.'}
             </p>
             <p className="mt-3 font-body text-sm text-charcoal/50">
-              Email <a href="mailto:hello@artbyme.studio" className="text-teal underline-offset-2 hover:underline">hello@artbyme.studio</a> and we will take care of it.
+              Use the <Link href="/contact?subject=unsubscribe" className="text-teal underline-offset-2 hover:underline">contact form</Link> and we will take care of it.
             </p>
           </>
         )}

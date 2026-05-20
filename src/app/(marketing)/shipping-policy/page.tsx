@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Shipping Policy',
@@ -84,7 +85,7 @@ export default function ShippingPolicyPage() {
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Damaged or Lost Shipments</h2>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Damaged items:</strong> If your order arrives damaged, please contact us within 7 days of delivery at <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a> with your order number and photos of the damage. We will work with you to arrange a replacement or refund.</li>
+              <li><strong>Damaged items:</strong> If your order arrives damaged, please reach out within 7 days of delivery through our <Link href="/contact?subject=order" className="text-gold hover:underline">contact form</Link> with your order number and photos of the damage. We will work with you to arrange a replacement or refund.</li>
               <li><strong>Lost packages:</strong> If your package has not arrived within the expected timeframe and tracking shows no updates, contact us and we will investigate with the carrier.</li>
               <li><strong>Original artwork:</strong> Insured shipments — we will file a claim and work to resolve the issue promptly.</li>
               <li><strong>Prints:</strong> We will reprint and reship at no cost to you.</li>
@@ -98,8 +99,8 @@ export default function ShippingPolicyPage() {
             </p>
             <p className="mt-2">
               <strong>ArtByME — Margaret Edmondson</strong><br />
-              Email:{' '}
-              <a href="mailto:hello@artbyme.studio" className="text-gold hover:underline">hello@artbyme.studio</a><br />
+              Contact form:{' '}
+              <Link href="/contact" className="text-gold hover:underline">artbyme.studio/contact</Link><br />
               Website: artbyme.studio
             </p>
           </section>

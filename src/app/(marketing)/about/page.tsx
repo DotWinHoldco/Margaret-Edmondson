@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { renderMarkdown } from '@/lib/markdown'
@@ -94,6 +95,15 @@ export default async function AboutPage() {
                   </li>
                 ))}
               </ul>
+              <Link
+                href="/cv"
+                className="mt-5 inline-flex items-center gap-1.5 font-body text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-teal hover:text-deep-teal transition-colors"
+              >
+                View full CV
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
             </div>
             {credentials.hero_image_url && (
               <div className="lg:order-2">

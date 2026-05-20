@@ -1,16 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { track } from '@/lib/meta/track'
 
+const SUBJECT_VALUES = ['general', 'commission', 'order', 'class', 'press', 'privacy', 'unsubscribe'] as const
+type Subject = typeof SUBJECT_VALUES[number]
+
 export default function ContactPage() {
+  const searchParams = useSearchParams()
+  const initialSubject: Subject = (() => {
+    const q = searchParams.get('subject')
+    return (SUBJECT_VALUES as readonly string[]).includes(q || '') ? (q as Subject) : 'general'
+  })()
+
   const [form, setForm] = useState({
     name: '',
     email: '',
-    subject: 'general',
+    subject: initialSubject,
     message: '',
     joinNewsletter: true,
   })
+
+  // Keep the subject in sync if the user follows another deep-link without reload.
+  useEffect(() => {
+    const q = searchParams.get('subject')
+    if (q && (SUBJECT_VALUES as readonly string[]).includes(q)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from URL on navigation
+      setForm((f) => ({ ...f, subject: q as Subject }))
+    }
+  }, [searchParams])
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,7 +123,7 @@ export default function ContactPage() {
               <label className="block text-xs font-body font-medium text-charcoal/70 mb-1">Subject</label>
               <select
                 value={form.subject}
-                onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                onChange={(e) => setForm({ ...form, subject: e.target.value as Subject })}
                 className="w-full px-4 py-2.5 border border-charcoal/10 rounded-sm font-body text-sm focus:outline-none focus:border-teal bg-white"
               >
                 <option value="general">General Inquiry</option>
@@ -112,6 +131,8 @@ export default function ContactPage() {
                 <option value="order">Order Question</option>
                 <option value="class">Art Class Question</option>
                 <option value="press">Press / Media</option>
+                <option value="privacy">Privacy / Data Request</option>
+                <option value="unsubscribe">Unsubscribe Help</option>
               </select>
             </div>
             <div>
@@ -152,7 +173,7 @@ export default function ContactPage() {
         )}
 
         <div className="mt-16 text-center font-body text-sm text-charcoal/50">
-          <p>hello@artbyme.studio</p>
+          <p>We typically respond within 24 hours.</p>
         </div>
       </div>
     </div>
