@@ -231,6 +231,35 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['page_blocks']['Insert']>
       }
+      pages: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          content_json: Json | null
+          content_html: string
+          seo_title: string | null
+          seo_description: string | null
+          hero_image_url: string | null
+          is_published: boolean
+          page_kind: 'custom' | 'legal' | 'commissions' | 'contact' | 'system'
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['pages']['Row']> & { title: string; slug: string }
+        Update: Partial<Database['public']['Tables']['pages']['Insert']>
+      }
+      page_revisions: {
+        Row: {
+          id: string
+          page_slug: string
+          section_key: string
+          snapshot: Json
+          edited_by: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['page_revisions']['Row']> & { page_slug: string; section_key: string; snapshot: Json }
+        Update: Partial<Database['public']['Tables']['page_revisions']['Insert']>
+      }
       testimonials: {
         Row: {
           id: string
