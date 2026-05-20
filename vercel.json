@@ -9,6 +9,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/email-campaigns-send",
+      "schedule": "*/2 * * * *"
+    },
+    {
       "path": "/api/cron/meta-event-sync",
       "schedule": "*/5 * * * *"
     }
