@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
 const supabase = createBrowserClient(
@@ -19,8 +18,8 @@ interface Props {
   priceCents: number
 }
 
-export default function ClassSignupForm({ slug }: Props) {
-  const router = useRouter()
+export default function ClassSignupForm({ slug, priceCents }: Props) {
+  const priceLabel = `$${(priceCents / 100).toFixed(0)}`
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -69,16 +68,17 @@ export default function ClassSignupForm({ slug }: Props) {
     setError(null)
     try {
       const pet_photo_urls = await upload()
-      const res = await fetch(`/api/classes/${slug}/signup`, {
+      const res = await fetch(`/api/classes/${slug}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, special_notes: notes, pet_photo_urls }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Sign-up failed')
-      router.push(`/classes/${slug}/thank-you?bookingId=${data.id}`)
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || 'Checkout failed')
+      // Stripe Checkout will redirect back to /classes/[slug]/thank-you on success.
+      window.location.href = body.data.url
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-up failed')
+      setError(err instanceof Error ? err.message : 'Checkout failed')
       setSubmitting(false)
     }
   }
@@ -139,10 +139,10 @@ export default function ClassSignupForm({ slug }: Props) {
 
       <button type="submit" disabled={submitting}
         className="w-full px-8 py-3 bg-teal text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-deep-teal transition-colors disabled:opacity-50">
-        {submitting ? 'Reserving your spot…' : 'Reserve my spot'}
+        {submitting ? 'Sending you to checkout…' : `Pay ${priceLabel} & reserve my spot`}
       </button>
       <p className="text-center font-body text-xs text-charcoal/50">
-        We&apos;ll email payment instructions (Venmo or Zelle) right after you reserve. Photos and payment due at least 2 weeks before class.
+        Secure checkout via Stripe. We&apos;ll confirm by email and remind you to send the pet photo two weeks ahead.
       </p>
     </form>
   )

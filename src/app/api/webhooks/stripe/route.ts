@@ -37,9 +37,75 @@ export async function POST(request: Request) {
         id: string
         payment_intent: string
         customer_email: string
-        metadata: { cart_id?: string; items_json?: string; course_id?: string; profile_id?: string }
+        metadata: {
+          cart_id?: string
+          items_json?: string
+          course_id?: string
+          profile_id?: string
+          class_booking_id?: string
+          class_session_id?: string
+        }
         shipping_details?: { address: Record<string, string> }
         amount_total: number
+      }
+
+      // Handle class booking checkout
+      if (session.metadata.class_booking_id) {
+        const bookingId = session.metadata.class_booking_id
+        const { data: booking } = await supabase
+          .from('class_bookings')
+          .update({
+            status: 'paid',
+            payment_method: 'stripe',
+            payment_received_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', bookingId)
+          .select('id, session_id, name, email')
+          .single()
+
+        if (booking) {
+          const { data: cls } = await supabase
+            .from('class_sessions')
+            .select('title, starts_at, location_name, location_address, slug')
+            .eq('id', booking.session_id)
+            .single()
+          if (cls) {
+            const startsLabel = new Date(cls.starts_at).toLocaleString('en-US', {
+              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+              hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',
+            })
+            try {
+              const { sendEmail } = await import('@/lib/email/send')
+              await sendEmail({
+                to: booking.email,
+                subject: `You're confirmed for ${cls.title}`,
+                html: `
+                  <h2>Your spot is confirmed 🎨</h2>
+                  <p>${booking.name}, payment received — see you in class.</p>
+                  <p><strong>When:</strong> ${startsLabel}</p>
+                  <p><strong>Where:</strong> ${cls.location_name}, ${cls.location_address}</p>
+                  <p>If you haven't already, reply to this email with a photo of your pet.</p>
+                  <p>— Margaret</p>
+                `,
+                replyTo: 'margaret117art@gmail.com',
+              })
+              await sendEmail({
+                to: 'margaret117art@gmail.com',
+                subject: `New paid class booking — ${cls.title}`,
+                html: `
+                  <p><strong>${booking.name}</strong> (${booking.email}) just paid for ${cls.title} — ${startsLabel}.</p>
+                  <p>View the booking in admin.</p>
+                `,
+                replyTo: booking.email,
+              })
+            } catch (e) {
+              console.error('Class booking email failed:', e)
+            }
+          }
+        }
+
+        break
       }
 
       // Handle course enrollment checkout

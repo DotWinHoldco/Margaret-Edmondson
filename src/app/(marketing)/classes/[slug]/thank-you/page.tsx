@@ -20,7 +20,7 @@ export default async function ThankYouPage(props: { params: Promise<{ slug: stri
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="font-display text-4xl font-light text-charcoal mb-3">You&rsquo;re reserved!</h1>
+        <h1 className="font-display text-4xl font-light text-charcoal mb-3">You&rsquo;re booked!</h1>
         <div className="mx-auto w-16 h-px bg-gold mb-6" />
         {s ? (
           <>
@@ -30,12 +30,11 @@ export default async function ThankYouPage(props: { params: Promise<{ slug: stri
               <strong>{s.location_name}</strong>.
             </p>
             <p className="mt-4 font-body text-base text-charcoal/75">
-              Check your inbox for payment instructions. Venmo or Zelle works — total due is{' '}
-              <strong>${(s.price_cents / 100).toFixed(2)}</strong>. Photos and payment due at least 2 weeks before class.
+              Payment&rsquo;s done — total <strong>${(s.price_cents / 100).toFixed(2)}</strong>. Check your inbox for the confirmation, then send me a clear photo of your pet at least 2 weeks before class.
             </p>
           </>
         ) : (
-          <p className="font-body text-base text-charcoal/75">Check your inbox for payment instructions.</p>
+          <p className="font-body text-base text-charcoal/75">Check your inbox for the confirmation.</p>
         )}
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/classes" className="inline-flex items-center justify-center px-8 py-3 border-2 border-charcoal text-charcoal font-body text-sm font-medium tracking-wider uppercase hover:bg-charcoal hover:text-cream transition-colors">
