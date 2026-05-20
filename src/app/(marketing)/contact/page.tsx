@@ -72,7 +72,7 @@ export default function ContactPage() {
             <p className="font-body text-charcoal/60">We&apos;ll get back to you within 24 hours.</p>
             {form.joinNewsletter && (
               <p className="mt-3 font-body text-sm text-teal">
-                Check your inbox for a 10% off code from the studio.
+                Check your inbox for your Studio List Newsletter welcome and 10% off code.
               </p>
             )}
           </div>
@@ -133,7 +133,7 @@ export default function ContactPage() {
                 className="mt-1 h-4 w-4 cursor-pointer accent-teal"
               />
               <span className="font-body text-sm text-charcoal/70">
-                Add me to the studio newsletter and send me <strong className="text-charcoal">10% off</strong> my first piece.
+                Add me to the Studio List Newsletter and send me <strong className="text-charcoal">10% off</strong> of my first purchase.
               </span>
             </label>
 

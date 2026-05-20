@@ -42,10 +42,10 @@ export default function FooterNewsletter() {
       <div className="grid gap-6 md:grid-cols-2 md:items-center">
         <div>
           <p className="text-xs font-body font-semibold uppercase tracking-[0.18em] text-gold">
-            Studio List
+            Studio List Newsletter
           </p>
           <h3 className="mt-2 font-display text-2xl font-light text-white">
-            Join the list for 10% off your first piece
+            Join our Studio List Newsletter and enjoy 10% off of your first purchase
           </h3>
           <p className="mt-2 font-body text-sm text-white/60">
             New work, upcoming exhibits, and the occasional studio note. No spam ever.

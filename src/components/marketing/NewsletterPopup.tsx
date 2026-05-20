@@ -170,12 +170,12 @@ export default function NewsletterPopup() {
               </div>
             ) : (
               <div className="text-center">
-                <p className="font-body text-xs uppercase tracking-[0.18em] text-teal">From the studio</p>
+                <p className="font-body text-xs uppercase tracking-[0.18em] text-teal">Studio List Newsletter</p>
                 <h2 className="mt-3 font-display text-3xl font-light text-charcoal">
-                  10% off your first piece
+                  Join our Studio List Newsletter
                 </h2>
                 <p className="mt-3 font-body text-sm text-charcoal/70">
-                  Join the studio list for new work, upcoming shows, and an instant 10% off code.
+                  Enjoy 10% off of your first purchase, plus new work, upcoming shows, and studio notes.
                 </p>
                 <form onSubmit={handleSubmit} className="mt-6 space-y-3">
                   <input
