@@ -111,6 +111,39 @@ export default function PageEditorClient() {
     }))
   }
 
+  const anyDirty = Object.values(sections).some(
+    (s) => s && !deepEqual(s.original, s.draft)
+  )
+
+  // Cmd/Ctrl-S saves the focused section.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        const state = sections[activeTab]
+        if (!state) return
+        const dirty = !deepEqual(state.original, state.draft)
+        if (!dirty || state.saving) return
+        e.preventDefault()
+        saveSection(activeTab)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // saveSection is intentionally not a dep — it closes over latest state via setSections callback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, sections])
+
+  // Warn before unload if anything is dirty.
+  useEffect(() => {
+    if (!anyDirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [anyDirty])
+
   if (schema.category === 'external') {
     // External entries are handled by PagePicker navigation; nothing to render here.
     return (
