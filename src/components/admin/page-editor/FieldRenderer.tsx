@@ -18,9 +18,21 @@ interface Props {
 
 export default function FieldRenderer({ field, parent, onChange, disabled }: Props) {
   if (field.kind === 'group') {
+    // When the group has a key, scope its children into parent[key].
+    // Used to edit nested JSON like page_blocks.config without
+    // flattening it on the wire.
+    const groupKey = field.key
+    const scopedParent = groupKey
+      ? ((parent[groupKey] as Record<string, unknown> | undefined) ?? {})
+      : parent
+    const scopedOnChange = groupKey
+      ? (next: Record<string, unknown>) => onChange({ ...parent, [groupKey]: next })
+      : onChange
     return (
       <div className="rounded-sm border border-charcoal/10 bg-cream/30 p-4">
-        <h4 className="mb-1 font-body text-sm font-semibold text-charcoal">{field.label}</h4>
+        {field.label && (
+          <h4 className="mb-1 font-body text-sm font-semibold text-charcoal">{field.label}</h4>
+        )}
         {field.description && (
           <p className="mb-3 font-body text-xs text-charcoal/45">{field.description}</p>
         )}
@@ -29,8 +41,8 @@ export default function FieldRenderer({ field, parent, onChange, disabled }: Pro
             <FieldRenderer
               key={`${('key' in f ? f.key : 'group')}-${i}`}
               field={f}
-              parent={parent}
-              onChange={onChange}
+              parent={scopedParent}
+              onChange={scopedOnChange}
               disabled={disabled}
             />
           ))}

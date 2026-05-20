@@ -32,8 +32,19 @@ function itemId(item: Record<string, unknown>, index: number): string {
   return (item.id as string | undefined) ?? `__new_${index}`
 }
 
+function resolveItemFields(
+  field: SortableListField,
+  item: Record<string, unknown>,
+  index: number
+): FieldSchema[] {
+  return typeof field.itemFields === 'function'
+    ? field.itemFields(item, index)
+    : field.itemFields
+}
+
 export default function SortableList({ field, value, onChange, disabled }: Props) {
   const items = value ?? []
+  const [addOpen, setAddOpen] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -61,9 +72,14 @@ export default function SortableList({ field, value, onChange, disabled }: Props
     onChange(items.filter((_, i) => i !== index))
   }
 
-  const add = () => {
-    const blank: Record<string, unknown> = { display_order: items.length, is_published: true }
+  const add = (defaults?: Record<string, unknown>) => {
+    const blank: Record<string, unknown> = {
+      display_order: items.length,
+      is_published: true,
+      ...(defaults ?? {}),
+    }
     onChange([...items, blank])
+    setAddOpen(false)
   }
 
   return (
@@ -72,14 +88,41 @@ export default function SortableList({ field, value, onChange, disabled }: Props
         <h3 className="font-body text-xs font-semibold uppercase tracking-[0.14em] text-charcoal/55">
           {field.label}
         </h3>
-        <button
-          type="button"
-          onClick={add}
-          disabled={disabled}
-          className="rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
-        >
-          + {field.addLabel ?? 'Add item'}
-        </button>
+        {field.addOptions && field.addOptions.length > 0 ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setAddOpen((o) => !o)}
+              disabled={disabled}
+              className="rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
+            >
+              + {field.addLabel ?? 'Add item'}
+            </button>
+            {addOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1 w-56 max-h-72 overflow-y-auto rounded-sm border border-charcoal/15 bg-white shadow-lg">
+                {field.addOptions.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => add(opt.defaults)}
+                    className="block w-full px-3 py-2 text-left font-body text-sm text-charcoal hover:bg-teal/5"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => add()}
+            disabled={disabled}
+            className="rounded-sm border border-charcoal/15 bg-white px-3 py-1.5 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
+          >
+            + {field.addLabel ?? 'Add item'}
+          </button>
+        )}
       </div>
 
       {items.length === 0 ? (
@@ -99,7 +142,7 @@ export default function SortableList({ field, value, onChange, disabled }: Props
                   id={itemId(item, index)}
                   item={item}
                   index={index}
-                  itemFields={field.itemFields}
+                  itemFields={resolveItemFields(field, item, index)}
                   itemLabel={field.itemLabel?.(item, index)}
                   onChange={(patch) => updateAt(index, patch)}
                   onRemove={() => remove(index)}

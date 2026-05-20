@@ -57,10 +57,18 @@ export interface SelectFieldDef extends BaseField {
 
 export interface SortableListField extends BaseField {
   kind: 'sortable-list'
-  itemFields: FieldSchema[]
+  /** Static list of fields rendered on every item, OR a function that
+   *  returns a per-item field set so polymorphic lists (e.g. homepage
+   *  blocks with different block_type configs) can render the right
+   *  form per item. */
+  itemFields: FieldSchema[] | ((item: Record<string, unknown>, index: number) => FieldSchema[])
   itemLabel?: (item: Record<string, unknown>, index: number) => string
   addLabel?: string
   emptyLabel?: string
+  /** Optional UI for adding items of a known set of subtypes — used by
+   *  homepage blocks so "Add block" opens a typed menu instead of a
+   *  blank row. */
+  addOptions?: Array<{ label: string; defaults: Record<string, unknown> }>
   /** When true the list represents a single ordered collection that the
    *  server adapter rewrites wholesale via saveSection. When false the
    *  server adapter does per-row diffing via dedicated POST/PATCH/DELETE. */
@@ -72,6 +80,10 @@ export interface GroupField {
   label: string
   description?: string
   fields: FieldSchema[]
+  /** When set, the group scopes its child fields into parent[key]
+   *  instead of operating on parent directly. Useful for editing
+   *  nested JSON like page_blocks.config. */
+  key?: string
 }
 
 export type FieldSchema =
