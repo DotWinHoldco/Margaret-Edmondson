@@ -66,6 +66,25 @@ export async function POST(
 
       if (!insertError && imageRow) {
         uploaded.push(imageRow)
+        // Register in central media library so the image shows up in
+        // /admin/media under the Products filter.
+        await supabase
+          .from('media_library')
+          .upsert(
+            {
+              storage_bucket: 'product-images',
+              storage_path: fileName,
+              url: urlData.publicUrl,
+              file_name: file.name,
+              mime_type: file.type || null,
+              byte_size: file.size || null,
+              alt_text: imageRow.alt_text,
+              categories: ['products'],
+              source: `product:${id}`,
+              uploaded_by: auth.user.id,
+            },
+            { onConflict: 'storage_bucket,storage_path' },
+          )
       }
     }
 

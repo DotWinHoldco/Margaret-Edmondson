@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import MediaPicker from '@/components/admin/MediaPicker'
 
 interface Section {
   section_key: string
@@ -228,32 +228,20 @@ function SectionsTab({
 }) {
   const router = useRouter()
   const [status, setStatus] = useState<Record<string, SaveStatus>>({})
-  const [uploading, setUploading] = useState<Record<string, boolean>>({})
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
 
   const update = (key: string, patch: Partial<Section>) => {
     setRows((prev) => prev.map((r) => (r.section_key === key ? { ...r, ...patch } : r)))
   }
 
-  const uploadImage = async (s: Section, file: File) => {
-    setUploading((p) => ({ ...p, [s.section_key]: true }))
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const path = `${s.section_key}-${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('about-images').upload(path, file, { upsert: true, contentType: file.type })
-    if (!error) {
-      const { data: pub } = supabase.storage.from('about-images').getPublicUrl(path)
-      update(s.section_key, { image_url: pub.publicUrl })
-      await fetch(`/api/admin/about/sections/${s.section_key}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ image_url: pub.publicUrl }),
-      })
-      router.refresh()
-    }
-    setUploading((p) => ({ ...p, [s.section_key]: false }))
+  const onPickerChoose = async (sectionKey: string, picked: { url: string; alt_text: string | null }) => {
+    update(sectionKey, { image_url: picked.url, image_alt: picked.alt_text })
+    await fetch(`/api/admin/about/sections/${sectionKey}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ image_url: picked.url, image_alt: picked.alt_text }),
+    })
+    router.refresh()
   }
 
   const removeImage = async (s: Section) => {
@@ -346,19 +334,13 @@ function SectionsTab({
               )}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors">
-                    {uploading[s.section_key] ? 'Uploading…' : s.image_url ? 'Replace image' : 'Upload image'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) uploadImage(s, file)
-                        e.target.value = ''
-                      }}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPickerFor(s.section_key)}
+                    className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
+                  >
+                    {s.image_url ? 'Replace image' : 'Choose image'}
+                  </button>
                   {s.image_url && (
                     <button
                       type="button"
@@ -391,6 +373,18 @@ function SectionsTab({
           </div>
         </div>
       ))}
+
+      <MediaPicker
+        open={pickerFor !== null}
+        onClose={() => setPickerFor(null)}
+        defaultCategory="about"
+        initialFilter="about"
+        uploadBucket="about-images"
+        title="Choose section image"
+        onPick={(picked) => {
+          if (pickerFor) onPickerChoose(pickerFor, picked)
+        }}
+      />
     </div>
   )
 }

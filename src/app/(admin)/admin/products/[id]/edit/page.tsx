@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import MediaPicker from '@/components/admin/MediaPicker'
 import VariantsTab, { type Variant as PrintVariant } from '@/components/admin/VariantsTab'
 import type { Medium } from '@/lib/pricing/mediums'
 
@@ -173,6 +174,7 @@ export default function EditProductPage({
   const [variants, setVariants] = useState<Variant[]>([])
   const [printVariants, setPrintVariants] = useState<PrintVariant[]>([])
   const [productDefaultMargin, setProductDefaultMargin] = useState<number>(100)
+  const [showImagePicker, setShowImagePicker] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -883,6 +885,15 @@ export default function EditProductPage({
                 ))}
               </div>
             )}
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowImagePicker(true)}
+                className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
+              >
+                Choose from library
+              </button>
+            </div>
             <label className="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-charcoal/15 py-8 hover:border-teal/40 hover:bg-teal/[0.02] transition-colors">
               <input
                 type="file"
@@ -1010,6 +1021,26 @@ export default function EditProductPage({
         confirmText="Delete"
         onConfirm={() => confirm?.action()}
         onCancel={() => setConfirm(null)}
+      />
+
+      <MediaPicker
+        open={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        defaultCategory="products"
+        initialFilter="products"
+        uploadBucket="product-images"
+        title="Add image from library"
+        onPick={async (picked) => {
+          const res = await fetch(`/api/admin/products/${id}/images/from-library`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ url: picked.url, alt_text: picked.alt_text, media_id: picked.id }),
+          })
+          if (res.ok) {
+            const body = await res.json()
+            setImages((prev) => [...prev, body.data])
+          }
+        }}
       />
     </div>
   )
