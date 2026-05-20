@@ -15,6 +15,7 @@ const FOOTER_LINKS = {
   ],
   About: [
     { href: '/about', label: 'About the Artist' },
+    { href: '/cv', label: 'CV' },
     { href: '/contact', label: 'Contact' },
   ],
   Legal: [

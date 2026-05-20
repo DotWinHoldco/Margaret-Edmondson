@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: '/classes', label: 'Classes' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
+  { href: '/cv', label: 'CV' },
   { href: '/contact', label: 'Contact' },
 ]
 
