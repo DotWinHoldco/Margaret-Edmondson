@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
+import { upsertContact } from '@/lib/crm/contacts'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 export async function POST(request: Request) {
@@ -55,17 +55,17 @@ export async function POST(request: Request) {
 
   // Mirror lead into CRM.
   try {
-    const contact = await upsertContact(
+    await upsertContact(
       {
         email: client_email,
         firstName: String(client_name).split(' ')[0] || null,
         lastName: String(client_name).split(' ').slice(1).join(' ') || null,
         phone: client_phone || null,
         source: 'commission_request',
+        listSlug: 'contact-form',
       },
       supabase
     )
-    if (contact) await addToList(contact.id, 'contact-form', 'commission_request', supabase)
   } catch (err) {
     console.error('Commission CRM upsert failed:', err)
   }

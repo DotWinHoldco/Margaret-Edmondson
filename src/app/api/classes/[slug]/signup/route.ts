@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
+import { upsertContact } from '@/lib/crm/contacts'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
@@ -80,17 +80,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // CRM record for the lead.
   try {
-    const contact = await upsertContact(
+    await upsertContact(
       {
         email: body.email,
         firstName: body.name.split(' ')[0] || null,
         lastName: body.name.split(' ').slice(1).join(' ') || null,
         phone: body.phone || null,
         source: 'class_signup',
+        listSlug: 'contact-form',
       },
       supabase
     )
-    if (contact) await addToList(contact.id, 'contact-form', 'class_signup', supabase)
   } catch (err) {
     console.error('Class signup CRM upsert failed:', err)
   }

@@ -1,7 +1,7 @@
 import { sendEmail } from '@/lib/email/send'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { createClient } from '@/lib/supabase/server'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
+import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
 
 export async function POST(request: Request) {
@@ -26,19 +26,17 @@ export async function POST(request: Request) {
   // Log every inbound contact to the CRM and tag with the contact-form list
   // (regardless of whether they opted into marketing).
   try {
-    const contact = await upsertContact(
+    await upsertContact(
       {
         email,
         firstName: name.split(' ')[0] || null,
         lastName: name.split(' ').slice(1).join(' ') || null,
         source: 'contact_form',
         tags: ['contact-form'],
+        listSlug: 'contact-form',
       },
       supabase
     )
-    if (contact) {
-      await addToList(contact.id, 'contact-form', 'contact_form', supabase)
-    }
   } catch (err) {
     console.error('Contact CRM upsert failed:', err)
   }

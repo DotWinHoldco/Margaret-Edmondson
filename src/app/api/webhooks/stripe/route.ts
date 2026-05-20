@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
-import { upsertContact, recordOrder } from '@/lib/crm/contacts'
+import { recordOrder } from '@/lib/crm/contacts'
 import { headers } from 'next/headers'
 
 export async function POST(request: Request) {
@@ -219,34 +219,33 @@ export async function POST(request: Request) {
             .eq('id', session.metadata.cart_id)
         }
 
-        // CRM: ensure the buyer exists, add to Buyers list, bump totals.
+        // CRM: ensure the buyer exists, join Buyers, bump totals, and
+        // (atomically) record the promo redemption if one applied.
         try {
           if (session.customer_email) {
-            const contact = await upsertContact(
+            await recordOrder(
+              session.customer_email,
+              order.total,
               {
-                email: session.customer_email,
-                source: 'order',
+                promoCodeId: session.metadata.promo_code_id || null,
+                amountOffCents: discountCents,
+                orderId: order.id,
               },
               supabase
             )
-            if (contact) {
-              await recordOrder(contact.id, order.total, supabase)
-            }
           }
         } catch (err) {
           console.error('Buyer CRM update failed:', err)
         }
 
-        // Promo code redemption tracking.
+        // Promo redemption was handled inside record_order_for_contact
+        // above; we no longer need a duplicate insert here. Keep a
+        // best-effort no-op block as documentation.
         try {
           const promoId = session.metadata.promo_code_id
-          if (promoId) {
-            await supabase.from('promo_code_redemptions').insert({
-              promo_code_id: promoId,
-              contact_id: session.metadata.contact_id || null,
-              order_id: order.id,
-              amount_off_cents: discountCents,
-            })
+          if (promoId && !session.customer_email) {
+            // Edge case: paid order with no email. Still bump usage so
+            // the code is consumed.
             const { data: codeRow } = await supabase
               .from('promo_codes')
               .select('usage_count')

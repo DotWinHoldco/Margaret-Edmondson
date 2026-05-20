@@ -14,7 +14,7 @@ import { renderHtml } from '@/lib/email/render'
 import { ctaButton, discountCallout } from '@/lib/email/shell'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
+import { upsertContact } from '@/lib/crm/contacts'
 import type { Database } from '@/lib/types/database'
 
 type CartRow = Database['public']['Tables']['carts']['Row']
@@ -109,10 +109,12 @@ export async function GET(request: Request) {
 async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
   if (cart.contact_id) return cart.contact_id
   if (!cart.email) return null
-  const contact = await upsertContact({ email: cart.email, source: 'cart_abandon' }, supabase)
+  const contact = await upsertContact(
+    { email: cart.email, source: 'cart_abandon', listSlug: 'cart-abandoners' },
+    supabase
+  )
   if (!contact) return null
   await supabase.from('carts').update({ contact_id: contact.id }).eq('id', cart.id)
-  await addToList(contact.id, 'cart-abandoners', 'cart_abandon', supabase)
   return contact.id
 }
 

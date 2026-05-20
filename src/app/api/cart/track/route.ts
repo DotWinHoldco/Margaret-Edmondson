@@ -5,7 +5,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
+import { upsertContact } from '@/lib/crm/contacts'
 
 interface CartTrackPayload {
   cartId?: string | null
@@ -39,13 +39,10 @@ export async function POST(request: Request) {
   let contactId: string | null = null
   if (email && email.includes('@')) {
     const contact = await upsertContact(
-      { email, source: 'cart' },
+      { email, source: 'cart', listSlug: 'cart-abandoners' },
       supabase
     )
-    if (contact) {
-      contactId = contact.id
-      await addToList(contact.id, 'cart-abandoners', 'cart', supabase)
-    }
+    if (contact) contactId = contact.id
   }
 
   if (body.cartId) {
