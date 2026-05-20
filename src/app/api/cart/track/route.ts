@@ -1,7 +1,10 @@
 // Server cart sync. CartProvider on the client debounces every cart
 // mutation and POSTs here so we have a server-side record for the
-// abandonment sequence. Email is optional — if provided we also create
-// the canonical CRM contact and join the Cart Abandoners list.
+// abandonment sequence. Routes through the track_cart SECURITY
+// DEFINER RPC so anon callers (every shopper) can write to carts
+// without needing direct INSERT+SELECT grants — RLS forbids anon
+// SELECT on carts, so the previous .insert(...).select('id') path
+// failed silently.
 
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -34,7 +37,6 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient()
-  const nowIso = new Date().toISOString()
 
   let contactId: string | null = null
   if (email && email.includes('@')) {
@@ -45,48 +47,18 @@ export async function POST(request: Request) {
     if (contact) contactId = contact.id
   }
 
-  if (body.cartId) {
-    const update = {
-      items: items as unknown as object,
-      subtotal,
-      last_activity_at: nowIso,
-      email: email ?? null,
-      contact_id: contactId,
-      status: items.length === 0 ? 'dead' : 'active',
-    } as const
+  const { data, error } = await supabase.rpc('track_cart', {
+    p_cart_id: body.cartId ?? null,
+    p_email: email,
+    p_items: items as unknown as object,
+    p_subtotal: subtotal,
+    p_contact_id: contactId,
+  })
 
-    const { data, error } = await supabase
-      .from('carts')
-      .update(update)
-      .eq('id', body.cartId)
-      .select('id')
-      .maybeSingle()
-    if (!error && data) {
-      return Response.json({ ok: true, cartId: data.id })
-    }
+  if (error) {
+    console.error('track_cart RPC failed', error)
+    return Response.json({ ok: false, error: 'cart_track_failed' }, { status: 500 })
   }
 
-  if (items.length === 0) {
-    return Response.json({ ok: true, cartId: null })
-  }
-
-  const { data: inserted, error: insertErr } = await supabase
-    .from('carts')
-    .insert({
-      items: items as unknown as object,
-      subtotal,
-      last_activity_at: nowIso,
-      email: email ?? null,
-      contact_id: contactId,
-      status: 'active',
-    })
-    .select('id')
-    .maybeSingle()
-
-  if (insertErr || !inserted) {
-    console.error('cart insert failed', insertErr)
-    return Response.json({ ok: false }, { status: 500 })
-  }
-
-  return Response.json({ ok: true, cartId: inserted.id })
+  return Response.json({ ok: true, cartId: (data as string | null) ?? null })
 }
