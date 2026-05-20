@@ -319,6 +319,7 @@ export interface Database {
         Row: {
           id: string
           profile_id: string | null
+          contact_id: string | null
           email: string | null
           items: Json
           subtotal: number
@@ -327,11 +328,17 @@ export interface Database {
           abandoned_email_1_sent_at: string | null
           abandoned_email_2_sent_at: string | null
           abandoned_email_3_sent_at: string | null
+          promo_code_id: string | null
+          nurture_started_at: string | null
+          nurture_last_sent_at: string | null
+          status: 'active' | 'converted' | 'abandoned' | 'nurture' | 'dead'
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['carts']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<Database['public']['Tables']['carts']['Row'], 'id' | 'created_at' | 'updated_at' | 'status' | 'last_activity_at'> & {
           id?: string
+          status?: 'active' | 'converted' | 'abandoned' | 'nurture' | 'dead'
+          last_activity_at?: string
           created_at?: string
           updated_at?: string
         }
@@ -414,9 +421,168 @@ export interface Database {
           valid_from: string | null
           valid_until: string | null
           is_active: boolean
+          kind: 'manual' | 'campaign' | 'newsletter_signup' | 'cart_abandon' | 'automation'
+          audience_list_id: string | null
+          cart_id: string | null
+          contact_id: string | null
+          single_use_per_contact: boolean
+          description: string | null
+          created_by: string | null
+          stripe_coupon_id: string | null
+          created_at: string
+          updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['promo_codes']['Row'], 'id'> & { id?: string }
+        Insert: Partial<Database['public']['Tables']['promo_codes']['Row']> & { code: string; discount_value: number }
         Update: Partial<Database['public']['Tables']['promo_codes']['Insert']>
+      }
+      crm_contacts: {
+        Row: {
+          id: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          phone: string | null
+          source: string | null
+          status: 'active' | 'unsubscribed' | 'bounced' | 'complained'
+          tags: string[]
+          total_orders: number
+          total_spent_cents: number
+          last_purchase_at: string | null
+          last_active_at: string | null
+          profile_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['crm_contacts']['Row']> & { email: string }
+        Update: Partial<Database['public']['Tables']['crm_contacts']['Insert']>
+      }
+      contact_lists: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          description: string | null
+          is_system: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['contact_lists']['Row']> & { slug: string; name: string }
+        Update: Partial<Database['public']['Tables']['contact_lists']['Insert']>
+      }
+      contact_list_members: {
+        Row: {
+          contact_id: string
+          list_id: string
+          source: string | null
+          joined_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['contact_list_members']['Row']> & { contact_id: string; list_id: string }
+        Update: Partial<Database['public']['Tables']['contact_list_members']['Insert']>
+      }
+      promo_code_redemptions: {
+        Row: {
+          id: string
+          promo_code_id: string
+          contact_id: string | null
+          order_id: string | null
+          amount_off_cents: number
+          redeemed_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['promo_code_redemptions']['Row']> & { promo_code_id: string }
+        Update: Partial<Database['public']['Tables']['promo_code_redemptions']['Insert']>
+      }
+      email_campaigns: {
+        Row: {
+          id: string
+          name: string
+          subject: string
+          preheader: string | null
+          from_name: string | null
+          from_email: string | null
+          content_html: string
+          content_json: Json | null
+          status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'paused'
+          audience_list_id: string | null
+          promo_code_id: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          queued_count: number
+          sent_count: number
+          failed_count: number
+          opened_count: number
+          clicked_count: number
+          unsubscribed_count: number
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['email_campaigns']['Row']> & { name: string; subject: string }
+        Update: Partial<Database['public']['Tables']['email_campaigns']['Insert']>
+      }
+      email_campaign_recipients: {
+        Row: {
+          id: string
+          campaign_id: string
+          contact_id: string | null
+          email_snapshot: string
+          first_name_snapshot: string | null
+          status: 'queued' | 'sent' | 'failed' | 'bounced' | 'unsubscribed' | 'complained' | 'skipped'
+          error: string | null
+          resend_message_id: string | null
+          queued_at: string
+          sent_at: string | null
+          opened_at: string | null
+          clicked_at: string | null
+        }
+        Insert: Partial<Database['public']['Tables']['email_campaign_recipients']['Row']> & { campaign_id: string; email_snapshot: string }
+        Update: Partial<Database['public']['Tables']['email_campaign_recipients']['Insert']>
+      }
+      email_automations: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          description: string | null
+          trigger_event: 'newsletter_signup' | 'cart_abandon_nurture' | 'order_placed' | 'class_enrolled'
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['email_automations']['Row']> & { slug: string; name: string; trigger_event: 'newsletter_signup' | 'cart_abandon_nurture' | 'order_placed' | 'class_enrolled' }
+        Update: Partial<Database['public']['Tables']['email_automations']['Insert']>
+      }
+      email_automation_steps: {
+        Row: {
+          id: string
+          automation_id: string
+          step_order: number
+          delay_minutes: number
+          subject: string
+          preheader: string | null
+          content_html: string
+          promo_code_kind: string | null
+          promo_percent_off: number | null
+          promo_expires_in_hours: number | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['email_automation_steps']['Row']> & { automation_id: string; step_order: number; subject: string }
+        Update: Partial<Database['public']['Tables']['email_automation_steps']['Insert']>
+      }
+      unsubscribe_events: {
+        Row: {
+          id: string
+          contact_id: string | null
+          list_id: string | null
+          email: string
+          reason: string | null
+          source: string | null
+          ip: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['unsubscribe_events']['Row']> & { email: string }
+        Update: Partial<Database['public']['Tables']['unsubscribe_events']['Insert']>
       }
     }
     Views: Record<string, never>

@@ -1,3 +1,5 @@
+import { brandedShell, ctaButton, discountCallout } from './shell'
+
 const RESEND_API = 'https://api.resend.com/emails'
 
 interface SendEmailOptions {
@@ -5,9 +7,10 @@ interface SendEmailOptions {
   subject: string
   html: string
   replyTo?: string
+  headers?: Record<string, string>
 }
 
-export async function sendEmail({ to, subject, html, replyTo }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, replyTo, headers }: SendEmailOptions) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set — skipping email:', subject)
     return null
@@ -25,6 +28,7 @@ export async function sendEmail({ to, subject, html, replyTo }: SendEmailOptions
       subject,
       html,
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(headers ? { headers } : {}),
     }),
   })
 
@@ -35,23 +39,6 @@ export async function sendEmail({ to, subject, html, replyTo }: SendEmailOptions
   }
 
   return res.json()
-}
-
-// ─── Branded wrapper ─────────────────────────────────────────────────
-function brandedWrapper(content: string) {
-  return `
-<div style="font-family: Georgia, 'Times New Roman', serif; max-width: 560px; margin: 0 auto; padding: 40px 24px; color: #2C2C2C; background: #FAF7F2;">
-  <div style="text-align: center; margin-bottom: 32px;">
-    <h1 style="font-size: 28px; font-weight: 300; letter-spacing: 0.03em; margin: 0;">ArtBy<span style="font-weight: 700;">ME</span></h1>
-    <p style="color: #3A7D7B; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Margaret Edmondson</p>
-  </div>
-  ${content}
-  <hr style="border: none; border-top: 1px solid #e5e0d8; margin: 32px 0 16px;" />
-  <p style="text-align: center; color: #C9A84C; font-size: 11px; letter-spacing: 0.05em;">Mixed media, paintings &amp; collage by Margaret Edmondson</p>
-  <p style="text-align: center; color: #999; font-size: 10px; margin-top: 8px;">
-    <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}" style="color: #3A7D7B; text-decoration: none;">artbyme.studio</a>
-  </p>
-</div>`
 }
 
 // ─── Order Confirmation ──────────────────────────────────────────────
@@ -79,7 +66,8 @@ export async function sendOrderConfirmation(
     )
     .join('')
 
-  const html = brandedWrapper(`
+  const html = brandedShell(
+    `
     <h2 style="font-size: 20px; font-weight: 400; text-align: center; margin-bottom: 8px;">Thank You for Your Order!</h2>
     <p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
       Your order has been confirmed and is being prepared. You'll receive shipping updates as your art is on its way.
@@ -107,7 +95,9 @@ export async function sendOrderConfirmation(
       Questions about your order? Reply to this email or reach out at
       <a href="mailto:hello@artbyme.studio" style="color: #3A7D7B;">hello@artbyme.studio</a>
     </p>
-  `)
+  `,
+    { hideUnsubscribe: true, preheader: `Order confirmed — total $${total.toFixed(2)}` }
+  )
 
   return sendEmail({
     to: email,
@@ -118,26 +108,43 @@ export async function sendOrderConfirmation(
 }
 
 // ─── Welcome Subscriber ──────────────────────────────────────────────
-export async function sendWelcomeSubscriber(email: string, firstName?: string) {
+export async function sendWelcomeSubscriber(
+  email: string,
+  firstName?: string,
+  options?: { discountCode?: string; percentOff?: number; expiresLabel?: string; unsubscribeUrl?: string }
+) {
   const greeting = firstName ? `Hi ${firstName},` : 'Welcome!'
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
-  const html = brandedWrapper(`
+  const codeBlock = options?.discountCode && options.percentOff
+    ? discountCallout(options.discountCode, options.percentOff, options.expiresLabel || 'Valid for 24 hours')
+    : ''
+
+  const html = brandedShell(
+    `
     <h2 style="font-size: 20px; font-weight: 400; text-align: center; margin-bottom: 8px;">${greeting}</h2>
-    <p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+    <p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
       Thank you for subscribing to ArtByME. You'll be the first to know about new artwork, upcoming shows, and exclusive offers from Margaret Edmondson.
     </p>
-    <div style="text-align: center; margin-bottom: 24px;">
-      <a href="${siteUrl}/shop" style="display: inline-block; background: #3A7D7B; color: white; padding: 14px 36px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">Browse the Collection</a>
-    </div>
+    ${codeBlock}
+    ${ctaButton(`${siteUrl}/shop`, 'Browse the Collection')}
     <p style="text-align: center; color: #999; font-size: 12px;">
-      You can unsubscribe at any time by clicking the link in future emails.
+      ${codeBlock ? 'Apply the code at checkout. ' : ''}You can unsubscribe at any time using the link below.
     </p>
-  `)
+  `,
+    {
+      preheader: options?.discountCode
+        ? `Welcome to ArtByME — your ${options.percentOff}% off code is inside.`
+        : 'Welcome to ArtByME',
+      unsubscribeUrl: options?.unsubscribeUrl,
+    }
+  )
 
   return sendEmail({
     to: email,
-    subject: 'Welcome to ArtByME — Margaret Edmondson',
+    subject: options?.discountCode
+      ? `Welcome — here is your ${options.percentOff}% off code`
+      : 'Welcome to ArtByME — Margaret Edmondson',
     html,
   })
 }
@@ -151,21 +158,22 @@ export async function sendShippingUpdate(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
   const trackingBlock = trackingUrl
-    ? `<div style="text-align: center; margin-bottom: 24px;">
-        <a href="${trackingUrl}" style="display: inline-block; background: #3A7D7B; color: white; padding: 14px 36px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">Track Your Shipment</a>
-      </div>`
+    ? ctaButton(trackingUrl, 'Track Your Shipment')
     : `<p style="text-align: center; color: #666; font-size: 14px;">Tracking details will be available shortly.</p>`
 
-  const html = brandedWrapper(`
+  const html = brandedShell(
+    `
     <h2 style="font-size: 20px; font-weight: 400; text-align: center; margin-bottom: 8px;">Your Art Is On Its Way!</h2>
     <p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-      Great news — order #${orderId.slice(0, 8).toUpperCase()} has shipped.
+      Great news, order #${orderId.slice(0, 8).toUpperCase()} has shipped.
     </p>
     ${trackingBlock}
     <p style="text-align: center; color: #999; font-size: 12px;">
       Questions? Reply to this email or visit <a href="${siteUrl}" style="color: #3A7D7B;">artbyme.studio</a>
     </p>
-  `)
+  `,
+    { hideUnsubscribe: true, preheader: 'Shipping update inside.' }
+  )
 
   return sendEmail({
     to: email,
