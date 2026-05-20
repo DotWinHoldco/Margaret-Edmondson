@@ -7,6 +7,7 @@ import BooleanField from './BooleanField'
 import SelectField from './SelectField'
 import ImageField from './ImageField'
 import SortableList from './SortableList'
+import ProductPickerField from './ProductPickerField'
 import type { FieldSchema } from '@/lib/page-editor/types'
 
 interface Props {
@@ -70,6 +71,8 @@ export default function FieldRenderer({ field, parent, onChange, disabled }: Pro
       return <SelectField field={field} value={current as string | null | undefined} onChange={setValue} disabled={disabled} />
     case 'image':
       return <ImageField field={field} parent={parent} onChange={onChange} disabled={disabled} />
+    case 'product-picker':
+      return <ProductPickerField field={field} parent={parent} onChange={onChange} disabled={disabled} />
     case 'sortable-list':
       return (
         <SortableList

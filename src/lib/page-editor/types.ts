@@ -13,6 +13,7 @@ export type FieldKind =
   | 'select'
   | 'sortable-list'
   | 'group'
+  | 'product-picker'
 
 export interface BaseField {
   key: string
@@ -75,6 +76,19 @@ export interface SortableListField extends BaseField {
   wholesale?: boolean
 }
 
+export interface ProductPickerFieldDef extends BaseField {
+  kind: 'product-picker'
+  /** Optional sibling keys to backfill from the selected product. The
+   *  picker writes parent[key] = product.slug and (when set)
+   *  parent[titleKey] = product.title and parent[imageKey] =
+   *  product's primary image url. */
+  titleKey?: string
+  imageKey?: string
+  /** Optional sibling keys whose values get cleared on selection so
+   *  stale override values don't linger. */
+  clearOnSelect?: string[]
+}
+
 export interface GroupField {
   kind: 'group'
   label: string
@@ -95,6 +109,7 @@ export type FieldSchema =
   | SelectFieldDef
   | SortableListField
   | GroupField
+  | ProductPickerFieldDef
 
 export interface SectionSchema {
   key: string
