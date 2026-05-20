@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeSubscriber } from '@/lib/email/send'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { upsertContact, addToList } from '@/lib/crm/contacts'
-import { generateDiscountCode } from '@/lib/discounts/generate'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
+
+interface SubscribeRow {
+  contact_id: string
+  code: string | null
+  percent_off: number | null
+  status: 'active' | 'unsubscribed' | 'bounced' | 'complained'
+}
 
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 3, windowMs: 60_000, keyPrefix: 'newsletter' })
@@ -23,7 +28,8 @@ export async function POST(request: Request) {
   const normalizedEmail = email.toLowerCase().trim()
   const supabase = await createClient()
 
-  // Legacy compatibility — keep the newsletter_subscribers row populated.
+  // Legacy mirror — keep newsletter_subscribers in sync for existing
+  // consumers (CSV export, etc.).
   const { error: legacyErr } = await supabase
     .from('newsletter_subscribers')
     .upsert(
@@ -34,75 +40,39 @@ export async function POST(request: Request) {
     console.error('Newsletter legacy upsert failed:', legacyErr)
   }
 
-  // Upsert into the canonical CRM. Returns the contact row with id.
-  const contact = await upsertContact(
-    {
-      email: normalizedEmail,
-      firstName: firstName ?? null,
-      source: source ?? 'newsletter',
-    },
-    supabase
-  )
+  // Single atomic RPC handles: crm_contacts upsert, Newsletter list
+  // join, and a single-use 24h 10% off code. The function is
+  // SECURITY DEFINER so anon callers can mutate crm_contacts and
+  // promo_codes without needing direct table grants.
+  const { data, error } = await supabase.rpc('subscribe_to_newsletter', {
+    p_email: normalizedEmail,
+    p_first_name: firstName ?? null,
+    p_source: source ?? 'unknown',
+  })
 
-  if (!contact) {
+  if (error) {
+    console.error('subscribe_to_newsletter RPC failed:', error)
     return Response.json({ error: 'Failed to record subscription' }, { status: 500 })
   }
 
-  await addToList(contact.id, 'newsletter', source ?? 'newsletter', supabase)
+  // Postgres returns an array (the function declared RETURNS TABLE).
+  const row = (Array.isArray(data) ? data[0] : data) as SubscribeRow | null
+  if (!row) {
+    return Response.json({ error: 'Failed to record subscription' }, { status: 500 })
+  }
 
-  // Skip the welcome + code if the contact has unsubscribed in the past
-  // and this is not an explicit resubscribe.
-  if (contact.status === 'unsubscribed') {
+  if (row.status !== 'active') {
     return Response.json({ success: true, alreadyUnsubscribed: true })
   }
 
-  // Generate a single-use 10% off code valid for 24 hours. If the contact
-  // already received a newsletter signup code in the last 24h, re-use it
-  // rather than handing out a fresh one.
-  let discountCode: string | null = null
-  let discountValue = 10
-  try {
-    const { data: existingCode } = await supabase
-      .from('promo_codes')
-      .select('code, discount_value, valid_until')
-      .eq('contact_id', contact.id)
-      .eq('kind', 'newsletter_signup')
-      .eq('is_active', true)
-      .gte('valid_until', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (existingCode) {
-      discountCode = existingCode.code
-      discountValue = existingCode.discount_value
-    } else {
-      const created = await generateDiscountCode(
-        {
-          kind: 'newsletter_signup',
-          percentOff: 10,
-          expiresInHours: 24,
-          contactId: contact.id,
-          singleUsePerContact: true,
-          prefix: 'WELCOME',
-          description: `Newsletter signup discount for ${normalizedEmail}`,
-        },
-        supabase
-      )
-      discountCode = created.code
-      discountValue = created.discount_value
-    }
-  } catch (err) {
-    console.error('Newsletter discount code generation failed:', err)
-  }
-
-  // Welcome email with the code, branded shell, unsubscribe link.
+  // Best-effort welcome email with the code. Email failure should not
+  // fail the subscription itself.
   try {
     await sendWelcomeSubscriber(normalizedEmail, firstName ?? undefined, {
-      discountCode: discountCode ?? undefined,
-      percentOff: discountValue,
+      discountCode: row.code ?? undefined,
+      percentOff: row.percent_off ?? 10,
       expiresLabel: 'Valid for 24 hours',
-      unsubscribeUrl: buildUnsubscribeUrl(contact.id),
+      unsubscribeUrl: buildUnsubscribeUrl(row.contact_id),
     })
   } catch (err) {
     console.error('Welcome email failed:', err)
@@ -110,7 +80,7 @@ export async function POST(request: Request) {
 
   return Response.json({
     success: true,
-    discountCode,
-    discountValue,
+    discountCode: row.code,
+    discountValue: row.percent_off,
   })
 }
