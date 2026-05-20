@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Paint Your Pet Art Classes',
   description:
-    'Bring a photo of your pet, leave with a finished painting. Adult, teen, and kids Paint Your Pet classes taught by Margaret Edmondson in Argyle, TX.',
+    'Bring a photo of your pet, leave with a finished painting. Adult, teen, and kids Paint Your Pet classes taught by Margaret Edmondson at The Farmhouse coffee shop in Harvest.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -284,7 +284,7 @@ export default async function ClassesPage() {
           <p className="font-hand text-lg text-gold uppercase tracking-wider">About your instructor</p>
           <h3 className="mt-2 font-display text-3xl font-light text-charcoal">Margaret Edmondson</h3>
           <p className="mt-4 font-body text-base text-charcoal/75 leading-relaxed">
-            BS Art Education, Murray State University. MFA in Painting, Savannah College of Art and Design. Margaret has taught art to all ages across several states and now teaches from her studio in Argyle, TX.
+            BS Art Education, Murray State University. MFA in Painting, Savannah College of Art and Design. Margaret has taught art to all ages across several states. Classes are hosted at The Farmhouse coffee shop in Harvest.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
