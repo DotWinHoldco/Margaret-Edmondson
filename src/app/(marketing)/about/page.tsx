@@ -163,7 +163,7 @@ export default async function AboutPage() {
         <section className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/shop" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
             <p className="font-hand text-base text-gold uppercase tracking-wider">Browse</p>
-            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">The work</h3>
+            <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">My Work</h3>
             <p className="mt-2 font-body text-sm text-charcoal/60">Originals, prints, and recent series.</p>
           </Link>
           <Link href="/classes" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
