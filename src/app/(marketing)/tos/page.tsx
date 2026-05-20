@@ -1,12 +1,38 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import PageBodyShell from '@/components/marketing/PageBodyShell'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description: 'ArtByME terms of service — the terms governing your use of our website and purchases.',
 }
 
-export default function TermsOfServicePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function TermsOfServicePage() {
+  const supabase = await createClient()
+  const { data: page } = await supabase
+    .from('pages')
+    .select('title, content_html, hero_image_url')
+    .eq('slug', 'terms')
+    .maybeSingle()
+
+  if (page?.content_html && page.content_html.trim().length > 0) {
+    return (
+      <PageBodyShell
+        title={page.title || 'Terms of Service'}
+        bodyHtml={page.content_html}
+        heroImageUrl={page.hero_image_url}
+        lastUpdated="April 2, 2026"
+      />
+    )
+  }
+
+  return termsDefault()
+}
+
+function termsDefault() {
   return (
     <div className="py-12 sm:py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

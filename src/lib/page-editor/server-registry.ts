@@ -261,11 +261,157 @@ const cvAdapter: ServerAdapter = {
   },
 }
 
+// ─── Pages table adapter (legal pages, commissions, contact, etc.) ─
+
+interface PagesRow {
+  slug: string
+  title: string
+  content_html: string
+  content_json: unknown
+  seo_title: string | null
+  seo_description: string | null
+  hero_image_url: string | null
+  is_published: boolean
+}
+
+function pagesAdapterForSlug(slug: string): ServerAdapter {
+  return {
+    slug,
+    async load(supabase) {
+      const { data } = await supabase
+        .from('pages')
+        .select('slug, title, content_html, content_json, seo_title, seo_description, hero_image_url, is_published')
+        .eq('slug', slug)
+        .maybeSingle()
+      const row = (data as PagesRow | null) ?? null
+      return {
+        body: {
+          title: row?.title ?? '',
+          content_html: row?.content_html ?? '',
+          seo_description: row?.seo_description ?? '',
+          hero_image_url: row?.hero_image_url ?? null,
+          hero_image_alt: null,
+          is_published: row?.is_published ?? true,
+        },
+      }
+    },
+    async loadSection(supabase, sectionKey) {
+      const all = await this.load!(supabase)
+      return (all as Record<string, unknown>)[sectionKey]
+    },
+    async saveSection(supabase, sectionKey, value) {
+      if (sectionKey !== 'body') throw new Error(`Unknown ${slug} section: ${sectionKey}`)
+      const body = value as PagesRow & { hero_image_alt?: string | null }
+      const update = {
+        title: body.title,
+        content_html: body.content_html,
+        seo_description: body.seo_description ?? null,
+        hero_image_url: body.hero_image_url ?? null,
+        is_published: body.is_published ?? true,
+      }
+      // Upsert so a missing row gets created on first save.
+      const { data: existing } = await supabase
+        .from('pages')
+        .select('id')
+        .eq('slug', slug)
+        .maybeSingle()
+      if (existing) {
+        const { error } = await supabase
+          .from('pages')
+          .update({ ...update, updated_at: new Date().toISOString() })
+          .eq('slug', slug)
+        if (error) throw new Error(`pages update failed: ${error.message}`)
+      } else {
+        const { error } = await supabase
+          .from('pages')
+          .insert({ slug, ...update })
+        if (error) throw new Error(`pages insert failed: ${error.message}`)
+      }
+    },
+  }
+}
+
+// ─── Homepage blocks adapter ────────────────────────────────────────
+
+interface PageBlockRow {
+  id: string
+  page: string
+  block_type: string
+  sort_order: number
+  is_visible: boolean
+  config: unknown
+}
+
+const homeAdapter: ServerAdapter = {
+  slug: 'home',
+  async load(supabase) {
+    const { data } = await supabase
+      .from('page_blocks')
+      .select('id, page, block_type, sort_order, is_visible, config')
+      .eq('page', 'home')
+      .order('sort_order', { ascending: true })
+    return {
+      blocks: (data || []) as PageBlockRow[],
+    }
+  },
+  async loadSection(supabase, sectionKey) {
+    const all = await this.load!(supabase)
+    return (all as Record<string, unknown>)[sectionKey]
+  },
+  async saveSection(supabase, sectionKey, value) {
+    if (sectionKey !== 'blocks') throw new Error(`Unknown home section: ${sectionKey}`)
+    const incoming = (value as PageBlockRow[]) || []
+    const { data: current } = await supabase
+      .from('page_blocks')
+      .select('id')
+      .eq('page', 'home')
+    const currentIds = new Set((current || []).map((r: { id: string }) => r.id))
+    const incomingIds = new Set(incoming.filter((r) => r.id).map((r) => r.id))
+
+    for (let i = 0; i < incoming.length; i++) {
+      const row = incoming[i]!
+      const payload = {
+        page: 'home',
+        block_type: row.block_type,
+        sort_order: i,
+        is_visible: row.is_visible ?? true,
+        config: (row.config ?? {}) as object,
+      }
+      if (row.id && currentIds.has(row.id)) {
+        const { error } = await supabase
+          .from('page_blocks')
+          .update({ ...payload, updated_at: new Date().toISOString() })
+          .eq('id', row.id)
+        if (error) throw new Error(`page_blocks update failed: ${error.message}`)
+      } else {
+        const { error } = await supabase
+          .from('page_blocks')
+          .insert(payload)
+        if (error) throw new Error(`page_blocks insert failed: ${error.message}`)
+      }
+    }
+    const toDelete = [...currentIds].filter((id) => !incomingIds.has(id))
+    if (toDelete.length) {
+      const { error } = await supabase
+        .from('page_blocks')
+        .delete()
+        .in('id', toDelete)
+      if (error) throw new Error(`page_blocks delete failed: ${error.message}`)
+    }
+  },
+}
+
 // ─── Registry ───────────────────────────────────────────────────────
 
 const adapters: Record<string, ServerAdapter> = {
   about: aboutAdapter,
   cv: cvAdapter,
+  privacy: pagesAdapterForSlug('privacy'),
+  terms: pagesAdapterForSlug('terms'),
+  'shipping-policy': pagesAdapterForSlug('shipping-policy'),
+  commissions: pagesAdapterForSlug('commissions'),
+  contact: pagesAdapterForSlug('contact'),
+  home: homeAdapter,
 }
 
 export function getServerAdapter(slug: string): ServerAdapter | null {

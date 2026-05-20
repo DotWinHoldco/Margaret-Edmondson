@@ -1,12 +1,38 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import PageBodyShell from '@/components/marketing/PageBodyShell'
 
 export const metadata: Metadata = {
   title: 'Shipping Policy',
   description: 'ArtByME shipping policy — how we ship original artwork and canvas prints.',
 }
 
-export default function ShippingPolicyPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function ShippingPolicyPage() {
+  const supabase = await createClient()
+  const { data: page } = await supabase
+    .from('pages')
+    .select('title, content_html, hero_image_url')
+    .eq('slug', 'shipping-policy')
+    .maybeSingle()
+
+  if (page?.content_html && page.content_html.trim().length > 0) {
+    return (
+      <PageBodyShell
+        title={page.title || 'Shipping Policy'}
+        bodyHtml={page.content_html}
+        heroImageUrl={page.hero_image_url}
+        lastUpdated="April 2, 2026"
+      />
+    )
+  }
+
+  return shippingDefault()
+}
+
+function shippingDefault() {
   return (
     <div className="py-12 sm:py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

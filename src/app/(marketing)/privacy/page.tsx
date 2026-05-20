@@ -1,12 +1,38 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import PageBodyShell from '@/components/marketing/PageBodyShell'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'ArtByME privacy policy — how we collect, use, and protect your personal information.',
 }
 
-export default function PrivacyPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function PrivacyPage() {
+  const supabase = await createClient()
+  const { data: page } = await supabase
+    .from('pages')
+    .select('title, content_html, hero_image_url')
+    .eq('slug', 'privacy')
+    .maybeSingle()
+
+  if (page?.content_html && page.content_html.trim().length > 0) {
+    return (
+      <PageBodyShell
+        title={page.title || 'Privacy Policy'}
+        bodyHtml={page.content_html}
+        heroImageUrl={page.hero_image_url}
+        lastUpdated="April 2, 2026"
+      />
+    )
+  }
+
+  return privacyDefault()
+}
+
+function privacyDefault() {
   return (
     <div className="py-12 sm:py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

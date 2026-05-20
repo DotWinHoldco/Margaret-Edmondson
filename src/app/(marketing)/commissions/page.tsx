@@ -1,11 +1,15 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
+import PageBodyShell from '@/components/marketing/PageBodyShell'
 
 export const metadata: Metadata = {
   title: 'Commissions',
   description: 'Commission a custom pet portrait or house portrait by Margaret Edmondson. Acrylic, watercolor, pastel, charcoal, and mixed media options available.',
 }
+
+export const dynamic = 'force-dynamic'
 
 const STEPS = [
   { num: 1, title: 'Inquire', desc: 'Reach out with your vision, reference photos, preferred medium, and size. Margaret will discuss your ideas and provide a personalized quote.' },
@@ -23,7 +27,28 @@ const PET_MEDIA = [
   'Mixed Media',
 ]
 
-export default function CommissionsPage() {
+export default async function CommissionsPage() {
+  const supabase = await createClient()
+  const { data: page } = await supabase
+    .from('pages')
+    .select('title, content_html, hero_image_url')
+    .eq('slug', 'commissions')
+    .maybeSingle()
+
+  if (page?.content_html && page.content_html.trim().length > 0) {
+    return (
+      <PageBodyShell
+        title={page.title || 'Commissions'}
+        bodyHtml={page.content_html}
+        heroImageUrl={page.hero_image_url}
+      />
+    )
+  }
+
+  return commissionsDefault()
+}
+
+function commissionsDefault() {
   return (
     <div className="py-12 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

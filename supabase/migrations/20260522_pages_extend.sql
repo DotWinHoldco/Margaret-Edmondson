@@ -19,5 +19,6 @@ values
   ('privacy',         'Privacy Policy',     '', 'Privacy Policy',     'Privacy Policy for ArtByME',                'legal',       true, now()),
   ('terms',           'Terms of Service',   '', 'Terms of Service',   'Terms of Service for ArtByME',              'legal',       true, now()),
   ('shipping-policy', 'Shipping Policy',    '', 'Shipping Policy',    'Shipping Policy for ArtByME',               'legal',       true, now()),
-  ('commissions',     'Commissions',        '', 'Commissions',        'Commission a custom artwork from Margaret', 'commissions', true, now())
+  ('commissions',     'Commissions',        '', 'Commissions',        'Commission a custom artwork from Margaret', 'commissions', true, now()),
+  ('contact',         'Contact',            '', 'Contact',            'Get in touch with Margaret Edmondson',      'contact',     true, now())
 on conflict (slug) do nothing;
