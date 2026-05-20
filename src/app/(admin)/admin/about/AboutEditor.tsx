@@ -114,7 +114,7 @@ export default function AboutEditor({ sections, callouts, credentials }: Props) 
         body: JSON.stringify({
           full_name: creds.full_name,
           degrees: creds.degrees,
-          hero_image_url: creds.hero_image_url,
+          hero_image_url: creds.hero_image_url && creds.hero_image_url.trim() !== '' ? creds.hero_image_url : null,
           contact_email: creds.contact_email,
         }),
       }),
@@ -557,6 +557,7 @@ function CredentialsTab({
 }) {
   const router = useRouter()
   const [status, setStatus] = useState<SaveStatus>('idle')
+  const [pickingHero, setPickingHero] = useState(false)
   const c = creds
 
   const update = (patch: Partial<Credentials>) => {
@@ -629,16 +630,50 @@ function CredentialsTab({
         />
       </label>
 
-      <label className="block">
-        <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Hero image URL</span>
-        <input
-          type="url"
-          value={c.hero_image_url || ''}
-          onChange={(e) => update({ hero_image_url: e.target.value || null })}
-          placeholder="https://…"
-          className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm"
-        />
-      </label>
+      <div>
+        <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-2">Hero image</span>
+        <div className="flex items-start gap-4">
+          {c.hero_image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={c.hero_image_url} alt="Hero" className="w-32 h-40 object-cover rounded border border-charcoal/10" />
+          ) : (
+            <div className="w-32 h-40 rounded border border-dashed border-charcoal/20 bg-charcoal/[0.03] flex items-center justify-center font-body text-[10px] uppercase tracking-wider text-charcoal/40">
+              No hero
+            </div>
+          )}
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPickingHero(true)}
+                className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
+              >
+                {c.hero_image_url ? 'Replace hero' : 'Choose hero'}
+              </button>
+              {c.hero_image_url && (
+                <button
+                  type="button"
+                  onClick={() => update({ hero_image_url: null })}
+                  className="font-body text-xs uppercase tracking-wider text-coral hover:text-coral/80"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="font-body text-[11px] text-charcoal/40 break-all">{c.hero_image_url || '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      <MediaPicker
+        open={pickingHero}
+        onClose={() => setPickingHero(false)}
+        defaultCategory="about"
+        initialFilter="about"
+        uploadBucket="about-images"
+        title="Choose hero photo"
+        onPick={(picked) => update({ hero_image_url: picked.url })}
+      />
 
       <div>
         <div className="flex items-center justify-between mb-2">

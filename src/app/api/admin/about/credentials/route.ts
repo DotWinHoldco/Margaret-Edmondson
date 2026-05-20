@@ -11,10 +11,23 @@ const Degree = z.object({
   honors: z.string().optional(),
 })
 
+// hero_image_url can be: a Supabase public URL, a /public/ relative path,
+// an empty string (clears the image), or null. The MediaPicker writes
+// supabase URLs; legacy data may still hold /public paths until migrated.
+const heroUrl = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((v) => (v == null || v === '' ? null : v))
+  .refine(
+    (v) => v == null || /^https?:\/\//.test(v) || v.startsWith('/'),
+    'Must be a full URL, a /public-relative path, or empty',
+  )
+
 const Patch = z.object({
   full_name: z.string().min(1).optional(),
   degrees: z.array(Degree).optional(),
-  hero_image_url: z.string().url().nullable().optional(),
+  hero_image_url: heroUrl,
   contact_email: z.string().email().optional(),
 })
 
