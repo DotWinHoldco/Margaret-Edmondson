@@ -1,19 +1,59 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import MediaManager from './MediaManager'
+import MasterArtworksManager from './MasterArtworksManager'
 
 export const metadata: Metadata = { title: 'Media' }
 export const dynamic = 'force-dynamic'
 
-export default function AdminMediaPage() {
+type Tab = 'display' | 'master'
+
+export default async function AdminMediaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const params = await searchParams
+  const tab: Tab = params.tab === 'master' ? 'master' : 'display'
+
   return (
     <div className="max-w-7xl">
       <div className="mb-6">
         <h1 className="font-display text-3xl font-light text-charcoal">Media library</h1>
         <p className="mt-1 font-body text-sm text-charcoal/60">
-          Every image used on the site, organized by where it lives. Filter by source, search by filename or alt text, upload new images to the library with category tags.
+          {tab === 'master'
+            ? 'High-resolution master files Margaret uploads once and attaches to products. These are the source files Lumaprints and Printful print from. Never shown on the public site.'
+            : 'Every display image used on the site, organized by where it lives. Filter by source, search by filename or alt text, upload new images to the library with category tags.'}
         </p>
       </div>
-      <MediaManager />
+
+      <div className="border-b border-charcoal/10 mb-6">
+        <nav className="-mb-px flex gap-6">
+          <TabLink href="/admin/media" active={tab === 'display'} label="Display Images" />
+          <TabLink
+            href="/admin/media?tab=master"
+            active={tab === 'master'}
+            label="Master Artworks"
+          />
+        </nav>
+      </div>
+
+      {tab === 'master' ? <MasterArtworksManager /> : <MediaManager />}
     </div>
+  )
+}
+
+function TabLink({ href, active, label }: { href: string; active: boolean; label: string }) {
+  return (
+    <Link
+      href={href}
+      className={`border-b-2 pb-3 font-body text-sm font-medium transition-colors ${
+        active
+          ? 'border-teal text-charcoal'
+          : 'border-transparent text-charcoal/55 hover:text-charcoal'
+      }`}
+    >
+      {label}
+    </Link>
   )
 }
