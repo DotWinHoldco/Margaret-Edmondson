@@ -69,6 +69,7 @@ export interface Database {
           fulfillment_type: 'lumaprints' | 'printful' | 'self_ship'
           lumaprints_product_config: Json | null
           printful_sync_product_id: string | null
+          master_artwork_id: string | null
           status: 'active' | 'draft' | 'archived' | 'sold'
           is_original: boolean
           is_featured: boolean
@@ -94,9 +95,33 @@ export interface Database {
           alt_text: string | null
           sort_order: number
           is_primary: boolean
+          print_master_path: string | null
         }
         Insert: Omit<Database['public']['Tables']['product_images']['Row'], 'id'> & { id?: string }
         Update: Partial<Database['public']['Tables']['product_images']['Insert']>
+      }
+      master_artworks: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          storage_path: string
+          file_name: string
+          file_size_bytes: number
+          mime_type: string
+          width_px: number | null
+          height_px: number | null
+          dpi: number | null
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['master_artworks']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['master_artworks']['Insert']>
       }
       product_variants: {
         Row: {
