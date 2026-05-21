@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import MediaPicker from '@/components/admin/MediaPicker'
+import MasterArtworkPicker from '@/components/admin/MasterArtworkPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
 import type { Medium } from '@/lib/pricing/mediums'
@@ -177,6 +178,15 @@ export default function EditProductPage({
   const [productDefaultMargin, setProductDefaultMargin] = useState<number>(100)
   const [mediumCatalog, setMediumCatalog] = useState<MediumCatalogEntry[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
+  const [masterArtworkId, setMasterArtworkId] = useState<string | null>(null)
+  const [masterArtwork, setMasterArtwork] = useState<{
+    id: string
+    title: string
+    file_name: string
+    file_size_bytes: number
+    mime_type: string
+  } | null>(null)
+  const [showArtworkPicker, setShowArtworkPicker] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -230,6 +240,23 @@ export default function EditProductPage({
       setFunnelEligible(product.funnel_eligible !== false)
       setTags(Array.isArray(product.tags) ? product.tags.join(', ') : '')
       setImages(product.product_images || [])
+      setMasterArtworkId(product.master_artwork_id || null)
+      if (product.master_artwork_id) {
+        fetch(`/api/admin/master-artworks/${product.master_artwork_id}`)
+          .then((r) => r.json())
+          .then((j) => {
+            if (j.data) {
+              setMasterArtwork({
+                id: j.data.id,
+                title: j.data.title,
+                file_name: j.data.file_name,
+                file_size_bytes: j.data.file_size_bytes,
+                mime_type: j.data.mime_type,
+              })
+            }
+          })
+          .catch(() => {})
+      }
 
       if (Array.isArray(product.product_variants)) {
         const allVariants = product.product_variants as Array<{
@@ -336,6 +363,7 @@ export default function EditProductPage({
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
         margin_pct: marginPct.trim() === '' ? null : parseFloat(marginPct) / 100,
         fulfillment_type: fulfillmentType,
+        master_artwork_id: masterArtworkId,
         status,
         is_original: isOriginal,
         is_featured: isFeatured,
@@ -974,6 +1002,47 @@ export default function EditProductPage({
             </section>
           )}
 
+          {/* Artwork source — the mega-resolution master file Lumaprints
+              prints from. Lives in the master-artworks library so one
+              source artwork can back multiple SKUs. */}
+          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-display text-lg font-semibold text-charcoal">Artwork source</h2>
+                <p className="mt-1 font-body text-sm text-charcoal/60">
+                  The mega-resolution master file Lumaprints prints from. Pick one from your library or upload a new file.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowArtworkPicker(true)}
+                className="shrink-0 rounded-md border border-charcoal/20 px-4 py-2 font-body text-xs font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
+              >
+                {masterArtworkId ? 'Change artwork' : 'Choose artwork'}
+              </button>
+            </div>
+            {masterArtworkId ? (
+              masterArtwork ? (
+                <div className="mt-4 rounded-md bg-charcoal/[0.03] p-4">
+                  <p className="font-body text-sm font-medium text-charcoal">{masterArtwork.title}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-charcoal/55 truncate">
+                    {masterArtwork.file_name}
+                  </p>
+                  <p className="mt-1 font-body text-[11px] text-charcoal/55">
+                    {(masterArtwork.file_size_bytes / 1024 / 1024).toFixed(1)} MB ·{' '}
+                    {masterArtwork.mime_type.replace('image/', '').toUpperCase()}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 font-body text-sm text-charcoal/50">Loading artwork details…</p>
+              )
+            ) : (
+              <p className="mt-4 font-body text-sm text-charcoal/55">
+                No master artwork attached. Lumaprints orders for this product will fail validation until one is selected.
+              </p>
+            )}
+          </section>
+
           <VariantsTab
             productId={id}
             productDefaultMargin={productDefaultMargin}
@@ -1053,6 +1122,42 @@ export default function EditProductPage({
           }
         }}
       />
+
+      {showArtworkPicker && (
+        <MasterArtworkPicker
+          selectedId={masterArtworkId}
+          onSelect={(artwork) => {
+            if (artwork) {
+              setMasterArtworkId(artwork.id)
+              setMasterArtwork({
+                id: artwork.id,
+                title: artwork.title,
+                file_name: artwork.file_name,
+                file_size_bytes: 0,
+                mime_type: '',
+              })
+              fetch(`/api/admin/master-artworks/${artwork.id}`)
+                .then((r) => r.json())
+                .then((j) => {
+                  if (j.data) {
+                    setMasterArtwork({
+                      id: j.data.id,
+                      title: j.data.title,
+                      file_name: j.data.file_name,
+                      file_size_bytes: j.data.file_size_bytes,
+                      mime_type: j.data.mime_type,
+                    })
+                  }
+                })
+                .catch(() => {})
+            } else {
+              setMasterArtworkId(null)
+              setMasterArtwork(null)
+            }
+          }}
+          onClose={() => setShowArtworkPicker(false)}
+        />
+      )}
     </div>
   )
 }

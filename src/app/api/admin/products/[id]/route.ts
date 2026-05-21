@@ -27,6 +27,7 @@ const ProductPatch = z.object({
   funnel_eligible: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
   margin_pct: z.number().min(0).max(0.99).nullable().optional(),
+  master_artwork_id: z.string().uuid().nullable().optional(),
   variants: z.array(VariantInput).optional(),
   // Additional categories to cross-post the product into, beyond the
   // primary category_id. The admin form sends the full set of NON-primary
