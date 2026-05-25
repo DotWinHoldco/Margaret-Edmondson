@@ -177,7 +177,7 @@ export interface Database {
           quantity: number
           unit_price: number
           fulfillment_type: string
-          fulfillment_status: 'pending' | 'submitted' | 'in_production' | 'shipped' | 'delivered' | 'cancelled'
+          fulfillment_status: 'pending' | 'submitted' | 'in_production' | 'shipped' | 'delivered' | 'cancelled' | 'failed' | 'failed_validation'
           external_order_id: string | null
           tracking_number: string | null
           tracking_url: string | null

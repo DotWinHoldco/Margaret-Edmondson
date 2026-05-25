@@ -22,6 +22,13 @@ interface ProductImage {
   print_master_path?: string | null
 }
 
+interface MasterArtwork {
+  id: string
+  storage_path: string
+  file_name: string
+  mime_type: string
+}
+
 interface OrderItem {
   id: string
   order_id: string
@@ -44,13 +51,25 @@ interface Variant {
   name: string
   external_variant_id: string | null
   fulfillment_metadata: Record<string, string> | null
+  medium: string | null
+  size_label: string | null
 }
 
 interface Product {
   id: string
   name: string
   printful_sync_product_id: string | null
+  master_artwork_id: string | null
+  master_artwork: MasterArtwork | null
   product_images: ProductImage[]
+}
+
+interface LumaprintsMedium {
+  medium: string
+  category_id: number | null
+  subcategory_id: number | null
+  option_ids: number[] | null
+  enabled: boolean
 }
 
 interface FulfillmentResult {
@@ -71,17 +90,26 @@ function resolveImageUrl(url: string): string {
   return `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
-// Mint a 1-hour signed URL for an object in the private print-masters bucket.
-// Falls back to the (already-compressed) public web URL when no master path is
-// set or service-role env is missing, so fulfillment still works during rollout.
-async function mintLumaprintsImageUrl(image: ProductImage | undefined): Promise<string> {
-  if (!image) return ''
-  const path = image.print_master_path
+// Mint a 1-hour signed URL for a master print file in the private
+// print-masters bucket. Reads from products.master_artwork first
+// (the canonical place); falls back to the legacy primary product
+// image's print_master_path so older products without the FK still fire.
+// Returns an empty string when no source is available; callers should
+// treat that as a validation failure rather than firing with a low-res
+// web image.
+async function mintLumaprintsImageUrl(product: Product): Promise<string> {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!path || !serviceKey || !supabaseUrl) {
-    return resolveImageUrl(image.url)
-  }
+  if (!serviceKey || !supabaseUrl) return ''
+
+  const masterPath = product.master_artwork?.storage_path
+  const legacyPath = product.product_images
+    ?.slice()
+    .sort((a: ProductImage, b: ProductImage) => a.position - b.position)
+    ?.[0]?.print_master_path
+  const path = masterPath || legacyPath
+  if (!path) return ''
+
   try {
     const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/print-masters/${path}`, {
       method: 'POST',
@@ -91,11 +119,74 @@ async function mintLumaprintsImageUrl(image: ProductImage | undefined): Promise<
       },
       body: JSON.stringify({ expiresIn: 3600 }),
     })
-    if (!res.ok) return resolveImageUrl(image.url)
+    if (!res.ok) return ''
     const { signedURL } = (await res.json()) as { signedURL: string }
     return signedURL.startsWith('http') ? signedURL : `${supabaseUrl}/storage/v1${signedURL}`
   } catch {
-    return resolveImageUrl(image.url)
+    return ''
+  }
+}
+
+interface ValidationFailure {
+  ok: false
+  reason: string
+}
+interface ValidationOk {
+  ok: true
+  imageUrl: string
+  categoryId: number
+  subcategoryId: number
+  optionIds: number[]
+}
+type ValidationResult = ValidationOk | ValidationFailure
+
+async function validateLumaprintsItem(
+  item: OrderItem & { product: Product; variant: Variant | null },
+  mediumsByKey: Map<string, LumaprintsMedium>,
+  shippingAddress: ShippingAddress,
+): Promise<ValidationResult> {
+  if (!item.product) return { ok: false, reason: 'product missing' }
+  if (!item.product.master_artwork_id || !item.product.master_artwork) {
+    return { ok: false, reason: 'product.master_artwork_id not set' }
+  }
+  if (!item.variant) return { ok: false, reason: 'variant missing' }
+  if (!item.variant.medium) {
+    return { ok: false, reason: 'variant.medium not set' }
+  }
+  if (!item.variant.size_label) {
+    return { ok: false, reason: 'variant.size_label not set' }
+  }
+  const medium = mediumsByKey.get(item.variant.medium)
+  if (!medium) {
+    return {
+      ok: false,
+      reason: `medium "${item.variant.medium}" not registered in lumaprints_mediums`,
+    }
+  }
+  if (!medium.enabled) {
+    return { ok: false, reason: `medium "${item.variant.medium}" is disabled` }
+  }
+  if (!medium.category_id || !medium.subcategory_id) {
+    return {
+      ok: false,
+      reason: `medium "${item.variant.medium}" missing category_id / subcategory_id`,
+    }
+  }
+  if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postal_code) {
+    return { ok: false, reason: 'shipping address incomplete' }
+  }
+
+  const imageUrl = await mintLumaprintsImageUrl(item.product)
+  if (!imageUrl) {
+    return { ok: false, reason: 'could not mint signed URL for master artwork' }
+  }
+
+  return {
+    ok: true,
+    imageUrl,
+    categoryId: medium.category_id,
+    subcategoryId: medium.subcategory_id,
+    optionIds: medium.option_ids || [],
   }
 }
 
@@ -117,33 +208,23 @@ function parseShippingAddress(addr: ShippingAddress) {
 
 async function submitToLumaprints(
   orderId: string,
-  items: Array<OrderItem & { product: Product; variant: Variant | null }>,
+  validatedItems: Array<{
+    item: OrderItem & { product: Product; variant: Variant | null }
+    validated: ValidationOk
+  }>,
   shippingAddress: ShippingAddress,
 ): Promise<FulfillmentResult[]> {
   const addr = parseShippingAddress(shippingAddress)
 
-  const lumaprintsItems = await Promise.all(items.map(async (item) => {
-    const primaryImage = item.product.product_images
-      ?.sort((a: ProductImage, b: ProductImage) => a.position - b.position)
-      ?.[0]
-    const imageUrl = await mintLumaprintsImageUrl(primaryImage)
-
-    // Fulfillment metadata may contain categoryId, subcategoryId, and options.
-    // Fall back to empty strings so the request still goes through — admin can
-    // fix via the Lumaprints dashboard if needed.
-    const meta = item.variant?.fulfillment_metadata || {}
-
-    return {
-      imageUrl,
-      categoryId: meta.categoryId || '',
-      subcategoryId: meta.subcategoryId || '',
-      options: Object.fromEntries(
-        Object.entries(meta).filter(
-          ([k]) => !['categoryId', 'subcategoryId'].includes(k),
-        ),
-      ),
-      quantity: item.quantity,
-    }
+  const lumaprintsItems = validatedItems.map(({ item, validated }) => ({
+    imageUrl: validated.imageUrl,
+    categoryId: String(validated.categoryId),
+    subcategoryId: String(validated.subcategoryId),
+    options: validated.optionIds.reduce<Record<string, string>>((acc, id) => {
+      acc[String(id)] = String(id)
+      return acc
+    }, {}),
+    quantity: item.quantity,
   }))
 
   const response = await lumaprintsSubmitOrder({
@@ -154,7 +235,7 @@ async function submitToLumaprints(
 
   // Lumaprints returns a single order — map the external ID to every item
   const externalId: string = response?.orderNumber || response?.id || ''
-  return items.map((item) => ({
+  return validatedItems.map(({ item }) => ({
     itemId: item.id,
     success: true,
     externalOrderId: String(externalId),
@@ -234,26 +315,32 @@ export async function routeOrderToFulfillment(
     throw new Error(`Order not found: ${orderId}`)
   }
 
-  // Fetch order items with product + images + variant
+  // Fetch order items with product + master artwork + images + variant
   const { data: orderItems, error: itemsError } = await supabase
     .from('order_items')
     .select(`
       *,
       product:products (
         id,
-        name,
+        name:title,
         printful_sync_product_id,
+        master_artwork_id,
+        master_artwork:master_artworks (
+          id, storage_path, file_name, mime_type
+        ),
         product_images ( url, position, print_master_path )
       ),
       variant:product_variants (
         id,
         name,
         external_variant_id,
-        fulfillment_metadata
+        fulfillment_metadata,
+        medium,
+        size_label
       )
     `)
     .eq('order_id', orderId)
-    .eq('fulfillment_status', 'pending')
+    .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
 
   if (itemsError) {
     throw new Error(`Failed to fetch order items: ${itemsError.message}`)
@@ -280,13 +367,67 @@ export async function routeOrderToFulfillment(
       let providerResults: FulfillmentResult[]
 
       switch (provider) {
-        case 'lumaprints':
-          providerResults = await submitToLumaprints(
-            orderId,
-            items as Array<OrderItem & { product: Product; variant: Variant | null }>,
-            shippingAddress,
+        case 'lumaprints': {
+          // Pre-fetch enabled mediums once so validation can resolve
+          // categoryId/subcategoryId from variant.medium.
+          const { data: mediumsRows } = await supabase
+            .from('lumaprints_mediums')
+            .select('medium, category_id, subcategory_id, option_ids, enabled')
+          const mediumsByKey = new Map<string, LumaprintsMedium>()
+          for (const row of (mediumsRows as LumaprintsMedium[] | null) || []) {
+            mediumsByKey.set(row.medium, row)
+          }
+
+          const typedItems = items as Array<OrderItem & { product: Product; variant: Variant | null }>
+          const validations = await Promise.all(
+            typedItems.map(async (it) => ({
+              item: it,
+              result: await validateLumaprintsItem(it, mediumsByKey, shippingAddress),
+            })),
           )
+          const passing = validations.filter(
+            (v): v is { item: typeof typedItems[number]; result: ValidationOk } => v.result.ok,
+          )
+          const failing = validations.filter(
+            (v): v is { item: typeof typedItems[number]; result: ValidationFailure } => !v.result.ok,
+          )
+
+          // Mark validation failures explicitly so admin can see what's
+          // missing and refire after fixing.
+          for (const { item, result } of failing) {
+            await supabase
+              .from('order_items')
+              .update({ fulfillment_status: 'failed_validation' })
+              .eq('id', item.id)
+            await supabase.from('webhook_logs').insert({
+              source: 'fulfillment_lumaprints',
+              event_type: 'lumaprints_skipped',
+              payload: {
+                order_id: orderId,
+                item_id: item.id,
+                reason: result.reason,
+              } as unknown as Record<string, unknown>,
+            })
+          }
+
+          const failureResults: FulfillmentResult[] = failing.map(({ item, result }) => ({
+            itemId: item.id,
+            success: false,
+            error: `validation: ${result.reason}`,
+          }))
+
+          if (passing.length === 0) {
+            providerResults = failureResults
+          } else {
+            const passingResults = await submitToLumaprints(
+              orderId,
+              passing.map((v) => ({ item: v.item, validated: v.result })),
+              shippingAddress,
+            )
+            providerResults = [...failureResults, ...passingResults]
+          }
           break
+        }
         case 'printful':
           providerResults = await submitToPrintful(
             items as Array<OrderItem & { product: Product; variant: Variant | null }>,
@@ -350,8 +491,15 @@ export async function routeOrderToFulfillment(
         } as unknown as Record<string, unknown>,
       })
 
-      // Mark each item as failed but don't throw — other providers can still succeed
+      // Mark each item as failed in the DB so admin sees a clear state
+      // and can refire from the order detail page once the cause is fixed.
       for (const item of items) {
+        if (item.fulfillment_status !== 'failed_validation') {
+          await supabase
+            .from('order_items')
+            .update({ fulfillment_status: 'failed' })
+            .eq('id', item.id)
+        }
         results.push({
           itemId: item.id,
           success: false,
@@ -379,15 +527,21 @@ export async function retryFulfillmentForItem(
       *,
       product:products (
         id,
-        name,
+        name:title,
         printful_sync_product_id,
+        master_artwork_id,
+        master_artwork:master_artworks (
+          id, storage_path, file_name, mime_type
+        ),
         product_images ( url, position, print_master_path )
       ),
       variant:product_variants (
         id,
         name,
         external_variant_id,
-        fulfillment_metadata
+        fulfillment_metadata,
+        medium,
+        size_label
       )
     `)
     .eq('id', itemId)
@@ -415,13 +569,47 @@ export async function retryFulfillmentForItem(
     let providerResults: FulfillmentResult[]
 
     switch (provider) {
-      case 'lumaprints':
+      case 'lumaprints': {
+        const { data: mediumsRows } = await supabase
+          .from('lumaprints_mediums')
+          .select('medium, category_id, subcategory_id, option_ids, enabled')
+        const mediumsByKey = new Map<string, LumaprintsMedium>()
+        for (const row of (mediumsRows as LumaprintsMedium[] | null) || []) {
+          mediumsByKey.set(row.medium, row)
+        }
+
+        const validation = await validateLumaprintsItem(
+          enrichedItem,
+          mediumsByKey,
+          shippingAddress,
+        )
+        if (!validation.ok) {
+          await supabase
+            .from('order_items')
+            .update({ fulfillment_status: 'failed_validation' })
+            .eq('id', itemId)
+          await supabase.from('webhook_logs').insert({
+            source: 'fulfillment_lumaprints',
+            event_type: 'lumaprints_skipped',
+            payload: {
+              order_id: order.id,
+              item_id: itemId,
+              reason: validation.reason,
+            } as unknown as Record<string, unknown>,
+          })
+          return {
+            itemId,
+            success: false,
+            error: `validation: ${validation.reason}`,
+          }
+        }
         providerResults = await submitToLumaprints(
           order.id,
-          [enrichedItem],
+          [{ item: enrichedItem, validated: validation }],
           shippingAddress,
         )
         break
+      }
       case 'printful':
         providerResults = await submitToPrintful(
           [enrichedItem],
