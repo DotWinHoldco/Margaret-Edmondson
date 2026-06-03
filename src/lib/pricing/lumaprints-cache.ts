@@ -44,7 +44,7 @@ const FRESH_TTL_MS = 24 * 60 * 60 * 1000
  */
 function costFromMediumConfig(cfg: MediumConfig, size_label: string): number {
   const match = cfg.sizes.find((s) => s.size_label === size_label)
-  return Number((match as { cost_cents?: number } | undefined)?.cost_cents) || 0
+  return Number(match?.cost_cents) || 0
 }
 
 async function fetchLivePrice(

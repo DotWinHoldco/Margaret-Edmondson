@@ -234,7 +234,7 @@ async function submitToLumaprints(
   })
 
   // Lumaprints returns a single order — map the external ID to every item
-  const externalId: string = response?.orderNumber || response?.id || ''
+  const externalId = response?.orderNumber || response?.id || ''
   return validatedItems.map(({ item }) => ({
     itemId: item.id,
     success: true,

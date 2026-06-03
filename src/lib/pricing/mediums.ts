@@ -37,7 +37,17 @@ const MEDIUM_LABELS: Record<Medium, string> = {
   rolled_canvas: 'Rolled Canvas',
 }
 
-export interface MediumSize { size_label: string; width: number; height: number }
+export interface MediumSize {
+  size_label: string
+  width: number
+  height: number
+  /**
+   * Wholesale per-unit cost (USD cents) for this medium × size, imported
+   * from the Lumaprints products-cost API by /api/admin/lumaprints/sync.
+   * Absent until the medium has been synced.
+   */
+  cost_cents?: number
+}
 
 export interface MediumConfig {
   label: string

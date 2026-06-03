@@ -8,13 +8,13 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Medium } from '@/lib/pricing/mediums'
+import type { Medium, MediumSize } from '@/lib/pricing/mediums'
 
 export interface MediumConfig {
   medium: Medium
   subcategory_id: number | null
   option_ids: number[]
-  sizes: Array<{ size_label: string; width: number; height: number }>
+  sizes: MediumSize[]
   enabled: boolean
   name: string | null
 }
@@ -23,7 +23,7 @@ interface Row {
   medium: string
   subcategory_id: number | null
   option_ids: number[] | null
-  sizes: Array<{ size_label: string; width: number; height: number }> | null
+  sizes: MediumSize[] | null
   enabled: boolean
   name: string | null
 }
