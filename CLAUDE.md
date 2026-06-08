@@ -1,5 +1,16 @@
 @AGENTS.md
 
+# 🔴 ACTIVE BUILD — read before writing code
+
+The current end-to-end hardening & completion work is specified in **`audit/OVERNIGHT-PLAN.md`** (phased, executable — the source of truth for what to build and in what order). Supporting docs:
+- Audit narrative & verdict: **`audit/AUDIT-REPORT.md`**
+- Per-finding detail with `file:line` + copy-pasteable fixes: **`audit/findings/A-security.md` … `G-quality-build.md`** (referenced by finding ID throughout the plan)
+- Schema / RLS / functions reference: **`audit/00-backend-reference.md`**
+
+Operating rules for that build: work on `main` (no branches) with annotated `restore/*` tags; **never stop on a failed gate — fix forward and log it**; write integration/payment code env-guarded so it works once keys are added (don't skip a task for a missing key).
+
+**Critical gotcha:** the Next.js 16 middleware is **`src/proxy.ts`** (Next renamed `middleware`→`proxy`). Do **NOT** create `src/middleware.ts`. Audit items A-1/A-2/A-5/F-1 ("no middleware / admin exposed") are **false positives** — ignore them.
+
 # Project Reminders
 
 ## Dashboard Stats Strip
