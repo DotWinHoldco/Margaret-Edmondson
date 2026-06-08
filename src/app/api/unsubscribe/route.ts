@@ -25,6 +25,10 @@ async function handle(request: Request, source: 'link' | 'one_click'): Promise<R
     return Response.redirect(`${SITE_URL}/unsubscribe?error=missing`, 302)
   }
 
+  // verifyUnsubscribeToken now enforces a 90-day expiry (E-8). An aged-out
+  // token returns reason 'expired', which the /unsubscribe page surfaces with a
+  // "this link has expired, manage your preferences here" message. All other
+  // failure reasons (bad_signature, malformed, etc.) flow through the same way.
   const verified = verifyUnsubscribeToken(token)
   if (!verified.ok) {
     return Response.redirect(`${SITE_URL}/unsubscribe?error=${verified.reason}`, 302)

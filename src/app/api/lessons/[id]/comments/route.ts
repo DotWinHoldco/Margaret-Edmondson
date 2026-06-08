@@ -11,7 +11,7 @@ export async function GET(
 
     const { data: comments, error } = await supabase
       .from('lesson_comments')
-      .select('*, profiles(id, display_name, avatar_url)')
+      .select('*, profiles(id, full_name, avatar_url)')
       .eq('lesson_id', lessonId)
       .order('created_at', { ascending: true })
 
@@ -62,14 +62,8 @@ export async function POST(
     const courseModule = lesson.course_modules as unknown as { course_id: string }
     const courseId = courseModule.course_id
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    const profileId = profile?.id || user.id
+    // profiles.id IS auth.uid() — there is no auth_user_id column.
+    const profileId = user.id
 
     // Verify enrollment
     const { data: enrollment } = await supabase
@@ -98,7 +92,7 @@ export async function POST(
     const { data: comment, error: commentError } = await supabase
       .from('lesson_comments')
       .insert(commentData)
-      .select('*, profiles(id, display_name, avatar_url)')
+      .select('*, profiles(id, full_name, avatar_url)')
       .single()
 
     if (commentError) {

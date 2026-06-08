@@ -32,14 +32,8 @@ export async function PATCH(
     const courseModule = lesson.course_modules as unknown as { course_id: string }
     const courseId = courseModule.course_id
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    const profileId = profile?.id || user.id
+    // profiles.id IS auth.uid() — there is no auth_user_id column.
+    const profileId = user.id
 
     // Verify enrollment
     const { data: enrollment } = await supabase

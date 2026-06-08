@@ -9,14 +9,22 @@ const SECRET =
   process.env.RESEND_API_KEY ||
   'artbyme-dev-unsubscribe-secret'
 
+// Tokens expire 90 days after issue. The expiry timestamp is embedded in the
+// signed payload (`e`) so it cannot be tampered with, and verification rejects
+// anything past it. Older tokens that predate the `e` field fall back to an
+// age check against the issued-at `t` so existing emails keep working.
+const TOKEN_TTL_SECS = 90 * 24 * 3600 // 90 days
+
 interface Payload {
   c: string // contact id
   l?: string // optional list id (list-scoped unsubscribe)
   t: number // issued-at unix seconds
+  e?: number // expiry unix seconds (added; absent on legacy tokens)
 }
 
 export function signUnsubscribeToken(contactId: string, listId?: string): string {
-  const payload: Payload = { c: contactId, t: Math.floor(Date.now() / 1000) }
+  const now = Math.floor(Date.now() / 1000)
+  const payload: Payload = { c: contactId, t: now, e: now + TOKEN_TTL_SECS }
   if (listId) payload.l = listId
   const body = base64url(JSON.stringify(payload))
   const sig = sign(body)
@@ -33,6 +41,18 @@ export function verifyUnsubscribeToken(token: string): { ok: true; contactId: st
   try {
     const payload = JSON.parse(base64urlDecode(body)) as Payload
     if (!payload.c) return { ok: false, reason: 'missing_contact' }
+
+    const now = Math.floor(Date.now() / 1000)
+    if (typeof payload.e === 'number') {
+      // New token: honor the embedded expiry.
+      if (now > payload.e) return { ok: false, reason: 'expired' }
+    } else if (typeof payload.t === 'number') {
+      // Legacy token (no `e`): derive expiry from issued-at so old links also
+      // age out after the same window. Tokens without a usable `t` are accepted
+      // for maximum back-compat (signature already proves authenticity).
+      if (now - payload.t > TOKEN_TTL_SECS) return { ok: false, reason: 'expired' }
+    }
+
     return { ok: true, contactId: payload.c, listId: payload.l }
   } catch {
     return { ok: false, reason: 'bad_payload' }

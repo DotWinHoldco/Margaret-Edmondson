@@ -60,21 +60,52 @@ export async function POST(request: Request) {
   const toEmail = Array.isArray(event.data?.to) ? event.data.to[0] : event.data?.to
   const nowIso = new Date().toISOString()
 
-  if (!toEmail) return Response.json({ ok: true })
+  // We embed X-Campaign-Id / X-Recipient-Id at send time (see send.ts). When
+  // present, scope open/click updates to the exact recipient row so a contact
+  // who is in multiple campaigns doesn't get every campaign's stats polluted by
+  // a single open. Header keys can arrive in either case from Resend, so read
+  // both. (E-10)
+  const headers = event.data?.headers || {}
+  const recipientId = headers['X-Recipient-Id'] || headers['x-recipient-id'] || null
+  const campaignId = headers['X-Campaign-Id'] || headers['x-campaign-id'] || null
+
+  if (!toEmail && !recipientId) return Response.json({ ok: true })
 
   if (event.type === 'email.opened') {
-    await supabase
-      .from('email_campaign_recipients')
-      .update({ opened_at: nowIso, status: 'sent' })
-      .eq('email_snapshot', toEmail.toLowerCase())
-      .is('opened_at', null)
+    if (recipientId) {
+      await supabase
+        .from('email_campaign_recipients')
+        .update({ opened_at: nowIso, status: 'sent' })
+        .eq('id', recipientId)
+        .is('opened_at', null)
+    } else if (toEmail) {
+      // Back-compat for emails sent before header tagging existed: scope by
+      // campaign_id when we have it, else fall back to the email snapshot.
+      let q = supabase
+        .from('email_campaign_recipients')
+        .update({ opened_at: nowIso, status: 'sent' })
+        .eq('email_snapshot', toEmail.toLowerCase())
+        .is('opened_at', null)
+      if (campaignId) q = q.eq('campaign_id', campaignId)
+      await q
+    }
   } else if (event.type === 'email.clicked') {
-    await supabase
-      .from('email_campaign_recipients')
-      .update({ clicked_at: nowIso, status: 'sent' })
-      .eq('email_snapshot', toEmail.toLowerCase())
-      .is('clicked_at', null)
-  } else if (event.type === 'email.bounced' || event.type === 'email.complained') {
+    if (recipientId) {
+      await supabase
+        .from('email_campaign_recipients')
+        .update({ clicked_at: nowIso, status: 'sent' })
+        .eq('id', recipientId)
+        .is('clicked_at', null)
+    } else if (toEmail) {
+      let q = supabase
+        .from('email_campaign_recipients')
+        .update({ clicked_at: nowIso, status: 'sent' })
+        .eq('email_snapshot', toEmail.toLowerCase())
+        .is('clicked_at', null)
+      if (campaignId) q = q.eq('campaign_id', campaignId)
+      await q
+    }
+  } else if (toEmail && (event.type === 'email.bounced' || event.type === 'email.complained')) {
     const { data: contact } = await supabase
       .from('crm_contacts')
       .select('id, email')

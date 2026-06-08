@@ -1451,11 +1451,11 @@ export default function ProjectHubClient({
         {/* Stats strip */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-4 py-3 bg-charcoal/[0.03] rounded-lg border border-charcoal/6">
           {[
-            { value: '31', label: 'Public Pages' },
-            { value: '36', label: 'Admin Pages' },
+            { value: '38', label: 'Public Pages' },
+            { value: '40', label: 'Admin Pages' },
             { value: '15', label: 'Sales Funnels' },
-            { value: '104', label: 'API Routes' },
-            { value: '51k+', label: 'Lines of Code' },
+            { value: '121', label: 'API Routes' },
+            { value: '58k+', label: 'Lines of Code' },
           ].map((stat) => (
             <div key={stat.label} className="flex items-baseline gap-1.5">
               <span className="font-display text-lg font-bold text-charcoal">{stat.value}</span>

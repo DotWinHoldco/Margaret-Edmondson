@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import BusinessInfoSection from '@/components/admin/settings/BusinessInfoSection'
+import EmailConfigSection from '@/components/admin/settings/EmailConfigSection'
+import ShippingConfigSection from '@/components/admin/settings/ShippingConfigSection'
+import SocialLinksSection from '@/components/admin/settings/SocialLinksSection'
+import SiteConfigSection from '@/components/admin/settings/SiteConfigSection'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,8 +16,14 @@ const supabase = createBrowserClient(
 /* ─── Types ─── */
 
 interface Integration {
+  id: string
   label: string
   configured: boolean
+  keyEnvs?: string[]
+  webhookEnv?: string
+  webhookConfigured?: boolean
+  testable?: boolean
+  testLabel?: string
 }
 
 interface PromoCode {
@@ -37,6 +48,11 @@ export default function SettingsClient() {
       <SiteSettingsSection />
       <StripeModeSection />
       <PricingSettingsSection />
+      <BusinessInfoSection />
+      <EmailConfigSection />
+      <ShippingConfigSection />
+      <SocialLinksSection />
+      <SiteConfigSection />
       <IntegrationStatusSection />
       <PromoCodesSection />
       <DangerZoneSection />
@@ -769,50 +785,86 @@ function SiteSettingsSection() {
 function IntegrationStatusSection() {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
+  const [testing, setTesting] = useState<string | null>(null)
+  const [results, setResults] = useState<Record<string, { ok: boolean; message: string }>>({})
 
   useEffect(() => {
     async function load() {
-      const res = await fetch('/api/admin/settings')
-      const data = await res.json()
-      setIntegrations(data.integrations || [])
-      setLoading(false)
+      try {
+        const res = await fetch('/api/admin/integrations/status')
+        const data = await res.json()
+        setIntegrations(data.integrations || [])
+      } catch {
+        setIntegrations([])
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
 
+  async function runTest(id: string) {
+    setTesting(id)
+    setResults((r) => ({ ...r, [id]: { ok: false, message: 'Running…' } }))
+    try {
+      const res = await fetch('/api/admin/integrations/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: id }),
+      })
+      const data = await res.json().catch(() => ({ ok: false, message: 'No response' }))
+      setResults((r) => ({ ...r, [id]: { ok: !!data.ok, message: data.message || (data.ok ? 'OK' : 'Failed') } }))
+    } catch {
+      setResults((r) => ({ ...r, [id]: { ok: false, message: 'Request failed' } }))
+    } finally {
+      setTesting(null)
+    }
+  }
+
   return (
     <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
-      <h2 className="font-display text-xl font-semibold text-charcoal mb-5">
-        Integration Status
+      <h2 className="font-display text-xl font-semibold text-charcoal mb-1">
+        Integrations
       </h2>
+      <p className="font-body text-sm text-charcoal/50 mb-5">
+        Per-provider status and live verification. Keys are set in Vercel env.
+      </p>
       {loading ? (
         <p className="font-body text-sm text-charcoal/40">Checking integrations...</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {integrations.map((int) => (
-            <div
-              key={int.label}
-              className="flex items-center gap-3 rounded-sm border border-charcoal/10 px-4 py-3"
-            >
-              <span
-                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                  int.configured ? 'bg-teal' : 'bg-coral'
-                }`}
-              />
-              <div className="min-w-0">
-                <p className="font-body text-sm font-medium text-charcoal">
-                  {int.label}
-                </p>
-                <p
-                  className={`font-body text-xs ${
-                    int.configured ? 'text-teal' : 'text-coral'
-                  }`}
-                >
-                  {int.configured ? 'Configured' : 'Not configured'}
-                </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {integrations.map((int) => {
+            const result = results[int.id]
+            return (
+              <div key={int.id} className="rounded-sm border border-charcoal/10 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${int.configured ? 'bg-teal' : 'bg-coral'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-body text-sm font-medium text-charcoal">{int.label}</p>
+                    <p className={`font-body text-xs ${int.configured ? 'text-teal' : 'text-coral'}`}>
+                      {int.configured ? 'Configured' : 'Not configured'}
+                      {int.webhookEnv && (int.webhookConfigured ? ' · webhook ✓' : ' · webhook missing')}
+                    </p>
+                  </div>
+                  {int.testable && (
+                    <button
+                      type="button"
+                      onClick={() => runTest(int.id)}
+                      disabled={testing === int.id}
+                      className="shrink-0 rounded-sm border border-charcoal/15 bg-charcoal/5 px-3 py-1.5 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/10 disabled:opacity-50"
+                    >
+                      {testing === int.id ? 'Testing…' : int.testLabel || 'Test'}
+                    </button>
+                  )}
+                </div>
+                {result && (
+                  <p className={`mt-2 font-body text-xs ${result.ok ? 'text-teal' : 'text-coral'}`}>
+                    {result.message}
+                  </p>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -1172,17 +1224,28 @@ function DangerZoneSection() {
     }
 
     setClearingCarts(true)
-    // Placeholder: would call an API to clear carts
-    await new Promise((r) => setTimeout(r, 1000))
-    setClearingCarts(false)
-    setCartsCleared(true)
-    setTimeout(() => setCartsCleared(false), 3000)
+    try {
+      const res = await fetch('/api/admin/carts', { method: 'DELETE' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setCartsCleared(true)
+        setTimeout(() => setCartsCleared(false), 3000)
+      } else {
+        alert(json.error || 'Failed to clear carts')
+      }
+    } finally {
+      setClearingCarts(false)
+    }
   }
 
-  function handleRevalidateCache() {
+  async function handleRevalidateCache() {
     setRevalidating(true)
-    // Placeholder: would call revalidation API
-    setTimeout(() => setRevalidating(false), 1500)
+    try {
+      await fetch('/api/admin/revalidate', { method: 'POST' })
+      await new Promise((r) => setTimeout(r, 300))
+    } finally {
+      setRevalidating(false)
+    }
   }
 
   return (
@@ -1212,7 +1275,7 @@ function DangerZoneSection() {
               {clearingCarts ? 'Clearing...' : 'Clear All Carts'}
             </button>
             {cartsCleared && (
-              <span className="font-body text-xs text-teal">Done (placeholder).</span>
+              <span className="font-body text-xs text-teal">Cleared.</span>
             )}
           </div>
         </div>

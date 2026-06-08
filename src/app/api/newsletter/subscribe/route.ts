@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { sendWelcomeSubscriber } from '@/lib/email/send'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
+import { sendWelcomeEmail } from '@/lib/email/triggers'
 
 interface SubscribeRow {
   contact_id: string
@@ -65,18 +64,15 @@ export async function POST(request: Request) {
     return Response.json({ success: true, alreadyUnsubscribed: true })
   }
 
-  // Best-effort welcome email with the code. Email failure should not
-  // fail the subscription itself.
-  try {
-    await sendWelcomeSubscriber(normalizedEmail, firstName ?? undefined, {
-      discountCode: row.code ?? undefined,
-      percentOff: row.percent_off ?? 10,
-      expiresLabel: 'Valid for 24 hours',
-      unsubscribeUrl: buildUnsubscribeUrl(row.contact_id),
-    })
-  } catch (err) {
-    console.error('Welcome email failed:', err)
-  }
+  // Best-effort welcome email via the automation engine. This honors the
+  // admin-managed `welcome` automation if active (else a built-in template),
+  // dedupes per contact, and never throws. We pass the already-minted code +
+  // contact id so no second discount code is generated. (E-4)
+  await sendWelcomeEmail(normalizedEmail, firstName ?? null, {
+    contactId: row.contact_id,
+    discountCode: row.code ?? undefined,
+    percentOff: row.percent_off ?? 10,
+  })
 
   return Response.json({
     success: true,

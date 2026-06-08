@@ -18,6 +18,10 @@ export interface RenderEmailOptions {
   hideUnsubscribe?: boolean
   context?: PlaceholderContext
   footerNote?: string
+  // E-10: tag the message so Resend open/click webhooks can be scoped to the
+  // exact campaign recipient row (not just the email address).
+  campaignId?: string
+  recipientId?: string
 }
 
 export async function renderAndSend(opts: RenderEmailOptions) {
@@ -42,11 +46,16 @@ export async function renderAndSend(opts: RenderEmailOptions) {
     footerNote: opts.footerNote,
   })
 
+  const tagHeaders: Record<string, string> = {}
+  if (opts.campaignId) tagHeaders['X-Campaign-Id'] = opts.campaignId
+  if (opts.recipientId) tagHeaders['X-Recipient-Id'] = opts.recipientId
+
   return sendEmail({
     to: opts.to,
     subject,
     html,
     replyTo: opts.replyTo,
+    ...(Object.keys(tagHeaders).length ? { headers: tagHeaders } : {}),
   })
 }
 

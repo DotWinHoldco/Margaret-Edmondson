@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: '/shop', label: 'Shop' },
   { href: '/commissions', label: 'Commissions' },
   { href: '/classes', label: 'Classes' },
+  { href: '/courses', label: 'Courses' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/cv', label: 'CV' },

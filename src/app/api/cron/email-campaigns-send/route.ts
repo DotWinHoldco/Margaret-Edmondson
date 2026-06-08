@@ -105,6 +105,8 @@ async function sendCampaignBatch(
           preheader: campaign.preheader || undefined,
           contactId: r.contact_id || undefined,
           listId: campaign.audience_list_id || undefined,
+          campaignId: campaign.id,
+          recipientId: r.id,
           context: {
             first_name: r.first_name_snapshot || null,
             discount_code: campaign.promo_code?.code || null,

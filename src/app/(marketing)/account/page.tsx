@@ -47,6 +47,10 @@ export default async function AccountPage() {
             <h3 className="font-body font-semibold text-charcoal">My Classes</h3>
             <p className="font-body text-sm text-charcoal/50 mt-1">Enrolled courses and progress</p>
           </Link>
+          <Link href="/account/addresses" className="bg-white rounded-sm border border-charcoal/10 p-6 hover:border-teal transition-colors">
+            <h3 className="font-body font-semibold text-charcoal">Addresses</h3>
+            <p className="font-body text-sm text-charcoal/50 mt-1">Saved shipping addresses</p>
+          </Link>
           <Link href="/account/settings" className="bg-white rounded-sm border border-charcoal/10 p-6 hover:border-teal transition-colors">
             <h3 className="font-body font-semibold text-charcoal">Settings</h3>
             <p className="font-body text-sm text-charcoal/50 mt-1">Profile, addresses, preferences</p>

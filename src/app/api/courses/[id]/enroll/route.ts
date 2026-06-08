@@ -1,5 +1,5 @@
 import { getStripe } from '@/lib/stripe'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: Request,
@@ -45,14 +45,8 @@ export async function POST(
       return Response.json({ error: 'Course is not available' }, { status: 400 })
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    const profileId = profile?.id || user.id
+    // profiles.id IS auth.uid() — there is no auth_user_id column.
+    const profileId = user.id
 
     // Check if already enrolled
     const { data: existingEnrollment } = await supabase
@@ -66,9 +60,11 @@ export async function POST(
       return Response.json({ error: 'Already enrolled in this course' }, { status: 409 })
     }
 
-    // Free course: enroll directly
+    // Free course: enroll directly. Use the service client for the INSERT —
+    // enrollments RLS would otherwise drop the cookie-client write. (B-13)
     if (!course.price || course.price === 0) {
-      const { data: enrollment, error: enrollError } = await supabase
+      const svc = await createServiceClient()
+      const { data: enrollment, error: enrollError } = await svc
         .from('enrollments')
         .insert({
           profile_id: profileId,
@@ -103,8 +99,8 @@ export async function POST(
           quantity: 1,
         },
       ],
-      success_url: `${siteUrl}/classes/${course.slug}?enrolled=true`,
-      cancel_url: `${siteUrl}/classes/${course.slug}`,
+      success_url: `${siteUrl}/courses/${course.slug}?enrolled=true`,
+      cancel_url: `${siteUrl}/courses/${course.slug}`,
       metadata: {
         course_id: courseId,
         profile_id: profileId,

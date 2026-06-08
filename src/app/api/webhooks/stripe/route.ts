@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
+import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { recordOrder } from '@/lib/crm/contacts'
 import { headers } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -458,6 +459,13 @@ async function handleCheckoutCompleted(
     } catch (err) {
       console.error('Order confirmation email failed:', err)
     }
+
+    // Post-purchase automation (studio note / nurture). Idempotent per order
+    // (dedupe_key) and no-throw — never blocks the money path. (E-4)
+    await sendPostPurchaseEmail(session.customer_email, orderId as string, {
+      total: orderTotal,
+      contactId: session.metadata.contact_id || null,
+    })
   }
 
   await logEvent(supabase, event, { kind: 'order', order_id: orderId })

@@ -27,7 +27,7 @@ const SECURITY_HEADERS = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
       "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.facebook.com https://*.resend.com",
-      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
