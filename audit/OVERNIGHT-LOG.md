@@ -40,12 +40,12 @@ Repo: `/Users/skylarwebber/Margaret-Edmondson` · Supabase: `klwkajukicsoiwpsgft
 7. **Aesthetic/design pass** (plan rule 12 — untouched by this run).
 
 ## Continuation plan for DEFERRED work (priority order)
-- **P1 Phase 4 account self‑service (4.3):** `/account/wishlist`, `/account/classes`, `/account/settings`, addresses, password change (currently 404).
-- **P1 Phase 5.1 API‑response standardization** + 5.4 observability on the money path.
-- **P2 Phase 3.3** products/promo archive+delete UI; **3.5** page‑builder unification + media MIME/size validation.
-- **P2 Phase 4.6 email engine** (welcome/post‑purchase triggers, unsubscribe token expiry) — bounded.
-- **P3 Phase 4.1 social content calendar** (full §D‑1 build), **4.2 LMS student front‑end**, **4.4 integrations hub**, **4.5 settings model** — largest builds.
-- **P3 Phase 5.5 type regen, 5.9 tests+CI, 5.6 dead‑code (site_content still referenced by /admin/content — needs reachability check first), 5.8 runtime stats.**
+_(Phase 4 is now fully BUILT — see the PHASE 4 section. Remaining deferred work below.)_
+- **P1 Phase 5.1 API‑response standardization** (~63 routes through `apiOk`/`apiError`) + **5.4 observability/Sentry** on the money path.
+- **P2 Phase 3.3** products/promo archive+delete UI; **3.5** page‑builder unification + media MIME/size validation; **5.9 tests+CI** (money path + the new Phase 4 features).
+- **P2 Phase 4 tails:** social blog/product auto‑suggest tie‑in; consume the new settings (tax, integration toggles, maintenance‑mode redirect, announcement bar) where currently hardcoded; move `social_accounts` tokens to Supabase Vault before live OAuth.
+- **P3 Phase 5.5 type regen, 5.6 dead‑code (site_content still referenced by /admin/content — needs reachability check first), 5.8 runtime stats, 5.10 next/image; Meta Graph Phase‑2 social auto‑publish (behind `SOCIAL_AUTOPUBLISH`).**
+- **P3 add FK indexes** on the new social/email tables (routine perf INFO advisories).
 
 ---
 
