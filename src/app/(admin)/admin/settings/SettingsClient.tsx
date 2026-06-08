@@ -670,9 +670,11 @@ function SiteSettingsSection() {
       const data = await res.json()
       setSiteName(data.siteName || '')
       setSiteUrl(data.siteUrl || '')
-      if (data.globalSettings?.content) {
-        setSeoTitle(data.globalSettings.content.seo_title || '')
-        setSeoDescription(data.globalSettings.content.seo_description || '')
+      // SEO now lives on site_settings (Phase 4.5), surfaced via data.settings;
+      // the legacy site_content path is no longer written.
+      if (data.settings) {
+        setSeoTitle(data.settings.seo_title || '')
+        setSeoDescription(data.settings.seo_description || '')
       }
       setLoading(false)
     }
