@@ -1454,8 +1454,8 @@ export default function ProjectHubClient({
             { value: '31', label: 'Public Pages' },
             { value: '36', label: 'Admin Pages' },
             { value: '15', label: 'Sales Funnels' },
-            { value: '94', label: 'API Routes' },
-            { value: '45k+', label: 'Lines of Code' },
+            { value: '104', label: 'API Routes' },
+            { value: '51k+', label: 'Lines of Code' },
           ].map((stat) => (
             <div key={stat.label} className="flex items-baseline gap-1.5">
               <span className="font-display text-lg font-bold text-charcoal">{stat.value}</span>
