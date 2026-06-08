@@ -1,4 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { sanitizeHtml } from '@/lib/sanitize'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
       status,
       seo_title,
       seo_description,
+      publish_at,
     } = body
 
     if (!title || !slug) {
@@ -66,13 +69,14 @@ export async function POST(request: Request) {
       title,
       slug,
       excerpt: excerpt || null,
-      content_html: content || '',
+      content_html: sanitizeHtml(content || ''),
       content_json: {},
       cover_image_url: cover_image_url || null,
       tags: tags || [],
       status: status || 'draft',
       seo_title: seo_title || null,
       seo_description: seo_description || null,
+      publish_at: publish_at || null,
       author_id: null,
     }
 
@@ -117,13 +121,14 @@ export async function PATCH(request: Request) {
     if (fields.title !== undefined) updateData.title = fields.title
     if (fields.slug !== undefined) updateData.slug = fields.slug
     if (fields.excerpt !== undefined) updateData.excerpt = fields.excerpt || null
-    if (fields.content !== undefined) updateData.content_html = fields.content
+    if (fields.content !== undefined) updateData.content_html = sanitizeHtml(fields.content)
     if (fields.cover_image_url !== undefined) updateData.cover_image_url = fields.cover_image_url || null
     if (fields.tags !== undefined) updateData.tags = fields.tags || []
     if (fields.status !== undefined) updateData.status = fields.status
     if (fields.seo_title !== undefined) updateData.seo_title = fields.seo_title || null
     if (fields.seo_description !== undefined) updateData.seo_description = fields.seo_description || null
     if (fields.published_at !== undefined) updateData.published_at = fields.published_at
+    if (fields.publish_at !== undefined) updateData.publish_at = fields.publish_at || null
 
     // Auto-set published_at when publishing for the first time
     if (fields.status === 'published' && !fields.published_at) {

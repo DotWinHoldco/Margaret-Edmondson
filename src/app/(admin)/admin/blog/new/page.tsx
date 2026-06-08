@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import RichTextEditor from '@/components/admin/RichTextEditor'
+import MediaPicker from '@/components/admin/MediaPicker'
 
 function slugify(text: string): string {
   return text
@@ -12,10 +15,13 @@ function slugify(text: string): string {
     .trim()
 }
 
+type BlogStatus = 'draft' | 'scheduled' | 'published' | 'archived'
+
 export default function NewBlogPostPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
@@ -24,7 +30,8 @@ export default function NewBlogPostPage() {
     content: '',
     cover_image_url: '',
     tags: '',
-    status: 'draft' as 'draft' | 'published',
+    status: 'draft' as BlogStatus,
+    publish_at: '',
     seo_title: '',
     seo_description: '',
   })
@@ -43,9 +50,13 @@ export default function NewBlogPostPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSubmit(publishStatus: 'draft' | 'published') {
+  async function handleSubmit(publishStatus: BlogStatus) {
     if (!form.title.trim()) {
       setError('Title is required.')
+      return
+    }
+    if (publishStatus === 'scheduled' && !form.publish_at) {
+      setError('Pick a publish date/time to schedule.')
       return
     }
 
@@ -59,6 +70,9 @@ export default function NewBlogPostPage() {
         body: JSON.stringify({
           ...form,
           status: publishStatus,
+          publish_at: publishStatus === 'scheduled' && form.publish_at
+            ? new Date(form.publish_at).toISOString()
+            : null,
           tags: form.tags
             .split(',')
             .map((t) => t.trim())
@@ -81,12 +95,15 @@ export default function NewBlogPostPage() {
     }
   }
 
+  const inputClass =
+    'w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30'
+  const labelClass =
+    'mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50'
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-light text-charcoal">
-          New Blog Post
-        </h1>
+        <h1 className="font-display text-3xl font-light text-charcoal">New Blog Post</h1>
         <button
           onClick={() => router.push('/admin/blog')}
           className="font-body text-sm text-charcoal/50 hover:text-charcoal transition-colors"
@@ -102,120 +119,91 @@ export default function NewBlogPostPage() {
       )}
 
       <div className="space-y-5 rounded-sm border border-charcoal/10 bg-white p-6">
-        {/* Title */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Title
-          </label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            placeholder="Post title"
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+          <label className={labelClass}>Title</label>
+          <input type="text" value={form.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Post title" className={inputClass} />
         </div>
 
-        {/* Slug */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Slug
-          </label>
-          <input
-            type="text"
-            value={form.slug}
-            onChange={(e) => updateField('slug', e.target.value)}
-            placeholder="post-url-slug"
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+          <label className={labelClass}>Slug</label>
+          <input type="text" value={form.slug} onChange={(e) => updateField('slug', e.target.value)} placeholder="post-url-slug" className={inputClass} />
         </div>
 
-        {/* Excerpt */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Excerpt
-          </label>
-          <textarea
-            value={form.excerpt}
-            onChange={(e) => updateField('excerpt', e.target.value)}
-            rows={2}
-            placeholder="Brief summary..."
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30 resize-y"
-          />
+          <label className={labelClass}>Excerpt</label>
+          <textarea value={form.excerpt} onChange={(e) => updateField('excerpt', e.target.value)} rows={2} placeholder="Brief summary..." className={`${inputClass} resize-y`} />
         </div>
 
-        {/* Content */}
+        {/* Content — rich text */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Content
-          </label>
-          <textarea
-            value={form.content}
-            onChange={(e) => updateField('content', e.target.value)}
-            rows={12}
+          <label className={labelClass}>Content</label>
+          <RichTextEditor
+            content={form.content}
+            onChange={(html) => updateField('content', html)}
             placeholder="Write your post content here..."
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30 resize-y"
+            minHeight="280px"
           />
         </div>
 
-        {/* Cover Image URL */}
+        {/* Cover image — media picker */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Cover Image URL
-          </label>
-          <input
-            type="url"
-            value={form.cover_image_url}
-            onChange={(e) => updateField('cover_image_url', e.target.value)}
-            placeholder="https://..."
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+          <label className={labelClass}>Cover Image</label>
+          {form.cover_image_url ? (
+            <div className="flex items-center gap-3">
+              <div className="relative h-20 w-32 overflow-hidden rounded-sm border border-charcoal/10 bg-charcoal/5">
+                <Image src={form.cover_image_url} alt="Cover" fill className="object-cover" sizes="128px" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <button type="button" onClick={() => setPickerOpen(true)} className="font-body text-xs text-teal hover:underline text-left">Replace</button>
+                <button type="button" onClick={() => updateField('cover_image_url', '')} className="font-body text-xs text-coral hover:underline text-left">Remove</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="rounded-sm border border-dashed border-charcoal/25 bg-cream/40 px-4 py-3 font-body text-sm text-charcoal/60 hover:border-teal hover:text-teal transition-colors"
+            >
+              + Choose or upload a cover image
+            </button>
+          )}
         </div>
 
-        {/* Tags */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Tags
-          </label>
-          <input
-            type="text"
-            value={form.tags}
-            onChange={(e) => updateField('tags', e.target.value)}
-            placeholder="art, studio, process (comma-separated)"
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+          <label className={labelClass}>Tags</label>
+          <input type="text" value={form.tags} onChange={(e) => updateField('tags', e.target.value)} placeholder="art, studio, process (comma-separated)" className={inputClass} />
         </div>
 
-        {/* SEO Title */}
-        <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            SEO Title
-          </label>
-          <input
-            type="text"
-            value={form.seo_title}
-            onChange={(e) => updateField('seo_title', e.target.value)}
-            placeholder="Custom title for search engines (optional)"
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+        {/* Status + schedule */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Status</label>
+            <select value={form.status} onChange={(e) => updateField('status', e.target.value)} className={inputClass}>
+              <option value="draft">Draft</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+          {form.status === 'scheduled' && (
+            <div>
+              <label className={labelClass}>Publish at</label>
+              <input type="datetime-local" value={form.publish_at} onChange={(e) => updateField('publish_at', e.target.value)} className={inputClass} />
+            </div>
+          )}
         </div>
 
-        {/* SEO Description */}
         <div>
-          <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            SEO Description
-          </label>
-          <textarea
-            value={form.seo_description}
-            onChange={(e) => updateField('seo_description', e.target.value)}
-            rows={2}
-            placeholder="Custom description for search engines (optional)"
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30 resize-y"
-          />
+          <label className={labelClass}>SEO Title</label>
+          <input type="text" value={form.seo_title} onChange={(e) => updateField('seo_title', e.target.value)} placeholder="Custom title for search engines (optional)" className={inputClass} />
+        </div>
+
+        <div>
+          <label className={labelClass}>SEO Description</label>
+          <textarea value={form.seo_description} onChange={(e) => updateField('seo_description', e.target.value)} rows={2} placeholder="Custom description for search engines (optional)" className={`${inputClass} resize-y`} />
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={() => handleSubmit('draft')}
@@ -225,13 +213,26 @@ export default function NewBlogPostPage() {
           {saving ? 'Saving...' : 'Save Draft'}
         </button>
         <button
-          onClick={() => handleSubmit('published')}
+          onClick={() => handleSubmit(form.status === 'scheduled' ? 'scheduled' : 'published')}
           disabled={saving}
           className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal disabled:opacity-50"
         >
-          {saving ? 'Publishing...' : 'Publish'}
+          {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule' : 'Publish'}
         </button>
       </div>
+
+      <MediaPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(picked) => {
+          updateField('cover_image_url', picked.url)
+          setPickerOpen(false)
+        }}
+        defaultCategory="library"
+        initialFilter="all"
+        uploadBucket="library"
+        title="Choose a cover image"
+      />
     </div>
   )
 }

@@ -2,6 +2,11 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import RichTextEditor from '@/components/admin/RichTextEditor'
+import MediaPicker from '@/components/admin/MediaPicker'
+
+type BlogStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
 function slugify(text: string): string {
   return text
@@ -21,6 +26,7 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
   const [error, setError] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
@@ -29,10 +35,11 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
     content: '',
     cover_image_url: '',
     tags: '',
-    status: 'draft' as 'draft' | 'published',
+    status: 'draft' as BlogStatus,
     seo_title: '',
     seo_description: '',
     published_at: '',
+    publish_at: '',
   })
 
   useEffect(() => {
@@ -60,11 +67,14 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
         content: (post.content_html as string) || '',
         cover_image_url: (post.cover_image_url as string) || '',
         tags: Array.isArray(post.tags) ? (post.tags as string[]).join(', ') : '',
-        status: (post.status as 'draft' | 'published') || 'draft',
+        status: (post.status as BlogStatus) || 'draft',
         seo_title: (post.seo_title as string) || '',
         seo_description: (post.seo_description as string) || '',
         published_at: post.published_at
           ? new Date(post.published_at as string).toISOString().slice(0, 16)
+          : '',
+        publish_at: post.publish_at
+          ? new Date(post.publish_at as string).toISOString().slice(0, 16)
           : '',
       })
     }
@@ -87,9 +97,13 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSave(publishStatus: 'draft' | 'published') {
+  async function handleSave(publishStatus: BlogStatus) {
     if (!form.title.trim()) {
       setError('Title is required.')
+      return
+    }
+    if (publishStatus === 'scheduled' && !form.publish_at) {
+      setError('Pick a publish date/time to schedule.')
       return
     }
 
@@ -114,6 +128,10 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
               : publishStatus === 'published'
                 ? new Date().toISOString()
                 : null,
+          publish_at:
+            publishStatus === 'scheduled' && form.publish_at
+              ? new Date(form.publish_at).toISOString()
+              : null,
         }),
       })
 
@@ -239,32 +257,43 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
           />
         </div>
 
-        {/* Content */}
+        {/* Content — rich text */}
         <div>
           <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Content (HTML)
+            Content
           </label>
-          <textarea
-            value={form.content}
-            onChange={(e) => updateField('content', e.target.value)}
-            rows={14}
+          <RichTextEditor
+            content={form.content}
+            onChange={(html) => updateField('content', html)}
             placeholder="Write your post content here..."
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30 resize-y font-mono"
+            minHeight="320px"
           />
         </div>
 
-        {/* Cover Image URL */}
+        {/* Cover image — media picker */}
         <div>
           <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-            Cover Image URL
+            Cover Image
           </label>
-          <input
-            type="url"
-            value={form.cover_image_url}
-            onChange={(e) => updateField('cover_image_url', e.target.value)}
-            placeholder="https://..."
-            className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
-          />
+          {form.cover_image_url ? (
+            <div className="flex items-center gap-3">
+              <div className="relative h-20 w-32 overflow-hidden rounded-sm border border-charcoal/10 bg-charcoal/5">
+                <Image src={form.cover_image_url} alt="Cover" fill className="object-cover" sizes="128px" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <button type="button" onClick={() => setPickerOpen(true)} className="font-body text-xs text-teal hover:underline text-left">Replace</button>
+                <button type="button" onClick={() => updateField('cover_image_url', '')} className="font-body text-xs text-coral hover:underline text-left">Remove</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="rounded-sm border border-dashed border-charcoal/25 bg-cream/40 px-4 py-3 font-body text-sm text-charcoal/60 hover:border-teal hover:text-teal transition-colors"
+            >
+              + Choose or upload a cover image
+            </button>
+          )}
         </div>
 
         {/* Status */}
@@ -278,7 +307,9 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
             className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
           >
             <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
             <option value="published">Published</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
 
@@ -292,6 +323,21 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
               type="datetime-local"
               value={form.published_at}
               onChange={(e) => updateField('published_at', e.target.value)}
+              className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
+            />
+          </div>
+        )}
+
+        {/* Publish At (only when scheduled) */}
+        {form.status === 'scheduled' && (
+          <div>
+            <label className="mb-1 block font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
+              Publish at
+            </label>
+            <input
+              type="datetime-local"
+              value={form.publish_at}
+              onChange={(e) => updateField('publish_at', e.target.value)}
               className="w-full rounded-sm border border-charcoal/15 bg-cream/50 px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/30"
             />
           </div>
@@ -379,14 +425,27 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
             {saving ? 'Saving...' : 'Save Draft'}
           </button>
           <button
-            onClick={() => handleSave('published')}
+            onClick={() => handleSave(form.status === 'scheduled' ? 'scheduled' : 'published')}
             disabled={saving}
             className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal disabled:opacity-50"
           >
-            {saving ? 'Publishing...' : 'Publish'}
+            {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule' : 'Publish'}
           </button>
         </div>
       </div>
+
+      <MediaPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(picked) => {
+          updateField('cover_image_url', picked.url)
+          setPickerOpen(false)
+        }}
+        defaultCategory="library"
+        initialFilter="all"
+        uploadBucket="library"
+        title="Choose a cover image"
+      />
     </div>
   )
 }

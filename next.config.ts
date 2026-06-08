@@ -14,6 +14,26 @@ const SECURITY_HEADERS = [
   // Cross-origin isolation hints.
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+  // A-10: CSP defense-in-depth. Shipped in Report-Only first so violations can
+  // be reviewed before switching the header name to `Content-Security-Policy` to
+  // enforce. 'unsafe-inline'/'unsafe-eval' are required for Next.js 16 App
+  // Router until nonce-based CSP is wired.
+  {
+    key: 'Content-Security-Policy-Report-Only',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://connect.facebook.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
+      "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.facebook.com https://*.resend.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '),
+  },
 ];
 
 const nextConfig: NextConfig = {
