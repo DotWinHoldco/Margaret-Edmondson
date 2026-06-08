@@ -3,6 +3,20 @@ import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 import { upsertContact } from '@/lib/crm/contacts'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { requireAdmin } from '@/lib/auth/require-admin'
+
+const COMMISSION_STATUSES = [
+  'inquiry',
+  'consultation',
+  'proposal_sent',
+  'accepted',
+  'in_progress',
+  'review',
+  'revision',
+  'completed',
+  'cancelled',
+  'declined',
+] as const
 
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
@@ -100,4 +114,40 @@ export async function POST(request: Request) {
   })
 
   return Response.json({ success: true })
+}
+
+// Admin-only: update a commission's workflow status. Replaces the old inline
+// <script> + dangerouslySetInnerHTML hack on the detail page. (F-2)
+export async function PATCH(request: Request) {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+
+  let body: { id?: string; status?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { id, status } = body
+  if (!id || !status) {
+    return Response.json({ error: 'id and status are required' }, { status: 400 })
+  }
+  if (!COMMISSION_STATUSES.includes(status as (typeof COMMISSION_STATUSES)[number])) {
+    return Response.json({ error: 'Invalid status' }, { status: 400 })
+  }
+
+  const { data, error } = await auth.supabase
+    .from('commissions')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id, status')
+    .single()
+
+  if (error) {
+    console.error('Commission status update error:', error)
+    return Response.json({ error: error.message || 'Failed to update status' }, { status: 500 })
+  }
+
+  return Response.json({ success: true, commission: data })
 }

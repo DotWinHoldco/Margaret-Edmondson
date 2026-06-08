@@ -21,6 +21,10 @@ export default function PixelScript() {
 
   return (
     <>
+      {/* Trusted, developer-authored inline script: the Meta Pixel bootstrap.
+          Its only interpolation is NEXT_PUBLIC_META_PIXEL_ID (an env value, not
+          user input), so it is intentionally NOT run through sanitizeHtml — a
+          sanitizer would strip the <script> body and break pixel tracking. */}
       <Script
         id="meta-pixel-init"
         strategy="afterInteractive"

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { renderMarkdown } from '@/lib/markdown'
+import { sanitizeHtml } from '@/lib/sanitize'
 import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
@@ -144,7 +145,7 @@ export default async function AboutPage() {
                   )}
                   <div
                     className="font-body text-base sm:text-lg text-charcoal/75 leading-relaxed prose prose-sm sm:prose-base max-w-none"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body_markdown) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(s.body_markdown)) }}
                   />
                   {imageRight && (
                     <Image

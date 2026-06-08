@@ -8,7 +8,7 @@
 //               picks up these carts and sends a weekly nurture email
 //               until purchase or unsubscribe.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { renderHtml } from '@/lib/email/render'
 import { ctaButton, discountCallout } from '@/lib/email/shell'
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
   const now = new Date()
   const nowIso = now.toISOString()
 
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
   })
 }
 
-async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof createServiceClient>>): Promise<string | null> {
   if (cart.contact_id) return cart.contact_id
   if (!cart.email) return null
   const contact = await upsertContact(
@@ -118,7 +118,7 @@ async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof 
   return contact.id
 }
 
-async function sendStep1(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+async function sendStep1(cart: CartRow, supabase: Awaited<ReturnType<typeof createServiceClient>>): Promise<boolean> {
   if (!cart.email) return false
   const contactId = await ensureContact(cart, supabase)
   const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
@@ -140,7 +140,7 @@ async function sendStep1(cart: CartRow, supabase: Awaited<ReturnType<typeof crea
   return result !== null || !process.env.RESEND_API_KEY
 }
 
-async function sendStep2(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+async function sendStep2(cart: CartRow, supabase: Awaited<ReturnType<typeof createServiceClient>>): Promise<boolean> {
   if (!cart.email) return false
   const contactId = await ensureContact(cart, supabase)
 
@@ -202,7 +202,7 @@ async function sendStep2(cart: CartRow, supabase: Awaited<ReturnType<typeof crea
   return result !== null || !process.env.RESEND_API_KEY
 }
 
-async function sendStep3(cart: CartRow, supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+async function sendStep3(cart: CartRow, supabase: Awaited<ReturnType<typeof createServiceClient>>): Promise<boolean> {
   if (!cart.email) return false
   const contactId = await ensureContact(cart, supabase)
 

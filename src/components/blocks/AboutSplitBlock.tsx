@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { slideInLeft, slideInRight } from '@/lib/animations'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 interface AboutSplitConfig {
   image_url?: string
@@ -62,7 +63,7 @@ export default function AboutSplitBlock({ config }: { config: Record<string, unk
             <div className="mt-2 w-12 h-px bg-gold" />
             <div
               className="mt-6 font-body text-base sm:text-lg leading-relaxed text-charcoal/70 space-y-4"
-              dangerouslySetInnerHTML={{ __html: body }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }}
             />
             <Link
               href={linkUrl}

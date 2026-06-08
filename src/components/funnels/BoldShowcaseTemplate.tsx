@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, useInView } from 'framer-motion'
 import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
 import type { FunnelTemplateProps } from './types'
@@ -362,7 +363,7 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
                   <div
                     className="font-body text-cream/70 leading-relaxed space-y-4 prose prose-invert"
                     dangerouslySetInnerHTML={{
-                      __html: funnel.story_body_html || product.story_html || `<p>This piece didn't come from a plan. It came from a feeling — the kind you can't name but can't ignore. Margaret picked up her brush and let it happen.</p><p>Working in ${product.medium || 'mixed media'}, she built layer upon layer until the piece spoke back to her. The result is raw, intentional, and alive with energy.</p>`,
+                      __html: sanitizeHtml(funnel.story_body_html || product.story_html || `<p>This piece didn't come from a plan. It came from a feeling — the kind you can't name but can't ignore. Margaret picked up her brush and let it happen.</p><p>Working in ${product.medium || 'mixed media'}, she built layer upon layer until the piece spoke back to her. The result is raw, intentional, and alive with energy.</p>`),
                     }}
                   />
                   <BrushStroke className="text-teal mt-6" />

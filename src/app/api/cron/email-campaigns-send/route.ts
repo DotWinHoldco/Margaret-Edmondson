@@ -6,7 +6,7 @@
 // renderAndSend in small parallel groups so Resend rate limits stay
 // happy. When the queue is empty the campaign flips to 'sent'.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { renderAndSend } from '@/lib/email/render'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
 import { discountCallout } from '@/lib/email/shell'
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
   const nowIso = new Date().toISOString()
 
   // Promote scheduled → sending when scheduled_at has passed.
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 }
 
 async function sendCampaignBatch(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
   campaign: Campaign
 ): Promise<{ sent: number; failed: number; remaining: number }> {
   let sent = 0
@@ -166,7 +166,7 @@ async function sendCampaignBatch(
 }
 
 async function materializeRecipients(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
   campaign: Campaign
 ) {
   if (!campaign.audience_list_id) return

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import CommissionStatusControl from '@/components/admin/CommissionStatusControl'
 
 export const metadata: Metadata = {
   title: 'Commission Detail',
@@ -385,59 +386,11 @@ export default async function AdminCommissionDetailPage(
               <h2 className="mb-3 font-display text-lg font-semibold text-charcoal">
                 Update Status
               </h2>
-              <form>
-                <select
-                  name="status"
-                  defaultValue={status}
-                  className="w-full rounded-lg border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                  id="commission-status-select"
-                >
-                  {ALL_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {formatStatusLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="mt-3 w-full rounded-lg bg-teal px-4 py-2 font-body text-sm font-medium text-white transition-colors hover:bg-deep-teal"
-                  id="update-commission-btn"
-                  data-commission-id={commission.id}
-                >
-                  Update Status
-                </button>
-                <script
-                  dangerouslySetInnerHTML={{
-                    __html: `
-                      document.getElementById('update-commission-btn')?.addEventListener('click', async function() {
-                        var select = document.getElementById('commission-status-select');
-                        var commissionId = this.dataset.commissionId;
-                        var newStatus = select.value;
-                        this.disabled = true;
-                        this.textContent = 'Updating...';
-                        try {
-                          var res = await fetch('/api/commissions', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: commissionId, status: newStatus }),
-                          });
-                          if (res.ok) {
-                            window.location.reload();
-                          } else {
-                            var data = await res.json();
-                            alert(data.error || 'Failed to update status');
-                          }
-                        } catch (e) {
-                          alert('Failed to update status');
-                        } finally {
-                          this.disabled = false;
-                          this.textContent = 'Update Status';
-                        }
-                      });
-                    `,
-                  }}
-                />
-              </form>
+              <CommissionStatusControl
+                commissionId={commission.id}
+                currentStatus={status}
+                statuses={ALL_STATUSES}
+              />
             </div>
           </div>
         </div>

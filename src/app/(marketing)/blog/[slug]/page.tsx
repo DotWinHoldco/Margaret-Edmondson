@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import DiscoverCTA from '@/components/marketing/DiscoverCTA'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 export async function generateMetadata(
   props: { params: Promise<{ slug: string }> }
@@ -157,7 +158,7 @@ export default async function BlogPostPage(
             [&_hr]:my-12 [&_hr]:border-charcoal/15
             [&_code]:rounded-sm [&_code]:bg-charcoal/[0.05] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.95em] [&_code]:font-mono
           "
-          dangerouslySetInnerHTML={{ __html: post.content_html }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content_html) }}
         />
 
         {/* End rule + share-ish footer */}

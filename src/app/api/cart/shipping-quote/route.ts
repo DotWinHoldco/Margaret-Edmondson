@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { quoteLiveShipping } from '@/lib/pricing/shipping-quote'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 interface CartItemInput {
   variantId: string
@@ -17,6 +18,9 @@ function inferStateFromZip(zip: string): 'AK' | 'HI' | null {
 }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'shipping-quote' })
+  if (!rl.ok) return rateLimitResponse(rl)
+
   const body = await request.json() as {
     country?: string
     zip?: string

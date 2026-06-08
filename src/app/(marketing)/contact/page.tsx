@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeHtml } from '@/lib/sanitize'
 import ContactFormClient from '@/components/marketing/ContactFormClient'
 
 export const metadata: Metadata = {
@@ -34,7 +35,7 @@ export default async function ContactPage() {
           {introHtml ? (
             <div
               className="mt-4 font-body text-charcoal/60 [&_p]:my-2"
-              dangerouslySetInnerHTML={{ __html: introHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(introHtml) }}
             />
           ) : (
             <p className="mt-4 font-body text-charcoal/60">{DEFAULT_INTRO}</p>

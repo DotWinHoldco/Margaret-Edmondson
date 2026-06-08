@@ -1,13 +1,15 @@
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { headers } from 'next/headers'
 
 export async function POST(request: Request) {
-  // Verify the request is authorized (internal cron or admin)
+  // Authorize: internal cron (x-cron-secret) OR an authenticated admin/artist
+  // session (the admin UI re-fires fulfillment without the cron secret).
   const headersList = await headers()
   const secret = headersList.get('x-cron-secret')
-
   if (secret !== process.env.CRON_SECRET) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
   }
 
   let body: { orderId?: string }

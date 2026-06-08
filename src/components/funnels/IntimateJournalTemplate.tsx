@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, useInView, useScroll, useTransform } from 'framer-motion'
 import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
+import { sanitizeHtml } from '@/lib/sanitize'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
 import type { FunnelTemplateProps } from './types'
 
@@ -228,7 +229,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
               <div
                 className="mt-10 font-serif-body text-lg text-charcoal/75 leading-[1.9] space-y-6 prose prose-lg mx-auto"
                 dangerouslySetInnerHTML={{
-                  __html: funnel.story_body_html || product.story_html || `<p>Margaret doesn't plan her paintings. She listens for them.</p><p>"${product.title}" began on a quiet morning — the kind where the light feels different, where something shifts inside you and you know you need to pick up a brush. Working in ${product.medium || 'her studio'}, she let the piece emerge layer by layer, color by color.</p><p>"I didn't know what it would become," Margaret says. "I just knew it needed to exist."</p><p>The result is a work that carries that same energy — quiet, intentional, alive. It's the kind of piece you discover something new in every time you look at it.</p>`,
+                  __html: sanitizeHtml(funnel.story_body_html || product.story_html || `<p>Margaret doesn't plan her paintings. She listens for them.</p><p>"${product.title}" began on a quiet morning — the kind where the light feels different, where something shifts inside you and you know you need to pick up a brush. Working in ${product.medium || 'her studio'}, she let the piece emerge layer by layer, color by color.</p><p>"I didn't know what it would become," Margaret says. "I just knew it needed to exist."</p><p>The result is a work that carries that same energy — quiet, intentional, alive. It's the kind of piece you discover something new in every time you look at it.</p>`),
                 }}
               />
             </Reveal>

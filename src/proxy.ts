@@ -20,6 +20,11 @@ async function gateCheck(request: NextRequest): Promise<NextResponse | null> {
   if (
     pathname.startsWith('/gate') ||
     pathname.startsWith('/api/gate') ||
+    // Machine-to-machine callbacks carry no gate cookie and must never be
+    // rewritten to /gate — Stripe/Lumaprints/Printful/ShipStation/Resend
+    // webhooks and Vercel cron jobs would otherwise receive the gate HTML.
+    pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/cron') ||
     pathname.startsWith('/_next') ||
     pathname === '/icon.png' ||
     pathname === '/favicon.ico' ||

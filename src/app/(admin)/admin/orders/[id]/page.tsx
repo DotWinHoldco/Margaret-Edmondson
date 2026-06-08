@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import OrderStatusControl from '@/components/admin/OrderStatusControl'
 
 export const metadata: Metadata = {
   title: 'Order Detail',
@@ -280,60 +281,11 @@ export default async function AdminOrderDetailPage(
               <h2 className="mb-3 font-display text-lg font-semibold text-charcoal">
                 Update Status
               </h2>
-              <form>
-                <input type="hidden" name="orderId" value={order.id} />
-                <select
-                  name="status"
-                  defaultValue={status}
-                  className="w-full rounded-lg border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                  id="status-select"
-                >
-                  {ALL_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="mt-3 w-full rounded-lg bg-teal px-4 py-2 font-body text-sm font-medium text-white transition-colors hover:bg-deep-teal"
-                  id="update-status-btn"
-                  data-order-id={order.id}
-                >
-                  Update Status
-                </button>
-                <script
-                  dangerouslySetInnerHTML={{
-                    __html: `
-                      document.getElementById('update-status-btn')?.addEventListener('click', async function() {
-                        const select = document.getElementById('status-select');
-                        const orderId = this.dataset.orderId;
-                        const newStatus = select.value;
-                        this.disabled = true;
-                        this.textContent = 'Updating...';
-                        try {
-                          const res = await fetch('/api/admin/orders/' + orderId, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: newStatus }),
-                          });
-                          if (res.ok) {
-                            window.location.reload();
-                          } else {
-                            const data = await res.json();
-                            alert(data.error || 'Failed to update status');
-                          }
-                        } catch (e) {
-                          alert('Failed to update status');
-                        } finally {
-                          this.disabled = false;
-                          this.textContent = 'Update Status';
-                        }
-                      });
-                    `,
-                  }}
-                />
-              </form>
+              <OrderStatusControl
+                orderId={order.id}
+                currentStatus={status}
+                statuses={ALL_STATUSES}
+              />
             </div>
           </div>
         </div>

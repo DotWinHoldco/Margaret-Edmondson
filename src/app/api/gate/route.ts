@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit';
 
 const COOKIE_NAME = 'site-auth';
 const MAX_AGE = 60 * 60 * 24 * 30;
@@ -12,6 +13,9 @@ async function sha256Hex(input: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(req, { limit: 5, windowMs: 300_000, keyPrefix: 'gate' });
+  if (!rl.ok) return rateLimitResponse(rl);
+
   const password = process.env.SITE_PASSWORD;
   const secret = process.env.SITE_AUTH_SECRET;
   if (!password || !secret) {

@@ -5,7 +5,7 @@
 // is in place to add welcome series and post-purchase later by adding
 // branches per trigger_event.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { renderAndSend } from '@/lib/email/render'
 import { discountCallout } from '@/lib/email/shell'
 import { generateDiscountCode } from '@/lib/discounts/generate'
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
   let totalSent = 0
 
   // Cart abandon nurture: weekly email until they buy or unsubscribe.

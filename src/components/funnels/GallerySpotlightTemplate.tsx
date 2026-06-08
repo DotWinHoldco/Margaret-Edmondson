@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, useInView, useScroll, useTransform } from 'framer-motion'
 import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
+import { sanitizeHtml } from '@/lib/sanitize'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
 import type { FunnelTemplateProps } from './types'
 
@@ -226,7 +227,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
                 <div
                   className="mt-6 text-charcoal/75 font-body text-lg leading-relaxed space-y-4 prose prose-lg"
                   dangerouslySetInnerHTML={{
-                    __html: funnel.story_body_html || product.story_html || `<p>Every piece Margaret creates begins with a moment of quiet observation — a play of light, an unexpected color, a feeling that demands expression. "${product.title}" emerged from one of those moments.</p><p>Working in ${product.medium || 'mixed media'}, Margaret layered meaning into every brushstroke. The result is a piece that reveals new details each time you look at it.</p>`,
+                    __html: sanitizeHtml(funnel.story_body_html || product.story_html || `<p>Every piece Margaret creates begins with a moment of quiet observation — a play of light, an unexpected color, a feeling that demands expression. "${product.title}" emerged from one of those moments.</p><p>Working in ${product.medium || 'mixed media'}, Margaret layered meaning into every brushstroke. The result is a piece that reveals new details each time you look at it.</p>`),
                   }}
                 />
               </FadeUp>

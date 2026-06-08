@@ -1,5 +1,5 @@
 import { getStripe, webhookSecretFor } from '@/lib/stripe'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
@@ -40,12 +40,26 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
 
-  // Log webhook
+  // Idempotency: if this exact Stripe event was already processed, ack and
+  // stop — replaying an event must not create a second order, charge a second
+  // refund, re-send email, or re-fire fulfillment. (B-2)
+  const { data: priorEvent } = await supabase
+    .from('webhook_logs')
+    .select('id')
+    .eq('source', 'stripe')
+    .eq('stripe_event_id', event.id)
+    .maybeSingle()
+  if (priorEvent) {
+    return Response.json({ received: true, duplicate: true })
+  }
+
+  // Log webhook (stripe_event_id powers the idempotency guard above)
   await supabase.from('webhook_logs').insert({
     source: 'stripe',
     event_type: event.type,
+    stripe_event_id: event.id,
     payload: event.data.object as unknown as Record<string, unknown>,
   })
 
@@ -162,6 +176,16 @@ export async function POST(request: Request) {
 
         break
       }
+
+      // Idempotency: never create a second order for the same checkout
+      // session (belt-and-suspenders alongside the event-id guard + the
+      // orders.stripe_checkout_session_id UNIQUE constraint). (B-2)
+      const { data: existingOrder } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('stripe_checkout_session_id', session.id)
+        .maybeSingle()
+      if (existingOrder) break
 
       const items = session.metadata.items_json ? JSON.parse(session.metadata.items_json) : []
 

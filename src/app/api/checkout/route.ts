@@ -3,12 +3,15 @@ import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { validateDiscountCode } from '@/lib/discounts/validate'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
 }
 
 export async function POST(request: Request) {
+  const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
+  if (!rl.ok) return rateLimitResponse(rl)
   try {
     const { getStripeMode, isStripeKeyConfigured } = await import('@/lib/stripe')
     const activeMode = await getStripeMode()

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import SharedFilesModal, { type SharedEntity } from '@/components/admin/SharedFilesModal'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface AuditEntry {
@@ -1842,7 +1843,7 @@ export default function ProjectHubClient({
                             ) : item.description ? (
                               <div
                                 className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3"
-                                dangerouslySetInnerHTML={{ __html: item.description }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }}
                               />
                             ) : null}
 
@@ -2105,7 +2106,7 @@ export default function ProjectHubClient({
                                 </div>
                               </div>
                             ) : item.description ? (
-                              <div className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: item.description }} />
+                              <div className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }} />
                             ) : null}
 
                             <CommentThread comments={workComments[item.id] || []} isLoading={!!loadingComments[`work-requests-${item.id}`]} newComment={newWorkComment} setNewComment={setNewWorkComment} onSubmit={() => submitComment('work-requests', item.id, newWorkComment, () => setNewWorkComment(''))} />
@@ -2410,7 +2411,7 @@ export default function ProjectHubClient({
                         ) : note.content ? (
                           <div
                             className="rich-content font-body text-sm text-charcoal/60 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: note.content }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }}
                           />
                         ) : null}
                         <CommentThread

@@ -6,7 +6,8 @@
 // (acceptable in dev) but only when running locally; in production
 // we hard-fail because spoofed webhook events would corrupt stats.
 
-import { createClient } from '@/lib/supabase/server'
+import { Webhook } from 'svix'
+import { createServiceClient } from '@/lib/supabase/server'
 import { markUnsubscribed } from '@/lib/crm/contacts'
 
 interface ResendEvent {
@@ -24,16 +25,27 @@ interface ResendEvent {
 export async function POST(request: Request) {
   const raw = await request.text()
 
+  const secret = process.env.RESEND_WEBHOOK_SECRET
   const isProd = process.env.NODE_ENV === 'production'
-  if (isProd && !process.env.RESEND_WEBHOOK_SECRET) {
+  if (isProd && !secret) {
     return Response.json({ error: 'Webhook secret not configured' }, { status: 503 })
   }
 
-  // Signature verification is optional in dev. In production callers
-  // should set RESEND_WEBHOOK_SECRET and Resend will sign accordingly.
-  // We leave the Svix-style verification as a TODO so the route still
-  // accepts events when configured pending a small svix dependency.
-  // For now we just parse the body.
+  // Resend signs every webhook with the Svix protocol. Whenever a secret is
+  // configured we verify the signature before trusting the body — an unsigned
+  // or tampered payload is rejected (400) so spoofed bounce/complaint/open
+  // events can't corrupt CRM contact status or campaign stats. (A-6 / E-3)
+  if (secret) {
+    try {
+      new Webhook(secret).verify(raw, {
+        'svix-id': request.headers.get('svix-id') ?? '',
+        'svix-timestamp': request.headers.get('svix-timestamp') ?? '',
+        'svix-signature': request.headers.get('svix-signature') ?? '',
+      })
+    } catch {
+      return Response.json({ error: 'Invalid signature' }, { status: 400 })
+    }
+  }
 
   let event: ResendEvent
   try {
@@ -44,7 +56,7 @@ export async function POST(request: Request) {
 
   if (!event?.type) return Response.json({ ok: true })
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
   const toEmail = Array.isArray(event.data?.to) ? event.data.to[0] : event.data?.to
   const nowIso = new Date().toISOString()
 

@@ -1,17 +1,23 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/require-admin'
 import { type NextRequest } from 'next/server'
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> },
 ) {
+  // Admin-only: this returns the buyer's email + carrier + tracking numbers,
+  // which an unauthenticated caller could otherwise harvest by enumerating
+  // order UUIDs. (A-4)
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth.response
+
   const { orderId } = await params
 
   if (!orderId) {
     return Response.json({ error: 'orderId is required' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = auth.supabase
 
   // Fetch order
   const { data: order, error: orderError } = await supabase

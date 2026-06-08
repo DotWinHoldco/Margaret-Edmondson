@@ -4,6 +4,7 @@
 // pages so DB-driven content looks identical to the hardcoded copy.
 
 import Image from 'next/image'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 interface Props {
   title: string
@@ -44,7 +45,7 @@ export default function PageBodyShell({ title, bodyHtml, heroImageUrl, lastUpdat
             [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-1
             [&_p]:my-3
             [&_a]:text-gold [&_a]:underline-offset-2 hover:[&_a]:underline"
-          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(bodyHtml) }}
         />
       </div>
     </div>

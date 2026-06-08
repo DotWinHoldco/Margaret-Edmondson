@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { trackEvent } from '@/lib/meta/pixel'
 import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 /* ─── Types ─── */
 
@@ -296,7 +297,7 @@ function Lightbox({
         {product.description_html && (
           <div
             className="mt-3 max-w-xl mx-auto font-body text-sm text-white/60 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: product.description_html }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description_html) }}
           />
         )}
         {/* Thumbnail strip in lightbox */}
@@ -689,7 +690,7 @@ export default function ProductDetail({
             {product.description_html && (
               <div
                 className="mt-8 font-body text-sm leading-relaxed text-charcoal/70 prose prose-sm"
-                dangerouslySetInnerHTML={{ __html: product.description_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description_html) }}
               />
             )}
 
@@ -732,7 +733,7 @@ export default function ProductDetail({
                     >
                       <div
                         className="mt-3 font-body text-sm text-charcoal/60 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: product.story_html }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.story_html) }}
                       />
                     </motion.div>
                   )}
