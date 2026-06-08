@@ -1,6 +1,6 @@
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { items, email, cartId, shippingSurcharge, shippingSurchargeLabel, promoCode } = await request.json()
+    const { items, email, cartId, shippingSurchargeLabel, promoCode } = await request.json()
 
     if (!items?.length) {
       return jsonError('No items provided', 400, 'empty_cart')
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
 
       let price = product.base_price
       let variantName = ''
+      let variantType: string | null = null
 
       if (item.variantId) {
         const { data: variant } = await supabase
@@ -65,14 +66,21 @@ export async function POST(request: Request) {
           }
           price = variant.price
           variantName = ` — ${variant.name}`
+          variantType = variant.variant_type
         }
       }
+
+      // B-7: derive fulfillment from SERVER data, never the client. Originals
+      // ship themselves; everything else follows the product's fulfillment_type.
+      const fulfillmentType =
+        variantType === 'original' ? 'self_ship' : (product.fulfillment_type || 'lumaprints')
 
       validatedItems.push({
         ...item,
         title: product.title + variantName,
         price,
-        fulfillmentType: item.fulfillmentType || (item.variantType === 'original' ? 'self_ship' : 'lumaprints'),
+        variantType,
+        fulfillmentType,
       })
     }
 
@@ -87,9 +95,35 @@ export async function POST(request: Request) {
       if (img) imageUrls[item.productId] = img.url
     }
 
-    const surchargeCents = typeof shippingSurcharge === 'number' && shippingSurcharge > 0
-      ? Math.round(shippingSurcharge * 100)
-      : 0
+    // B-5 + B-6: persist the validated line items onto the cart row and read the
+    // shipping surcharge from the SERVER-set cart value (written by
+    // /api/cart/shipping-quote), never the client POST body. The webhook reads
+    // items back from the cart, so orders survive any cart size (Stripe metadata
+    // is hard-capped at 500 chars per key) and the surcharge can't be tampered.
+    let surchargeCents = 0
+    if (cartId) {
+      const svc = await createServiceClient()
+      await svc
+        .from('carts')
+        .update({
+          items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
+            productId: i.productId,
+            variantId: i.variantId ?? null,
+            variantType: i.variantType ?? null,
+            fulfillmentType: i.fulfillmentType,
+            quantity: i.quantity,
+            price: i.price,
+            title: i.title,
+          })),
+        })
+        .eq('id', cartId)
+      const { data: cartRow } = await svc
+        .from('carts')
+        .select('shipping_surcharge_cents')
+        .eq('id', cartId)
+        .maybeSingle()
+      surchargeCents = cartRow?.shipping_surcharge_cents ?? 0
+    }
 
     let contactId: string | null = null
     if (email) {
@@ -135,11 +169,13 @@ export async function POST(request: Request) {
           name: `ArtByME ${validation.code.code}`,
           max_redemptions: 1,
         })
-        // Only persist stripe_coupon_id back when we know the real
-        // promo_codes row id. Anon-validated codes return a minimal
-        // stub with id='' because anon can't SELECT promo_codes.
+        // Persist stripe_coupon_id back so the SAME coupon is reused next time
+        // (otherwise max_redemptions:1 is bypassed by minting a fresh coupon on
+        // every checkout). Must use the service client — the anon client's
+        // UPDATE is silently dropped by RLS. (B-20)
         if (validation.code.id) {
-          await supabase
+          const svc = await createServiceClient()
+          await svc
             .from('promo_codes')
             .update({ stripe_coupon_id: appliedCoupon.id })
             .eq('id', validation.code.id)
@@ -170,12 +206,9 @@ export async function POST(request: Request) {
         contact_id: contactId || '',
         promo_code_id: appliedCodeId || '',
         promo_code: appliedCodeText || '',
-        items_json: JSON.stringify(validatedItems.map((i: { productId: string; variantId?: string; fulfillmentType: string; quantity: number }) => ({
-          productId: i.productId,
-          variantId: i.variantId,
-          fulfillmentType: i.fulfillmentType,
-          quantity: i.quantity,
-        }))),
+        // items intentionally NOT stored here — Stripe caps metadata at 500
+        // chars/key which silently truncates 4+ item carts. The webhook reads
+        // items from carts.items (persisted above) instead. (B-5)
       },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/{CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,

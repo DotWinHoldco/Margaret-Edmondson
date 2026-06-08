@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { quoteLiveShipping } from '@/lib/pricing/shipping-quote'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -7,6 +7,18 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 interface CartItemInput {
   variantId: string
   quantity: number
+}
+
+// B-6: persist the server-computed surcharge onto the cart so checkout reads a
+// trusted value rather than a tamperable client POST field. Best-effort.
+async function persistSurcharge(cartId: string | undefined, surchargeCents: number) {
+  if (!cartId) return
+  try {
+    const svc = await createServiceClient()
+    await svc.from('carts').update({ shipping_surcharge_cents: surchargeCents }).eq('id', cartId)
+  } catch (e) {
+    console.error('persist surcharge failed', e)
+  }
 }
 
 function inferStateFromZip(zip: string): 'AK' | 'HI' | null {
@@ -25,10 +37,12 @@ export async function POST(request: NextRequest) {
     country?: string
     zip?: string
     items?: CartItemInput[]
+    cartId?: string
   }
   const country = (body.country || 'US').toUpperCase()
   const zip = (body.zip || '').trim()
   const items = Array.isArray(body.items) ? body.items : []
+  const cartId = typeof body.cartId === 'string' ? body.cartId : undefined
 
   if (!zip || items.length === 0) {
     return Response.json({ error: 'zip and items required' }, { status: 400 })
@@ -37,6 +51,7 @@ export async function POST(request: NextRequest) {
   const akhi = country === 'US' ? inferStateFromZip(zip) : null
   const isContiguous = country === 'US' && !akhi
   if (isContiguous) {
+    await persistSurcharge(cartId, 0)
     return Response.json({ surcharge: 0, zone: 'CONUS' })
   }
 
@@ -85,5 +100,6 @@ export async function POST(request: NextRequest) {
 
   const surcharge = Math.max(0, Math.round((liveTotal - conusTotal) * 100) / 100)
   const zone = akhi || (country === 'CA' ? 'CA' : 'OTHER')
+  await persistSurcharge(cartId, Math.round(surcharge * 100))
   return Response.json({ surcharge, zone, breakdown })
 }

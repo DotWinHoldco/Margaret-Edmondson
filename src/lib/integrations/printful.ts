@@ -53,6 +53,12 @@ export async function getOrder(orderId: string) {
   return request(`/orders/${orderId}`)
 }
 
+// Printful's POST /orders creates the order in DRAFT. It must be confirmed to
+// be submitted for production/fulfillment. (B-15)
+export async function confirmOrder(orderId: number | string) {
+  return request(`/orders/${orderId}/confirm`, { method: 'POST' })
+}
+
 export async function estimateShipping(orderData: {
   recipient: { zip: string; country_code: string }
   items: Array<{ variant_id: number; quantity: number }>

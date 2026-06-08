@@ -32,9 +32,15 @@ export async function signBucketUrls(
   const paths = inputs.map((u) => extractStoragePath(bucket, u))
   try {
     const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, expiresIn)
-    if (error || !data) return inputs
-    return data.map((d, i) => d.signedUrl || inputs[i])
-  } catch {
-    return inputs
+    if (error || !data) {
+      console.error('signBucketUrls failed for bucket', bucket, error)
+      // Return empty strings rather than dead bucket-relative paths so callers
+      // render a clear "unavailable" state instead of a broken <img>.
+      return inputs.map(() => '')
+    }
+    return data.map((d) => d.signedUrl || '')
+  } catch (err) {
+    console.error('signBucketUrls threw for bucket', bucket, err)
+    return inputs.map(() => '')
   }
 }

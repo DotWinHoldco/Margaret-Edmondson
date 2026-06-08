@@ -6,9 +6,10 @@ import DOMPurify from 'isomorphic-dompurify'
 // (commission/order notes). Anything outside this set is stripped: <script>,
 // inline event handlers (on*), javascript: URLs, <iframe>, <object>, etc.
 //
-// `style` is permitted because DOMPurify runs a built-in CSS sanitizer on it
-// (removing expression()/url(javascript:)/behaviors), and our rich-text output
-// relies on inline alignment/spacing. Everything dangerous is still removed.
+// NOTE: the `style` attribute is intentionally NOT allowed. DOMPurify 3.x no
+// longer ships a built-in CSS sanitizer, so permitting `style` would let
+// customer-submitted content inject CSS (position:fixed overlays / clickjacking)
+// into admin pages. Alignment/spacing is covered by `align` + Tailwind classes.
 const ALLOWED_TAGS = [
   'p', 'br', 'hr', 'span', 'div',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -22,7 +23,7 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = [
   'href', 'target', 'rel', 'title', 'alt', 'src', 'srcset', 'width', 'height',
-  'class', 'style', 'colspan', 'rowspan', 'start', 'type', 'id', 'align',
+  'class', 'colspan', 'rowspan', 'start', 'type', 'id', 'align',
 ]
 
 /**

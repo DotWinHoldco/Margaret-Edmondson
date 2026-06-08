@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 import { upsertContact } from '@/lib/crm/contacts'
+import { signBucketUrls } from '@/lib/storage/signed'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
@@ -12,7 +13,8 @@ const SignupBody = z.object({
   email: z.string().trim().email().max(320),
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   special_notes: z.string().trim().max(2000).optional().or(z.literal('')),
-  pet_photo_urls: z.array(z.string().url()).max(5).optional(),
+  // bucket-relative object paths (class-pet-photos is a private bucket), not URLs
+  pet_photo_urls: z.array(z.string().trim().min(1).max(512)).max(5).optional(),
 })
 
 const VENMO = process.env.MARGARET_VENMO_HANDLE || '@margaret-edmondson'
@@ -47,36 +49,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return apiError('Class is not currently accepting signups', 409, 'NOT_OPEN')
   }
 
-  // Capacity check
-  const { count } = await supabase
-    .from('class_bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('session_id', session.id)
-    .in('status', ['awaiting_payment', 'paid'])
-
-  if ((count || 0) >= session.capacity) {
-    return apiError('This class is fully booked', 409, 'SOLD_OUT')
-  }
-
-  // Insert booking. RLS: anon INSERT allowed; we don't .select() after since
-  // anon can't SELECT — we'll mint our own id client-side via gen_random_uuid()
-  // through a returning clause that PostgREST handles via header.
+  // Atomic capacity check + booking insert (locks the session row FOR UPDATE so
+  // concurrent signups cannot oversell the last seat). (B-10)
   const newId = crypto.randomUUID()
-  const { error: insertErr } = await supabase
-    .from('class_bookings')
-    .insert({
-      id: newId,
-      session_id: session.id,
-      name: body.name,
-      email: body.email,
-      phone: body.phone || null,
-      special_notes: body.special_notes || null,
-      pet_photo_urls: body.pet_photo_urls || [],
-    })
-  if (insertErr) return apiError(insertErr.message, 500, 'DB_ERROR')
+  const { data: bookResult, error: bookErr } = await supabase.rpc('book_class_session', {
+    p_session_id: session.id,
+    p_booking_id: newId,
+    p_name: body.name,
+    p_email: body.email,
+    p_phone: body.phone || null,
+    p_notes: body.special_notes || null,
+    p_photos: body.pet_photo_urls || [],
+  })
+  if (bookErr) return apiError(bookErr.message, 500, 'DB_ERROR')
+  if (bookResult === 'SOLD_OUT') return apiError('This class is fully booked', 409, 'SOLD_OUT')
+  if (bookResult !== 'OK') return apiError('Class not found', 404, 'NOT_FOUND')
 
   const sessionLabel = `${session.title} — ${new Date(session.starts_at).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Chicago' })}`
-  const photoLinks = (body.pet_photo_urls || []).map((u) => `<li><a href="${u}">${u.split('/').pop()}</a></li>`).join('')
+  // class-pet-photos is private — mint signed links (7-day, async email read).
+  const signedPhotos = (body.pet_photo_urls || []).length
+    ? await signBucketUrls(await createServiceClient(), 'class-pet-photos', body.pet_photo_urls!, 7 * 24 * 3600)
+    : []
+  const photoLinks = signedPhotos
+    .filter(Boolean)
+    .map((u, i) => `<li><a href="${u}">Pet photo ${i + 1}</a></li>`)
+    .join('')
 
   // CRM record for the lead.
   try {

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/meta-event-sync",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/expire-bookings",
+      "schedule": "0 * * * *"
     }
   ]
 }

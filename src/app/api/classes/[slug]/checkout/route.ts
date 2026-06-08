@@ -10,7 +10,8 @@ const Body = z.object({
   email: z.string().trim().email().max(320),
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   special_notes: z.string().trim().max(2000).optional().or(z.literal('')),
-  pet_photo_urls: z.array(z.string().url()).max(5).optional(),
+  // bucket-relative object paths (class-pet-photos is a private bucket), not URLs
+  pet_photo_urls: z.array(z.string().trim().min(1).max(512)).max(5).optional(),
 })
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -35,32 +36,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return apiError('Class is not currently accepting signups', 409, 'NOT_OPEN')
   }
 
-  const { count } = await supabase
-    .from('class_bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('session_id', session.id)
-    .in('status', ['awaiting_payment', 'paid'])
-
-  if ((count || 0) >= session.capacity) {
-    return apiError('This class is fully booked', 409, 'SOLD_OUT')
-  }
-
-  // Pre-create the booking so capacity reservation is atomic with the
-  // Stripe session. Webhook flips status -> 'paid' once Stripe confirms.
+  // Atomic capacity check + booking insert. book_class_session locks the
+  // session row FOR UPDATE so two concurrent buyers cannot oversell the last
+  // seat (replaces the prior count-then-insert TOCTOU race). (B-10)
   const bookingId = crypto.randomUUID()
-  const { error: insertErr } = await supabase
-    .from('class_bookings')
-    .insert({
-      id: bookingId,
-      session_id: session.id,
-      name: body.name,
-      email: body.email,
-      phone: body.phone || null,
-      special_notes: body.special_notes || null,
-      pet_photo_urls: body.pet_photo_urls || [],
-      status: 'awaiting_payment',
-    })
-  if (insertErr) return apiError(insertErr.message, 500, 'DB_ERROR')
+  const { data: bookResult, error: bookErr } = await supabase.rpc('book_class_session', {
+    p_session_id: session.id,
+    p_booking_id: bookingId,
+    p_name: body.name,
+    p_email: body.email,
+    p_phone: body.phone || null,
+    p_notes: body.special_notes || null,
+    p_photos: body.pet_photo_urls || [],
+  })
+  if (bookErr) return apiError(bookErr.message, 500, 'DB_ERROR')
+  if (bookResult === 'SOLD_OUT') return apiError('This class is fully booked', 409, 'SOLD_OUT')
+  if (bookResult !== 'OK') return apiError('Class not found', 404, 'NOT_FOUND')
 
   const startsLabel = new Date(session.starts_at).toLocaleString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago',

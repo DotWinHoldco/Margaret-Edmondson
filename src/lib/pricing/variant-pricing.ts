@@ -13,11 +13,21 @@ export interface VariantPricingInputs {
 }
 
 /**
- * Final customer price (cents) for a variant.
+ * Final customer price (cents) for a variant. THIS is the canonical price-setter
+ * for product_variants.price (used by /api/admin/variants/refresh, bulk-create,
+ * the per-variant route, and VariantsTab).
+ *
+ * Margin model = COST-PLUS markup, where margin_pct is a percentage: 100 means
+ * "100% markup" → 2× cost. Stored values (e.g. 100, 120) only make sense under
+ * this model, and the golden tests freeze it. (NB: audit finding B-23 proposed a
+ * gross-margin `cost/(1-margin)` formula — that is INCORRECT for this data model:
+ * a margin_pct of 100 would divide by zero. The separate gross-margin path in
+ * src/lib/pricing/compute.ts + /api/admin/pricing/refresh is the superseded,
+ * dollar-based legacy route. Margin-model change requires human sign-off.)
  *
  * If `manual_price_override_cents` is set, that wins — refreshes do NOT
  * blow it away. Otherwise apply the resolved margin to the Lumaprints cost
- * and add baked-in worst-case shipping.
+ * and add baked-in worst-case shipping (passed through at cost).
  */
 export function customerPriceCents(
   v: VariantPricingInputs,

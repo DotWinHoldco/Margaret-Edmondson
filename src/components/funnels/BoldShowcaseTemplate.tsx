@@ -166,6 +166,12 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
       : product.base_price
 
   const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string }) => {
+    // Funnel analytics: count the add-to-cart for this funnel. (D-4)
+    fetch(`/api/funnels/${funnel.id}/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ metric: 'add_to_cart' }),
+    }).catch(() => {})
     dispatch({
       type: 'ADD_ITEM',
       payload: {

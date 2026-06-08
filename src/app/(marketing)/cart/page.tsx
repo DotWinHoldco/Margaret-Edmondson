@@ -62,7 +62,7 @@ export default function CartPage() {
       const res = await fetch('/api/cart/shipping-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, zip, items: variantItems }),
+        body: JSON.stringify({ country, zip, items: variantItems, cartId: state.cartId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not quote shipping')

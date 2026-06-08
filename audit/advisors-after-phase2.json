@@ -1,0 +1,550 @@
+{
+  "captured": "after-phase2",
+  "project_id": "klwkajukicsoiwpsgftt",
+  "security": {
+    "lints": [
+      {
+        "name": "rls_policy_always_true",
+        "title": "RLS Policy Always True",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects RLS policies that use overly permissive expressions like `USING (true)` or `WITH CHECK (true)` for UPDATE, DELETE, or INSERT operations. SELECT policies with `USING (true)` are intentionally excluded as this pattern is often used deliberately for public read access.",
+        "detail": "Table `public.carts` has an RLS policy `Users can create cart` for `INSERT` that allows unrestricted access (WITH CHECK clause is always true). This effectively bypasses row-level security for -.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0024_permissive_rls_policy",
+        "metadata": {
+          "name": "carts",
+          "qual": null,
+          "type": "table",
+          "roles": [
+            "-"
+          ],
+          "schema": "public",
+          "command": "INSERT",
+          "with_check": "true",
+          "policy_name": "Users can create cart",
+          "permissive_using": false,
+          "permissive_with_check": true
+        },
+        "cache_key": "rls_policy_always_true_public_carts_Users can create cart"
+      },
+      {
+        "name": "rls_policy_always_true",
+        "title": "RLS Policy Always True",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects RLS policies that use overly permissive expressions like `USING (true)` or `WITH CHECK (true)` for UPDATE, DELETE, or INSERT operations. SELECT policies with `USING (true)` are intentionally excluded as this pattern is often used deliberately for public read access.",
+        "detail": "Table `public.class_bookings` has an RLS policy `Public can submit bookings` for `INSERT` that allows unrestricted access (WITH CHECK clause is always true). This effectively bypasses row-level security for -.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0024_permissive_rls_policy",
+        "metadata": {
+          "name": "class_bookings",
+          "qual": null,
+          "type": "table",
+          "roles": [
+            "-"
+          ],
+          "schema": "public",
+          "command": "INSERT",
+          "with_check": "true",
+          "policy_name": "Public can submit bookings",
+          "permissive_using": false,
+          "permissive_with_check": true
+        },
+        "cache_key": "rls_policy_always_true_public_class_bookings_Public can submit bookings"
+      },
+      {
+        "name": "rls_policy_always_true",
+        "title": "RLS Policy Always True",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects RLS policies that use overly permissive expressions like `USING (true)` or `WITH CHECK (true)` for UPDATE, DELETE, or INSERT operations. SELECT policies with `USING (true)` are intentionally excluded as this pattern is often used deliberately for public read access.",
+        "detail": "Table `public.commissions` has an RLS policy `Public can submit commissions` for `INSERT` that allows unrestricted access (WITH CHECK clause is always true). This effectively bypasses row-level security for -.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0024_permissive_rls_policy",
+        "metadata": {
+          "name": "commissions",
+          "qual": null,
+          "type": "table",
+          "roles": [
+            "-"
+          ],
+          "schema": "public",
+          "command": "INSERT",
+          "with_check": "true",
+          "policy_name": "Public can submit commissions",
+          "permissive_using": false,
+          "permissive_with_check": true
+        },
+        "cache_key": "rls_policy_always_true_public_commissions_Public can submit commissions"
+      },
+      {
+        "name": "rls_policy_always_true",
+        "title": "RLS Policy Always True",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects RLS policies that use overly permissive expressions like `USING (true)` or `WITH CHECK (true)` for UPDATE, DELETE, or INSERT operations. SELECT policies with `USING (true)` are intentionally excluded as this pattern is often used deliberately for public read access.",
+        "detail": "Table `public.newsletter_subscribers` has an RLS policy `Anyone can subscribe to newsletter` for `INSERT` that allows unrestricted access (WITH CHECK clause is always true). This effectively bypasses row-level security for -.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0024_permissive_rls_policy",
+        "metadata": {
+          "name": "newsletter_subscribers",
+          "qual": null,
+          "type": "table",
+          "roles": [
+            "-"
+          ],
+          "schema": "public",
+          "command": "INSERT",
+          "with_check": "true",
+          "policy_name": "Anyone can subscribe to newsletter",
+          "permissive_using": false,
+          "permissive_with_check": true
+        },
+        "cache_key": "rls_policy_always_true_public_newsletter_subscribers_Anyone can subscribe to newsletter"
+      },
+      {
+        "name": "public_bucket_allows_listing",
+        "title": "Public Bucket Allows Listing",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects public storage buckets with a broad SELECT policy on `storage.objects`, which allows clients to list all files in the bucket.",
+        "detail": "Public bucket `about-images` has 1 broad SELECT policy on `storage.objects` (Public read about-images), allowing clients to list all files. Public buckets don't need this for object URL access and it may expose more data than intended.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing",
+        "metadata": {
+          "name": "about-images",
+          "type": "bucket",
+          "schema": "storage",
+          "bucket_id": "about-images",
+          "bucket_name": "about-images",
+          "policy_count": 1,
+          "policy_names": [
+            "Public read about-images"
+          ]
+        },
+        "cache_key": "public_bucket_allows_listing_about-images"
+      },
+      {
+        "name": "public_bucket_allows_listing",
+        "title": "Public Bucket Allows Listing",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects public storage buckets with a broad SELECT policy on `storage.objects`, which allows clients to list all files in the bucket.",
+        "detail": "Public bucket `library` has 1 broad SELECT policy on `storage.objects` (Public read library), allowing clients to list all files. Public buckets don't need this for object URL access and it may expose more data than intended.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing",
+        "metadata": {
+          "name": "library",
+          "type": "bucket",
+          "schema": "storage",
+          "bucket_id": "library",
+          "bucket_name": "library",
+          "policy_count": 1,
+          "policy_names": [
+            "Public read library"
+          ]
+        },
+        "cache_key": "public_bucket_allows_listing_library"
+      },
+      {
+        "name": "public_bucket_allows_listing",
+        "title": "Public Bucket Allows Listing",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects public storage buckets with a broad SELECT policy on `storage.objects`, which allows clients to list all files in the bucket.",
+        "detail": "Public bucket `product-images` has 1 broad SELECT policy on `storage.objects` (Public read access), allowing clients to list all files. Public buckets don't need this for object URL access and it may expose more data than intended.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing",
+        "metadata": {
+          "name": "product-images",
+          "type": "bucket",
+          "schema": "storage",
+          "bucket_id": "product-images",
+          "bucket_name": "product-images",
+          "policy_count": 1,
+          "policy_names": [
+            "Public read access"
+          ]
+        },
+        "cache_key": "public_bucket_allows_listing_product-images"
+      },
+      {
+        "name": "public_bucket_allows_listing",
+        "title": "Public Bucket Allows Listing",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects public storage buckets with a broad SELECT policy on `storage.objects`, which allows clients to list all files in the bucket.",
+        "detail": "Public bucket `testimonials` has 2 broad SELECT policies on `storage.objects` (Auth write testimonials bucket, Public read testimonials bucket), allowing clients to list all files. Public buckets don't need this for object URL access and it may expose more data than intended.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing",
+        "metadata": {
+          "name": "testimonials",
+          "type": "bucket",
+          "schema": "storage",
+          "bucket_id": "testimonials",
+          "bucket_name": "testimonials",
+          "policy_count": 2,
+          "policy_names": [
+            "Auth write testimonials bucket",
+            "Public read testimonials bucket"
+          ]
+        },
+        "cache_key": "public_bucket_allows_listing_testimonials"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.book_class_session(p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[])` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/book_class_session`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "book_class_session",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[]",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_book_class_session_p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[]"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.increment_funnel_metric(p_funnel_id uuid, p_metric text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/increment_funnel_metric`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "increment_funnel_metric",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_funnel_id uuid, p_metric text",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_increment_funnel_metric_p_funnel_id uuid, p_metric text"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.is_admin_or_artist()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_admin_or_artist`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "is_admin_or_artist",
+          "schema": "public",
+          "language": "sql",
+          "arguments": "",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_is_admin_or_artist_"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.mark_contact_unsubscribed(p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/mark_contact_unsubscribed`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "mark_contact_unsubscribed",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_mark_contact_unsubscribed_p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.subscribe_to_newsletter(p_email text, p_first_name text, p_source text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/subscribe_to_newsletter`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "subscribe_to_newsletter",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_email text, p_first_name text, p_source text",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_subscribe_to_newsletter_p_email text, p_first_name text, p_source text"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.track_cart(p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/track_cart`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "track_cart",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_track_cart_p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.upsert_contact_to_list(p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[])` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/upsert_contact_to_list`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "upsert_contact_to_list",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[]",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_upsert_contact_to_list_p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[]"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "detail": "Function `public.validate_promo_code_public(p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/validate_promo_code_public`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "metadata": {
+          "name": "validate_promo_code_public",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric",
+          "security_definer": true
+        },
+        "cache_key": "anon_security_definer_function_executable_public_validate_promo_code_public_p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.book_class_session(p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/book_class_session`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "book_class_session",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[]",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_book_class_session_p_session_id uuid, p_booking_id uuid, p_name text, p_email text, p_phone text, p_notes text, p_photos text[]"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.increment_funnel_metric(p_funnel_id uuid, p_metric text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/increment_funnel_metric`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "increment_funnel_metric",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_funnel_id uuid, p_metric text",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_increment_funnel_metric_p_funnel_id uuid, p_metric text"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.is_admin_or_artist()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_admin_or_artist`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "is_admin_or_artist",
+          "schema": "public",
+          "language": "sql",
+          "arguments": "",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_is_admin_or_artist_"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.mark_contact_unsubscribed(p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/mark_contact_unsubscribed`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "mark_contact_unsubscribed",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_mark_contact_unsubscribed_p_contact_id uuid, p_list_id uuid, p_reason text, p_source text, p_ip text, p_user_agent text"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.subscribe_to_newsletter(p_email text, p_first_name text, p_source text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/subscribe_to_newsletter`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "subscribe_to_newsletter",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_email text, p_first_name text, p_source text",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_subscribe_to_newsletter_p_email text, p_first_name text, p_source text"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.track_cart(p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/track_cart`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "track_cart",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_track_cart_p_cart_id uuid, p_email text, p_items jsonb, p_subtotal numeric, p_contact_id uuid"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.upsert_contact_to_list(p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/upsert_contact_to_list`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "upsert_contact_to_list",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[]",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_upsert_contact_to_list_p_email text, p_list_slug text, p_first_name text, p_last_name text, p_phone text, p_source text, p_tags text[]"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "detail": "Function `public.validate_promo_code_public(p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/validate_promo_code_public`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "metadata": {
+          "name": "validate_promo_code_public",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric",
+          "security_definer": true
+        },
+        "cache_key": "authenticated_security_definer_function_executable_public_validate_promo_code_public_p_code text, p_email text, p_cart_id uuid, p_cart_subtotal numeric"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "title": "Leaked Password Protection Disabled",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Leaked password protection is currently disabled.",
+        "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+        "cache_key": "auth_leaked_password_protection",
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+        "metadata": {
+          "type": "auth",
+          "entity": "Auth"
+        }
+      }
+    ]
+  }
+}

@@ -50,7 +50,7 @@ export async function PATCH(
 
     // Handle view count increment separately via RPC-style
     if (body.views_count_increment) {
-      const { error: rpcError } = await supabase.rpc('increment_funnel_views', { funnel_id: id })
+      const { error: rpcError } = await supabase.rpc('increment_funnel_metric', { p_funnel_id: id, p_metric: 'views' })
       if (rpcError) {
         // Fallback: fetch current count and increment
         const { data: current } = await supabase

@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { submitOrder as lumaprintsSubmitOrder } from '@/lib/integrations/lumaprints'
-import { createOrder as printfulCreateOrder } from '@/lib/integrations/printful'
+import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -220,10 +220,12 @@ async function submitToLumaprints(
     imageUrl: validated.imageUrl,
     categoryId: String(validated.categoryId),
     subcategoryId: String(validated.subcategoryId),
-    options: validated.optionIds.reduce<Record<string, string>>((acc, id) => {
-      acc[String(id)] = String(id)
-      return acc
-    }, {}),
+    // B-16: send the selected option IDs as an array (matching the Lumaprints
+    // pricing/shipping API shape), not the previous {id:id} self-map which the
+    // order API rejects. NOTE: verify the exact order payload (option array vs
+    // {optionId} objects, width/height/file wrapper) against Lumaprints docs
+    // with live keys before go-live.
+    orderItemOptions: validated.optionIds,
     quantity: item.quantity,
   }))
 
@@ -276,6 +278,18 @@ async function submitToPrintful(
 
   const externalId: string =
     response?.result?.id || response?.id || ''
+
+  // B-15: POST /orders only creates a DRAFT. Confirm it so Printful actually
+  // produces + ships. If confirm fails the order still exists as a draft the
+  // admin can confirm manually, so we log rather than throw away the create.
+  if (externalId) {
+    try {
+      await printfulConfirmOrder(externalId)
+    } catch (err) {
+      console.error(`Printful order ${externalId} created but confirm failed:`, err)
+    }
+  }
+
   return items.map((item) => ({
     itemId: item.id,
     success: true,

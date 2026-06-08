@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 import { upsertContact } from '@/lib/crm/contacts'
+import { signBucketUrls } from '@/lib/storage/signed'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/auth/require-admin'
 
@@ -85,9 +86,14 @@ export async function POST(request: Request) {
   }
 
   // Send notification email to Margaret through the branded shell.
-  const refsHtml = refs.length
-    ? `<p><strong>Reference photos:</strong></p><ul>${refs
-        .map((u: string) => `<li><a href="${u}">${u.split('/').pop()}</a></li>`)
+  // commission-references is a private bucket — mint signed links (7-day expiry
+  // for async email reading) rather than dead bucket-relative paths.
+  const signedRefs = refs.length
+    ? (await signBucketUrls(await createServiceClient(), 'commission-references', refs, 7 * 24 * 3600)).filter(Boolean)
+    : []
+  const refsHtml = signedRefs.length
+    ? `<p><strong>Reference photos:</strong></p><ul>${signedRefs
+        .map((u, i) => `<li><a href="${u}">Reference ${i + 1}</a></li>`)
         .join('')}</ul>`
     : ''
   const html = brandedShell(

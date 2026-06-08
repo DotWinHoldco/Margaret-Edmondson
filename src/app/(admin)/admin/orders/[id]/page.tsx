@@ -3,12 +3,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import OrderStatusControl from '@/components/admin/OrderStatusControl'
+import OrderFulfillmentPanel from '@/components/admin/OrderFulfillmentPanel'
 
 export const metadata: Metadata = {
   title: 'Order Detail',
 }
 
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'failed_payment' | 'disputed'
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   pending: 'bg-gold/20 text-gold',
@@ -17,6 +18,8 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   delivered: 'bg-olive/20 text-olive',
   cancelled: 'bg-coral/20 text-coral',
   refunded: 'bg-charcoal/15 text-charcoal/60',
+  failed_payment: 'bg-coral/20 text-coral',
+  disputed: 'bg-coral/25 text-coral',
 }
 
 const ALL_STATUSES: OrderStatus[] = [
@@ -26,6 +29,8 @@ const ALL_STATUSES: OrderStatus[] = [
   'delivered',
   'cancelled',
   'refunded',
+  'failed_payment',
+  'disputed',
 ]
 
 function formatDate(dateStr: string) {
@@ -64,6 +69,19 @@ export default async function AdminOrderDetailPage(
   const status = (order.status || 'pending') as OrderStatus
   const shippingAddress = order.shipping_address as Record<string, string> | null
   const items = Array.isArray(order.order_items) ? order.order_items : []
+  const fulfillmentItems = items.map((item: Record<string, unknown>) => {
+    const product = item.products as { title?: string } | null
+    return {
+      id: item.id as string,
+      title: product?.title || 'Item',
+      fulfillment_type: (item.fulfillment_type as string) || 'self_ship',
+      fulfillment_status: (item.fulfillment_status as string) || 'pending',
+      tracking_number: (item.tracking_number as string) || null,
+      tracking_url: (item.tracking_url as string) || null,
+      carrier: (item.carrier as string) || null,
+      shipped_at: (item.shipped_at as string) || null,
+    }
+  })
 
   return (
     <div className="min-h-screen bg-cream">
@@ -199,6 +217,9 @@ export default async function AdminOrderDetailPage(
                 </tbody>
               </table>
             </div>
+
+            {/* Shipping & Tracking (self-ship + provider items) */}
+            <OrderFulfillmentPanel items={fulfillmentItems} />
 
             {/* Shipping Address */}
             {shippingAddress && (

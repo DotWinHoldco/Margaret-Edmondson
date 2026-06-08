@@ -106,7 +106,9 @@ export async function submitOrder(orderData: {
     imageUrl: string
     categoryId: string
     subcategoryId: string
-    options: Record<string, string>
+    // option IDs as an array (matches the pricing/shipping API shape); the
+    // previous {id:id} self-map was rejected by the order API. (B-16)
+    orderItemOptions: number[]
     quantity: number
   }>
   shippingAddress: {

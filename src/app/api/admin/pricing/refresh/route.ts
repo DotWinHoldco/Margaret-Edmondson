@@ -1,3 +1,10 @@
+// DEPRECATED / LEGACY (B-23): this route prices via the gross-margin formula
+// (compute.ts, dollar-based wholesale_cost, margin as a fraction <1). It is
+// SUPERSEDED by /api/admin/variants/refresh, which is the canonical cost-plus
+// path (cents-based lumaprints_cost_cents, margin_pct as a percentage) used by
+// the admin UI and recent prod pricing. Do not mix the two — running this route
+// will re-price with the divergent model. Retire or align to customerPriceCents
+// once the human confirms the intended margin model.
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
