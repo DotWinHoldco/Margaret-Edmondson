@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { signBucketUrls } from '@/lib/storage/signed'
 import BookingsTable from '@/components/admin/BookingsTable'
 
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,16 @@ export default async function BookingsPage(props: { params: Promise<{ id: string
     .eq('session_id', id)
     .order('created_at', { ascending: false })
 
+  // class-pet-photos is a private bucket — mint signed URLs for the admin view.
+  const signedBookings = await Promise.all(
+    (bookings || []).map(async (b) => ({
+      ...b,
+      pet_photo_urls: b.pet_photo_urls?.length
+        ? await signBucketUrls(supabase, 'class-pet-photos', b.pet_photo_urls)
+        : b.pet_photo_urls,
+    })),
+  )
+
   return (
     <div>
       <Link href="/admin/classes" className="mb-6 inline-flex items-center font-body text-sm text-charcoal/60 hover:text-charcoal transition-colors">
@@ -33,7 +44,7 @@ export default async function BookingsPage(props: { params: Promise<{ id: string
           {session.title} · {new Date(session.starts_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Chicago' })}
         </p>
       </header>
-      <BookingsTable bookings={bookings || []} capacity={session.capacity} />
+      <BookingsTable bookings={signedBookings} capacity={session.capacity} />
     </div>
   )
 }

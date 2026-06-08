@@ -3,7 +3,7 @@
 // are best-effort, the meta-event-sync cron retries any rows where
 // sent_to_meta is false.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unknown event' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = await createServiceClient()
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
   const ua = request.headers.get('user-agent') || null
   const hashedEmail = userData?.email ? hashSHA256(userData.email) : undefined

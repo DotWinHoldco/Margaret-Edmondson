@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import CommissionStatusControl from '@/components/admin/CommissionStatusControl'
+import { signBucketUrls } from '@/lib/storage/signed'
 
 export const metadata: Metadata = {
   title: 'Commission Detail',
@@ -91,6 +92,8 @@ export default async function AdminCommissionDetailPage(
 
   const status = (commission.status || 'inquiry') as CommissionStatus
   const referenceImages = (commission.reference_images as string[]) || []
+  // commission-references is a private bucket — mint signed URLs for the admin view.
+  const signedReferenceImages = await signBucketUrls(supabase, 'commission-references', referenceImages)
   const messages = (commission.messages as Array<{
     sender: string
     text: string
@@ -233,7 +236,7 @@ export default async function AdminCommissionDetailPage(
                   Reference Images
                 </h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {referenceImages.map((url, index) => (
+                  {signedReferenceImages.map((url, index) => (
                     <div
                       key={index}
                       className="aspect-square overflow-hidden rounded-lg border border-charcoal/10"

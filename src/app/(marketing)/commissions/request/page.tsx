@@ -96,8 +96,9 @@ export default function CommissionRequestPage() {
         .from('commission-references')
         .upload(path, file, { contentType: file.type, upsert: false })
       if (upErr) throw new Error(`${file.name}: ${upErr.message}`)
-      const { data } = supabase.storage.from('commission-references').getPublicUrl(path)
-      urls.push(data.publicUrl)
+      // Store the bucket-relative path — commission-references is a private
+      // bucket; the admin view mints signed URLs from these paths.
+      urls.push(path)
     }
     return urls
   }

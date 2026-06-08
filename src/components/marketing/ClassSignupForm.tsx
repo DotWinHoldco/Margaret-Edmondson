@@ -54,8 +54,9 @@ export default function ClassSignupForm({ slug, priceCents }: Props) {
         .from('class-pet-photos')
         .upload(path, f, { contentType: f.type, upsert: false })
       if (upErr) throw new Error(`${f.name}: ${upErr.message}`)
-      const { data } = supabase.storage.from('class-pet-photos').getPublicUrl(path)
-      urls.push(data.publicUrl)
+      // Store the bucket-relative path — class-pet-photos is a private bucket;
+      // the admin view mints signed URLs from these paths.
+      urls.push(path)
     }
     return urls
   }
