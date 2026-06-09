@@ -178,3 +178,14 @@ Built via a 5-agent parallel workflow (disjoint file ownership) + central integr
 **HUMAN follow-ups for Phase 4:** `SUPABASE_SERVICE_ROLE_KEY` enables Clear Carts + social cron + post-purchase trigger; `EMAIL_TEST_RECIPIENT` for integration test emails; move `social_accounts` tokens to Supabase Vault before any live OAuth/Meta publish; flip `SOCIAL_AUTOPUBLISH` only after building the Meta Graph publisher (Phase 2). The auto-suggest social tie-in and the tax/integration-toggle consumption are deferred (schema ready).
 
 **Phase 4 adversarial review (22-agent cloud workflow):** 17 raw findings → **1 confirmed** (16 false-positive/out-of-scope — strong validation of the parallel build). Confirmed + FIXED (3a94ce4): SettingsClient `SiteSettingsSection` read SEO from the stale `globalSettings.content` path while the PATCH now writes `site_settings.seo_*` → fields loaded blank on reload (value was still persisted + consumed at runtime; admin-form display only). Now reads `data.settings.seo_*`.
+
+---
+
+## POST-DEPLOY PRODUCTION INCIDENT (2026-06-09) — site-wide 500, RESOLVED
+
+Live artbyme.studio returned 500 on every content page. Diagnosed via Vercel runtime logs (`get_runtime_logs`). TWO independent root causes, both invisible to `next build` + local `next start`:
+
+1. **App Router dynamic-segment collision (pre-existing latent):** `api/admin/pages/` had sibling `[id]` + `[slug]` → "You cannot use different slug names for the same dynamic path ('id' !== 'slug')" on every request, taking down the whole route tree. FIXED 2c9bb93: moved id CRUD to `api/admin/pages/by-id/[id]` (+ EditPageForm calls). Also fixed sitemap listing non-existent /terms,/shipping (f68b5f6).
+2. **isomorphic-dompurify/jsdom not traced into the Vercel lambda (introduced Phase 1):** every server-rendered `sanitizeHtml` page threw `Error: Failed to load external …` → 500. FIXED 629b478: replaced DOMPurify with `sanitize-html` (pure JS, no jsdom) in `src/lib/sanitize.ts`; also guarded `/api/pixel/event` against `createServiceClient()` throwing `supabaseKey is required` when SUPABASE_SERVICE_ROLE_KEY is unset.
+
+Verified: production /, /about, /commissions, /contact, /shop, /blog, /classes, /courses all 200; zero 500s in runtime logs post-deploy (dpl_Fvst1FV9Df…). Lesson captured in [[feedback_vercel_serverless_jsdom]]. RECOMMEND a CI `next start` smoke test — `next build` catches neither failure class.
