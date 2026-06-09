@@ -38,7 +38,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unknown event' }, { status: 400 })
   }
 
-  const supabase = await createServiceClient()
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
   const ua = request.headers.get('user-agent') || null
   const hashedEmail = userData?.email ? hashSHA256(userData.email) : undefined
@@ -49,20 +48,33 @@ export async function POST(request: Request) {
     client_user_agent: ua || undefined,
   }
 
-  // Persist to queue. The meta-event-sync cron will pick this up if
-  // the inline send below fails.
-  const { data: row } = await supabase
-    .from('meta_events')
-    .insert({
-      event_name: eventName,
-      event_id: eventId,
-      user_data: userDataPayload as unknown as object,
-      custom_data: (params as unknown as object) || {},
-      source_url: sourceUrl || null,
-      sent_to_meta: false,
-    })
-    .select('id')
-    .maybeSingle()
+  // Persist to the meta_events queue ONLY when the service-role key is present
+  // (the queue is RLS-locked to service-role writes). Without it, skip the DB
+  // write and still attempt the inline CAPI forward. This public route is fired
+  // on every pageview and must never 500 — createServiceClient() throws
+  // "supabaseKey is required" when the key is unset, so we guard it.
+  let supabase: Awaited<ReturnType<typeof createServiceClient>> | null = null
+  let rowId: string | null = null
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      supabase = await createServiceClient()
+      const { data: row } = await supabase
+        .from('meta_events')
+        .insert({
+          event_name: eventName,
+          event_id: eventId,
+          user_data: userDataPayload as unknown as object,
+          custom_data: (params as unknown as object) || {},
+          source_url: sourceUrl || null,
+          sent_to_meta: false,
+        })
+        .select('id')
+        .maybeSingle()
+      rowId = row?.id ?? null
+    } catch (err) {
+      console.error('meta_events persist failed (suppressed):', err)
+    }
+  }
 
   // Best-effort inline forward to CAPI.
   try {
@@ -74,11 +86,11 @@ export async function POST(request: Request) {
       custom_data: params as undefined as never,
       event_source_url: sourceUrl || '',
     })
-    if (r && row?.id) {
+    if (r && rowId && supabase) {
       await supabase
         .from('meta_events')
         .update({ sent_to_meta: true, meta_response: r })
-        .eq('id', row.id)
+        .eq('id', rowId)
     }
   } catch (err) {
     console.error('CAPI forward failed', err)

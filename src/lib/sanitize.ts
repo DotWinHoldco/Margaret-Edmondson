@@ -1,15 +1,16 @@
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtmlLib, { type IOptions } from 'sanitize-html'
 
-// Allowlist tuned for the HTML we actually render via dangerouslySetInnerHTML:
-// markdown output, TipTap / page-builder rich text, blog + product bodies, and
-// — critically — customer-submitted text shown back inside admin pages
-// (commission/order notes). Anything outside this set is stripped: <script>,
-// inline event handlers (on*), javascript: URLs, <iframe>, <object>, etc.
+// NOTE: we use `sanitize-html` (pure JS) rather than DOMPurify/isomorphic-dompurify.
+// DOMPurify needs a DOM; on the server isomorphic-dompurify pulls in `jsdom`, which
+// does NOT trace cleanly into the Vercel serverless bundle and fails at render with
+// "Failed to load external …" (500). sanitize-html has no jsdom dependency, so it
+// works identically in server components, route handlers, and the browser.
 //
-// NOTE: the `style` attribute is intentionally NOT allowed. DOMPurify 3.x no
-// longer ships a built-in CSS sanitizer, so permitting `style` would let
-// customer-submitted content inject CSS (position:fixed overlays / clickjacking)
-// into admin pages. Alignment/spacing is covered by `align` + Tailwind classes.
+// Allowlist tuned for the HTML we render via dangerouslySetInnerHTML: markdown
+// output, TipTap / page-builder rich text, blog + product bodies, and customer-
+// submitted text shown back inside admin pages. Everything else is discarded:
+// <script>, inline event handlers (on*), javascript: URLs, <iframe>, <style>, etc.
+// `style` is intentionally NOT allowed (avoids CSS-injection / clickjacking).
 const ALLOWED_TAGS = [
   'p', 'br', 'hr', 'span', 'div',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -26,17 +27,20 @@ const ALLOWED_ATTR = [
   'class', 'colspan', 'rowspan', 'start', 'type', 'id', 'align',
 ]
 
+const OPTIONS: IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: { '*': ALLOWED_ATTR },
+  allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+  allowProtocolRelative: false,
+  // discard disallowed tags entirely (don't leak their text as escaped markup)
+  disallowedTagsMode: 'discard',
+}
+
 /**
  * Sanitize untrusted/authored HTML for safe rendering. Returns '' for empty
- * input. Safe to call on the server (jsdom) and the client (browser DOMPurify).
+ * input. Safe on the server (no jsdom) and the client.
  */
 export function sanitizeHtml(dirty: string | null | undefined): string {
   if (!dirty) return ''
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: false,
-    FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form'],
-    USE_PROFILES: { html: true },
-  })
+  return sanitizeHtmlLib(dirty, OPTIONS)
 }
