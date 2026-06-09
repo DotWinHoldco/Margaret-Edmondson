@@ -36,7 +36,7 @@ export default function EditPageForm({ page }: { page: Page }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/pages/${page.id}`, {
+      const res = await fetch(`/api/admin/pages/by-id/${page.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +83,7 @@ export default function EditPageForm({ page }: { page: Page }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/pages/${page.id}`, {
+      const res = await fetch(`/api/admin/pages/by-id/${page.id}`, {
         method: 'DELETE',
       })
 
