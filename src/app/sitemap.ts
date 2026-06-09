@@ -8,14 +8,15 @@ const STATIC_PATHS = [
   '',
   '/shop',
   '/about',
+  '/cv',
   '/contact',
   '/blog',
   '/classes',
+  '/courses',
   '/commissions',
   '/commissions/request',
   '/privacy',
-  '/terms',
-  '/shipping',
+  '/shipping-policy',
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
