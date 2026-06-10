@@ -58,7 +58,8 @@ export interface MediumConfig {
   enabled: boolean
 }
 
-const STANDARD_RECT: MediumSize[] = [
+// Portrait (taller than wide) — the historical default grid.
+const STANDARD_PORTRAIT: MediumSize[] = [
   { size_label: '8x10', width: 8, height: 10 },
   { size_label: '11x14', width: 11, height: 14 },
   { size_label: '12x16', width: 12, height: 16 },
@@ -69,61 +70,90 @@ const STANDARD_RECT: MediumSize[] = [
   { size_label: '30x40', width: 30, height: 40 },
 ]
 
+// Square (1:1) — for square originals (e.g. Margaret's 8×8 / 12×12 watercolors).
+const STANDARD_SQUARE: MediumSize[] = [
+  { size_label: '8x8', width: 8, height: 8 },
+  { size_label: '10x10', width: 10, height: 10 },
+  { size_label: '12x12', width: 12, height: 12 },
+  { size_label: '16x16', width: 16, height: 16 },
+  { size_label: '20x20', width: 20, height: 20 },
+  { size_label: '24x24', width: 24, height: 24 },
+  { size_label: '30x30', width: 30, height: 30 },
+]
+
+// Landscape (wider than tall) — the mirror of the portrait grid.
+const STANDARD_LANDSCAPE: MediumSize[] = STANDARD_PORTRAIT.map((s) => ({
+  size_label: `${s.height}x${s.width}`,
+  width: s.height,
+  height: s.width,
+}))
+
+// Every offered size across all three orientations. The Lumaprints sync prices
+// each one (within the subcategory's published bounds — out-of-range sizes are
+// dropped, not persisted), and the variant builder defaults to the subset that
+// matches the artwork's aspect ratio. Pricing is dimension-based, so no special
+// catalog support is needed for square/landscape.
+const STANDARD_ALL: MediumSize[] = [
+  ...STANDARD_PORTRAIT,
+  ...STANDARD_SQUARE,
+  ...STANDARD_LANDSCAPE,
+]
+
 export const MEDIUMS_CATALOG: Record<Medium, MediumConfig> = {
   canvas: {
     label: MEDIUM_LABELS.canvas,
     subcategoryId: 101002,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: true,
   },
   framed_canvas: {
     label: MEDIUM_LABELS.framed_canvas,
     subcategoryId: 102002,
     orderItemOptions: [27],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: true,
   },
   fine_art_paper: {
     label: MEDIUM_LABELS.fine_art_paper,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
   framed_fine_art_paper: {
     label: MEDIUM_LABELS.framed_fine_art_paper,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
   foam_mounted_fine_art_paper: {
     label: MEDIUM_LABELS.foam_mounted_fine_art_paper,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
   metal: {
     label: MEDIUM_LABELS.metal,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
   peel_and_stick: {
     label: MEDIUM_LABELS.peel_and_stick,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
   rolled_canvas: {
     label: MEDIUM_LABELS.rolled_canvas,
     subcategoryId: null,
     orderItemOptions: [],
-    sizes: STANDARD_RECT,
+    sizes: STANDARD_ALL,
     enabled: false,
   },
 }
@@ -140,4 +170,40 @@ export function sizeDimensions(size_label: string): { width: number; height: num
   const match = size_label.match(/^(\d+)\s*[x×]\s*(\d+)$/i)
   if (!match) return null
   return { width: Number(match[1]), height: Number(match[2]) }
+}
+
+export type Orientation = 'square' | 'portrait' | 'landscape'
+
+/**
+ * Classify an aspect ratio into square / portrait / landscape. `width` and
+ * `height` may be in any consistent unit (the artwork's master_artworks
+ * width_px / height_px, or inches). `tol` is the half-width of the "square"
+ * band around 1:1 (default 3%), so a near-square scan still reads as square.
+ * Defensive default for missing/garbage dimensions is `portrait` (the
+ * historical grid), so a product without a sized artwork behaves as before.
+ */
+export function orientationForAspect(width: number, height: number, tol = 0.03): Orientation {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return 'portrait'
+  }
+  const ratio = width / height
+  if (Math.abs(ratio - 1) <= tol) return 'square'
+  return ratio > 1 ? 'landscape' : 'portrait'
+}
+
+/**
+ * Orientation implied by a size label like "8x10" (portrait), "12x12"
+ * (square), or "10x8" (landscape). Square requires exact equality (tol 0),
+ * since size labels are exact integers.
+ */
+export function orientationForSize(size_label: string): Orientation {
+  const dims = sizeDimensions(size_label)
+  if (!dims) return 'portrait'
+  return orientationForAspect(dims.width, dims.height, 0)
+}
+
+/** The offered sizes for a given orientation (used to default-select in the
+ *  variant builder). Filters a size list by each size's own shape. */
+export function sizesForOrientation(sizes: MediumSize[], orientation: Orientation): MediumSize[] {
+  return sizes.filter((s) => orientationForSize(s.size_label) === orientation)
 }

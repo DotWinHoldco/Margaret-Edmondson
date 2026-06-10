@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
-import { MEDIUMS, mediumLabel, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { MEDIUMS, mediumLabel, sizeDimensions, orientationForSize, type Medium, type Orientation } from '@/lib/pricing/mediums'
 import { costPlusMarginCents, customerPriceCents } from '@/lib/pricing/variant-pricing'
 
 export interface MediumCatalogEntry {
@@ -35,6 +35,15 @@ interface Props {
   productDefaultMargin: number
   variants: Variant[]
   mediumCatalog: MediumCatalogEntry[]
+  /** Shape of the product's master artwork (from width_px/height_px). When set,
+   *  the "Add sizes" picker defaults to the matching size set. */
+  artworkOrientation?: Orientation | null
+}
+
+const ORIENTATION_LABEL: Record<Orientation, string> = {
+  square: 'square',
+  portrait: 'portrait',
+  landscape: 'landscape',
 }
 
 function fmtCents(c: number | null | undefined): string {
@@ -42,7 +51,7 @@ function fmtCents(c: number | null | undefined): string {
   return `$${(c / 100).toFixed(2)}`
 }
 
-export default function VariantsTab({ productId, productDefaultMargin, variants: initial, mediumCatalog }: Props) {
+export default function VariantsTab({ productId, productDefaultMargin, variants: initial, mediumCatalog, artworkOrientation = null }: Props) {
   const router = useRouter()
   const catalogByMedium = useMemo(() => {
     const out: Record<string, MediumCatalogEntry> = {}
@@ -199,6 +208,20 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
         </div>
       )}
 
+      {artworkOrientation && (() => {
+        const mismatched = variants.some(
+          (v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation,
+        )
+        return (
+          <div className={`mb-4 rounded-md border px-3 py-2 font-body text-xs ${mismatched ? 'bg-gold/10 border-gold/40 text-charcoal' : 'bg-charcoal/[0.03] border-charcoal/10 text-charcoal/60'}`}>
+            This is a <strong>{ORIENTATION_LABEL[artworkOrientation]}</strong> artwork — “Add sizes” defaults to the {ORIENTATION_LABEL[artworkOrientation]} set.
+            {mismatched && (
+              <> Some current variants are a different shape and will crop the image; deactivate or delete those, then add the {ORIENTATION_LABEL[artworkOrientation]} sizes.</>
+            )}
+          </div>
+        )
+      })()}
+
       {MEDIUMS.map((m) => {
         const cfg = catalogByMedium[m]
         const rows = grouped[m] || []
@@ -328,6 +351,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           mediumName={catalogByMedium[showAdd].name || mediumLabel(showAdd)}
           availableSizes={catalogByMedium[showAdd].sizes}
           defaultMargin={defaultMargin}
+          orientation={artworkOrientation}
           existingSizes={new Set(variants.filter((v) => v.medium === showAdd).map((v) => v.size_label || ''))}
           onClose={() => setShowAdd(null)}
           onCreated={() => {
@@ -356,6 +380,7 @@ function AddVariantModal({
   mediumName,
   availableSizes,
   defaultMargin,
+  orientation,
   existingSizes,
   onClose,
   onCreated,
@@ -365,14 +390,19 @@ function AddVariantModal({
   mediumName: string
   availableSizes: Array<{ size_label: string; width: number; height: number; cost_cents?: number }>
   defaultMargin: number
+  orientation: Orientation | null
   existingSizes: Set<string>
   onClose: () => void
   onCreated: () => void
 }) {
   const available = availableSizes.filter((s) => !existingSizes.has(s.size_label))
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Split by shape so the artwork-matched sizes lead and are pre-selected.
+  const recommended = orientation ? available.filter((s) => orientationForSize(s.size_label) === orientation) : []
+  const others = orientation ? available.filter((s) => orientationForSize(s.size_label) !== orientation) : available
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(recommended.map((s) => s.size_label)))
   const [marginOverride, setMarginOverride] = useState<string>('')
   const [creating, setCreating] = useState(false)
+  const [showOthers, setShowOthers] = useState(!orientation)
 
   const toggle = (size: string) => {
     setSelected((prev) => {
@@ -383,8 +413,19 @@ function AddVariantModal({
     })
   }
 
+  const selectRecommended = () => setSelected(new Set(recommended.map((s) => s.size_label)))
   const selectAll = () => setSelected(new Set(available.map((s) => s.size_label)))
   const clearAll = () => setSelected(new Set())
+
+  const sizeRow = (s: { size_label: string; cost_cents?: number }) => (
+    <label key={s.size_label} className="flex items-center gap-2 font-body text-sm text-charcoal/80 cursor-pointer">
+      <span className="ml-auto font-body text-[10px] text-charcoal/40 order-2">
+        {s.cost_cents ? `$${(s.cost_cents / 100).toFixed(2)}` : ''}
+      </span>
+      <input type="checkbox" checked={selected.has(s.size_label)} onChange={() => toggle(s.size_label)} />
+      {s.size_label}
+    </label>
+  )
 
   const submit = async () => {
     if (selected.size === 0) return
@@ -415,7 +456,12 @@ function AddVariantModal({
           <div className="flex justify-between items-center mt-5 mb-2">
             <span className="font-body text-xs uppercase tracking-wider text-charcoal/60">Sizes</span>
             <div className="flex gap-3">
-              <button type="button" onClick={selectAll} className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal">
+              {recommended.length > 0 && (
+                <button type="button" onClick={selectRecommended} className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal">
+                  Select recommended
+                </button>
+              )}
+              <button type="button" onClick={selectAll} className="font-body text-xs uppercase tracking-wider text-charcoal/60 hover:text-charcoal">
                 Select all
               </button>
               <button type="button" onClick={clearAll} className="font-body text-xs uppercase tracking-wider text-charcoal/60 hover:text-charcoal">
@@ -423,24 +469,34 @@ function AddVariantModal({
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1">
-            {available.length === 0 && (
-              <p className="col-span-2 font-body text-sm text-charcoal/50">No remaining sizes — all are already on this product.</p>
-            )}
-            {available.map((s) => (
-              <label key={s.size_label} className="flex items-center gap-2 font-body text-sm text-charcoal/80 cursor-pointer">
-                <span className="ml-auto font-body text-[10px] text-charcoal/40 order-2">
-                  {s.cost_cents ? `$${(s.cost_cents / 100).toFixed(2)}` : ''}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={selected.has(s.size_label)}
-                  onChange={() => toggle(s.size_label)}
-                />
-                {s.size_label}
-              </label>
-            ))}
-          </div>
+
+          {available.length === 0 && (
+            <p className="font-body text-sm text-charcoal/50">No remaining sizes — all are already on this product.</p>
+          )}
+
+          {recommended.length > 0 && (
+            <div className="mb-3">
+              <p className="font-body text-[11px] uppercase tracking-wider text-deep-teal mb-1">
+                Recommended — {orientation} ({recommended.length})
+              </p>
+              <div className="grid grid-cols-2 gap-1">{recommended.map(sizeRow)}</div>
+            </div>
+          )}
+
+          {others.length > 0 && (
+            <div>
+              {recommended.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowOthers((v) => !v)}
+                  className="font-body text-[11px] uppercase tracking-wider text-charcoal/50 hover:text-charcoal mb-1"
+                >
+                  {showOthers ? '− Hide' : '+ Show'} other shapes ({others.length})
+                </button>
+              )}
+              {showOthers && <div className="grid grid-cols-2 gap-1">{others.map(sizeRow)}</div>}
+            </div>
+          )}
 
           <label className="block mt-5">
             <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">

@@ -9,6 +9,7 @@ import MediaPicker from '@/components/admin/MediaPicker'
 import MasterArtworkPicker from '@/components/admin/MasterArtworkPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
+import { orientationForAspect } from '@/lib/pricing/mediums'
 import type { Medium } from '@/lib/pricing/mediums'
 
 function MasterFooter({
@@ -185,6 +186,8 @@ export default function EditProductPage({
     file_name: string
     file_size_bytes: number
     mime_type: string
+    width_px: number | null
+    height_px: number | null
   } | null>(null)
   const [showArtworkPicker, setShowArtworkPicker] = useState(false)
 
@@ -252,6 +255,8 @@ export default function EditProductPage({
                 file_name: j.data.file_name,
                 file_size_bytes: j.data.file_size_bytes,
                 mime_type: j.data.mime_type,
+                width_px: j.data.width_px ?? null,
+                height_px: j.data.height_px ?? null,
               })
             }
           })
@@ -1048,6 +1053,11 @@ export default function EditProductPage({
             productDefaultMargin={productDefaultMargin}
             variants={printVariants}
             mediumCatalog={mediumCatalog}
+            artworkOrientation={
+              masterArtwork?.width_px && masterArtwork?.height_px
+                ? orientationForAspect(masterArtwork.width_px, masterArtwork.height_px)
+                : null
+            }
           />
 
           {/* Actions */}
@@ -1135,6 +1145,8 @@ export default function EditProductPage({
                 file_name: artwork.file_name,
                 file_size_bytes: 0,
                 mime_type: '',
+                width_px: null,
+                height_px: null,
               })
               fetch(`/api/admin/master-artworks/${artwork.id}`)
                 .then((r) => r.json())
@@ -1146,6 +1158,8 @@ export default function EditProductPage({
                       file_name: j.data.file_name,
                       file_size_bytes: j.data.file_size_bytes,
                       mime_type: j.data.mime_type,
+                      width_px: j.data.width_px ?? null,
+                      height_px: j.data.height_px ?? null,
                     })
                   }
                 })
