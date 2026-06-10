@@ -150,6 +150,50 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
     router.refresh()
   }
 
+  // One-click: create the artwork-matched size set for every configured medium
+  // (priced live through Lumaprints by bulk-create) and deactivate the existing
+  // variants that are a different shape. Non-destructive — off-shape variants are
+  // deactivated (hidden from the public page), never deleted.
+  const [confirmFix, setConfirmFix] = useState(false)
+  const [fixStatus, setFixStatus] = useState<string | null>(null)
+  const fixToShape = () => {
+    if (!artworkOrientation) return
+    setConfirmFix(false)
+    startTransition(async () => {
+      setFixStatus('Generating sizes through Lumaprints…')
+      let created = 0
+      for (const m of MEDIUMS) {
+        const cfg = catalogByMedium[m]
+        if (!cfg || !cfg.subcategory_id || cfg.sizes.length === 0) continue
+        const existing = new Set(variants.filter((v) => v.medium === m).map((v) => v.size_label || ''))
+        const toCreate = cfg.sizes
+          .filter((s) => orientationForSize(s.size_label) === artworkOrientation && !existing.has(s.size_label))
+          .map((s) => s.size_label)
+        if (toCreate.length === 0) continue
+        const res = await fetch('/api/admin/variants/bulk-create', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ product_id: productId, medium: m, size_labels: toCreate }),
+        })
+        if (res.ok) created += toCreate.length
+      }
+      const mismatched = variants.filter(
+        (v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation && v.is_active,
+      )
+      for (const v of mismatched) {
+        await fetch(`/api/admin/variants/${v.id}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ is_active: false }),
+        })
+      }
+      setFixStatus(
+        `Created ${created} ${artworkOrientation} variant${created === 1 ? '' : 's'}; deactivated ${mismatched.length} off-shape variant${mismatched.length === 1 ? '' : 's'}.`,
+      )
+      router.refresh()
+    })
+  }
+
   return (
     <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4 mb-5">
@@ -213,11 +257,26 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           (v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation,
         )
         return (
-          <div className={`mb-4 rounded-md border px-3 py-2 font-body text-xs ${mismatched ? 'bg-gold/10 border-gold/40 text-charcoal' : 'bg-charcoal/[0.03] border-charcoal/10 text-charcoal/60'}`}>
-            This is a <strong>{ORIENTATION_LABEL[artworkOrientation]}</strong> artwork — “Add sizes” defaults to the {ORIENTATION_LABEL[artworkOrientation]} set.
-            {mismatched && (
-              <> Some current variants are a different shape and will crop the image; deactivate or delete those, then add the {ORIENTATION_LABEL[artworkOrientation]} sizes.</>
-            )}
+          <div className={`mb-4 rounded-md border px-3 py-2.5 font-body text-xs ${mismatched ? 'bg-gold/10 border-gold/40 text-charcoal' : 'bg-charcoal/[0.03] border-charcoal/10 text-charcoal/60'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <p>
+                This is a <strong>{ORIENTATION_LABEL[artworkOrientation]}</strong> artwork — “Add sizes” defaults to the {ORIENTATION_LABEL[artworkOrientation]} set.
+                {mismatched && (
+                  <> Some current variants are a different shape and will crop the image.</>
+                )}
+              </p>
+              {mismatched && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setConfirmFix(true)}
+                  className="shrink-0 rounded-md bg-charcoal px-3 py-1.5 font-body text-[11px] font-medium text-cream hover:bg-charcoal/90 disabled:opacity-50"
+                >
+                  {pending ? 'Working…' : `Fix to ${ORIENTATION_LABEL[artworkOrientation]}`}
+                </button>
+              )}
+            </div>
+            {fixStatus && <p className="mt-2 font-medium text-deep-teal">{fixStatus}</p>}
           </div>
         )
       })()}
@@ -369,6 +428,15 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
         confirmText="Delete"
         onConfirm={() => confirmDelete && deleteVariant(confirmDelete)}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmFix}
+        title={`Generate ${artworkOrientation ?? ''} sizes?`}
+        message={`This creates the ${artworkOrientation ?? ''} size set for each configured medium — priced live through Lumaprints — and deactivates the variants that are a different shape. Off-shape variants are not deleted; they just hide from the public page, and you can re-activate or delete them by hand.`}
+        confirmText="Generate & fix"
+        onConfirm={fixToShape}
+        onCancel={() => setConfirmFix(false)}
       />
     </section>
   )

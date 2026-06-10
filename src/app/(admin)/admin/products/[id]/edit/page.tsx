@@ -190,6 +190,25 @@ export default function EditProductPage({
     height_px: number | null
   } | null>(null)
   const [showArtworkPicker, setShowArtworkPicker] = useState(false)
+  // Fallback orientation source: when the master artwork has no pixel
+  // dimensions (or none is attached), read the primary display image's natural
+  // aspect ratio so the variant builder can still recommend a shape.
+  const [primaryImageDims, setPrimaryImageDims] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    if (masterArtwork?.width_px && masterArtwork?.height_px) {
+      setPrimaryImageDims(null)
+      return
+    }
+    const primary = images.find((i) => i.is_primary) ?? images[0]
+    if (!primary?.url) {
+      setPrimaryImageDims(null)
+      return
+    }
+    const img = new window.Image()
+    img.onload = () => setPrimaryImageDims({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onerror = () => setPrimaryImageDims(null)
+    img.src = primary.url
+  }, [images, masterArtwork])
 
   useEffect(() => {
     async function fetchData() {
@@ -1056,7 +1075,9 @@ export default function EditProductPage({
             artworkOrientation={
               masterArtwork?.width_px && masterArtwork?.height_px
                 ? orientationForAspect(masterArtwork.width_px, masterArtwork.height_px)
-                : null
+                : primaryImageDims
+                  ? orientationForAspect(primaryImageDims.w, primaryImageDims.h)
+                  : null
             }
           />
 
