@@ -83,7 +83,8 @@ export async function POST(
 
     // Paid course: create Stripe Checkout Session
     const stripe = await getStripe()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Env when set; otherwise the request origin (never "undefined/..." in prod).
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '')
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

@@ -186,6 +186,11 @@ export async function POST(request: Request) {
       appliedCodeText = validation.code.code
     }
 
+    // Base URL for Stripe redirect/image URLs. NEXT_PUBLIC_SITE_URL when set;
+    // otherwise derive from the request origin so a missing env var can never
+    // produce "undefined/order/..." (Stripe rejects it as "Not a valid URL").
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '')
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       customer_email: email || undefined,
@@ -194,7 +199,7 @@ export async function POST(request: Request) {
           currency: 'usd',
           product_data: {
             name: item.title,
-            images: imageUrls[item.productId] ? [`${process.env.NEXT_PUBLIC_SITE_URL}${imageUrls[item.productId]}`] : [],
+            images: imageUrls[item.productId] ? [`${siteUrl}${imageUrls[item.productId]}`] : [],
             metadata: { product_id: item.productId, variant_id: item.variantId || '' },
           },
           unit_amount: Math.round(item.price * 100),
@@ -211,8 +216,8 @@ export async function POST(request: Request) {
         // chars/key which silently truncates 4+ item carts. The webhook reads
         // items from carts.items (persisted above) instead. (B-5)
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/{CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
+      success_url: `${siteUrl}/order/{CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/cart`,
     }
 
     if (surchargeCents > 0) {
@@ -277,7 +282,7 @@ export async function POST(request: Request) {
           content_ids: validatedItems.map((i: { productId: string }) => i.productId),
           num_items: validatedItems.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0),
         },
-        event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout`,
+        event_source_url: `${siteUrl}/checkout`,
       })
     } catch (err) {
       console.error('Meta CAPI InitiateCheckout failed', err)

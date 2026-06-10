@@ -86,7 +86,10 @@ interface FulfillmentResult {
 function resolveImageUrl(url: string): string {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
+  // No request context here (called from webhooks/crons) — fall back to the
+  // canonical production domain rather than emitting relative/broken URLs to
+  // print providers.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
   return `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
