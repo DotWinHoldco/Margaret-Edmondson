@@ -83,8 +83,16 @@ export async function POST(
 
     // Paid course: create Stripe Checkout Session
     const stripe = await getStripe()
-    // Env when set; otherwise the request origin (never "undefined/..." in prod).
-    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '')
+    // Normalized env (scheme + no trailing slash) or the request origin —
+    // never an invalid/relative base for Stripe URLs.
+    let siteUrl: string
+    try {
+      const raw = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
+      const candidate = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`) : ''
+      siteUrl = new URL(candidate || new URL(request.url).origin).origin
+    } catch {
+      siteUrl = new URL(request.url).origin
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

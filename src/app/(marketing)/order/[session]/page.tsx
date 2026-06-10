@@ -64,7 +64,12 @@ async function loadOrder(sessionId: string): Promise<Order | null> {
       .select(
         'id, order_number, email, status, subtotal, shipping_cost, tax, discount, total, promo_code, shipping_address, created_at, order_items(id, quantity, unit_price, fulfillment_status, product:products(title), variant:product_variants(name))',
       )
-      .eq('stripe_checkout_session_id', sessionId)
+      // Embedded (Payment Elements) orders are keyed by payment intent id;
+      // hosted Checkout orders by session id. The param tells us which.
+      .eq(
+        sessionId.startsWith('pi_') ? 'stripe_payment_intent_id' : 'stripe_checkout_session_id',
+        sessionId,
+      )
       .maybeSingle()
     if (error) {
       console.error('Order confirmation lookup failed:', error.message)

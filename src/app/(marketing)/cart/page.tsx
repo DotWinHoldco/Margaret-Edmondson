@@ -123,7 +123,7 @@ export default function CartPage() {
     setPromoError('')
   }
 
-  async function handleCheckout() {
+  function handleCheckout() {
     setLoading(true)
     setError('')
 
@@ -143,44 +143,22 @@ export default function CartPage() {
       userData: { email: trimmedEmail || state.email },
     })
 
+    // Hand off to the embedded /checkout page (Stripe Payment Elements).
+    // If intent creation fails there, /checkout offers the original hosted
+    // Stripe Checkout (/api/checkout, untouched) as "express checkout".
     try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: state.items.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
-          email: trimmedEmail || state.email || undefined,
-          cartId: state.cartId,
-          promoCode: appliedPromo?.code,
-          shippingSurcharge: surcharge ?? 0,
-          shippingSurchargeLabel: surchargeLabel,
-        }),
-      })
-
-      let data: { url?: string; error?: string } = {}
-      try {
-        data = await res.json()
-      } catch {
-        // Empty or non-JSON body
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || `Checkout failed (HTTP ${res.status}). Please try again.`)
-      }
-
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error('Checkout failed: no redirect URL.')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-      setLoading(false)
+      sessionStorage.setItem(
+        'checkout_handoff',
+        JSON.stringify({
+          email: trimmedEmail || state.email || '',
+          promoCode: appliedPromo?.code || '',
+          surchargeLabel: surchargeLabel || '',
+        })
+      )
+    } catch {
+      // sessionStorage unavailable — /checkout falls back to cart context state.
     }
+    window.location.href = '/checkout'
   }
 
   if (state.items.length === 0) {

@@ -186,10 +186,17 @@ export async function POST(request: Request) {
       appliedCodeText = validation.code.code
     }
 
-    // Base URL for Stripe redirect/image URLs. NEXT_PUBLIC_SITE_URL when set;
-    // otherwise derive from the request origin so a missing env var can never
-    // produce "undefined/order/..." (Stripe rejects it as "Not a valid URL").
-    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '')
+    // Base URL for Stripe redirect/image URLs. Normalize NEXT_PUBLIC_SITE_URL
+    // (tolerate a missing scheme or trailing slash); fall back to the request
+    // origin when unset or unparseable — Stripe hard-rejects invalid URLs.
+    let siteUrl: string
+    try {
+      const raw = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
+      const candidate = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`) : ''
+      siteUrl = new URL(candidate || new URL(request.url).origin).origin
+    } catch {
+      siteUrl = new URL(request.url).origin
+    }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
