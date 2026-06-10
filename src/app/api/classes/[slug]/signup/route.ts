@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 import { upsertContact } from '@/lib/crm/contacts'
+import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { signBucketUrls } from '@/lib/storage/signed'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -92,6 +93,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     console.error('Class signup CRM upsert failed:', err)
   }
 
+  const notifyEmail =
+    (await getOrderNotificationEmail(supabase).catch(() => null)) ||
+    'margaret117art@gmail.com'
+
   const margaretHtml = brandedShell(
     `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New class signup</h2>
      <p style="margin:0 0 6px;"><strong>Class:</strong> ${sessionLabel}</p>
@@ -105,7 +110,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     { hideUnsubscribe: true, preheader: `Signup from ${body.name} for ${session.title}` }
   )
   await sendEmail({
-    to: 'margaret117art@gmail.com',
+    to: notifyEmail,
     subject: `New class signup — ${session.title}`,
     html: margaretHtml,
     replyTo: body.email,
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     to: body.email,
     subject: `You are on the list — ${session.title}`,
     html: studentHtml,
-    replyTo: 'margaret117art@gmail.com',
+    replyTo: notifyEmail,
   }).catch((e) => console.error('Payment-instructions email failed:', e))
 
   return apiOk({ id: newId })

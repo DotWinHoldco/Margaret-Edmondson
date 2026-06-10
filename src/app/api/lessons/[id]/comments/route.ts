@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: Request,
@@ -7,7 +7,9 @@ export async function GET(
   const { id: lessonId } = await props.params
 
   try {
-    const supabase = await createClient()
+    // Service client: the profiles join nulls out under RLS for everyone but
+    // the comment's own author, which hides commenter names/avatars.
+    const supabase = await createServiceClient()
 
     const { data: comments, error } = await supabase
       .from('lesson_comments')
@@ -59,7 +61,10 @@ export async function POST(
       return Response.json({ error: 'Lesson not found' }, { status: 404 })
     }
 
-    const courseModule = lesson.course_modules as unknown as { course_id: string }
+    const courseModule = lesson.course_modules as unknown as { course_id: string } | null
+    if (!courseModule?.course_id) {
+      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+    }
     const courseId = courseModule.course_id
 
     // profiles.id IS auth.uid() — there is no auth_user_id column.

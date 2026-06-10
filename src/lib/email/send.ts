@@ -1,4 +1,5 @@
 import { brandedShell, ctaButton, discountCallout } from './shell'
+import { getEmailFromLine } from '@/lib/settings/accessor'
 
 const RESEND_API = 'https://api.resend.com/emails'
 
@@ -16,6 +17,16 @@ export async function sendEmail({ to, subject, html, replyTo, headers }: SendEma
     return null
   }
 
+  // From line comes from site settings; the env var is the fallback when the
+  // setting is unreadable.
+  let from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
+  try {
+    const line = await getEmailFromLine()
+    if (line) from = line
+  } catch {
+    // settings unavailable — keep the env fallback
+  }
+
   const res = await fetch(RESEND_API, {
     method: 'POST',
     headers: {
@@ -23,7 +34,7 @@ export async function sendEmail({ to, subject, html, replyTo, headers }: SendEma
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>',
+      from,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,

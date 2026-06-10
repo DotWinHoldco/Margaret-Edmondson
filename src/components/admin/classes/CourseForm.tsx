@@ -118,7 +118,7 @@ export default function CourseForm({
 
       if (mode === 'create') {
         const data = await res.json()
-        router.push(`/admin/classes/${data.data.id}`)
+        router.push(`/admin/courses/${data.data.id}`)
       } else {
         router.refresh()
       }
@@ -327,11 +327,7 @@ export default function CourseForm({
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 border-t border-charcoal/10 pt-6">
         <Link
-          href={
-            mode === 'edit' && course?.id
-              ? `/admin/classes/${course.id}`
-              : '/admin/classes'
-          }
+          href="/admin/courses"
           className="rounded-lg border border-charcoal/15 px-5 py-2.5 font-body text-sm font-medium text-charcoal transition-colors hover:bg-charcoal/5"
         >
           Cancel

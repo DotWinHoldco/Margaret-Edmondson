@@ -5,6 +5,7 @@ import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
 import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { recordOrder } from '@/lib/crm/contacts'
+import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { headers } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
@@ -154,6 +155,9 @@ interface CheckoutSession {
   id: string
   payment_intent: string
   customer_email: string
+  // Guest checkouts (no pre-filled email) land the buyer's address here, not
+  // on customer_email — Stripe collects it on the hosted checkout page.
+  customer_details?: { email?: string | null }
   metadata: {
     cart_id?: string
     course_id?: string
@@ -209,6 +213,9 @@ async function handleCheckoutCompleted(
         try {
           const { sendEmail } = await import('@/lib/email/send')
           const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+          const notifyEmail =
+            (await getOrderNotificationEmail(supabase).catch(() => null)) ||
+            'margaret117art@gmail.com'
           const studentHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Your spot is confirmed</h2>
              <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
@@ -228,7 +235,7 @@ async function handleCheckoutCompleted(
             to: booking.email,
             subject: `You are confirmed for ${cls.title}`,
             html: studentHtml,
-            replyTo: 'margaret117art@gmail.com',
+            replyTo: notifyEmail,
           })
           const adminHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New paid class booking</h2>
@@ -239,7 +246,7 @@ async function handleCheckoutCompleted(
             { hideUnsubscribe: true }
           )
           await sendEmail({
-            to: 'margaret117art@gmail.com',
+            to: notifyEmail,
             subject: `New paid class booking — ${cls.title}`,
             html: adminHtml,
             replyTo: booking.email,
@@ -295,6 +302,9 @@ async function handleCheckoutCompleted(
   const taxCents = session.total_details?.amount_tax ?? 0
   const subtotalCents = session.amount_subtotal ?? ((session.amount_total || 0) + discountCents - shippingCents - taxCents)
 
+  // Guest checkouts only carry the buyer's email on customer_details. (P0-1)
+  const buyerEmail = session.customer_email || session.customer_details?.email || ''
+
   let orderId = existingOrder?.id ?? null
   let orderTotal = existingOrder?.total ?? (session.amount_total || 0) / 100
 
@@ -304,7 +314,7 @@ async function handleCheckoutCompleted(
       .insert({
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id: session.payment_intent as string,
-        email: session.customer_email,
+        email: buyerEmail,
         status: 'processing',
         subtotal: subtotalCents / 100,
         shipping_cost: shippingCents / 100,
@@ -398,9 +408,9 @@ async function handleCheckoutCompleted(
   // CRM: ensure buyer exists, bump totals, record promo redemption (the single
   // unique index makes a single-use code's second redemption a caught no-op).
   try {
-    if (session.customer_email) {
+    if (buyerEmail) {
       await recordOrder(
-        session.customer_email,
+        buyerEmail,
         orderTotal,
         {
           promoCodeId: session.metadata.promo_code_id || null,
@@ -420,7 +430,7 @@ async function handleCheckoutCompleted(
       event_name: 'Purchase',
       event_id: crypto.randomUUID(),
       event_time: Math.floor(event.created || Date.now() / 1000),
-      user_data: { em: hashSHA256(session.customer_email) },
+      user_data: buyerEmail ? { em: hashSHA256(buyerEmail) } : {},
       custom_data: {
         value: (session.amount_total || 0) / 100,
         currency: 'USD',
@@ -440,7 +450,7 @@ async function handleCheckoutCompleted(
   }
 
   // Confirmation email.
-  if (session.customer_email) {
+  if (buyerEmail) {
     try {
       const { data: orderItems } = await supabase
         .from('order_items')
@@ -455,17 +465,46 @@ async function handleCheckoutCompleted(
         variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
       }))
 
-      await sendOrderConfirmation(session.customer_email, orderId as string, emailItems, orderTotal)
+      await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
     } catch (err) {
       console.error('Order confirmation email failed:', err)
     }
 
     // Post-purchase automation (studio note / nurture). Idempotent per order
     // (dedupe_key) and no-throw — never blocks the money path. (E-4)
-    await sendPostPurchaseEmail(session.customer_email, orderId as string, {
+    await sendPostPurchaseEmail(buyerEmail, orderId as string, {
       total: orderTotal,
       contactId: session.metadata.contact_id || null,
     })
+  }
+
+  // Order notification to the studio owner (settings-driven, best-effort —
+  // never blocks the money path).
+  try {
+    const notifyEmail = await getOrderNotificationEmail(supabase)
+    if (notifyEmail) {
+      const { sendEmail } = await import('@/lib/email/send')
+      const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+      const orderLabel = String(orderId).slice(0, 8).toUpperCase()
+      const totalLabel = `$${Number(orderTotal || 0).toFixed(2)}`
+      const itemsCount = cartItems.reduce((sum, i) => sum + (i.quantity || 0), 0)
+      const html = brandedShell(
+        `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New order #${orderLabel} — ${totalLabel}</h2>
+         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+           ${itemsCount} item${itemsCount === 1 ? '' : 's'} · total ${totalLabel}
+         </p>
+         ${ctaButton('https://artbyme.studio/admin/orders', 'View order')}`,
+        { hideUnsubscribe: true, preheader: `New order #${orderLabel} — ${totalLabel}` }
+      )
+      await sendEmail({
+        to: notifyEmail,
+        subject: `New order #${orderLabel} — ${totalLabel}`,
+        html,
+        ...(buyerEmail ? { replyTo: buyerEmail } : {}),
+      })
+    }
+  } catch (err) {
+    console.error('Order notification email failed:', err)
   }
 
   await logEvent(supabase, event, { kind: 'order', order_id: orderId })

@@ -441,10 +441,10 @@ export default function NewProductPage() {
                 />
               </svg>
               <p className="mt-3 font-body text-sm text-charcoal/50">
-                Image upload coming soon
+                Save the product first &mdash; then add images from the product editor.
               </p>
               <p className="mt-1 font-body text-xs text-charcoal/40">
-                Drag and drop or click to upload
+                Upload, set a primary image, and remove images there.
               </p>
             </div>
           </section>

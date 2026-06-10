@@ -28,7 +28,7 @@ const STATUS_TABS: Array<{ key: SocialStatus | 'all'; label: string }> = [
   { key: 'failed', label: 'Failed' },
 ]
 
-const KANBAN_COLUMNS: SocialStatus[] = ['draft', 'scheduled', 'publishing', 'published', 'failed']
+const KANBAN_COLUMNS: SocialStatus[] = ['draft', 'scheduled', 'publishing', 'published', 'failed', 'cancelled']
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'
@@ -220,7 +220,7 @@ export default function SocialListView({ initialPosts, view }: Props) {
           </table>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
           {KANBAN_COLUMNS.map((col) => {
             const colPosts = posts.filter((p) => p.status === col)
             return (

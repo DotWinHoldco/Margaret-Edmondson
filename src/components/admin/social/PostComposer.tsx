@@ -8,6 +8,7 @@ import ChannelPreview, {
   CHANNEL_MAP,
   type Channel,
 } from './ChannelPreview'
+import type { SocialStatus } from './StatusBadge'
 
 export interface ComposerAccount {
   id: string
@@ -31,6 +32,9 @@ interface Props {
   postId?: string
   accounts: ComposerAccount[]
   initial?: Partial<ComposerInitial>
+  /** The post's current status (edit mode) — used to avoid demoting
+   *  published/publishing/failed posts back to scheduled on save. */
+  currentStatus?: SocialStatus
 }
 
 const MAX_MEDIA = 10
@@ -52,7 +56,7 @@ function localInputToIso(value: string): string | null {
   return d.toISOString()
 }
 
-export default function PostComposer({ postId, accounts, initial }: Props) {
+export default function PostComposer({ postId, accounts, initial, currentStatus }: Props) {
   const router = useRouter()
   const isEdit = Boolean(postId)
 
@@ -125,6 +129,18 @@ export default function PostComposer({ postId, accounts, initial }: Props) {
     const scheduledIso = mode === 'scheduled' ? localInputToIso(scheduleAt) : null
     const status = mode === 'scheduled' ? 'scheduled' : 'draft'
 
+    // Don't demote a published/publishing/failed post back to scheduled just
+    // because it was edited: only send `status` when the user actually changed
+    // the scheduling controls.
+    const initialMode: 'draft' | 'scheduled' = initial?.scheduled_at ? 'scheduled' : 'draft'
+    const schedulingChanged =
+      mode !== initialMode || scheduleAt !== isoToLocalInput(initial?.scheduled_at)
+    const preserveStatus =
+      isEdit &&
+      !!currentStatus &&
+      ['published', 'publishing', 'failed'].includes(currentStatus) &&
+      !schedulingChanged
+
     try {
       if (isEdit) {
         // Editing always operates on a single channel post.
@@ -138,7 +154,7 @@ export default function PostComposer({ postId, accounts, initial }: Props) {
             link_url: linkUrl,
             media,
             scheduled_at: scheduledIso,
-            status,
+            ...(preserveStatus ? {} : { status }),
             account_id: accountId || null,
           }),
         })

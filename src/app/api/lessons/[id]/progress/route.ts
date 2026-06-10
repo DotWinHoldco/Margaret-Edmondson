@@ -29,7 +29,10 @@ export async function PATCH(
       return Response.json({ error: 'Lesson not found' }, { status: 404 })
     }
 
-    const courseModule = lesson.course_modules as unknown as { course_id: string }
+    const courseModule = lesson.course_modules as unknown as { course_id: string } | null
+    if (!courseModule?.course_id) {
+      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+    }
     const courseId = courseModule.course_id
 
     // profiles.id IS auth.uid() — there is no auth_user_id column.

@@ -22,7 +22,8 @@ function LoginForm() {
   const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/admin'
+  // Default to /account — admins/artists are bounced on to /admin from there.
+  const redirectTo = searchParams.get('redirect') || '/account'
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault()

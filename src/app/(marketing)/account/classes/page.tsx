@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ClassesTabs, {
@@ -105,13 +105,24 @@ export default async function MyClassesPage() {
     })
 
   // In-person class bookings are linked by email (class_bookings has no profile_id).
+  // RLS on class_bookings only permits admin reads, so this one query uses the
+  // service client — still scoped to the signed-in user's own email. A missing
+  // service key degrades to an empty list rather than a crash.
   let bookings: BookingCard[] = []
   if (user.email) {
-    const { data: bookingData } = await supabase
-      .from('class_bookings')
-      .select('id, status, class_sessions(title, starts_at, location_name)')
-      .eq('email', user.email)
-      .order('created_at', { ascending: false })
+    let bookingData: unknown[] | null = null
+    try {
+      const service = await createServiceClient()
+      const { data } = await service
+        .from('class_bookings')
+        .select('id, status, class_sessions(title, starts_at, location_name)')
+        .eq('email', user.email)
+        .order('created_at', { ascending: false })
+      bookingData = data
+    } catch (err) {
+      console.error('Class bookings lookup failed:', err)
+      bookingData = null
+    }
 
     bookings = ((bookingData ?? []) as unknown as {
       id: string

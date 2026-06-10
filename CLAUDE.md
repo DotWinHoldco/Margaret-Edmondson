@@ -28,8 +28,9 @@ Operating rules for that build: work on `main` (no branches) with annotated `res
 - Never fabricate biographical content — use real documents from `/public/Margaret Edmondson/Artist and Artwork Details/`
 
 ## Supabase
-- Use `createClient` (not `createServiceClient`) for ALL admin pages and API routes — `SUPABASE_SERVICE_ROLE_KEY` is not set in Vercel
-- `createServiceClient` should only be used in webhook handlers or cron jobs that don't have user sessions
+- Use `createClient` (cookie/anon) for user-session reads & writes that RLS should govern (admin pages, account pages, storefront queries).
+- Use `createServiceClient` where there is no user session or RLS must be bypassed deliberately: webhooks, crons, checkout/order lookups keyed by capability tokens (Stripe session id), and narrow server-side reads documented inline (e.g. lesson-comment author profiles, class bookings by email).
+- `SUPABASE_SERVICE_ROLE_KEY` MUST be set in Vercel (production). The money path (checkout → webhook → order), crons, the order-confirmation page, and the pixel queue all depend on it. If a "supabaseKey is required" 500 appears, this env var is missing.
 
 ## Artwork inventory
 

@@ -879,6 +879,7 @@ function PromoCodesSection() {
   const [codes, setCodes] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState<PromoCode | null>(null)
 
   const fetchCodes = useCallback(async () => {
     setLoading(true)
@@ -902,6 +903,28 @@ function PromoCodesSection() {
     fetchCodes()
   }
 
+  async function handleDelete(code: PromoCode) {
+    if (
+      !confirm(
+        `Delete promo code "${code.code}"? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+    const res = await fetch('/api/admin/promo-codes', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: code.id }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Failed to delete promo code.')
+      return
+    }
+    if (editing?.id === code.id) setEditing(null)
+    fetchCodes()
+  }
+
   return (
     <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between mb-5">
@@ -909,18 +932,27 @@ function PromoCodesSection() {
           Promo Codes
         </h2>
         <button
-          onClick={() => setShowAdd(true)}
+          onClick={() => {
+            setEditing(null)
+            setShowAdd(true)
+          }}
           className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
         >
           Create Code
         </button>
       </div>
 
-      {showAdd && (
+      {(showAdd || editing) && (
         <PromoCodeForm
-          onCancel={() => setShowAdd(false)}
+          key={editing?.id ?? 'new'}
+          initial={editing}
+          onCancel={() => {
+            setShowAdd(false)
+            setEditing(null)
+          }}
           onSaved={() => {
             setShowAdd(false)
+            setEditing(null)
             fetchCodes()
           }}
         />
@@ -1014,16 +1046,33 @@ function PromoCodesSection() {
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => handleToggleActive(code)}
-                      className={`rounded-sm px-2 py-1 font-body text-xs transition-colors ${
-                        code.is_active
-                          ? 'bg-coral/10 text-coral hover:bg-coral/20'
-                          : 'bg-teal/10 text-teal hover:bg-teal/20'
-                      }`}
-                    >
-                      {code.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => {
+                          setShowAdd(false)
+                          setEditing(code)
+                        }}
+                        className="rounded-sm bg-charcoal/5 px-2 py-1 font-body text-xs text-charcoal/70 transition-colors hover:bg-charcoal/10"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(code)}
+                        className={`rounded-sm px-2 py-1 font-body text-xs transition-colors ${
+                          code.is_active
+                            ? 'bg-coral/10 text-coral hover:bg-coral/20'
+                            : 'bg-teal/10 text-teal hover:bg-teal/20'
+                        }`}
+                      >
+                        {code.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(code)}
+                        className="rounded-sm bg-coral/10 px-2 py-1 font-body text-xs text-coral transition-colors hover:bg-coral/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1036,20 +1085,23 @@ function PromoCodesSection() {
 }
 
 function PromoCodeForm({
+  initial,
   onCancel,
   onSaved,
 }: {
+  initial?: PromoCode | null
   onCancel: () => void
   onSaved: () => void
 }) {
   const [form, setForm] = useState({
-    code: '',
-    discount_type: 'percentage' as 'percentage' | 'fixed',
-    discount_value: '',
-    min_order_amount: '',
-    usage_limit: '',
-    valid_from: '',
-    valid_until: '',
+    code: initial?.code ?? '',
+    discount_type: initial?.discount_type ?? ('percentage' as 'percentage' | 'fixed'),
+    discount_value: initial != null ? String(initial.discount_value) : '',
+    min_order_amount:
+      initial?.min_order_amount != null ? String(initial.min_order_amount) : '',
+    usage_limit: initial?.usage_limit != null ? String(initial.usage_limit) : '',
+    valid_from: initial?.valid_from ? initial.valid_from.slice(0, 10) : '',
+    valid_until: initial?.valid_until ? initial.valid_until.slice(0, 10) : '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1061,14 +1113,34 @@ function PromoCodeForm({
     }
     setError(null)
     setSaving(true)
-    const res = await fetch('/api/admin/promo-codes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
+    const res = initial
+      ? await fetch('/api/admin/promo-codes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: initial.id,
+            code: form.code.toUpperCase().trim(),
+            discount_type: form.discount_type,
+            discount_value: parseFloat(form.discount_value),
+            min_order_amount: form.min_order_amount
+              ? parseFloat(form.min_order_amount)
+              : null,
+            usage_limit: form.usage_limit ? parseInt(form.usage_limit) : null,
+            valid_from: form.valid_from || null,
+            valid_until: form.valid_until || null,
+          }),
+        })
+      : await fetch('/api/admin/promo-codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
     const data = await res.json()
     if (!res.ok) {
-      setError(data.error || 'Failed to create promo code.')
+      setError(
+        data.error ||
+          (initial ? 'Failed to update promo code.' : 'Failed to create promo code.')
+      )
       setSaving(false)
       return
     }
@@ -1078,6 +1150,11 @@ function PromoCodeForm({
 
   return (
     <div className="mb-4 space-y-3 rounded-sm border border-teal/20 bg-teal/[0.03] p-4">
+      {initial && (
+        <p className="font-body text-xs font-medium text-charcoal/50">
+          Editing <span className="font-mono text-charcoal">{initial.code}</span>
+        </p>
+      )}
       {error && (
         <p className="font-body text-sm text-coral">{error}</p>
       )}
@@ -1196,7 +1273,13 @@ function PromoCodeForm({
           disabled={saving}
           className="rounded-sm bg-teal px-4 py-1.5 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal disabled:opacity-50"
         >
-          {saving ? 'Creating...' : 'Create Promo Code'}
+          {saving
+            ? initial
+              ? 'Saving...'
+              : 'Creating...'
+            : initial
+              ? 'Save Changes'
+              : 'Create Promo Code'}
         </button>
         <button
           onClick={onCancel}

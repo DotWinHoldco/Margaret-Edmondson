@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Source_Sans_3, Caveat, Playfair_Display, Nunito, DM_Serif_Display, Lora, Dancing_Script } from "next/font/google";
+import { getSiteSettings } from "@/lib/settings/accessor";
+import { createServiceClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -58,40 +60,64 @@ const dancingScript = Dancing_Script({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "ArtByMe — Mixed Media & Fine Art by Margaret Edmondson",
-    template: "%s | ArtByMe",
-  },
-  description:
-    "Original mixed-media collage art, oil paintings, fine art prints, and art classes by Margaret Edmondson. Commission custom artwork or shop the gallery.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://artbyme.studio"),
-  icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "ArtByME",
-    images: [
-      {
-        url: "/ME-Share-Image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "ArtByME — Mixed Media & Fine Art by Margaret Edmondson",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    images: ["/ME-Share-Image.jpg"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+const FALLBACK_TITLE = "ArtByMe — Mixed Media & Fine Art by Margaret Edmondson";
+const FALLBACK_DESCRIPTION =
+  "Original mixed-media collage art, oil paintings, fine art prints, and art classes by Margaret Edmondson. Commission custom artwork or shop the gallery.";
+const FALLBACK_OG_IMAGE = "/ME-Share-Image.jpg";
+
+export async function generateMetadata(): Promise<Metadata> {
+  // SEO defaults come from site settings; any failure falls back to the
+  // previous hardcoded values.
+  let seoTitle: string | null = null;
+  let seoDescription: string | null = null;
+  let ogImageUrl: string | null = null;
+  try {
+    const settings = await getSiteSettings(await createServiceClient());
+    seoTitle = settings.seo_title;
+    seoDescription = settings.seo_description;
+    ogImageUrl = settings.og_image_url;
+  } catch {
+    // settings unavailable — use the hardcoded fallbacks
+  }
+
+  const title = seoTitle || FALLBACK_TITLE;
+  const description = seoDescription || FALLBACK_DESCRIPTION;
+  const ogImage = ogImageUrl || FALLBACK_OG_IMAGE;
+
+  return {
+    title: {
+      default: title,
+      template: "%s | ArtByMe",
+    },
+    description,
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://artbyme.studio"),
+    icons: {
+      icon: "/favicon.png",
+      apple: "/favicon.png",
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      siteName: "ArtByME",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
 
 export default function RootLayout({
   children,

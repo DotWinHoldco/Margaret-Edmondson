@@ -36,7 +36,34 @@ export default function SubscribersClient() {
     fetchSubscribers()
   }
 
+  function csvEscape(value: string | null): string {
+    const s = value ?? ''
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+
   function handleExport() {
+    const header = ['email', 'first_name', 'source', 'status', 'subscribed_at']
+    const rows = subscribers.map((s) =>
+      [
+        s.email,
+        s.first_name ?? '',
+        s.source ?? '',
+        s.unsubscribed_at ? 'unsubscribed' : 'active',
+        s.subscribed_at ?? '',
+      ]
+        .map(csvEscape)
+        .join(',')
+    )
+    const csv = [header.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'subscribers.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
     setShowExportMsg(true)
     setTimeout(() => setShowExportMsg(false), 3000)
   }
@@ -125,7 +152,7 @@ export default function SubscribersClient() {
           {showExportMsg && (
             <div className="absolute right-0 top-full mt-2 whitespace-nowrap rounded-sm border border-charcoal/10 bg-white px-3 py-2 shadow-sm">
               <p className="font-body text-xs text-charcoal/60">
-                CSV export coming soon.
+                Downloaded subscribers.csv ({subscribers.length} row{subscribers.length === 1 ? '' : 's'}).
               </p>
             </div>
           )}

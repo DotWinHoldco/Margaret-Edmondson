@@ -202,7 +202,7 @@ export default function EditPageForm({ page }: { page: Page }) {
               className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal resize-y font-mono"
             />
             <p className="mt-1 font-body text-xs text-charcoal/40">
-              Rich text editor coming soon. For now, enter raw HTML.
+              Accepts HTML. Tip: most pages are better edited with the section editor.
             </p>
           </div>
         </div>

@@ -126,10 +126,10 @@ export default function LessonPlayer(props: LessonPlayerProps) {
 
   return (
     <div>
-      {/* VIDEO */}
+      {/* VIDEO (hidden entirely for text-only lessons) */}
+      {videoUrl && (
       <div className="overflow-hidden rounded-sm border border-charcoal/10 bg-charcoal">
-        {videoUrl ? (
-          embed ? (
+        {embed ? (
             <div className="relative aspect-video w-full">
               <iframe
                 src={embed}
@@ -139,21 +139,17 @@ export default function LessonPlayer(props: LessonPlayerProps) {
                 className="absolute inset-0 h-full w-full"
               />
             </div>
-          ) : (
-            <video controls preload="metadata" className="aspect-video w-full bg-black" src={videoUrl}>
-              Your browser does not support the video tag.{' '}
-              <a href={videoUrl} className="underline">
-                Download the video
-              </a>
-              .
-            </video>
-          )
         ) : (
-          <div className="flex aspect-video w-full items-center justify-center">
-            <p className="font-body text-sm text-cream/60">This lesson has no video.</p>
-          </div>
+          <video controls preload="metadata" className="aspect-video w-full bg-black" src={videoUrl}>
+            Your browser does not support the video tag.{' '}
+            <a href={videoUrl} className="underline">
+              Download the video
+            </a>
+            .
+          </video>
         )}
       </div>
+      )}
 
       {/* TITLE + MARK COMPLETE */}
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">

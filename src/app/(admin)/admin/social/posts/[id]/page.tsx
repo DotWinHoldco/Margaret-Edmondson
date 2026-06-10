@@ -96,6 +96,7 @@ export default async function EditSocialPostPage(props: {
 
       <PostComposer
         postId={typedPost.id}
+        currentStatus={typedPost.status}
         accounts={(accounts as ComposerAccount[] | null) ?? []}
         initial={{
           channels: [typedPost.channel as Channel],

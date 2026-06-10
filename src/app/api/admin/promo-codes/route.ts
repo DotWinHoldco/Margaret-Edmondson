@@ -107,3 +107,33 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return Response.json({ error: 'ID is required.' }, { status: 400 })
+    }
+
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const { error } = await supabase
+      .from('promo_codes')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return Response.json({ error: error.message }, { status: 500 })
+    }
+
+    return Response.json({ success: true })
+  } catch {
+    return Response.json(
+      { error: 'Internal server error.' },
+      { status: 500 }
+    )
+  }
+}

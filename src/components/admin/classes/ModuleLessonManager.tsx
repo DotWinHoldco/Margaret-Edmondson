@@ -321,7 +321,7 @@ export default function ModuleLessonManager({
         throw new Error(data.error || 'Failed to delete course')
       }
 
-      router.push('/admin/classes')
+      router.push('/admin/courses')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setBusy(false)

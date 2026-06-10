@@ -2,6 +2,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
+import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
@@ -226,6 +227,38 @@ export async function POST(request: Request) {
 
     if (appliedCoupon) {
       sessionParams.discounts = [{ coupon: appliedCoupon.id }]
+    }
+
+    // Sales tax from settings: a flat tax_rate_pct (a percentage, e.g. 8.25)
+    // applied to the discounted merchandise subtotal, added as its own line
+    // item. Fail-soft — an unreadable setting must never block checkout.
+    try {
+      const settings = await getSiteSettings(supabase)
+      const taxRatePct = Number(settings.tax_rate_pct)
+      if (settings.tax_enabled === true && Number.isFinite(taxRatePct) && taxRatePct > 0) {
+        const subtotalCents = Math.round(Number(cartSubtotal) * 100)
+        let discountCents = 0
+        if (appliedCoupon?.amount_off) {
+          discountCents = appliedCoupon.amount_off
+        } else if (appliedCoupon?.percent_off) {
+          discountCents = Math.round(subtotalCents * (appliedCoupon.percent_off / 100))
+        }
+        const taxCents = Math.round(
+          Math.max(0, subtotalCents - discountCents) * (taxRatePct / 100)
+        )
+        if (Number.isFinite(taxCents) && taxCents > 0) {
+          sessionParams.line_items?.push({
+            price_data: {
+              currency: 'usd',
+              product_data: { name: `Sales tax (${taxRatePct}%)` },
+              unit_amount: taxCents,
+            },
+            quantity: 1,
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Tax line item skipped:', err)
     }
 
     const session = await (await getStripe()).checkout.sessions.create(sessionParams)

@@ -7,6 +7,29 @@ Repo: `/Users/skylarwebber/Margaret-Edmondson` · Supabase: `klwkajukicsoiwpsgft
 
 ---
 
+# ★ 2026-06-10 MEETING-DAY SESSION (pre-client-review hardening — read before the older summary)
+
+Executor: Claude (Cowork), with live-site QA via browser. Scope: close every demo-visible gap before the Margaret review meeting.
+
+**Verified live (browser, through the gate):** all public pages render; 77 internal URLs crawled — only 3 bad links found (footer `/shop/{originals,prints,merchandise}` 404s — fixed, see below); 78 images across 6 pages all 200; admin dashboard/products/orders/settings/social all render; social composer round-trips (draft created via UI → 201 → appears in List).
+
+**🚨 Confirmed live blocker:** `POST /api/checkout` → 500 `supabaseKey is required` — `SUPABASE_SERVICE_ROLE_KEY` is genuinely absent in Vercel (human action #1, unchanged). Checkout is dead until it's set.
+
+**Fixed this session (all typecheck-clean):**
+- **P0 money path:** Stripe webhook now falls back to `customer_details.email` — guest checkouts that skip the optional cart email no longer violate `orders.email NOT NULL` (which silently dropped the order, spun the confirmation page forever).
+- **P0 LMS unmounted:** built `/admin/courses` (list/new/[id]) on the existing-but-orphaned `CourseForm` + `ModuleLessonManager` + `/api/admin/classes` CRUD; added Courses to the admin sidebar; fixed their wrong `/admin/classes` redirects. Seeded 1 published free course (Mixed Media Foundations, 2 modules/5 lessons) — verified rendering live on `/courses`, detail, and lesson pages.
+- **Settings now consumed (were saved-but-ignored):** email from-line (send.ts + social cron), order-notification email (webhook + class signup; was hardcoded), tax line-item at checkout (off by default), announcement bar (marketing layout), maintenance mode (splash for non-admins, pill for admins), SEO/OG defaults (root generateMetadata), footer social icons.
+- **Admin CRUD gaps:** products archive/unarchive + delete (soft) row actions; promo codes edit + delete (new DELETE handler); subscribers CSV export implemented (was "coming soon"); placeholder copy softened (products/new images, pages raw-HTML).
+- **Storefront:** WishlistButton on product detail (closes orphaned wishlist); footer links fixed (`/shop/*` 404s → real pages incl. `/courses`); `/cv.pdf` was a 404 on a sitemap-listed page — file now in `public/`; login default redirect `/admin`→`/account`.
+- **LMS/social correctness:** My Classes `class_bookings` RLS dead-read → service client; lesson-comment authors no longer "?" (service-client read); orphan-lesson 404 guards; editing a published social post no longer demotes it to scheduled; kanban gained the missing `cancelled` column; social-publish cron no longer wedges posts in `publishing` when `RESEND_API_KEY` is absent.
+- **Repo hygiene:** `public/Margaret Edmondson/ARTWORK/.next/` build-trace junk untracked; source docx/flyer files gitignored (never ship); CLAUDE.md's stale "always use anon client / no service key" guidance rewritten (it was the original root cause of the broken money path).
+
+**DB writes this session:** course seed (1 course / 2 modules / 5 lessons) + 1 draft social post (via the admin UI as a live test). Both editable/deletable in admin. No schema changes.
+
+**Observed, not fixed:** intermittent 503s on `/admin/social?_rsc=` prefetch bursts (middleware/Supabase token-refresh contention; real navigations all 200) — candidate for the observability item. API errors still leak raw messages to the cart UI ("supabaseKey is required" shown verbatim) — continuation plan B1.
+
+---
+
 # ★ FINAL SUMMARY & HANDOFF (read this first)
 
 **Verdict:** the launch‑critical core is complete, verified, and live on `main`. The platform can now securely accept a Stripe payment, persist the order + items via the service client, route fulfillment, send the confirmation email, and is idempotent on webhook replay — the original "accepts payment and does nothing else" failure is fixed. Every commit was gated (typecheck + lint + build + 66 tests) and pushed to `main`; all DB migrations were applied to prod and re‑verified; Supabase advisors show **0 ERROR/CRITICAL and no new Critical/High** the entire run.

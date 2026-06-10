@@ -8,6 +8,7 @@ import { useCart } from '@/lib/cart/context'
 import { trackEvent } from '@/lib/meta/pixel'
 import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 import { sanitizeHtml } from '@/lib/sanitize'
+import WishlistButton from './WishlistButton'
 
 /* ─── Types ─── */
 
@@ -685,6 +686,9 @@ export default function ProductDetail({
                 </Link>
               </div>
             )}
+
+            {/* Save to wishlist (secondary to add-to-cart) */}
+            <WishlistButton productId={product.id} productSlug={product.slug} />
 
             {/* Description */}
             {product.description_html && (

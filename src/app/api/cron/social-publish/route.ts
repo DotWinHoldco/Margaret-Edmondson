@@ -14,6 +14,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell, ctaButton } from '@/lib/email/shell'
+import { getEmailFromAddress } from '@/lib/settings/accessor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -66,9 +67,14 @@ async function resolveOwnerEmail(
   const owner = (data as Array<{ email: string | null }> | null)?.[0]?.email
   if (owner) return owner
 
-  const from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
-  const match = from.match(/<([^>]+)>/)
-  return match ? match[1] : 'hello@artbyme.studio'
+  // Last resort: the configured from-address (settings first, env fallback).
+  try {
+    return await getEmailFromAddress(supabase)
+  } catch {
+    const from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
+    const match = from.match(/<([^>]+)>/)
+    return match ? match[1] : 'hello@artbyme.studio'
+  }
 }
 
 function buildReminderHtml(post: DuePost): string {
@@ -136,6 +142,23 @@ export async function GET(request: Request) {
     return Response.json({ success: true, processed: 0, sent: 0, autopublish: AUTOPUBLISH })
   }
 
+  // Without a Resend key the reminder email can never go out — leave the posts
+  // 'scheduled' (instead of flipping them to a stuck 'publishing') so they are
+  // retried automatically once the key lands.
+  if (!process.env.RESEND_API_KEY) {
+    console.warn(
+      `social-publish: RESEND_API_KEY missing — leaving ${duePosts.length} due post(s) scheduled for retry`
+    )
+    return Response.json({
+      success: true,
+      processed: 0,
+      sent: 0,
+      skipped: duePosts.length,
+      reason: 'resend_key_missing',
+      autopublish: AUTOPUBLISH,
+    })
+  }
+
   const ownerEmail = await resolveOwnerEmail(supabase)
   let sent = 0
   let processed = 0
@@ -166,7 +189,7 @@ export async function GET(request: Request) {
       html: buildReminderHtml(post),
       replyTo: 'hello@artbyme.studio',
     })
-    if (result !== null || !process.env.RESEND_API_KEY) sent++
+    if (result !== null) sent++
   }
 
   return Response.json({ success: true, processed, sent, autopublish: AUTOPUBLISH })
