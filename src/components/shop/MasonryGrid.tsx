@@ -52,7 +52,7 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
   }
 
   return (
-    <div className="columns-1 sm:columns-2 lg:columns-3 [column-gap:2.5rem] sm:[column-gap:3rem] lg:[column-gap:3.5rem]">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start gap-x-10 gap-y-14 sm:gap-x-12 sm:gap-y-16 lg:gap-x-14 lg:gap-y-20">
       {products.map((product, index) => {
         const img = pickPrimary(product.product_images)
         const badge = getProductBadge({
@@ -72,7 +72,7 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
             whileInView="show"
             viewport={{ once: true, margin: '-80px' }}
             variants={cardVariants}
-            className="break-inside-avoid mb-14 sm:mb-16 lg:mb-20"
+            className="self-start"
           >
             <Link href={`/shop/art/${product.slug}`} className="group block">
               <div className="relative">

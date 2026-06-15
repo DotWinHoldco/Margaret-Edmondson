@@ -1,21 +1,20 @@
 -- Per-category manual display order for products. NULL = fall back to
--- created_at (newest first). Set per collection so like-sized pieces can be
--- grouped into the same masonry row.
+-- created_at (newest first). Set per collection so the grid renders in a
+-- deliberate, uniform order.
 alter table public.product_categories
   add column if not exists sort_order integer;
 
--- Cactuses collection ordering. The shop masonry is a CSS multi-column grid
--- (fills column-major, then balances column heights). Because like-sized
--- pieces are grouped, the balanced split lands on 3-per-column, so this
--- column-major order renders as the rows Margaret laid out:
+-- Cactuses collection ordering. The shop grid renders row-major (left to right,
+-- top to bottom), so this order is row-major and maps directly to the rows
+-- Margaret laid out:
 --   Row 1: Hot Air        | The Dual    | Solo
 --   Row 2: Sometime       | Hot Air II  | Pins and Needles
 --   Row 3: Don't Mind Me  | Saguaro     | Love Birds
 with ord(slug, pos) as (
   values
-    ('hot-air', 1), ('sometime', 2), ('dont-mind-me', 3),
-    ('the-dual', 4), ('hot-air-ii', 5), ('saguaro', 6),
-    ('solo-print', 7), ('pins-and-needles', 8), ('love-birds', 9)
+    ('hot-air', 1), ('the-dual', 2), ('solo-print', 3),
+    ('sometime', 4), ('hot-air-ii', 5), ('pins-and-needles', 6),
+    ('dont-mind-me', 7), ('saguaro', 8), ('love-birds', 9)
 )
 update public.product_categories pc
 set sort_order = ord.pos
