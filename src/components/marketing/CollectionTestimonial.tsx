@@ -22,7 +22,7 @@ export default async function CollectionTestimonial({ seed = '' }: { seed?: stri
   return (
     <section className="mt-24 border-t border-charcoal/10 pt-20 sm:pt-24" aria-label="Collector testimonial">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-        <p className="font-hand text-2xl sm:text-3xl text-gold tracking-wide">Kind Words</p>
+        <p className="font-hand text-2xl sm:text-3xl text-gold tracking-wide">Client Feedback</p>
         <div className="mt-5 mx-auto w-12 h-px bg-gold/60" />
         <blockquote className="mt-9">
           <p className="font-display text-2xl sm:text-[2rem] font-light italic leading-relaxed text-charcoal/85">
