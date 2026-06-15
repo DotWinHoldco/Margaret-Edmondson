@@ -172,10 +172,11 @@ export async function getProductsByCategory(categorySlug: string) {
   if (!category) return { category: null, products: [] }
 
   // Pull product IDs from the junction so cross-posted products show in
-  // every category they belong to, not just their primary one.
+  // every category they belong to, not just their primary one. sort_order is
+  // the per-category manual display order (NULL = unset).
   const { data: links } = await supabase
     .from('product_categories')
-    .select('product_id')
+    .select('product_id, sort_order')
     .eq('category_id', category.id)
 
   const productIds = (links || []).map((l) => l.product_id)
@@ -188,7 +189,21 @@ export async function getProductsByCategory(categorySlug: string) {
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
-  return { category, products: products || [] }
+  // Apply the per-category manual ordering: products with an explicit
+  // sort_order come first (ascending), the rest keep the created_at fallback
+  // (newest first). The masonry fills column-major, so this order is set
+  // column-major to lay out like-sized pieces into the same visual row.
+  const orderMap = new Map((links || []).map((l) => [l.product_id, l.sort_order as number | null]))
+  const ordered = (products || []).slice().sort((a, b) => {
+    const sa = orderMap.get(a.id)
+    const sb = orderMap.get(b.id)
+    if (sa != null && sb != null) return sa - sb
+    if (sa != null) return -1
+    if (sb != null) return 1
+    return 0
+  })
+
+  return { category, products: ordered }
 }
 
 export async function getCourseBySlug(slug: string) {
