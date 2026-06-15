@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import ProductRowActions from './ProductRowActions'
 import CategoryManager from './CategoryManager'
+import ArrangeCollection from './ArrangeCollection'
 import CategoryCell from './CategoryCell'
 import StatusToggle from './StatusToggle'
 
@@ -54,6 +55,7 @@ export default async function AdminProductsPage({
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <ArrangeCollection />
             <CategoryManager />
             <Link
               href="/admin/products/new"

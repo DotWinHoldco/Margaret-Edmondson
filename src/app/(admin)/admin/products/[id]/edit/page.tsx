@@ -9,6 +9,7 @@ import MediaPicker from '@/components/admin/MediaPicker'
 import MasterArtworkPicker from '@/components/admin/MasterArtworkPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
+import ArrangeCollection from '../../ArrangeCollection'
 import { orientationForAspect } from '@/lib/pricing/mediums'
 import type { Medium } from '@/lib/pricing/mediums'
 
@@ -621,6 +622,16 @@ export default function EditProductPage({
                     </option>
                   ))}
                 </select>
+                {categoryId && (
+                  <div className="mt-2">
+                    <ArrangeCollection
+                      variant="link"
+                      initialCategoryId={categoryId}
+                      highlightProductId={id}
+                      label="Arrange order in this collection →"
+                    />
+                  </div>
+                )}
                 {categories.filter((c) => c.id !== categoryId).length > 0 && (
                   <div className="mt-3 rounded-md border border-charcoal/10 bg-cream/40 p-3">
                     <p className="font-body text-xs font-semibold uppercase tracking-wider text-charcoal/60">
