@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
   customerPriceCents,
-  costPlusMarginCents,
   resolveMarginPct,
 } from '@/lib/pricing/variant-pricing'
 import { sizeDimensions, mediumConfig } from '@/lib/pricing/mediums'
 
 describe('customerPriceCents', () => {
-  it('applies the product default margin when no override exists', () => {
-    // 25.95 cost + 100% margin → 51.90; + 13.00 shipping → 64.90
+  it('applies the product default margin to the landed cost (cost + shipping)', () => {
+    // (25.95 cost + 13.00 shipping) = 38.95 landed; + 100% margin → 77.90
     expect(
       customerPriceCents(
         {
@@ -19,7 +18,7 @@ describe('customerPriceCents', () => {
         },
         100,
       ),
-    ).toBe(2595 * 2 + 1300)
+    ).toBe((2595 + 1300) * 2)
   })
 
   it('uses the variant margin override when present', () => {
@@ -33,7 +32,7 @@ describe('customerPriceCents', () => {
         },
         100,
       ),
-    ).toBe(Math.round(2595 * 2.2) + 1300)
+    ).toBe(Math.round((2595 + 1300) * 2.2))
   })
 
   it('returns the manual override and ignores margin + shipping math entirely', () => {
@@ -50,7 +49,7 @@ describe('customerPriceCents', () => {
     ).toBe(9900)
   })
 
-  it('still adds shipping when cost is zero', () => {
+  it('still marks up shipping when cost is zero', () => {
     expect(
       customerPriceCents(
         {
@@ -61,25 +60,7 @@ describe('customerPriceCents', () => {
         },
         100,
       ),
-    ).toBe(1300)
-  })
-})
-
-describe('costPlusMarginCents', () => {
-  it('is the customer price minus shipping when no manual override', () => {
-    const inputs = {
-      lumaprints_cost_cents: 2595,
-      shipping_cost_cents: 1300,
-      margin_override_pct: null,
-      manual_price_override_cents: null,
-    }
-    const plusMargin = costPlusMarginCents(inputs, 100)
-    const final = customerPriceCents(inputs, 100)
-    expect(final - plusMargin).toBe(inputs.shipping_cost_cents)
-  })
-
-  it('uses variant override when present', () => {
-    expect(costPlusMarginCents({ lumaprints_cost_cents: 1000, margin_override_pct: 50 }, 100)).toBe(1500)
+    ).toBe(1300 * 2)
   })
 })
 
@@ -136,9 +117,9 @@ describe('golden-file pricing math (Hot Air canvas)', () => {
   ]
   const DEFAULT_MARGIN = 100
   const expected = {
-    '11x14': 1319 * 2 + 950,
-    '16x20': 2595 * 2 + 1300,
-    '20x24': 3012 * 2 + 1600,
+    '11x14': (1319 + 950) * 2,
+    '16x20': (2595 + 1300) * 2,
+    '20x24': (3012 + 1600) * 2,
   }
 
   for (const v of HOT_AIR) {

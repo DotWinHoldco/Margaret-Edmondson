@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import { MEDIUMS, mediumLabel, sizeDimensions, orientationForSize, type Medium, type Orientation } from '@/lib/pricing/mediums'
-import { costPlusMarginCents, customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 
 export interface MediumCatalogEntry {
   medium: Medium
@@ -268,7 +268,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
         <div>
           <h2 className="font-display text-lg font-semibold text-charcoal">Product variants</h2>
           <p className="mt-1 font-body text-xs text-charcoal/50">
-            Three prices per row: Lumaprints cost · + margin · + shipping. Inactive variants stay in the DB but hide on the public page.
+            Customer price = (Lumaprints cost + shipping) × (1 + margin / 100). Inactive variants stay in the DB but hide on the public page.
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -435,9 +435,9 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                     <tr>
                       <th className="px-3 py-2 w-8"></th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Size</th>
-                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Lumaprints</th>
-                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">+ Margin</th>
-                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Total with shipping</th>
+                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Lumaprints cost</th>
+                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Shipping</th>
+                      <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Customer price</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Margin %</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Active</th>
                       <th className="px-3 py-2"></th>
@@ -451,7 +451,6 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                         margin_override_pct: v.margin_override_pct,
                         manual_price_override_cents: v.manual_price_override_cents,
                       }
-                      const plusMargin = costPlusMarginCents(pricing, defaultMargin)
                       const finalPrice = customerPriceCents(pricing, defaultMargin)
                       const hasManual = v.manual_price_override_cents != null
                       const isSel = selected.has(v.id)
@@ -467,7 +466,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                             )}
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70">{fmtCents(v.lumaprints_cost_cents)}</td>
-                          <td className="px-3 py-2 font-body text-sm text-charcoal/70">{fmtCents(plusMargin)}</td>
+                          <td className="px-3 py-2 font-body text-sm text-charcoal/70">{fmtCents(v.shipping_cost_cents)}</td>
                           <td className={`px-3 py-2 font-body text-sm font-medium ${hasManual ? 'text-gold' : 'text-charcoal'}`}>
                             {fmtCents(finalPrice)}
                             {hasManual && <span className="ml-1 text-[10px] uppercase tracking-wider">override</span>}

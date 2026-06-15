@@ -17,17 +17,14 @@ export interface VariantPricingInputs {
  * for product_variants.price (used by /api/admin/variants/refresh, bulk-create,
  * the per-variant route, and VariantsTab).
  *
- * Margin model = COST-PLUS markup, where margin_pct is a percentage: 100 means
- * "100% markup" → 2× cost. Stored values (e.g. 100, 120) only make sense under
- * this model, and the golden tests freeze it. (NB: audit finding B-23 proposed a
- * gross-margin `cost/(1-margin)` formula — that is INCORRECT for this data model:
- * a margin_pct of 100 would divide by zero. The separate gross-margin path in
- * src/lib/pricing/compute.ts + /api/admin/pricing/refresh is the superseded,
- * dollar-based legacy route. Margin-model change requires human sign-off.)
+ * Margin model = markup on the FULL LANDED COST. margin_pct is a percentage:
+ * 100 means "100% markup" → 2× (cost + shipping). The margin is applied AFTER
+ * Lumaprints cost and worst-case shipping are summed, so:
+ *   price = (lumaprints_cost + shipping) × (1 + margin/100)
+ * e.g. cost $35 + shipping $12 = $47, at 100% → $94.
  *
- * If `manual_price_override_cents` is set, that wins — refreshes do NOT
- * blow it away. Otherwise apply the resolved margin to the Lumaprints cost
- * and add baked-in worst-case shipping (passed through at cost).
+ * If `manual_price_override_cents` is set, that wins — refreshes do NOT blow it
+ * away.
  */
 export function customerPriceCents(
   v: VariantPricingInputs,
@@ -35,20 +32,8 @@ export function customerPriceCents(
 ): number {
   if (v.manual_price_override_cents != null) return v.manual_price_override_cents
   const margin = (v.margin_override_pct ?? productDefaultMarginPct) / 100
-  const printPrice = Math.round(v.lumaprints_cost_cents * (1 + margin))
-  return printPrice + v.shipping_cost_cents
-}
-
-/**
- * Cost + margin (i.e. the list price BEFORE shipping is baked in). The
- * second of the three columns the admin builder always shows.
- */
-export function costPlusMarginCents(
-  v: Pick<VariantPricingInputs, 'lumaprints_cost_cents' | 'margin_override_pct'>,
-  productDefaultMarginPct: number,
-): number {
-  const margin = (v.margin_override_pct ?? productDefaultMarginPct) / 100
-  return Math.round(v.lumaprints_cost_cents * (1 + margin))
+  const landedCost = v.lumaprints_cost_cents + v.shipping_cost_cents
+  return Math.round(landedCost * (1 + margin))
 }
 
 /**

@@ -341,7 +341,7 @@ function PricingSettingsSection() {
     <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
       <h2 className="font-display text-xl font-semibold text-charcoal mb-2">Pricing</h2>
       <p className="font-body text-xs text-charcoal/50 mb-5">
-        Site-wide default markup. Variant prices are <code>wholesale × (1 + margin% / 100) + worst-case CONUS shipping</code> (100% = 2× cost). This is the lowest-priority default — a category, product, or variant margin overrides it. Shipping is included for contiguous US; AK, HI, and Canada are surcharged at checkout.
+        Site-wide default markup. Variant prices are <code>(wholesale + worst-case CONUS shipping) × (1 + margin% / 100)</code> — margin applies to the full landed cost (100% = 2× of cost + shipping). This is the lowest-priority default — a category, product, or variant margin overrides it. Shipping is included for contiguous US; AK, HI, and Canada are surcharged at checkout.
       </p>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -867,7 +867,7 @@ export default function EditProductPage({
                   )}
                 </div>
                 <p className="mt-1 font-body text-xs text-charcoal/40">
-                  Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. Variant price = Lumaprints cost × (1 + margin / 100) + worst-case CONUS shipping. 100% = 2× cost.
+                  Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. Customer price = (Lumaprints cost + worst-case CONUS shipping) × (1 + margin / 100). 100% = 2× landed cost.
                 </p>
               </div>
             </div>
