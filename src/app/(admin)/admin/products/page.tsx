@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import ProductRowActions from './ProductRowActions'
 import CategoryManager from './CategoryManager'
 import CategoryCell from './CategoryCell'
@@ -17,7 +17,8 @@ export default async function AdminProductsPage({
   searchParams: Promise<{ status?: string; q?: string }>
 }) {
   const { status, q } = await searchParams
-  const supabase = await createClient()
+  // Admin list — service client so drafts/archived show (public RLS is active-only).
+  const supabase = await createServiceClient()
 
   let query = supabase
     .from('products')
