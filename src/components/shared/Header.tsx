@@ -29,7 +29,7 @@ export default function Header() {
             <Image
               src="/margaretedmondsonlogowithartbyprefix.avif"
               alt="ArtByME — Margaret Edmondson"
-              width={2600}
+              width={3110}
               height={892}
               className="h-10 w-auto lg:h-12"
               priority
