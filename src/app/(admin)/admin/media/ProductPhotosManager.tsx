@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import CropModal from './CropModal'
+import CropModal from '@/components/admin/CropModal'
 
 interface PhotoItem {
   id: string

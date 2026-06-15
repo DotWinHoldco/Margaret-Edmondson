@@ -10,6 +10,7 @@ import MasterArtworkPicker from '@/components/admin/MasterArtworkPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
 import ArrangeCollection from '../../ArrangeCollection'
+import CropModal from '@/components/admin/CropModal'
 import { orientationForAspect } from '@/lib/pricing/mediums'
 import type { Medium } from '@/lib/pricing/mediums'
 
@@ -154,6 +155,7 @@ export default function EditProductPage({
   useUnsavedChanges(isDirty)
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
+  const [croppingImage, setCroppingImage] = useState<ProductImage | null>(null)
   const [uploading, setUploading] = useState(false)
   const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([])
 
@@ -910,6 +912,13 @@ export default function EditProductPage({
                     )}
                     {/* Hover actions */}
                     <div className="absolute inset-0 flex items-end justify-center gap-2 bg-gradient-to-t from-charcoal/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pb-3">
+                      <button
+                        type="button"
+                        onClick={() => setCroppingImage(image)}
+                        className="rounded-md bg-white/90 px-2.5 py-1 font-body text-[11px] font-medium text-charcoal hover:bg-white transition-colors"
+                      >
+                        Crop
+                      </button>
                       {!image.is_primary && (
                         <button
                           type="button"
@@ -1176,6 +1185,19 @@ export default function EditProductPage({
           }
         }}
       />
+
+      {croppingImage && (
+        <CropModal
+          item={{ id: croppingImage.id, url: croppingImage.url, product_title: title || 'Product photo' }}
+          onClose={() => setCroppingImage(null)}
+          onSaved={(next) => {
+            setImages((prev) =>
+              prev.map((img) => (img.id === croppingImage.id ? { ...img, url: next.url } : img)),
+            )
+            setCroppingImage(null)
+          }}
+        />
+      )}
 
       {showArtworkPicker && (
         <MasterArtworkPicker
