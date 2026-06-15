@@ -23,3 +23,11 @@ update product_variants pv
    set sku = replace(pv.sku, 'sometime-', 'royal-')
   from products p
  where pv.product_id = p.id and p.slug = 'royal' and pv.sku like 'sometime-%';
+
+-- Repoint the media-library catalog entry for the old web asset to royal.webp.
+update media_library
+   set storage_path = 'web/cactuses/royal.webp',
+       url = replace(url, 'cactuses/sometime.webp', 'cactuses/royal.webp'),
+       file_name = 'royal.webp',
+       updated_at = now()
+ where storage_bucket = 'product-images' and storage_path = 'web/cactuses/sometime.webp';
