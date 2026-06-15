@@ -87,7 +87,7 @@ async function remapProducts() {
   const mixed = `(select id from categories where slug='mixed-media')`
 
   await sql(`update products set category_id = ${beach} where slug in ('aikens-rhett-house-sc','dig','dolphin-watch','drayton-hall-charleston-sc','fun-at-the-beach','magnolia-plantation-and-gardens-sc','poolside','road-trip','seaside-with-seagull','sweet-home-alabama');`)
-  await sql(`update products set category_id = ${landscapes} where slug in ('hot-air','hot-air-ii','pins-and-needles','solo','sometime','the-dual','flower-power','spring-break-mountain-boat-dock','deep-in-the-heart-of-texas');`)
+  await sql(`update products set category_id = ${landscapes} where slug in ('hot-air','hot-air-ii','pins-and-needles','solo','royal','the-dual','flower-power','spring-break-mountain-boat-dock','deep-in-the-heart-of-texas');`)
   await sql(`update products set category_id = ${animals} where slug in ('mad-cow','three-horses','graze-daze','keepsake','paintin-the-ass');`)
   await sql(`update products set category_id = ${mixed} where slug in ('arrival','curious-mind','due-date','grow','lets-go','perspective-play','potential','seasonal-inspiration','seeds','unexpected','unseen-purpose');`)
   console.log(`  ✓ Remapped existing products to new categories`)

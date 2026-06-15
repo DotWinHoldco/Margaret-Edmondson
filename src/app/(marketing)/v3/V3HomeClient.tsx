@@ -200,8 +200,8 @@ function HeroSection() {
       >
         <StampFrame>
           <Image
-            src="/Margaret Edmondson/ARTWORK/Cactuses/Sometime.jpg"
-            alt="Sometime saguaro cactus painting"
+            src="/Margaret Edmondson/ARTWORK/Cactuses/Royal.jpg"
+            alt="Royal saguaro cactus painting"
             width={160}
             height={200}
             className="object-cover w-full h-auto"

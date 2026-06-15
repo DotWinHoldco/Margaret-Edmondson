@@ -38,7 +38,7 @@ Image folder: `Extracted Art Images/Cactuses/`
 | # | Title | Year | Medium | Size (in) | Frame | Original | Suggested Original Price | Prints | Notes |
 |---|-------|------|--------|-----------|-------|----------|--------------------------|--------|-------|
 | 1 | Pins and Needles | 2025 | Mixed media — collage (painted papers + thread) | 6 × 10 | needs_matte_and_frame | for_sale | $95–$115 | paper, poster, canvas | Saguaro landscape. Needle/thread used for cactus needles. May need white border on custom-size prints. |
-| 2 | Sometime | 2024 | Water gouache on paper | 6 × 16.75 | unframed | not_for_sale | — | paper, poster, canvas | Phoenix/Tucson trips. Prints only. |
+| 2 | Royal | 2024 | Water gouache on paper | 6 × 16.75 | unframed | not_for_sale | — | paper, poster, canvas | Phoenix/Tucson trips. Prints only. Formerly titled "Sometime". |
 | 3 | Hot Air II | 2025 | Water gouache on paper | 8 × 17 | needs_matte_and_frame | for_sale | ~$395 (smaller than companion piece) | paper, poster, canvas (optional) | Smaller variant of "Hot Air". Cactus + balloons. |
 | 4 | Hot Air | 2025 | Water gouache on paper | 9 × 19 | framed (white matte + black frame, final 20×28) | for_sale | $450 | paper, poster, canvas | Cactus + hot air balloons. |
 | 5 | The Dual | 2025 | Water gouache on paper | 9 × 19 | framed (white matte + black frame, final 20×28) | for_sale | $395 (weaker than "Hot Air"; same size sold $450) | paper, poster, canvas | Cactuses "duking it out" + ground squirrel. |

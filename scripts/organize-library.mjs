@@ -34,7 +34,7 @@ const E = [
   ['01_PRINT-READY_Masters','Cactuses','Hot Air','hot-air',`${ART}/Official/20x10_02.jpg`],
   ['01_PRINT-READY_Masters','Cactuses','Hot Air II','hot-air-ii',`${ART}/Official/18x8.5.jpg`],
   ['01_PRINT-READY_Masters','Cactuses','Pins and Needles','pins-and-needles',`${ART}/Official/7x11_01.jpg`],
-  ['01_PRINT-READY_Masters','Cactuses','Sometime','sometime',`${ART}/Official/18x6.5.jpg`],
+  ['01_PRINT-READY_Masters','Cactuses','Royal','royal',`${ART}/Official/18x6.5.jpg`],
   ['01_PRINT-READY_Masters','Cactuses','The Dual','the-dual',`${ART}/Official/20x10_01.jpg`],
   ['01_PRINT-READY_Masters','Encouragement-Series','Unexpected','unexpected',`${ART}/Official/18X24_600DPI (1).jpg`],
   // --- 02 INTERIM (moderate-res; uploaded as provisional masters; re-scan for large format) (10) ---

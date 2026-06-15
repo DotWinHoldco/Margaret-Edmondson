@@ -7,7 +7,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SER
 const sb = createClient(url, key, { auth: { persistSession: false } });
 const REPO = '/Users/skylarwebber/Margaret-Edmondson';
 
-const GENUINE = new Set(['flower-power','think-again','graze-daze','keepsake','mad-cow','three-horses','deep-in-the-heart-of-texas','spring-break-mountain-boat-dock','aikens-rhett-house-sc','drayton-hall-charleston-sc','fun-at-the-beach','magnolia-plantation-and-gardens-sc','poolside','seaside-with-seagull','sweet-home-alabama','hot-air','hot-air-ii','pins-and-needles','sometime','the-dual','unexpected']);
+const GENUINE = new Set(['flower-power','think-again','graze-daze','keepsake','mad-cow','three-horses','deep-in-the-heart-of-texas','spring-break-mountain-boat-dock','aikens-rhett-house-sc','drayton-hall-charleston-sc','fun-at-the-beach','magnolia-plantation-and-gardens-sc','poolside','seaside-with-seagull','sweet-home-alabama','hot-air','hot-air-ii','pins-and-needles','royal','the-dual','unexpected']);
 const INTERIM = new Set(['grow','seeds','lets-go','potential','perspective-play','curious-mind','due-date','seasonal-inspiration','solo','unseen-purpose']);
 const RESCAN = new Set(['arrival','dig','dolphin-watch','road-trip']);
 const NOTE = {

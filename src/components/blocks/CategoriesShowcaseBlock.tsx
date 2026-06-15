@@ -18,7 +18,7 @@ const DEFAULT_CATEGORIES = [
   {
     name: 'Landscapes',
     slug: 'landscapes',
-    image: `${STORAGE_BASE}/cactuses/sometime.webp`,
+    image: `${STORAGE_BASE}/cactuses/royal.webp`,
     description: 'Deserts, pastorals & vistas',
   },
   {

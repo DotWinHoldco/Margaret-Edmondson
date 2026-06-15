@@ -46,7 +46,7 @@ const P = [
   ['hot-air','Hot Air','cactuses','web/cactuses/hot-air_1-v2.webp', `${ART}/Official/20x10_02.jpg`],
   ['hot-air-ii','Hot Air II','cactuses','web/cactuses/hot-air-ii.webp', `${ART}/Official/18x8.5.jpg`],
   ['pins-and-needles','Pins and Needles','cactuses','web/cactuses/pins-and-needles.webp', `${ART}/Official/7x11_01.jpg`],
-  ['sometime','Sometime','cactuses','web/cactuses/sometime.webp', `${ART}/Official/18x6.5.jpg`],
+  ['royal','Royal','cactuses','web/cactuses/royal.webp', `${ART}/Official/18x6.5.jpg`],
   ['the-dual','The Dual','cactuses','web/cactuses/the-dual_1.webp', `${ART}/Official/20x10_01.jpg`],
   ['unexpected','Unexpected','encouragement-series','web/encouragement-series/unexpected.webp', `${ART}/Official/18X24_600DPI (1).jpg`],
 ].map(([slug,title,folder,key,master]) => ({ slug, title, folder, key, master }));

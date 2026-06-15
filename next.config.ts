@@ -48,6 +48,12 @@ const nextConfig: NextConfig = {
     ],
   },
   poweredByHeader: false,
+  async redirects() {
+    return [
+      // "Sometime" was renamed to "Royal" — keep any old links working.
+      { source: '/shop/art/sometime', destination: '/shop/art/royal', permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
