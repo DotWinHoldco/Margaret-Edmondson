@@ -27,9 +27,9 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/margaret edmondson logo with art by prefix.png"
+              src="/margaretedmondsonlogowithartbyprefix.avif"
               alt="ArtByME — Margaret Edmondson"
-              width={2365}
+              width={2600}
               height={892}
               className="h-10 w-auto lg:h-12"
               priority
