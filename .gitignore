@@ -43,3 +43,15 @@ yarn-error.log*
 next-env.d.ts
 public/Margaret Edmondson/ARTWORK/Official/
 public/Margaret Edmondson/
+
+# generated artwork artifacts (large binaries; not source — masters live in Supabase, originals in public/Margaret-Scans/)
+/Artwork-Library/
+/audit/thumbs/
+/audit/web-preview/
+/audit/web-qa/
+/audit/backups/
+/audit/image-fixes/
+/audit/artwork-tree-inventory.json
+/audit/thumb-meta.json
+public/Margaret-Scans/
+public/SCANS/

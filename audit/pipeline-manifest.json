@@ -1,0 +1,231 @@
+{
+  "flower-power": {
+    "web_preview": "2400x2400",
+    "master_error": "tus: unexpected response while creating upload, originated from request (method: POST, url: https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/upload/resumable, response code: 413, response text: Maximum size exceeded\n, request id: n/a)",
+    "master_done": true,
+    "master_artwork_id": "f5acf94f-df92-4285-9d7e-6ee2bb5ea056",
+    "masterPath": "masters/texas-themed/flower-power.jpg",
+    "master_px": "13000x13000",
+    "master_mb": 41.2,
+    "master_optimized": true,
+    "web_done": true,
+    "web_px": "2400x2400"
+  },
+  "think-again": {
+    "web_preview": "2400x1800",
+    "master_error": "tus: unexpected response while creating upload, originated from request (method: POST, url: https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/upload/resumable, response code: 413, response text: Maximum size exceeded\n, request id: n/a)",
+    "master_done": true,
+    "master_artwork_id": "ad319b0f-87e4-4836-844c-4b8c7b1d6b01",
+    "masterPath": "masters/texas-themed/think-again.jpg",
+    "master_px": "13000x9750",
+    "master_mb": 28.6,
+    "master_optimized": true,
+    "web_done": true,
+    "web_px": "2400x1800"
+  },
+  "graze-daze": {
+    "web_preview": "2400x1590",
+    "master_error": "tus: unexpected response while creating upload, originated from request (method: POST, url: https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/upload/resumable, response code: 413, response text: Maximum size exceeded\n, request id: n/a)",
+    "master_done": true,
+    "master_artwork_id": "db6f20fb-0bae-45a2-b086-d77a8edcb29c",
+    "masterPath": "masters/texas-themed/graze-daze.jpg",
+    "master_px": "13000x8611",
+    "master_mb": 24.1,
+    "master_optimized": true,
+    "web_done": true,
+    "web_px": "2400x1590"
+  },
+  "keepsake": {
+    "web_preview": "2400x1894",
+    "master_error": "tus: unexpected response while creating upload, originated from request (method: POST, url: https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/upload/resumable, response code: 413, response text: Maximum size exceeded\n, request id: n/a)",
+    "master_done": true,
+    "master_artwork_id": "b40768da-d570-4010-9944-2c60782cb7a0",
+    "masterPath": "masters/texas-themed/keepsake.jpg",
+    "master_px": "13000x10257",
+    "master_mb": 21.9,
+    "master_optimized": true,
+    "web_done": true,
+    "web_px": "2400x1894"
+  },
+  "mad-cow": {
+    "web_preview": "2400x2391",
+    "master_done": true,
+    "master_artwork_id": "55d9c5d9-2de2-4448-bd94-8b1664df49d3",
+    "masterPath": "masters/texas-themed/mad-cow.jpg",
+    "master_px": "4818x4800",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x2391"
+  },
+  "three-horses": {
+    "web_preview": "2372x2400",
+    "master_done": true,
+    "master_artwork_id": "c6e4c13c-9d91-4be9-8420-767fe9af3845",
+    "masterPath": "masters/texas-themed/three-horses.jpg",
+    "master_px": "4800x4857",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2372x2400"
+  },
+  "deep-in-the-heart-of-texas": {
+    "web_preview": "2400x1802",
+    "master_done": true,
+    "master_artwork_id": "a95fb10a-272c-465c-a75d-dd9ecb406614",
+    "masterPath": "masters/texas-themed/deep-in-the-heart-of-texas.jpg",
+    "master_px": "9602x7208",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x1802"
+  },
+  "spring-break-mountain-boat-dock": {
+    "web_preview": "2400x1886",
+    "master_error": "tus: unexpected response while creating upload, originated from request (method: POST, url: https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/upload/resumable, response code: 413, response text: Maximum size exceeded\n, request id: n/a)",
+    "master_done": true,
+    "master_artwork_id": "78a8b45f-abdf-4f98-ba96-fd0de6332bef",
+    "masterPath": "masters/texas-themed/spring-break-mountain-boat-dock.jpg",
+    "master_px": "13000x10219",
+    "master_mb": 23.1,
+    "master_optimized": true,
+    "web_done": true,
+    "web_px": "2400x1886"
+  },
+  "aikens-rhett-house-sc": {
+    "web_preview": "2400x2380",
+    "master_done": true,
+    "master_artwork_id": "3c149604-697d-4b8a-a879-583e187d8115",
+    "masterPath": "masters/beach-and-sc/aikens-rhett-house-sc.jpg",
+    "master_px": "4840x4800",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x2380"
+  },
+  "drayton-hall-charleston-sc": {
+    "web_preview": "2400x2366",
+    "master_done": true,
+    "master_artwork_id": "e298fcd4-e53d-4302-ae29-6343ceea88e0",
+    "masterPath": "masters/beach-and-sc/drayton-hall-charleston-sc.jpg",
+    "master_px": "4869x4800",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x2366"
+  },
+  "fun-at-the-beach": {
+    "web_preview": "2400x1881",
+    "master_done": true,
+    "master_artwork_id": "cada728d-ae70-4629-a7e9-e11cc6f4b23e",
+    "masterPath": "masters/beach-and-sc/fun-at-the-beach.jpg",
+    "master_px": "8402x6584",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x1881"
+  },
+  "magnolia-plantation-and-gardens-sc": {
+    "web_preview": "2400x2393",
+    "master_done": true,
+    "master_artwork_id": "314bf950-e5c2-4839-925f-6e2f201ddba9",
+    "masterPath": "masters/beach-and-sc/magnolia-plantation-and-gardens-sc.jpg",
+    "master_px": "4814x4800",
+    "master_error": "bytes is not defined",
+    "web_done": true,
+    "web_px": "2400x2393"
+  },
+  "poolside": {
+    "web_preview": "2400x777",
+    "master_done": true,
+    "master_artwork_id": "e0d3e101-e9cc-49a4-a6de-32a0dbd4a524",
+    "masterPath": "masters/beach-and-sc/poolside.jpg",
+    "master_px": "7205x2332",
+    "master_mb": 8.8,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "2400x777"
+  },
+  "seaside-with-seagull": {
+    "web_preview": "2378x2400",
+    "master_done": true,
+    "master_artwork_id": "04f710f1-908c-4141-ba72-c3f3c9e196fc",
+    "masterPath": "masters/beach-and-sc/seaside-with-seagull.jpg",
+    "master_px": "7201x7269",
+    "master_mb": 23.2,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "2378x2400"
+  },
+  "sweet-home-alabama": {
+    "web_preview": "2400x1680",
+    "master_done": true,
+    "master_artwork_id": "154b713a-12b9-4ad8-a988-1c4a01706373",
+    "masterPath": "masters/beach-and-sc/sweet-home-alabama.jpg",
+    "master_px": "6007x4205",
+    "master_mb": 13.3,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "2400x1680"
+  },
+  "hot-air": {
+    "web_preview": "1188x2400",
+    "master_done": true,
+    "master_artwork_id": "1f3a55cf-981c-4608-b7bf-69c7fe75e944",
+    "masterPath": "masters/cactuses/hot-air.jpg",
+    "master_px": "5945x12004",
+    "master_mb": 31.2,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "1188x2400"
+  },
+  "hot-air-ii": {
+    "web_preview": "1133x2400",
+    "master_done": true,
+    "master_artwork_id": "681c808d-e69a-477d-b5c9-c97ad07a4d04",
+    "masterPath": "masters/cactuses/hot-air-ii.jpg",
+    "master_px": "5099x10803",
+    "master_mb": 26.5,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "1133x2400"
+  },
+  "pins-and-needles": {
+    "web_preview": "1483x2400",
+    "master_done": true,
+    "master_artwork_id": "7a2a4929-25da-4e89-a7df-aa4fa6c0d7b1",
+    "masterPath": "masters/cactuses/pins-and-needles.jpg",
+    "master_px": "4200x6799",
+    "master_mb": 16.2,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "1483x2400"
+  },
+  "sometime": {
+    "web_preview": "867x2400",
+    "master_done": true,
+    "master_artwork_id": "0b1f9f22-6152-4a42-a7a6-baf8d2db9df0",
+    "masterPath": "masters/cactuses/sometime.jpg",
+    "master_px": "3905x10803",
+    "master_mb": 20.8,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "867x2400"
+  },
+  "the-dual": {
+    "web_preview": "1197x2400",
+    "master_done": true,
+    "master_artwork_id": "612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b",
+    "masterPath": "masters/cactuses/the-dual.jpg",
+    "master_px": "5988x12004",
+    "master_mb": 34.6,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "1197x2400"
+  },
+  "unexpected": {
+    "web_preview": "2400x1800",
+    "master_done": true,
+    "master_artwork_id": "f786858f-b0fb-46fa-8dba-9f73b97681ff",
+    "masterPath": "masters/encouragement-series/unexpected.jpg",
+    "master_px": "14204x10653",
+    "master_mb": 37,
+    "master_optimized": false,
+    "web_done": true,
+    "web_px": "2400x1800"
+  }
+}

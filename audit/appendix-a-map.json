@@ -1,0 +1,46 @@
+{
+  "_note": "Canonical scan<->product map, transcribed from Appendix A of claude-code-prompt__artwork-scans-to-web-and-masters.md (verified 2026-06-14). Paths are relative to public/Margaret-Scans/. This is the SINGLE SOURCE OF TRUTH for the pipeline; scripts read from here.",
+  "matched": [
+    { "slug": "flower-power", "title": "Flower Power", "folder": "texas-themed", "primary_object_key": "web/texas-themed/flower-power_1.webp", "master_path": "05_08_26/WORKING/Flower Power 24X24_COW.tif", "web_source_path": "05_08_26/WORKING/Flower Power 24X24_COW.jpg", "print_size": "24x24", "flag": "" },
+    { "slug": "think-again", "title": "Think Again", "folder": "texas-themed", "primary_object_key": "web/texas-themed/paintin-the-ass.webp", "master_path": "05_08_26/WORKING/Think Again 36X48_Donkey.tif", "web_source_path": "05_08_26/WORKING/Think Again 36X48_Donkey.jpg", "print_size": "36x48", "flag": "1GB master; web key keeps working title paintin-the-ass" },
+    { "slug": "graze-daze", "title": "Graze Daze", "folder": "texas-themed", "primary_object_key": "web/texas-themed/graze-daze_1.webp", "master_path": "Feb 2026 copy/36x24_01.tif", "web_source_path": "Feb 2026 copy/Graze Daze, 36x24_01.jpg", "print_size": "36x24", "flag": "" },
+    { "slug": "keepsake", "title": "Keepsake", "folder": "texas-themed", "primary_object_key": "web/texas-themed/keepsake_1.webp", "master_path": "Feb 2026 copy/18x22.tif", "web_source_path": "Feb 2026 copy/Keepsake, 18x22.jpg", "print_size": "18x22", "flag": "" },
+    { "slug": "mad-cow", "title": "Mad Cow", "folder": "texas-themed", "primary_object_key": "web/texas-themed/mad-cow.webp", "master_path": "Feb 2026 copy/04_8x8.tif", "web_source_path": "Feb 2026 copy/Mad Cow, watercolor 04_8x8.jpg", "print_size": "8x8", "flag": "draft" },
+    { "slug": "three-horses", "title": "Three Horses", "folder": "texas-themed", "primary_object_key": "web/texas-themed/three-horses.webp", "master_path": "Feb 2026 copy/02_8x8.tif", "web_source_path": "Feb 2026 copy/Three Horses, watercolor.jpg", "print_size": "8x8", "flag": "UPGRADED 2026-06-14: was JPG-only; real 600-DPI master is 02_8x8.tif (4800x4857), confirmed vs live web image" },
+    { "slug": "aikens-rhett-house-sc", "title": "Aikens-Rhett House, SC", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/aikens-rhett-house-sc.webp", "master_path": "Feb 2026 copy/03_8x8.tif", "web_source_path": "Feb 2026 copy/Aiken-Rhett House, SC,  03_8x8.jpg", "print_size": "8x8", "flag": "Aiken vs Aikens spelling" },
+    { "slug": "drayton-hall-charleston-sc", "title": "Drayton Hall, Charleston, SC", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/drayton-hall-charleston-sc.webp", "master_path": "Feb 2026 copy/01_8x8.tif", "web_source_path": "Feb 2026 copy/Drayton Hall, SC.jpg", "print_size": "8x8", "flag": "UPGRADED 2026-06-14: was JPG-only; real 600-DPI master is 01_8x8.tif (4869x4800), confirmed vs live web image" },
+    { "slug": "fun-at-the-beach", "title": "Fun at the Beach", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/fun-at-the-beach_1.webp", "master_path": "Feb 2026 copy/11x 14 Children on Beach.tif", "web_source_path": "Feb 2026 copy/Fun at the Beach, 11x 14 Children on Beach.jpg", "print_size": "11x14", "flag": "" },
+    { "slug": "magnolia-plantation-and-gardens-sc", "title": "Magnolia Plantation and Gardens, SC", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/magnolia-plantation-and-gardens-sc.webp", "master_path": "Feb 2026 copy/05_8x8.tif", "web_source_path": "Feb 2026 copy/Swamp Life, Magnolia Plantation and Gardens, SC 05_8x8.jpg", "print_size": "8x8", "flag": "titled Swamp Life" },
+    { "slug": "poolside", "title": "Poolside", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/poolside_1.webp", "master_path": "Feb 2026 copy/4 x 12 Red Chairs.tif", "web_source_path": "Feb 2026 copy/Poolside, 4 x 12 Red Chairs.jpg", "print_size": "4x12", "flag": "" },
+    { "slug": "seaside-with-seagull", "title": "Seaside with Seagull", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/seaside-with-seagull_1.webp", "master_path": "Feb 2026 copy/12 x 12 Seaside with Gull.tif", "web_source_path": "Feb 2026 copy/12 x 12 Seaside with Gull.jpg", "print_size": "12x12", "flag": "" },
+    { "slug": "sweet-home-alabama", "title": "Sweet Home Alabama", "folder": "beach-and-sc", "primary_object_key": "web/beach-and-sc/sweet-home-alabama.webp", "master_path": "Feb 2026 copy/7 x 10 Beach in Pastels.tif", "web_source_path": "Feb 2026 copy/Sweet Home AL, 7 x 10 Beach in Pastels.jpg", "print_size": "7x10", "flag": "" },
+    { "slug": "deep-in-the-heart-of-texas", "title": "Deep in the Heart of Texas", "folder": "texas-themed", "primary_object_key": "web/texas-themed/deep-in-the-heart-of-texas_1.webp", "master_path": "Feb 2026 copy/12 x 16 Indian Paintbrushes.tif", "web_source_path": "Feb 2026 copy/Deep in the Heart of Texas, 12 x 16 Indian Paintbrushes.jpg", "print_size": "12x16", "flag": "" },
+    { "slug": "hot-air", "title": "Hot Air", "folder": "cactuses", "primary_object_key": "web/cactuses/hot-air_1-v2.webp", "master_path": "Feb 2026 copy/20x10_02.tif", "web_source_path": "Feb 2026 copy/Hot Air, 20x10_02.jpg", "print_size": "20x10", "flag": "" },
+    { "slug": "hot-air-ii", "title": "Hot Air II", "folder": "cactuses", "primary_object_key": "web/cactuses/hot-air-ii.webp", "master_path": "Feb 2026 copy/18x8.5.tif", "web_source_path": "Feb 2026 copy/Hot Air II, 18x8.5.jpg", "print_size": "18x8.5", "flag": "" },
+    { "slug": "pins-and-needles", "title": "Pins and Needles", "folder": "cactuses", "primary_object_key": "web/cactuses/pins-and-needles.webp", "master_path": "Feb 2026 copy/7x11_01.tif", "web_source_path": "Feb 2026 copy/Pins and Needles, 7x11_01.jpg", "print_size": "7x11", "flag": "" },
+    { "slug": "sometime", "title": "Sometime", "folder": "cactuses", "primary_object_key": "web/cactuses/sometime.webp", "master_path": "Feb 2026 copy/18x6.5.tif", "web_source_path": "Feb 2026 copy/Royal (formerly Sometime) 18x6.5.jpg", "print_size": "18x6.5", "flag": "scan renamed Royal - confirm title" },
+    { "slug": "spring-break-mountain-boat-dock", "title": "Spring Break / Mountain Boat Dock", "folder": "texas-themed", "primary_object_key": "web/texas-themed/spring-break-mountain-boat-dock.webp", "master_path": "Feb 2026 copy/22x28 Mountain Boat Dock.tif", "web_source_path": "Feb 2026 copy/Spring Break-Mountain Boat Dock 22x28 Mountain Boat Dock.jpg", "print_size": "22x28", "flag": "" },
+    { "slug": "the-dual", "title": "The Dual", "folder": "cactuses", "primary_object_key": "web/cactuses/the-dual_1.webp", "master_path": "Feb 2026 copy/20x10_01.tif", "web_source_path": "Feb 2026 copy/The Dual, 20x10_01.jpg", "print_size": "20x10", "flag": "" },
+    { "slug": "unexpected", "title": "Unexpected", "folder": "encouragement-series", "primary_object_key": "web/encouragement-series/unexpected.webp", "master_path": "Nov 2025 copy/18X24_600DPI.tif", "web_source_path": "Nov 2025 copy/Unexpected, 18X24_600DPI.jpg", "print_size": "18x24", "flag": "avoid WHITE BORDER / SINATURE variants" }
+  ],
+  "needs_scan": ["dig","dolphin-watch","road-trip","solo","arrival","curious-mind","due-date","grow","lets-go","perspective-play","potential","seasonal-inspiration","seeds","unseen-purpose"],
+  "_needs_scan_finding": "Verified 2026-06-14: NONE of these 14 has a genuine 600-DPI master anywhere. The big PNGs in public/Margaret Edmondson/ARTWORK/Encouragement Series are lossless-PNG-bloated, not high-res (12.5MP max, 72dpi). See audit/MATCH-REPORT.md.",
+  "needs_scan_nothing_usable": ["arrival","curious-mind","dig","dolphin-watch","road-trip"],
+  "needs_scan_interim_available": {
+    "_note": "Moderate-res exports (NOT 600-DPI masters). Usable to fix the candid web photo + ship small/medium prints; re-scan for 30x40. eff DPI @30x40 in parens.",
+    "seeds": "Margaret Edmondson/ARTWORK/Official/Seeds.jpg (4291x3387, 14.5MP, eff107)",
+    "grow": "Margaret Edmondson/ARTWORK/Official/LetYourImaginationGrow.jpg (3262x4180, 13.6MP, eff105)",
+    "lets-go": "Margaret Edmondson/ARTWORK/Official/Let'sGo.jpg (2300x3689, 8.5MP, eff77)",
+    "solo": "Margaret Edmondson/ARTWORK/Cactuses/Solo.jpg (1887x4000, 7.5MP, eff63)",
+    "potential": "Margaret Edmondson/ARTWORK/Official/Potential.jpg (2725x2708, 7.4MP, eff68)",
+    "perspective-play": "Margaret Edmondson/ARTWORK/Official/Perspective.jpg (2612x2592, 6.8MP, eff65)",
+    "unseen-purpose": "Margaret Edmondson/ARTWORK/Official/UnseenPurpose.jpg (2594x1832, 4.8MP, eff61)",
+    "due-date": "Margaret Edmondson/ARTWORK/Official/ADueDate.jpg (1894x2470, 4.7MP, eff62)",
+    "seasonal-inspiration": "Margaret Edmondson/ARTWORK/Encouragement Series/Seasonal Inspiration.jpg (2047x2047, 4.2MP, eff51)"
+  },
+  "self_ship": ["custom-house-portrait-example","custom-pet-portrait-example"],
+  "extra_scans_to_review": [
+    "05_08_26/WORKING (Saguaro 18X24_CACTUS, Love Birds 18x24, Don't Mind Me 18X24_Gila, Medical Plaza 12X8.5_MED PLAZA I/II, Girls Trip/Market 8X8_MARKET WATERCOLOR)",
+    "Feb 2026 copy/01_8x8.* and 02_8x8.* (unidentified size-token only)"
+  ]
+}
