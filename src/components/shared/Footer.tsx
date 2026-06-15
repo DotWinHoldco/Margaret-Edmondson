@@ -15,7 +15,7 @@ const SOCIAL_ICON_PATHS: Record<string, string> = {
 
 const FOOTER_LINKS = {
   Shop: [
-    { href: '/shop', label: 'All Artwork' },
+    { href: '/shop', label: 'Shop' },
     { href: '/commissions', label: 'Commissions' },
     { href: '/cart', label: 'Cart' },
   ],
