@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { refreshCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import type { Medium } from '@/lib/pricing/mediums'
 
 const Body = z.object({
@@ -64,12 +65,9 @@ export async function POST(request: NextRequest) {
   for (const v of (variants || []) as VariantRow[]) {
     if (!v.medium || !v.size_label) continue
     if (!productMargin.has(v.product_id)) {
-      const { data: p } = await auth.supabase
-        .from('products')
-        .select('default_margin_pct, margin_pct')
-        .eq('id', v.product_id)
-        .single()
-      productMargin.set(v.product_id, Number(p?.default_margin_pct ?? p?.margin_pct ?? siteDefault))
+      // Effective default = product → category → site → 100 (variant override
+      // is applied per-row by customerPriceCents below).
+      productMargin.set(v.product_id, await getEffectiveProductMargin(auth.supabase, v.product_id))
     }
     const defaultMargin = productMargin.get(v.product_id) ?? siteDefault
 

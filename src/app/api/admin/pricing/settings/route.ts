@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { recomputeAllVariantPrices } from '@/lib/pricing/margin'
 export async function GET() {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -24,11 +25,14 @@ export async function PATCH(request: NextRequest) {
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  let marginChanged = false
   if (typeof body.default_margin_pct === 'number') {
-    if (body.default_margin_pct < 0 || body.default_margin_pct >= 1) {
-      return Response.json({ error: 'default_margin_pct must satisfy 0 <= margin < 1' }, { status: 400 })
+    // Markup percent (cost-plus): 0..1000. 100 = 100% markup = 2× cost.
+    if (body.default_margin_pct < 0 || body.default_margin_pct > 1000) {
+      return Response.json({ error: 'default_margin_pct must be a percent between 0 and 1000' }, { status: 400 })
     }
     updates.default_margin_pct = body.default_margin_pct
+    marginChanged = true
   }
   if (Array.isArray(body.shipping_quote_zips)) {
     updates.shipping_quote_zips = body.shipping_quote_zips.map((z) => String(z).trim()).filter(Boolean)
@@ -42,5 +46,10 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ data })
+
+  // Cascade: the site default is the lowest-priority margin — changing it
+  // re-prices every variant that inherits it (no category/product/variant override).
+  let repriced = 0
+  if (marginChanged) repriced = await recomputeAllVariantPrices(supabase)
+  return Response.json({ data, repriced })
 }

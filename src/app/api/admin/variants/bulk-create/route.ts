@@ -6,6 +6,7 @@ import { MEDIUMS, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { getCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 
 const Body = z.object({
   product_id: z.string().uuid(),
@@ -51,17 +52,13 @@ export async function POST(request: NextRequest) {
     return apiOk({ created: [], skipped }) // all already existed — not an error
   }
 
-  const { data: product } = await auth.supabase
-    .from('products')
-    .select('default_margin_pct, margin_pct')
-    .eq('id', product_id)
-    .single()
   const { data: settings } = await auth.supabase
     .from('site_settings')
-    .select('default_margin_pct, shipping_quote_zips')
+    .select('shipping_quote_zips')
     .eq('id', true)
     .single()
-  const productDefaultMargin = Number(product?.default_margin_pct ?? product?.margin_pct ?? settings?.default_margin_pct ?? 100)
+  // Effective default margin = product → category → site → 100.
+  const productDefaultMargin = await getEffectiveProductMargin(auth.supabase, product_id)
   const zips: string[] = settings?.shipping_quote_zips || ['33101', '98101', '04401', '92101']
 
   const rows: Array<Record<string, unknown>> = []

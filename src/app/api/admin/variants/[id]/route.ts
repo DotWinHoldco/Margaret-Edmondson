@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 
 const Patch = z.object({
   margin_override_pct: z.number().nullable().optional(),
@@ -24,12 +25,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .single()
   if (readErr) return apiError(readErr.message, 500, 'DB_ERROR')
 
-  const { data: product } = await auth.supabase
-    .from('products')
-    .select('default_margin_pct, margin_pct')
-    .eq('id', existing.product_id)
-    .single()
-  const defaultMargin = Number(product?.default_margin_pct ?? product?.margin_pct ?? 100)
+  // Effective default = product → category → site → 100.
+  const defaultMargin = await getEffectiveProductMargin(auth.supabase, existing.product_id)
 
   const merged = {
     lumaprints_cost_cents: existing.lumaprints_cost_cents ?? 0,

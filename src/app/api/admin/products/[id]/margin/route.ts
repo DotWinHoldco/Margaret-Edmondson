@@ -2,9 +2,11 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { recomputeProductVariantPrices } from '@/lib/pricing/margin'
 
+// null = inherit the category → site default.
 const Body = z.object({
-  default_margin_pct: z.number().min(0).max(1000),
+  default_margin_pct: z.number().min(0).max(1000).nullable(),
 })
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,5 +20,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .update({ default_margin_pct: parsed.data.default_margin_pct, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return apiError(error.message, 500, 'DB_ERROR')
-  return apiOk({ id, default_margin_pct: parsed.data.default_margin_pct })
+  const repriced = await recomputeProductVariantPrices(auth.supabase, id)
+  return apiOk({ id, default_margin_pct: parsed.data.default_margin_pct, repriced })
 }

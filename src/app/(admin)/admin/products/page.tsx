@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ProductRowActions from './ProductRowActions'
+import CategoryManager from './CategoryManager'
+import CategoryCell from './CategoryCell'
 
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-teal/15 text-teal',
@@ -38,6 +40,11 @@ export default async function AdminProductsPage({
 
   const { data: products, error } = await query
 
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, slug, default_margin_pct')
+    .order('sort_order', { ascending: true })
+
   return (
     <div className="min-h-screen bg-cream">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -51,25 +58,18 @@ export default async function AdminProductsPage({
               Manage your art gallery products
             </p>
           </div>
-          <Link
-            href="/admin/products/new"
-            className="inline-flex items-center justify-center rounded-lg bg-teal px-5 py-2.5 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
-          >
-            <svg
-              className="mr-2 h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-3">
+            <CategoryManager />
+            <Link
+              href="/admin/products/new"
+              className="inline-flex items-center justify-center rounded-lg bg-teal px-5 py-2.5 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Add Product
-          </Link>
+              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Product
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
@@ -163,7 +163,6 @@ export default async function AdminProductsPage({
                           (img: { is_primary?: boolean }) => img.is_primary
                         ) || product.product_images[0]
                       : null
-                    const category = product.categories
                     const statusStyle =
                       STATUS_STYLES[product.status] || STATUS_STYLES.draft
 
@@ -208,9 +207,11 @@ export default async function AdminProductsPage({
                           </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-body text-sm text-charcoal/70">
-                            {category?.name || '--'}
-                          </span>
+                          <CategoryCell
+                            productId={product.id}
+                            currentCategoryId={product.category_id ?? null}
+                            categories={categories || []}
+                          />
                         </td>
                         <td className="px-4 py-3">
                           <span className="font-body text-sm font-medium text-charcoal">

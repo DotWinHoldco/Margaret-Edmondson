@@ -119,6 +119,7 @@ interface Category {
   id: string
   name: string
   slug: string
+  default_margin_pct?: number | null
 }
 
 interface ProductImage {
@@ -165,7 +166,7 @@ export default function EditProductPage({
   const [basePrice, setBasePrice] = useState('')
   const [compareAtPrice, setCompareAtPrice] = useState('')
   const [marginPct, setMarginPct] = useState('')
-  const [siteDefaultMargin, setSiteDefaultMargin] = useState<number>(0.65)
+  const [siteDefaultMargin, setSiteDefaultMargin] = useState<number>(100)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
   const [fulfillmentType, setFulfillmentType] = useState('self_ship')
@@ -176,7 +177,8 @@ export default function EditProductPage({
   const [tags, setTags] = useState('')
   const [variants, setVariants] = useState<Variant[]>([])
   const [printVariants, setPrintVariants] = useState<PrintVariant[]>([])
-  const [productDefaultMargin, setProductDefaultMargin] = useState<number>(100)
+  // Product's OWN markup % override as a string ('' = inherit category → site).
+  const [productMarginOverride, setProductMarginOverride] = useState<string>('')
   const [mediumCatalog, setMediumCatalog] = useState<MediumCatalogEntry[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [masterArtworkId, setMasterArtworkId] = useState<string | null>(null)
@@ -217,7 +219,7 @@ export default function EditProductPage({
       const [categoriesRes, productRes, settingsRes, catalogRes] = await Promise.all([
         supabase
           .from('categories')
-          .select('id, name, slug')
+          .select('id, name, slug, default_margin_pct')
           .order('sort_order', { ascending: true }),
         fetch(`/api/admin/products/${id}`).then((r) => r.json()),
         fetch(`/api/admin/pricing/settings`).then((r) => r.json()).catch(() => null),
@@ -320,11 +322,7 @@ export default function EditProductPage({
             })),
         )
       }
-      if (product.default_margin_pct != null) {
-        setProductDefaultMargin(Number(product.default_margin_pct))
-      } else if (product.margin_pct != null) {
-        setProductDefaultMargin(Number(product.margin_pct) * 100)
-      }
+      setProductMarginOverride(product.default_margin_pct != null ? String(Number(product.default_margin_pct)) : '')
 
       setLoading(false)
     }
@@ -342,15 +340,25 @@ export default function EditProductPage({
     [slugManual]
   )
 
+  // Effective markup the variants actually use: product override → category → site → 100.
+  const _selectedCategory = categories.find((c) => c.id === categoryId)
+  const _ownMargin = productMarginOverride.trim() === '' ? null : Number(productMarginOverride)
+  const effectiveMargin =
+    (_ownMargin != null && Number.isFinite(_ownMargin) ? _ownMargin : null) ??
+    (_selectedCategory?.default_margin_pct != null ? Number(_selectedCategory.default_margin_pct) : null) ??
+    (siteDefaultMargin || 100)
+  const marginInheritedFrom =
+    _ownMargin != null ? null : _selectedCategory?.default_margin_pct != null ? `${_selectedCategory.name} category` : 'site default'
+
   async function refreshPricing() {
     setRefreshing(true)
     setRefreshMsg(null)
     try {
-      // First, persist the current margin so the refresh uses it.
+      // Persist the product margin override (null = inherit) before refreshing.
       await fetch(`/api/admin/products/${id}/margin`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ default_margin_pct: productDefaultMargin }),
+        body: JSON.stringify({ default_margin_pct: _ownMargin }),
       })
       const r = await fetch('/api/admin/variants/refresh', {
         method: 'POST',
@@ -386,6 +394,9 @@ export default function EditProductPage({
         base_price: basePrice ? parseFloat(basePrice) : 0,
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
         margin_pct: marginPct.trim() === '' ? null : parseFloat(marginPct) / 100,
+        // Product markup % override (null = inherit category → site). This is
+        // what the variant pricing actually reads.
+        default_margin_pct: productMarginOverride.trim() === '' ? null : Number(productMarginOverride),
         fulfillment_type: fulfillmentType,
         master_artwork_id: masterArtworkId,
         status,
@@ -831,13 +842,14 @@ export default function EditProductPage({
                   Default margin (%)
                 </label>
                 <div className="flex items-center gap-3">
-                  <div className="relative w-40">
+                  <div className="relative w-44">
                     <input
                       type="number"
                       min="0"
                       step="1"
-                      value={productDefaultMargin}
-                      onChange={(e) => setProductDefaultMargin(Number(e.target.value))}
+                      value={productMarginOverride}
+                      placeholder={`${effectiveMargin} (inherited)`}
+                      onChange={(e) => setProductMarginOverride(e.target.value)}
                       className="w-full rounded-lg border border-charcoal/15 bg-cream py-2.5 pl-4 pr-8 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
@@ -855,7 +867,7 @@ export default function EditProductPage({
                   )}
                 </div>
                 <p className="mt-1 font-body text-xs text-charcoal/40">
-                  Applies to every variant that doesn&apos;t set its own override. Variant price = Lumaprints cost × (1 + margin / 100) + worst-case CONUS shipping. 100% = 2× cost; 200% = 3× cost.
+                  Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. Variant price = Lumaprints cost × (1 + margin / 100) + worst-case CONUS shipping. 100% = 2× cost.
                 </p>
               </div>
             </div>
@@ -1069,7 +1081,7 @@ export default function EditProductPage({
 
           <VariantsTab
             productId={id}
-            productDefaultMargin={productDefaultMargin}
+            productDefaultMargin={effectiveMargin}
             variants={printVariants}
             mediumCatalog={mediumCatalog}
             artworkOrientation={

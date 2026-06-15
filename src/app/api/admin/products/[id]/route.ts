@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { logChanges } from '@/lib/api/audit-log'
+import { recomputeProductVariantPrices } from '@/lib/pricing/margin'
 
 const VariantInput = z.object({
   id: z.string().uuid().optional(),
@@ -27,6 +28,9 @@ const ProductPatch = z.object({
   funnel_eligible: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
   margin_pct: z.number().min(0).max(0.99).nullable().optional(),
+  // Product-level markup % override (cost-plus; 100 = 2× cost). NULL = inherit
+  // the category → site default. This is what the variant pricing reads.
+  default_margin_pct: z.number().min(0).nullable().optional(),
   master_artwork_id: z.string().uuid().nullable().optional(),
   variants: z.array(VariantInput).optional(),
   // Additional categories to cross-post the product into, beyond the
@@ -44,6 +48,19 @@ async function syncProductCategories(
 ) {
   // We sync only if at least one was provided — otherwise leave junction alone.
   if (primaryCategoryId === undefined && additionalCategoryIds === undefined) return
+
+  // Primary-only change (e.g. the inline "assign category" on the products
+  // list, which sends category_id but not the additionals): just move the
+  // is_primary flag — DON'T wipe the product's cross-category assignments.
+  if (additionalCategoryIds === undefined) {
+    await supabase.from('product_categories').update({ is_primary: false }).eq('product_id', productId).eq('is_primary', true)
+    if (primaryCategoryId) {
+      await supabase
+        .from('product_categories')
+        .upsert({ product_id: productId, category_id: primaryCategoryId, is_primary: true }, { onConflict: 'product_id,category_id' })
+    }
+    return
+  }
 
   // Determine the full target set: primary (if any) + additionals (dedup, never
   // include primary in additionals).
@@ -173,6 +190,12 @@ export async function PATCH(
         ? productFields.category_id
         : before?.category_id ?? null
     await syncProductCategories(supabase, id, primary, additionalCategoryIds)
+  }
+
+  // A margin or category change shifts the effective markup → re-price the
+  // product's variants (skips manual overrides).
+  if (productFields.default_margin_pct !== undefined || productFields.category_id !== undefined) {
+    await recomputeProductVariantPrices(supabase, id)
   }
 
   if (before && hasProductChanges) {

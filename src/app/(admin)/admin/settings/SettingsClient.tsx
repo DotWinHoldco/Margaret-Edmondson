@@ -283,7 +283,7 @@ function PricingSettingsSection() {
       const res = await fetch('/api/admin/pricing/settings')
       const data = await res.json()
       if (data.data) {
-        setMarginPct((Number(data.data.default_margin_pct) * 100).toString())
+        setMarginPct(String(Number(data.data.default_margin_pct ?? 100)))
         setZips((data.data.shipping_quote_zips || []).join(', '))
       }
       setLoading(false)
@@ -295,7 +295,7 @@ function PricingSettingsSection() {
     setSaving(true)
     setSavedMsg(null)
     const body = {
-      default_margin_pct: marginPct ? parseFloat(marginPct) / 100 : undefined,
+      default_margin_pct: marginPct ? parseFloat(marginPct) : undefined,
       shipping_quote_zips: zips
         ? zips.split(',').map((z) => z.trim()).filter(Boolean)
         : undefined,
@@ -341,7 +341,7 @@ function PricingSettingsSection() {
     <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
       <h2 className="font-display text-xl font-semibold text-charcoal mb-2">Pricing</h2>
       <p className="font-body text-xs text-charcoal/50 mb-5">
-        Variant prices are <code>(wholesale + worst-case CONUS shipping) / (1 − margin)</code>. Shipping is included for contiguous US; AK, HI, and Canada are surcharged at checkout.
+        Site-wide default markup. Variant prices are <code>wholesale × (1 + margin% / 100) + worst-case CONUS shipping</code> (100% = 2× cost). This is the lowest-priority default — a category, product, or variant margin overrides it. Shipping is included for contiguous US; AK, HI, and Canada are surcharged at checkout.
       </p>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -353,15 +353,15 @@ function PricingSettingsSection() {
               <input
                 type="number"
                 min="0"
-                max="99"
-                step="0.1"
+                max="1000"
+                step="1"
                 value={marginPct}
                 onChange={(e) => setMarginPct(e.target.value)}
                 className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
             </div>
-            <p className="mt-1 font-body text-xs text-charcoal/30">Used when a product has no override.</p>
+            <p className="mt-1 font-body text-xs text-charcoal/30">Used when a product and its category have no override.</p>
           </div>
           <div>
             <label className="block font-body text-sm font-medium text-charcoal mb-1.5">
