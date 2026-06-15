@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import { MEDIUMS, mediumLabel, sizeDimensions, orientationForSize, type Medium, type Orientation } from '@/lib/pricing/mediums'
@@ -61,14 +61,44 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle')
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [variants, setVariants] = useState(initial)
-  // defaultMargin is owned by the parent product editor (Pricing card).
-  // Reflect it here so the math always uses the canonical value.
+  // Keep local state in sync when the parent re-supplies variants (e.g. after a
+  // parent reload). The parent is a client component, so this is the only way
+  // external changes reach the table.
+  useEffect(() => { setVariants(initial) }, [initial])
   const defaultMargin = productDefaultMargin
   const [pending, startTransition] = useTransition()
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
   const [lastDiff, setLastDiff] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState<Medium | null>(null)
+
+  // Bulk selection (row checkboxes + select-all-per-category).
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
+
+  // Configured mediums = those Lumaprints has priced (subcategory + sizes).
+  const configuredMediums = useMemo(
+    () => MEDIUMS.filter((m) => { const c = catalogByMedium[m]; return Boolean(c && c.subcategory_id && c.sizes.length) }),
+    [catalogByMedium],
+  )
+  // Which mediums the Fix & Generate tool acts on (default = all configured).
+  const [fixMediums, setFixMediums] = useState<Set<Medium>>(new Set())
+  useEffect(() => { setFixMediums(new Set(configuredMediums)) }, [configuredMediums])
+  const [fixBusy, setFixBusy] = useState(false)
+  const [fixStatus, setFixStatus] = useState<string | null>(null)
+
+  // Self-reload the table straight from the DB (the parent holds variants in
+  // client state, so router.refresh() alone never updates this panel).
+  const reload = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/variants`, { cache: 'no-store' })
+      if (res.ok) {
+        const body = await res.json()
+        if (Array.isArray(body.data?.variants)) setVariants(body.data.variants as Variant[])
+      }
+    } catch { /* keep optimistic state */ }
+    router.refresh()
+  }, [productId, router])
 
   const grouped = useMemo(() => {
     const out: Record<string, Variant[]> = {}
@@ -77,9 +107,6 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
       if (!out[key]) out[key] = []
       out[key].push(v)
     }
-    // Sort each medium's rows by area (width × height) ascending — smallest
-    // canvas first, then framed canvas, etc. Fall back to size_label string
-    // compare when dims aren't set.
     const area = (v: Variant) => {
       const dims = v.size_label ? sizeDimensions(v.size_label) : null
       return dims ? dims.width * dims.height : 0
@@ -105,12 +132,10 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
     updateVariantField(id, { margin_override_pct: value })
     debouncedSave(id, { margin_override_pct: value })
   }
-
   const onActiveChange = (id: string, value: boolean) => {
     updateVariantField(id, { is_active: value })
     debouncedSave(id, { is_active: value })
   }
-
   const onManualOverrideChange = (id: string, value: number | null) => {
     updateVariantField(id, { manual_price_override_cents: value })
     debouncedSave(id, { manual_price_override_cents: value })
@@ -136,7 +161,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           setLastDiff(`${changes.length} updated — ${summary}${extra}`)
         }
         setRefreshStatus('done')
-        router.refresh()
+        await reload()
       } else {
         setRefreshStatus('error')
       }
@@ -146,53 +171,96 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
   const deleteVariant = async (id: string) => {
     await fetch(`/api/admin/variants/${id}`, { method: 'DELETE' })
     setVariants((prev) => prev.filter((v) => v.id !== id))
+    setSelected((prev) => { const n = new Set(prev); n.delete(id); return n })
     setConfirmDelete(null)
-    router.refresh()
+    await reload()
   }
 
-  // One-click: create the artwork-matched size set for every configured medium
-  // (priced live through Lumaprints by bulk-create) and deactivate the existing
-  // variants that are a different shape. Non-destructive — off-shape variants are
-  // deactivated (hidden from the public page), never deleted.
-  const [confirmFix, setConfirmFix] = useState(false)
-  const [fixStatus, setFixStatus] = useState<string | null>(null)
-  const fixToShape = () => {
-    if (!artworkOrientation) return
-    setConfirmFix(false)
+  // --- Bulk selection helpers ---
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  const toggleSelectMedium = (rows: Variant[]) =>
+    setSelected((prev) => {
+      const n = new Set(prev)
+      const allOn = rows.length > 0 && rows.every((r) => n.has(r.id))
+      rows.forEach((r) => { if (allOn) n.delete(r.id); else n.add(r.id) })
+      return n
+    })
+  const clearSelection = () => setSelected(new Set())
+  const bulkDelete = async () => {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    setConfirmBulk(false)
+    await fetch('/api/admin/variants/bulk-delete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+    const del = new Set(ids)
+    setVariants((prev) => prev.filter((v) => !del.has(v.id)))
+    clearSelection()
+    await reload()
+  }
+
+  // --- Fix & Generate: per selected medium, create the artwork-shape sizes that
+  // are missing AND delete the off-shape + duplicate variants. Idempotent. ---
+  const toggleFixMedium = (m: Medium) =>
+    setFixMediums((prev) => { const n = new Set(prev); if (n.has(m)) n.delete(m); else n.add(m); return n })
+
+  const runFixGenerate = () => {
+    if (!artworkOrientation || fixMediums.size === 0 || fixBusy) return
+    setFixBusy(true)
+    setFixStatus('Generating sizes through Lumaprints…')
     startTransition(async () => {
-      setFixStatus('Generating sizes through Lumaprints…')
       let created = 0
-      for (const m of MEDIUMS) {
+      const idsToDelete: string[] = []
+      for (const m of fixMediums) {
         const cfg = catalogByMedium[m]
         if (!cfg || !cfg.subcategory_id || cfg.sizes.length === 0) continue
-        const existing = new Set(variants.filter((v) => v.medium === m).map((v) => v.size_label || ''))
+        const mv = variants.filter((v) => v.medium === m)
+        // Keep one correct-shape variant per size; delete off-shape and dupes.
+        const keep = new Set<string>()
+        for (const v of mv) {
+          const sz = v.size_label || ''
+          if (!sz || orientationForSize(sz) !== artworkOrientation) { idsToDelete.push(v.id); continue }
+          if (keep.has(sz)) { idsToDelete.push(v.id); continue }
+          keep.add(sz)
+        }
         const toCreate = cfg.sizes
-          .filter((s) => orientationForSize(s.size_label) === artworkOrientation && !existing.has(s.size_label))
+          .filter((s) => orientationForSize(s.size_label) === artworkOrientation && !keep.has(s.size_label))
           .map((s) => s.size_label)
-        if (toCreate.length === 0) continue
-        const res = await fetch('/api/admin/variants/bulk-create', {
+        if (toCreate.length > 0) {
+          const res = await fetch('/api/admin/variants/bulk-create', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ product_id: productId, medium: m, size_labels: toCreate }),
+          })
+          if (res.ok) {
+            const body = await res.json()
+            created += body.data?.created?.length ?? 0
+          }
+        }
+      }
+      if (idsToDelete.length > 0) {
+        await fetch('/api/admin/variants/bulk-delete', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ product_id: productId, medium: m, size_labels: toCreate }),
+          body: JSON.stringify({ ids: idsToDelete }),
         })
-        if (res.ok) created += toCreate.length
+        const del = new Set(idsToDelete)
+        setVariants((prev) => prev.filter((v) => !del.has(v.id)))
       }
-      const mismatched = variants.filter(
-        (v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation && v.is_active,
-      )
-      for (const v of mismatched) {
-        await fetch(`/api/admin/variants/${v.id}`, {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ is_active: false }),
-        })
-      }
+      await reload()
+      setFixBusy(false)
       setFixStatus(
-        `Created ${created} ${artworkOrientation} variant${created === 1 ? '' : 's'}; deactivated ${mismatched.length} off-shape variant${mismatched.length === 1 ? '' : 's'}.`,
+        `Done — generated ${created} ${artworkOrientation} variant${created === 1 ? '' : 's'}; removed ${idsToDelete.length} off-shape/duplicate variant${idsToDelete.length === 1 ? '' : 's'}.`,
       )
-      router.refresh()
     })
   }
+
+  const mismatched = artworkOrientation
+    ? variants.some((v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation)
+    : false
 
   return (
     <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
@@ -220,7 +288,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                 const matched = (body.data?.summary || []).filter((s: { status: string }) => s.status === 'matched').length
                 setSyncMsg(`Synced ${matched}/${(body.data?.summary || []).length} mediums.`)
                 setSyncStatus('done')
-                router.refresh()
+                await reload()
               } else {
                 setSyncMsg('Sync failed — check Lumaprints credentials.')
                 setSyncStatus('error')
@@ -240,52 +308,97 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           </button>
         </div>
       </div>
+
       {syncMsg && (
         <div className={`mb-4 rounded-md border px-3 py-2 font-body text-xs ${syncStatus === 'error' ? 'bg-coral/10 border-coral/30 text-coral' : 'bg-teal/10 border-teal/30 text-deep-teal'}`}>
           {syncMsg}
         </div>
       )}
-
       {lastDiff && (
         <div className="mb-4 rounded-md bg-teal/10 border border-teal/30 px-3 py-2 font-body text-xs text-deep-teal">
           {lastDiff}
         </div>
       )}
 
-      {artworkOrientation && (() => {
-        const mismatched = variants.some(
-          (v) => v.size_label && orientationForSize(v.size_label) !== artworkOrientation,
-        )
-        return (
-          <div className={`mb-4 rounded-md border px-3 py-2.5 font-body text-xs ${mismatched ? 'bg-gold/10 border-gold/40 text-charcoal' : 'bg-charcoal/[0.03] border-charcoal/10 text-charcoal/60'}`}>
-            <div className="flex items-start justify-between gap-3">
-              <p>
-                This is a <strong>{ORIENTATION_LABEL[artworkOrientation]}</strong> artwork — “Add sizes” defaults to the {ORIENTATION_LABEL[artworkOrientation]} set.
-                {mismatched && (
-                  <> Some current variants are a different shape and will crop the image.</>
-                )}
-              </p>
-              {mismatched && (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => setConfirmFix(true)}
-                  className="shrink-0 rounded-md bg-charcoal px-3 py-1.5 font-body text-[11px] font-medium text-cream hover:bg-charcoal/90 disabled:opacity-50"
-                >
-                  {pending ? 'Working…' : `Fix to ${ORIENTATION_LABEL[artworkOrientation]}`}
-                </button>
-              )}
-            </div>
-            {fixStatus && <p className="mt-2 font-medium text-deep-teal">{fixStatus}</p>}
+      {/* Fix & Generate — aspect-matched variant builder with a medium picker */}
+      {artworkOrientation && (
+        <div className={`mb-5 rounded-md border px-4 py-3 ${mismatched ? 'bg-gold/10 border-gold/40' : 'bg-charcoal/[0.03] border-charcoal/10'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-body text-xs text-charcoal/80">
+              Detected shape: <strong>{ORIENTATION_LABEL[artworkOrientation]}</strong>.{' '}
+              {mismatched
+                ? 'Some variants are a different shape and would crop the image — fixing deletes them.'
+                : 'Generate the matched size set for any medium below.'}
+            </p>
+            <button
+              type="button"
+              disabled={fixBusy || fixMediums.size === 0}
+              onClick={runFixGenerate}
+              className="shrink-0 rounded-md bg-charcoal px-3.5 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wider text-cream hover:bg-charcoal/90 disabled:opacity-50"
+            >
+              {fixBusy ? 'Working…' : `Fix & generate ${ORIENTATION_LABEL[artworkOrientation]}`}
+            </button>
           </div>
-        )
-      })()}
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {MEDIUMS.map((m) => {
+              const configured = configuredMediums.includes(m)
+              const checked = fixMediums.has(m)
+              return (
+                <label
+                  key={m}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-body text-[11px] ${
+                    configured
+                      ? checked
+                        ? 'border-teal bg-teal/10 text-deep-teal cursor-pointer'
+                        : 'border-charcoal/20 text-charcoal/70 cursor-pointer'
+                      : 'border-charcoal/10 text-charcoal/30 cursor-not-allowed'
+                  }`}
+                  title={configured ? '' : 'Run Sync Lumaprints to enable this medium'}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3 w-3"
+                    disabled={!configured}
+                    checked={configured && checked}
+                    onChange={() => configured && toggleFixMedium(m)}
+                  />
+                  {catalogByMedium[m]?.name || mediumLabel(m)}
+                  {!configured && <span className="text-[9px] uppercase">· sync</span>}
+                </label>
+              )
+            })}
+          </div>
+          {fixStatus && <p className="mt-2 font-body text-xs font-medium text-deep-teal">{fixStatus}</p>}
+        </div>
+      )}
+
+      {/* Bulk-selection action bar */}
+      {selected.size > 0 && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-coral/30 bg-coral/5 px-3 py-2">
+          <span className="font-body text-xs text-charcoal/80">
+            <strong>{selected.size}</strong> variant{selected.size === 1 ? '' : 's'} selected
+          </span>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={clearSelection} className="font-body text-[11px] uppercase tracking-wider text-charcoal/60 hover:text-charcoal">
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmBulk(true)}
+              className="rounded-md bg-coral px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wider text-white hover:bg-coral/90"
+            >
+              Delete selected
+            </button>
+          </div>
+        </div>
+      )}
 
       {MEDIUMS.map((m) => {
         const cfg = catalogByMedium[m]
         const rows = grouped[m] || []
         const configured = Boolean(cfg && cfg.subcategory_id && cfg.sizes.length > 0)
         if (!configured && rows.length === 0) return null
+        const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id))
         return (
           <div key={m} className="mb-6 last:mb-0">
             <div className="flex items-center justify-between mb-2">
@@ -293,20 +406,26 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                 {cfg?.name || mediumLabel(m)}
                 <span className="ml-2 font-body text-xs text-charcoal/40">({rows.length} variants)</span>
                 {!configured && (
-                  <span className="ml-2 inline-block rounded-full bg-coral/10 px-2 py-0.5 font-body text-[10px] text-coral">
-                    Needs sync
-                  </span>
+                  <span className="ml-2 inline-block rounded-full bg-coral/10 px-2 py-0.5 font-body text-[10px] text-coral">Needs sync</span>
                 )}
               </h3>
-              {configured && (
-                <button
-                  type="button"
-                  onClick={() => setShowAdd(m)}
-                  className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal transition-colors"
-                >
-                  + Add sizes
-                </button>
-              )}
+              <div className="flex items-center gap-4">
+                {rows.length > 0 && (
+                  <label className="flex items-center gap-1.5 font-body text-[11px] text-charcoal/55 cursor-pointer">
+                    <input type="checkbox" className="h-3 w-3" checked={allSelected} onChange={() => toggleSelectMedium(rows)} />
+                    Select all
+                  </label>
+                )}
+                {configured && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAdd(m)}
+                    className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal transition-colors"
+                  >
+                    + Add sizes
+                  </button>
+                )}
+              </div>
             </div>
 
             {rows.length > 0 && (
@@ -314,6 +433,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                 <table className="w-full text-left">
                   <thead className="bg-charcoal/[0.03]">
                     <tr>
+                      <th className="px-3 py-2 w-8"></th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Size</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">Lumaprints</th>
                       <th className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">+ Margin</th>
@@ -334,8 +454,12 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                       const plusMargin = costPlusMarginCents(pricing, defaultMargin)
                       const finalPrice = customerPriceCents(pricing, defaultMargin)
                       const hasManual = v.manual_price_override_cents != null
+                      const isSel = selected.has(v.id)
                       return (
-                        <tr key={v.id} className={!v.is_lumaprints_available ? 'bg-coral/5' : ''}>
+                        <tr key={v.id} className={isSel ? 'bg-teal/5' : !v.is_lumaprints_available ? 'bg-coral/5' : ''}>
+                          <td className="px-3 py-2">
+                            <input type="checkbox" className="h-3.5 w-3.5" checked={isSel} onChange={() => toggleSelect(v.id)} />
+                          </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal">
                             {v.size_label}
                             {!v.is_lumaprints_available && (
@@ -358,11 +482,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
                             />
                           </td>
                           <td className="px-3 py-2">
-                            <input
-                              type="checkbox"
-                              checked={v.is_active}
-                              onChange={(e) => onActiveChange(v.id, e.target.checked)}
-                            />
+                            <input type="checkbox" checked={v.is_active} onChange={(e) => onActiveChange(v.id, e.target.checked)} />
                           </td>
                           <td className="px-3 py-2 text-right">
                             <button
@@ -415,7 +535,7 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
           onClose={() => setShowAdd(null)}
           onCreated={() => {
             setShowAdd(null)
-            router.refresh()
+            reload()
           }}
         />
       )}
@@ -431,12 +551,13 @@ export default function VariantsTab({ productId, productDefaultMargin, variants:
       />
 
       <ConfirmDialog
-        open={confirmFix}
-        title={`Generate ${artworkOrientation ?? ''} sizes?`}
-        message={`This creates the ${artworkOrientation ?? ''} size set for each configured medium — priced live through Lumaprints — and deactivates the variants that are a different shape. Off-shape variants are not deleted; they just hide from the public page, and you can re-activate or delete them by hand.`}
-        confirmText="Generate & fix"
-        onConfirm={fixToShape}
-        onCancel={() => setConfirmFix(false)}
+        open={confirmBulk}
+        title={`Delete ${selected.size} variant${selected.size === 1 ? '' : 's'}?`}
+        message="The selected variants will be permanently removed. Public pages stop showing them immediately."
+        variant="danger"
+        confirmText={`Delete ${selected.size}`}
+        onConfirm={bulkDelete}
+        onCancel={() => setConfirmBulk(false)}
       />
     </section>
   )
@@ -464,7 +585,6 @@ function AddVariantModal({
   onCreated: () => void
 }) {
   const available = availableSizes.filter((s) => !existingSizes.has(s.size_label))
-  // Split by shape so the artwork-matched sizes lead and are pre-selected.
   const recommended = orientation ? available.filter((s) => orientationForSize(s.size_label) === orientation) : []
   const others = orientation ? available.filter((s) => orientationForSize(s.size_label) !== orientation) : available
   const [selected, setSelected] = useState<Set<string>>(() => new Set(recommended.map((s) => s.size_label)))
@@ -518,7 +638,7 @@ function AddVariantModal({
         <div className="p-6">
           <h2 className="font-display text-xl font-light text-charcoal">Add {mediumName} variants</h2>
           <p className="mt-1 font-body text-xs text-charcoal/60">
-            One variant per size. Prices pull from the live Lumaprints API + your margin.
+            One variant per size. Prices pull from the live Lumaprints API + your margin. Sizes already on this product are skipped automatically.
           </p>
 
           <div className="flex justify-between items-center mt-5 mb-2">
@@ -567,9 +687,7 @@ function AddVariantModal({
           )}
 
           <label className="block mt-5">
-            <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">
-              Margin override (optional)
-            </span>
+            <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Margin override (optional)</span>
             <div className="flex items-center gap-2">
               <input
                 type="number"

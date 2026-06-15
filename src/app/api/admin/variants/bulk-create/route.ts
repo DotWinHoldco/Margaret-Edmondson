@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
     return apiError(`Medium ${medium} is not configured. Run the Lumaprints sync first.`, 400, 'MEDIUM_NOT_CONFIGURED')
   }
 
+  // Dedup server-side: never create a (medium × size) that already exists on
+  // this product. Makes the endpoint idempotent so rapid double-clicks / the
+  // aspect-fix tool can't stack duplicates.
+  const { data: existingRows } = await auth.supabase
+    .from('product_variants')
+    .select('size_label')
+    .eq('product_id', product_id)
+    .eq('medium', medium)
+  const existingSizes = new Set((existingRows || []).map((r) => r.size_label))
+  const skipped = size_labels.filter((s) => existingSizes.has(s))
+  const sizesToCreate = size_labels.filter((s) => !existingSizes.has(s))
+  if (sizesToCreate.length === 0) {
+    return apiOk({ created: [], skipped }) // all already existed — not an error
+  }
+
   const { data: product } = await auth.supabase
     .from('products')
     .select('default_margin_pct, margin_pct')
@@ -50,7 +65,7 @@ export async function POST(request: NextRequest) {
   const zips: string[] = settings?.shipping_quote_zips || ['33101', '98101', '04401', '92101']
 
   const rows: Array<Record<string, unknown>> = []
-  for (const size_label of size_labels) {
+  for (const size_label of sizesToCreate) {
     const dims = sizeDimensions(size_label)
     if (!dims) continue
     let cost_cents = 0
@@ -103,7 +118,7 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  if (rows.length === 0) return apiError('No valid sizes', 400, 'NO_SIZES')
+  if (rows.length === 0) return apiOk({ created: [], skipped })
 
   const { data, error } = await auth.supabase
     .from('product_variants')
@@ -111,5 +126,5 @@ export async function POST(request: NextRequest) {
     .select('id, medium, size_label')
 
   if (error) return apiError(error.message, 500, 'DB_ERROR')
-  return apiOk({ created: data })
+  return apiOk({ created: data, skipped })
 }
