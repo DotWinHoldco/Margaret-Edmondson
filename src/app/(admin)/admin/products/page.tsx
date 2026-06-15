@@ -3,13 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import ProductRowActions from './ProductRowActions'
 import CategoryManager from './CategoryManager'
 import CategoryCell from './CategoryCell'
-
-const STATUS_STYLES: Record<string, string> = {
-  active: 'bg-teal/15 text-teal',
-  draft: 'bg-charcoal/10 text-charcoal/60',
-  archived: 'bg-coral/15 text-coral',
-  sold: 'bg-gold/15 text-gold',
-}
+import StatusToggle from './StatusToggle'
 
 const FULFILLMENT_LABELS: Record<string, string> = {
   lumaprints: 'LumaPrints',
@@ -163,9 +157,6 @@ export default async function AdminProductsPage({
                           (img: { is_primary?: boolean }) => img.is_primary
                         ) || product.product_images[0]
                       : null
-                    const statusStyle =
-                      STATUS_STYLES[product.status] || STATUS_STYLES.draft
-
                     return (
                       <tr
                         key={product.id}
@@ -224,11 +215,7 @@ export default async function AdminProductsPage({
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 font-body text-xs font-medium capitalize ${statusStyle}`}
-                          >
-                            {product.status}
-                          </span>
+                          <StatusToggle productId={product.id} status={product.status} />
                         </td>
                         <td className="px-4 py-3">
                           <span className="font-body text-sm text-charcoal/70">
