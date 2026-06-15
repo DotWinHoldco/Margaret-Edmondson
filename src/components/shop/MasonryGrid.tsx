@@ -63,7 +63,9 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
         })
         const price = product.prints_enabled
           ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
-          : `$${Number(product.base_price).toFixed(2)}`
+          : Number(product.base_price) > 0
+            ? `${product.is_original ? '' : 'From '}$${Number(product.base_price).toFixed(2)}`
+            : 'Made to order'
 
         return (
           <motion.div

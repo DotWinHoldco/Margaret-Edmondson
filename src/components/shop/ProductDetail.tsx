@@ -519,6 +519,10 @@ export default function ProductDetail({
 
   const isSold = product.status === 'sold' || (!!originalVariant && !originalAvailable && canvasVariants.length === 0)
   const hasPrints = canvasVariants.length > 0
+  // A made-to-order commission example (e.g. Custom Portraits): active, no
+  // purchasable variants, no prints, not an original for sale. Shown with a
+  // "commission" CTA instead of a price + cart.
+  const isCommission = !isSold && !originalVariant && !hasPrints && !product.is_original && !product.prints_enabled
 
   // Default variant: original if available, else first canvas print
   const defaultVariant = originalAvailable ? originalVariant : canvasVariants[0] || framedVariants[0]
@@ -632,37 +636,58 @@ export default function ProductDetail({
 
             {/* Price display */}
             <div className="mt-6 mb-6">
-              {/* Compare-at price renders as a strikethrough when it's higher
-                  than the displayed price — typical "marked down from" UI. */}
-              {product.compare_at_price != null && product.compare_at_price > price && (
-                <span className="font-body text-base text-charcoal/40 line-through mr-2">
-                  ${Number(product.compare_at_price).toFixed(2)}
-                </span>
-              )}
-              <span className="font-body text-2xl font-semibold text-charcoal">
-                ${price.toFixed(2)}
-              </span>
-              {isOriginalSelected && (
-                <span className="ml-2 font-body text-xs text-gold font-medium uppercase tracking-wide">
-                  One-of-a-kind original
-                </span>
-              )}
-              {!isOriginalSelected && hasPrints && originalAvailable && (
-                <span className="ml-2 font-body text-xs text-charcoal/40">
-                  print
-                </span>
+              {isCommission ? (
+                Number(product.base_price) > 0 ? (
+                  <>
+                    <span className="font-body text-2xl font-semibold text-charcoal">
+                      From ${Number(product.base_price).toFixed(2)}
+                    </span>
+                    <span className="ml-2 font-body text-xs font-medium uppercase tracking-wide text-gold">
+                      Made to order
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-body text-sm font-semibold uppercase tracking-[0.18em] text-gold">
+                    Made to order
+                  </span>
+                )
+              ) : (
+                <>
+                  {/* Compare-at price renders as a strikethrough when it's higher
+                      than the displayed price — typical "marked down from" UI. */}
+                  {product.compare_at_price != null && product.compare_at_price > price && (
+                    <span className="font-body text-base text-charcoal/40 line-through mr-2">
+                      ${Number(product.compare_at_price).toFixed(2)}
+                    </span>
+                  )}
+                  <span className="font-body text-2xl font-semibold text-charcoal">
+                    ${price.toFixed(2)}
+                  </span>
+                  {isOriginalSelected && (
+                    <span className="ml-2 font-body text-xs text-gold font-medium uppercase tracking-wide">
+                      One-of-a-kind original
+                    </span>
+                  )}
+                  {!isOriginalSelected && hasPrints && originalAvailable && (
+                    <span className="ml-2 font-body text-xs text-charcoal/40">
+                      print
+                    </span>
+                  )}
+                </>
               )}
             </div>
 
             {/* Variant Selector Dropdown */}
-            <VariantSelector
-              product={product}
-              originalVariant={originalAvailable ? originalVariant : undefined}
-              canvasVariants={canvasVariants}
-              framedVariants={framedVariants}
-              selectedVariantId={selectedVariantId}
-              onSelect={(v) => setSelectedVariantId(v.id)}
-            />
+            {!isCommission && (
+              <VariantSelector
+                product={product}
+                originalVariant={originalAvailable ? originalVariant : undefined}
+                canvasVariants={canvasVariants}
+                framedVariants={framedVariants}
+                selectedVariantId={selectedVariantId}
+                onSelect={(v) => setSelectedVariantId(v.id)}
+              />
+            )}
 
             {/* Add to Cart */}
             {!isSold && selectedVariant && (
@@ -684,6 +709,21 @@ export default function ProductDetail({
                 <Link href="/commissions" className="text-teal underline hover:text-deep-teal">
                   Commission something similar &rarr;
                 </Link>
+              </div>
+            )}
+
+            {/* Made-to-order commission */}
+            {isCommission && (
+              <div className="mt-6">
+                <Link
+                  href="/commissions"
+                  className="block w-full py-3.5 bg-teal text-center text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-deep-teal transition-colors"
+                >
+                  Commission a piece like this &rarr;
+                </Link>
+                <p className="mt-3 text-center font-body text-xs text-charcoal/50">
+                  Each portrait is painted to order from your photos.
+                </p>
               </div>
             )}
 
