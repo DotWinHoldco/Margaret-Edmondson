@@ -31,7 +31,7 @@ export default function Header() {
               alt="ArtByME — Margaret Edmondson"
               width={3110}
               height={892}
-              className="h-10 w-auto lg:h-12"
+              className="h-12 w-auto lg:h-16"
               priority
             />
           </Link>
