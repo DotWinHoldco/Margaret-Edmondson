@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { logChanges } from '@/lib/api/audit-log'
 import { recomputeProductVariantPrices } from '@/lib/pricing/margin'
@@ -88,7 +89,9 @@ export async function GET(
   const { id } = await params
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
-  const { supabase } = auth
+  // Admin-gated: read through the service client so drafts/archived products
+  // are visible (the public RLS only exposes active products).
+  const supabase = await createServiceClient()
 
   const { data, error } = await supabase
     .from('products')
@@ -109,7 +112,10 @@ export async function PATCH(
   const { id } = await params
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
-  const { supabase, user } = auth
+  // Admin-gated write: use the service client so the update isn't blocked by
+  // the public RLS policy (which only permits reading active products).
+  const { user } = auth
+  const supabase = await createServiceClient()
 
   const parsed = await parseBody(request, ProductPatch)
   if (!parsed.ok) return parsed.response
@@ -225,7 +231,8 @@ export async function DELETE(
   const { id } = await params
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
-  const { supabase, user } = auth
+  const { user } = auth
+  const supabase = await createServiceClient()
 
   const { data: before } = await supabase
     .from('products')
