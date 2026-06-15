@@ -45,7 +45,7 @@ export default function FooterNewsletter() {
             Studio List Newsletter
           </p>
           <h3 className="mt-2 font-display text-2xl font-light text-white">
-            Join our Studio List Newsletter and enjoy 10% off of your first purchase
+            Join my Studio List Newsletter and enjoy 10% off of your first purchase
           </h3>
           <p className="mt-2 font-body text-sm text-white/60">
             New work, upcoming exhibits, and the occasional studio note. No spam ever.
