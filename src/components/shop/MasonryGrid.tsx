@@ -75,20 +75,22 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
             className="self-start"
           >
             <Link href={`/shop/art/${product.slug}`} className="group block">
-              <div className="relative">
+              {/* Uniform fixed-size container: every product card is the same
+                  size and the artwork is fitted inside (object-contain) on a
+                  cream mat, so differing image aspect ratios all read uniform. */}
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#fbf8f2] shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)] ring-1 ring-charcoal/5 transition-all duration-700 ease-out group-hover:shadow-[0_30px_70px_-22px_rgba(28,28,28,0.5)]">
                 {img && (
                   <Image
                     src={img.url}
                     alt={img.alt_text || product.title}
-                    width={img.width || 1000}
-                    height={img.height || 1250}
+                    fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     priority={index < 3}
-                    className="block w-full h-auto shadow-[0_18px_45px_-22px_rgba(28,28,28,0.35)] ring-1 ring-charcoal/5 transition-all duration-700 ease-out group-hover:shadow-[0_30px_70px_-22px_rgba(28,28,28,0.5)] group-hover:scale-[1.012]"
+                    className="object-contain p-3 sm:p-4 transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                   />
                 )}
                 {badge && (
-                  <span className={`absolute top-3 left-3 px-2.5 py-1 ${badge.color} text-white text-[10px] font-body font-semibold uppercase tracking-[0.18em] rounded-sm shadow-sm`}>
+                  <span className={`absolute top-3 left-3 z-10 px-2.5 py-1 ${badge.color} text-white text-[10px] font-body font-semibold uppercase tracking-[0.18em] rounded-sm shadow-sm`}>
                     {badge.text}
                   </span>
                 )}
