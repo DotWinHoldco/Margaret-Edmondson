@@ -58,3 +58,7 @@ public/SCANS/
 /main product photos/
 /audit/solo/
 /audit/rot/
+/audit/diag/
+
+# build-prompt scratch (kept out of the client repo; parked on feature branches when needed)
+claude-code-prompt__*.md
