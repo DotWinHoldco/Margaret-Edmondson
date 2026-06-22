@@ -7,6 +7,7 @@ import { getServerAdapter } from '@/lib/page-editor/server-registry'
 import { recordRevision } from '@/lib/page-editor/revisions'
 import type { NextRequest } from 'next/server'
 
+// PATCH /api/admin/pages/[slug]/editor/[section] — save edits to a page section and record a revision; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string; section: string }> }

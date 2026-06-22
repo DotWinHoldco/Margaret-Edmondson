@@ -18,6 +18,7 @@ const Body = z.object({
   description: z.string().nullable().optional(),
 })
 
+// POST /api/admin/discount-codes/generate — generate a discount/promo code; admin only.
 export async function POST(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

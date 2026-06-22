@@ -11,6 +11,7 @@ const Patch = z.object({
   is_published: z.boolean().optional(),
 })
 
+// PATCH /api/admin/about/callouts/[id] — update a bio callout; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -27,6 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return apiOk({ id })
 }
 
+// DELETE /api/admin/about/callouts/[id] — delete a bio callout; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

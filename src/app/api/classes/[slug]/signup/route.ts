@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — public class signup (input validated + rate-limited). Authored by DotWin.
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
@@ -25,6 +26,7 @@ function priceUsd(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
+// POST /api/classes/[slug]/signup — reserve a class seat and email pay-by-Venmo/Zelle instructions; public.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-signup' })
   if (!rl.ok) return rateLimitResponse(rl)

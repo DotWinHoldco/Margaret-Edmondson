@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/notes — list project notes with comment counts, pinned first; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -30,6 +31,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/notes — create a project note; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH /api/admin/notes — update a project note by id; admin only.
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
@@ -113,6 +116,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE /api/admin/notes — delete a project note and its comments by id; admin only.
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json()

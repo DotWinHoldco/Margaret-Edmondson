@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — guest checkout: create Stripe payment intent (input validated + rate-limited). Authored by DotWin.
 // Embedded (Stripe Payment Elements) checkout — creates a PaymentIntent for
 // the on-site /checkout page. ADDITIVE: the hosted-Checkout flow in
 // ../route.ts is untouched and remains the fallback ("express checkout").
@@ -20,6 +21,7 @@ function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
 }
 
+// POST /api/checkout/intent — re-price the cart from DB and create a Stripe PaymentIntent for on-site checkout; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout-intent' })
   if (!rl.ok) return rateLimitResponse(rl)

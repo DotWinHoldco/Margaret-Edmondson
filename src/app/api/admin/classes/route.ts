@@ -8,6 +8,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// GET /api/admin/classes — list courses with enrollment counts, optionally filtered by status; admin only.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/admin/classes — create a course; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

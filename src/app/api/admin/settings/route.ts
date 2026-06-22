@@ -54,6 +54,7 @@ const NUMERIC_FIELDS = ['tax_rate_pct'] as const
 
 const STRING_ARRAY_FIELDS = ['tax_nexus_states'] as const
 
+// GET /api/admin/settings — read integration status and site settings; admin only.
 export async function GET() {
   try {
     const integrations = INTEGRATION_KEYS.map(({ key, label }) => ({
@@ -67,7 +68,7 @@ export async function GET() {
 
     const { data: globalContent } = await supabase
       .from('site_content')
-      .select('*')
+      .select('id, page, section, content_key, content_value, content_type, is_active, updated_at, updated_by')
       .eq('page', 'global')
       .maybeSingle()
 
@@ -85,6 +86,7 @@ export async function GET() {
   }
 }
 
+// PATCH /api/admin/settings — validate and upsert site settings, then clear the cache; admin only.
 export async function PATCH(request: NextRequest) {
   try {
     const body = (await request.json()) as Record<string, unknown>

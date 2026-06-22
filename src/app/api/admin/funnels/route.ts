@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+// GET /api/admin/funnels — list funnels with summary metrics and product info; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -32,6 +33,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// POST /api/admin/funnels — create a funnel for a product, generating a unique slug; admin only.
 export async function POST(request: Request) {
   try {
     const body = await request.json()

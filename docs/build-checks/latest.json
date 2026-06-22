@@ -1,0 +1,4064 @@
+{
+  "timestamp": "2026-06-22T18:20:14.631Z",
+  "profile": "green",
+  "status": "failed",
+  "summary": {
+    "passed": 6,
+    "requiredTotal": 11,
+    "findings": 564
+  },
+  "gates": [
+    {
+      "name": "typecheck",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "lint",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "test",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "build",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "secrets",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "no hardcoded secrets"
+    },
+    {
+      "name": "security",
+      "required": true,
+      "status": "fail",
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/commissions/[id]/page.tsx",
+          "line": 85,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/commissions/page.tsx",
+          "line": 71,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/content/page.tsx",
+          "line": 23,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/courses/[id]/page.tsx",
+          "line": 36,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/customers/page.tsx",
+          "line": 34,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(admin)/admin/pages/[id]/page.tsx",
+          "line": 18,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(marketing)/account/orders/page.tsx",
+          "line": 15,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/(marketing)/blog/[slug]/page.tsx",
+          "line": 34,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/layout.tsx",
+          "line": 34,
+          "message": ": any type annotation",
+          "rule": "any-type"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/account/addresses/[id]/route.ts",
+          "line": 74,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/account/addresses/route.ts",
+          "line": 26,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/account/addresses/route.ts",
+          "line": 72,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/blog/route.ts",
+          "line": 15,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/route.ts",
+          "line": 16,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/route.ts",
+          "line": 130,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/[id]/route.ts",
+          "line": 22,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/route.ts",
+          "line": 46,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/route.ts",
+          "line": 47,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/schedule/route.ts",
+          "line": 26,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/send/route.ts",
+          "line": 17,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/admin/email-campaigns/[id]/send/route.ts",
+          "line": 39,
+          "message": ": any type annotation",
+          "rule": "any-type"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/send/route.ts",
+          "line": 69,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/route.ts",
+          "line": 45,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-templates/route.ts",
+          "line": 33,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-templates/route.ts",
+          "line": 61,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/faqs/route.ts",
+          "line": 9,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/[id]/comments/route.ts",
+          "line": 16,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/route.ts",
+          "line": 125,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/[id]/route.ts",
+          "line": 58,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/route.ts",
+          "line": 101,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/[id]/comments/route.ts",
+          "line": 16,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/by-id/[id]/route.ts",
+          "line": 16,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/route.ts",
+          "line": 18,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/route.ts",
+          "line": 135,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/promo-codes/route.ts",
+          "line": 11,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/settings/route.ts",
+          "line": 70,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-file-tags/route.ts",
+          "line": 24,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-file-tags/route.ts",
+          "line": 50,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/process-ai/route.ts",
+          "line": 225,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/route.ts",
+          "line": 33,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/subscribers/route.ts",
+          "line": 9,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/[id]/comments/route.ts",
+          "line": 16,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/route.ts",
+          "line": 106,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/abandoned-cart/route.ts",
+          "line": 41,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/abandoned-cart/route.ts",
+          "line": 49,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/abandoned-cart/route.ts",
+          "line": 58,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/email-automations/route.ts",
+          "line": 30,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/cron/email-campaigns-send/route.ts",
+          "line": 180,
+          "message": ": any type annotation",
+          "rule": "any-type"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/meta-event-sync/route.ts",
+          "line": 13,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 499,
+          "message": ": any type annotation",
+          "rule": "any-type"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 767,
+          "message": ": any type annotation",
+          "rule": "any-type"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/discounts/validate.ts",
+          "line": 69,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 58,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 62,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 66,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 169,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 174,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 7,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 38,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 63,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 74,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 133,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 147,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 157,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 213,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 224,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 235,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 263,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 275,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        },
+        {
+          "severity": "high",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 285,
+          "message": "select('*') — select explicit columns",
+          "rule": "select-star"
+        }
+      ],
+      "detail": "65 blocking, 5 advisory"
+    },
+    {
+      "name": "supabase-boundaries",
+      "required": true,
+      "status": "fail",
+      "findings": [
+        {
+          "severity": "critical",
+          "file": "src/app/(marketing)/order/[session]/OrderConfirmationPoll.tsx",
+          "line": null,
+          "message": "Service-role client / key referenced in client-side code",
+          "rule": "service-role-client"
+        }
+      ],
+      "detail": "1 boundary violation(s)"
+    },
+    {
+      "name": "authz",
+      "required": true,
+      "status": "fail",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/app/api/cart/shipping-quote/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/cart/track/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/checkout/intent/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/checkout/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/classes/[slug]/checkout/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/classes/[slug]/signup/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/funnels/[id]/track/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/newsletter/subscribe/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/pixel/event/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/webhooks/lumaprints/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/api/webhooks/printful/route.ts",
+          "line": null,
+          "message": "Route handler mutates with no authorization guard (has rate-limit/validation — confirm intentional public write or add a guard)",
+          "rule": "authz-public-write-review"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/webhooks/shipstation/route.ts",
+          "line": null,
+          "message": "Route handler performs a DB mutation with no authorization guard (independently callable boundary)",
+          "rule": "authz-missing-mutation"
+        }
+      ],
+      "detail": "1 unguarded mutation boundary(ies)"
+    },
+    {
+      "name": "rls",
+      "required": true,
+      "status": "fail",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260515_margin_protected_pricing.sql",
+          "line": 27,
+          "message": "read policy \"site_settings_read\" on \"site_settings\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260519_cv_entries.sql",
+          "line": 28,
+          "message": "read policy \"public can read cv_settings\" on \"cv_settings\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260520_lumaprints_mediums.sql",
+          "line": 27,
+          "message": "read policy \"public read lumaprints_mediums\" on \"lumaprints_mediums\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "critical",
+          "file": "supabase/migrations/20260521_carts_extend.sql",
+          "line": 20,
+          "message": "WRITE policy \"anon insert carts\" on \"carts\" uses permissive (true)",
+          "rule": "rls-true-write"
+        },
+        {
+          "severity": "critical",
+          "file": "supabase/migrations/20260521_unsubscribes.sql",
+          "line": 27,
+          "message": "WRITE policy \"anon insert unsubscribe_events\" on \"unsubscribe_events\" uses permissive (true)",
+          "rule": "rls-true-write"
+        },
+        {
+          "severity": "high",
+          "file": "supabase/migrations/2026060810_social_calendar.sql",
+          "line": 80,
+          "message": "WRITE policy \"admin manage social_posts\" on tenant-owned \"social_posts\" has an unscoped predicate (no tenant/auth check)",
+          "rule": "rls-unscoped-write"
+        },
+        {
+          "severity": "critical",
+          "file": "supabase/migrations/2026061501_margin_cascade_categories.sql",
+          "line": 13,
+          "message": "Table \"product_categories\" created without ENABLE ROW LEVEL SECURITY",
+          "rule": "rls-missing"
+        }
+      ],
+      "detail": "23 tables, 24 with RLS; 4 blocking"
+    },
+    {
+      "name": "migrations",
+      "required": true,
+      "status": "pass",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "database.types.ts",
+          "line": null,
+          "message": "No generated Supabase types found — regenerate after migrations",
+          "rule": "types-missing"
+        }
+      ],
+      "detail": "46 migration file(s)"
+    },
+    {
+      "name": "module-isolation",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/modules directory"
+    },
+    {
+      "name": "contract",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/modules (score via audit)"
+    },
+    {
+      "name": "anchors",
+      "required": false,
+      "status": "pass",
+      "findings": [],
+      "detail": "0 source anchor(s)"
+    },
+    {
+      "name": "docs",
+      "required": true,
+      "status": "fail",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/ProjectHubClient.tsx",
+          "line": 537,
+          "message": "exported function/component \"ProjectHubClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/about/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"AdminAboutPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/[id]/page.tsx",
+          "line": 20,
+          "message": "exported function/component \"EditBlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/new/page.tsx",
+          "line": 20,
+          "message": "exported function/component \"NewBlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"AdminBlogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/[id]/bookings/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"BookingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/[id]/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"EditClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/new/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"NewClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/page.tsx",
+          "line": 32,
+          "message": "exported function/component \"AdminClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/commissions/[id]/page.tsx",
+          "line": 77,
+          "message": "exported function/component \"AdminCommissionDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/commissions/page.tsx",
+          "line": 59,
+          "message": "exported function/component \"AdminCommissionsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/content/ContentEditor.tsx",
+          "line": 15,
+          "message": "exported function/component \"ContentEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/content/page.tsx",
+          "line": 19,
+          "message": "exported function/component \"AdminContentPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/[id]/page.tsx",
+          "line": 30,
+          "message": "exported function/component \"EditCoursePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/new/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"NewCoursePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/page.tsx",
+          "line": 34,
+          "message": "exported function/component \"AdminCoursesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/customers/page.tsx",
+          "line": 23,
+          "message": "exported function/component \"AdminCustomersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/cv/CvEditor.tsx",
+          "line": 20,
+          "message": "exported function/component \"CvEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/cv/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"AdminCvPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/campaigns/[id]/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"CampaignEditPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/campaigns/new/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"NewCampaignPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/lists/page.tsx",
+          "line": 14,
+          "message": "exported function/component \"ListsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/page.tsx",
+          "line": 43,
+          "message": "exported function/component \"EmailManagementPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/faq-testimonials/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"FaqTestimonialsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/files/FilesClient.tsx",
+          "line": 30,
+          "message": "exported function/component \"FilesClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/files/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"Page\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/[id]/page.tsx",
+          "line": 32,
+          "message": "exported function/component \"EditFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/new/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"NewFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/page.tsx",
+          "line": 29,
+          "message": "exported function/component \"AdminFunnelsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/MasterArtworksManager.tsx",
+          "line": 59,
+          "message": "exported function/component \"MasterArtworksManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/MediaManager.tsx",
+          "line": 32,
+          "message": "exported function/component \"MediaManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/ProductPhotosManager.tsx",
+          "line": 19,
+          "message": "exported function/component \"ProductPhotosManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"AdminMediaPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/orders/[id]/page.tsx",
+          "line": 53,
+          "message": "exported function/component \"AdminOrderDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/orders/page.tsx",
+          "line": 37,
+          "message": "exported function/component \"AdminOrdersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"AdminDashboard\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/[id]/EditPageForm.tsx",
+          "line": 15,
+          "message": "exported function/component \"EditPageForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/[id]/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"EditPagePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/new/PageForm.tsx",
+          "line": 13,
+          "message": "exported function/component \"PageForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/new/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"NewPagePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"AdminPagesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/CategoryManager.tsx",
+          "line": 14,
+          "message": "exported function/component \"CategoryManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/ProductRowActions.tsx",
+          "line": 6,
+          "message": "exported function/component \"ProductRowActions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/[id]/edit/page.tsx",
+          "line": 143,
+          "message": "exported function/component \"EditProductPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/new/page.tsx",
+          "line": 28,
+          "message": "exported function/component \"NewProductPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/page.tsx",
+          "line": 15,
+          "message": "exported function/component \"AdminProductsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/settings/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"SettingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/accounts/page.tsx",
+          "line": 21,
+          "message": "exported function/component \"SocialAccountsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/page.tsx",
+          "line": 16,
+          "message": "exported function/component \"AdminSocialPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/posts/[id]/page.tsx",
+          "line": 37,
+          "message": "exported function/component \"EditSocialPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/posts/new/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"NewSocialPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/subscribers/SubscribersClient.tsx",
+          "line": 14,
+          "message": "exported function/component \"SubscribersClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/subscribers/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"SubscribersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/testimonials/TestimonialsClient.tsx",
+          "line": 65,
+          "message": "exported function/component \"TestimonialsClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/testimonials/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"Page\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/workspace/page.tsx",
+          "line": 55,
+          "message": "exported function/component \"WorkspacePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/layout.tsx",
+          "line": 45,
+          "message": "exported function/component \"AdminLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/about/page.tsx",
+          "line": 67,
+          "message": "exported function/component \"AboutPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/addresses/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"AddressesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/classes/page.tsx",
+          "line": 27,
+          "message": "exported function/component \"MyClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/orders/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"OrdersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"AccountPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/settings/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"AccountSettingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/wishlist/page.tsx",
+          "line": 39,
+          "message": "exported function/component \"WishlistPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/art/[slug]/page.tsx",
+          "line": 35,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/art/[slug]/page.tsx",
+          "line": 57,
+          "message": "exported function/component \"ArtFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/[slug]/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/[slug]/page.tsx",
+          "line": 27,
+          "message": "exported function/component \"BlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"BlogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/cart/page.tsx",
+          "line": 27,
+          "message": "exported function/component \"CartPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/checkout/page.tsx",
+          "line": 98,
+          "message": "exported function/component \"CheckoutPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/page.tsx",
+          "line": 51,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/page.tsx",
+          "line": 76,
+          "message": "exported function/component \"ClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/thank-you/page.tsx",
+          "line": 6,
+          "message": "exported function/component \"ThankYouPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/page.tsx",
+          "line": 81,
+          "message": "exported function/component \"ClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/commissions/page.tsx",
+          "line": 30,
+          "message": "exported function/component \"CommissionsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/commissions/request/page.tsx",
+          "line": 44,
+          "message": "exported function/component \"CommissionRequestPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/contact/page.tsx",
+          "line": 18,
+          "message": "exported function/component \"ContactPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/lesson/[lessonSlug]/page.tsx",
+          "line": 116,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/lesson/[lessonSlug]/page.tsx",
+          "line": 129,
+          "message": "exported function/component \"LessonPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/page.tsx",
+          "line": 139,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/page.tsx",
+          "line": 151,
+          "message": "exported function/component \"CourseDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/page.tsx",
+          "line": 20,
+          "message": "exported function/component \"CoursesCatalogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/cv/page.tsx",
+          "line": 50,
+          "message": "exported function/component \"CvPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/forgot-password/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"ForgotPasswordPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/layout.tsx",
+          "line": 11,
+          "message": "exported function/component \"MarketingLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/login/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"LoginPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/order/[session]/page.tsx",
+          "line": 110,
+          "message": "exported function/component \"OrderConfirmationPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/order/intent/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"OrderIntentRedirect\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/page.tsx",
+          "line": 11,
+          "message": "exported function/component \"HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/privacy/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"PrivacyPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shipping-policy/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"ShippingPolicyPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/[category]/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/[category]/page.tsx",
+          "line": 21,
+          "message": "exported function/component \"CategoryPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
+          "line": 6,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
+          "line": 19,
+          "message": "exported function/component \"ProductPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/signup/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"SignupPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/tos/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"TermsOfServicePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/unsubscribe/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"UnsubscribePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v3/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V3HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v4/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V4HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v5/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V5HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v6/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V6HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/about/callouts/[id]/route.ts",
+          "line": 14,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/about/callouts/[id]/route.ts",
+          "line": 30,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/about/callouts/route.ts",
+          "line": 14,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/about/credentials/route.ts",
+          "line": 34,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/about/sections/[key]/route.ts",
+          "line": 17,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/blog/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/blog/route.ts",
+          "line": 41,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/blog/route.ts",
+          "line": 106,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/blog/route.ts",
+          "line": 155,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/[id]/order/route.ts",
+          "line": 16,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/[id]/order/route.ts",
+          "line": 72,
+          "message": "API route handler \"PUT\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/[id]/route.ts",
+          "line": 13,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/[id]/route.ts",
+          "line": 28,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/route.ts",
+          "line": 9,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/categories/route.ts",
+          "line": 30,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/class-bookings/[id]/route.ts",
+          "line": 31,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/class-sessions/[id]/route.ts",
+          "line": 20,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/class-sessions/[id]/route.ts",
+          "line": 36,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/class-sessions/route.ts",
+          "line": 33,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/[moduleId]/lessons/[lessonId]/route.ts",
+          "line": 4,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/[moduleId]/lessons/[lessonId]/route.ts",
+          "line": 59,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/[moduleId]/lessons/route.ts",
+          "line": 11,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/[moduleId]/route.ts",
+          "line": 4,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/[moduleId]/route.ts",
+          "line": 46,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/modules/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/route.ts",
+          "line": 67,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/[id]/route.ts",
+          "line": 145,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/route.ts",
+          "line": 11,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/classes/route.ts",
+          "line": 52,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/[id]/members/route.ts",
+          "line": 5,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/[id]/route.ts",
+          "line": 11,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/[id]/route.ts",
+          "line": 28,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/route.ts",
+          "line": 11,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/contact-lists/route.ts",
+          "line": 36,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/content/route.ts",
+          "line": 2,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/cv-entries/[id]/route.ts",
+          "line": 22,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/cv-entries/[id]/route.ts",
+          "line": 37,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/cv-entries/route.ts",
+          "line": 22,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/cv-settings/route.ts",
+          "line": 11,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/discount-codes/generate/route.ts",
+          "line": 21,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/route.ts",
+          "line": 19,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/route.ts",
+          "line": 35,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/route.ts",
+          "line": 53,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/schedule/route.ts",
+          "line": 10,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/send/route.ts",
+          "line": 10,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/[id]/test/route.ts",
+          "line": 16,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/route.ts",
+          "line": 18,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-campaigns/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-templates/route.ts",
+          "line": 27,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-templates/route.ts",
+          "line": 40,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/email-templates/route.ts",
+          "line": 67,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/faqs/route.ts",
+          "line": 2,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/faqs/route.ts",
+          "line": 25,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/faqs/route.ts",
+          "line": 65,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/[id]/comments/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/[id]/comments/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/route.ts",
+          "line": 51,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/route.ts",
+          "line": 103,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/feedback/route.ts",
+          "line": 215,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/funnels/[id]/route.ts",
+          "line": 2,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/funnels/[id]/route.ts",
+          "line": 40,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/funnels/[id]/route.ts",
+          "line": 111,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/funnels/route.ts",
+          "line": 2,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/funnels/route.ts",
+          "line": 35,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/integrations/status/route.ts",
+          "line": 32,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/integrations/test/route.ts",
+          "line": 34,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/lumaprints/catalog/route.ts",
+          "line": 15,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/lumaprints/sync/route.ts",
+          "line": 135,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/[id]/route.ts",
+          "line": 5,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/[id]/route.ts",
+          "line": 29,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/[id]/route.ts",
+          "line": 65,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/route.ts",
+          "line": 6,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/master-artworks/route.ts",
+          "line": 64,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/media/[id]/route.ts",
+          "line": 13,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/media/[id]/route.ts",
+          "line": 27,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/media/route.ts",
+          "line": 8,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/media/upload/route.ts",
+          "line": 19,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/[id]/comments/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/[id]/comments/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/route.ts",
+          "line": 33,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/route.ts",
+          "line": 74,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/notes/route.ts",
+          "line": 116,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/orders/[id]/route.ts",
+          "line": 17,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/[slug]/editor/[section]/revisions/[id]/revert/route.ts",
+          "line": 11,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/[slug]/editor/[section]/revisions/route.ts",
+          "line": 8,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/[slug]/editor/[section]/route.ts",
+          "line": 10,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/[slug]/editor/route.ts",
+          "line": 11,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/by-id/[id]/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/by-id/[id]/route.ts",
+          "line": 36,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/by-id/[id]/route.ts",
+          "line": 92,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/route.ts",
+          "line": 11,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pages/route.ts",
+          "line": 34,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pricing/refresh/route.ts",
+          "line": 27,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pricing/settings/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/pricing/settings/route.ts",
+          "line": 18,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/images/from-library/route.ts",
+          "line": 12,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/images/route.ts",
+          "line": 4,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/images/route.ts",
+          "line": 98,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/images/route.ts",
+          "line": 145,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/margin/route.ts",
+          "line": 12,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/route.ts",
+          "line": 85,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/route.ts",
+          "line": 108,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/[id]/route.ts",
+          "line": 227,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/products/route.ts",
+          "line": 32,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/promo-codes/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/promo-codes/route.ts",
+          "line": 27,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/promo-codes/route.ts",
+          "line": 79,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/promo-codes/route.ts",
+          "line": 111,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/revalidate/route.ts",
+          "line": 16,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/settings/route.ts",
+          "line": 57,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/settings/route.ts",
+          "line": 88,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/settings/stripe-mode/route.ts",
+          "line": 26,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/settings/stripe-mode/route.ts",
+          "line": 39,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-file-tags/route.ts",
+          "line": 13,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-file-tags/route.ts",
+          "line": 32,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/process-ai/route.ts",
+          "line": 210,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/route.ts",
+          "line": 17,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/route.ts",
+          "line": 45,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/route.ts",
+          "line": 105,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/route.ts",
+          "line": 139,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/shared-files/signed-url/route.ts",
+          "line": 6,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/subscribers/route.ts",
+          "line": 2,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/subscribers/route.ts",
+          "line": 25,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/[id]/media/route.ts",
+          "line": 14,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/[id]/media/route.ts",
+          "line": 88,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/[id]/media/route.ts",
+          "line": 129,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/route.ts",
+          "line": 28,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/route.ts",
+          "line": 49,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/route.ts",
+          "line": 90,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/testimonials/route.ts",
+          "line": 121,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/variants/[id]/route.ts",
+          "line": 14,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/variants/[id]/route.ts",
+          "line": 50,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/variants/bulk-create/route.ts",
+          "line": 28,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/variants/refresh/route.ts",
+          "line": 36,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/[id]/comments/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/[id]/comments/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/route.ts",
+          "line": 34,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/route.ts",
+          "line": 85,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/admin/work-requests/route.ts",
+          "line": 166,
+          "message": "API route handler \"DELETE\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cart/shipping-quote/route.ts",
+          "line": 32,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cart/track/route.ts",
+          "line": 26,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/checkout/intent/route.ts",
+          "line": 23,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/checkout/route.ts",
+          "line": 13,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/classes/[slug]/checkout/route.ts",
+          "line": 17,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/classes/[slug]/signup/route.ts",
+          "line": 28,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/commissions/route.ts",
+          "line": 22,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/contact/route.ts",
+          "line": 7,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/courses/[id]/enroll/route.ts",
+          "line": 4,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/abandoned-cart/route.ts",
+          "line": 26,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/email-automations/route.ts",
+          "line": 18,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/email-campaigns-send/route.ts",
+          "line": 27,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/expire-bookings/route.ts",
+          "line": 11,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/meta-event-sync/route.ts",
+          "line": 5,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/publish-scheduled/route.ts",
+          "line": 8,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/cron/social-publish/route.ts",
+          "line": 121,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/discounts/validate/route.ts",
+          "line": 10,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/fulfillment/retry/[itemId]/route.ts",
+          "line": 5,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/fulfillment/status/[orderId]/route.ts",
+          "line": 4,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/fulfillment/submit/route.ts",
+          "line": 5,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/gate/route.ts",
+          "line": 15,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/lessons/[id]/comments/route.ts",
+          "line": 3,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/lessons/[id]/comments/route.ts",
+          "line": 31,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/lessons/[id]/progress/route.ts",
+          "line": 3,
+          "message": "API route handler \"PATCH\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/newsletter/subscribe/route.ts",
+          "line": 12,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/pixel/event/route.ts",
+          "line": 21,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/unsubscribe/route.ts",
+          "line": 13,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/unsubscribe/route.ts",
+          "line": 17,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/webhooks/resend/route.ts",
+          "line": 25,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 45,
+          "message": "API route handler \"POST\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/auth/callback/route.ts",
+          "line": 5,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "high",
+          "file": "src/app/cv.pdf/route.ts",
+          "line": 41,
+          "message": "API route handler \"GET\" has no intent doc comment",
+          "rule": "doc-api-route"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/gate/page.tsx",
+          "line": 59,
+          "message": "exported function/component \"GatePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/layout.tsx",
+          "line": 68,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/layout.tsx",
+          "line": 122,
+          "message": "exported function/component \"RootLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/not-found.tsx",
+          "line": 5,
+          "message": "exported function/component \"NotFound\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/robots.ts",
+          "line": 5,
+          "message": "exported function/component \"robots\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/sitemap.ts",
+          "line": 22,
+          "message": "exported function/component \"sitemap\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/welcome/WelcomeClient.tsx",
+          "line": 12,
+          "message": "exported function/component \"WelcomeClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/welcome/layout.tsx",
+          "line": 1,
+          "message": "exported function/component \"WelcomeLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/welcome/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"WelcomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/AddressBook.tsx",
+          "line": 65,
+          "message": "exported function/component \"AddressBook\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/ClassesTabs.tsx",
+          "line": 91,
+          "message": "exported function/component \"ClassesTabs\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/SettingsForms.tsx",
+          "line": 39,
+          "message": "exported function/component \"SettingsForms\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/WishlistGrid.tsx",
+          "line": 24,
+          "message": "exported function/component \"WishlistGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/AdminSidebar.tsx",
+          "line": 213,
+          "message": "exported function/component \"AdminSidebar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/BookingsTable.tsx",
+          "line": 26,
+          "message": "exported function/component \"BookingsTable\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/ClassSessionForm.tsx",
+          "line": 38,
+          "message": "exported function/component \"ClassSessionForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/CommissionStatusControl.tsx",
+          "line": 13,
+          "message": "exported function/component \"CommissionStatusControl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MasterArtworkPicker.tsx",
+          "line": 30,
+          "message": "exported function/component \"MasterArtworkPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MasterArtworkUpload.tsx",
+          "line": 53,
+          "message": "exported function/component \"MasterArtworkUpload\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MediaPicker.tsx",
+          "line": 31,
+          "message": "exported function/component \"MediaPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/OrderFulfillmentPanel.tsx",
+          "line": 111,
+          "message": "exported function/component \"OrderFulfillmentPanel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/OrderStatusControl.tsx",
+          "line": 13,
+          "message": "exported function/component \"OrderStatusControl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/RichTextEditor.tsx",
+          "line": 41,
+          "message": "exported function/component \"RichTextEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/SharedFilesModal.tsx",
+          "line": 48,
+          "message": "exported function/component \"SharedFilesModal\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/VariantsTab.tsx",
+          "line": 54,
+          "message": "exported function/component \"VariantsTab\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/classes/CourseForm.tsx",
+          "line": 30,
+          "message": "exported function/component \"CourseForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/classes/ModuleLessonManager.tsx",
+          "line": 33,
+          "message": "exported function/component \"ModuleLessonManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/email/CampaignComposer.tsx",
+          "line": 56,
+          "message": "exported function/component \"CampaignComposer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/BooleanField.tsx",
+          "line": 12,
+          "message": "exported function/component \"BooleanField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/EmailField.tsx",
+          "line": 12,
+          "message": "exported function/component \"EmailField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/FieldRenderer.tsx",
+          "line": 20,
+          "message": "exported function/component \"FieldRenderer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/ImageField.tsx",
+          "line": 16,
+          "message": "exported function/component \"ImageField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PageEditorClient.tsx",
+          "line": 20,
+          "message": "exported function/component \"PageEditorClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PagePicker.tsx",
+          "line": 12,
+          "message": "exported function/component \"PagePicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PlainTextField.tsx",
+          "line": 12,
+          "message": "exported function/component \"PlainTextField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/ProductPickerField.tsx",
+          "line": 56,
+          "message": "exported function/component \"ProductPickerField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/RevisionMenu.tsx",
+          "line": 19,
+          "message": "exported function/component \"RevisionMenu\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/RichTextField.tsx",
+          "line": 13,
+          "message": "exported function/component \"RichTextField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/SelectField.tsx",
+          "line": 12,
+          "message": "exported function/component \"SelectField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/SortableList.tsx",
+          "line": 45,
+          "message": "exported function/component \"SortableList\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/BusinessInfoSection.tsx",
+          "line": 13,
+          "message": "exported function/component \"BusinessInfoSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/EmailConfigSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"EmailConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/ShippingConfigSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"ShippingConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/SiteConfigSection.tsx",
+          "line": 42,
+          "message": "exported function/component \"SiteConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/SocialLinksSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"SocialLinksSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/CalendarCell.tsx",
+          "line": 76,
+          "message": "exported function/component \"CalendarCell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 36,
+          "message": "exported function/component \"channelLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 40,
+          "message": "exported function/component \"channelGlyph\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 54,
+          "message": "exported function/component \"ChannelPreview\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/PostComposer.tsx",
+          "line": 59,
+          "message": "exported function/component \"PostComposer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/SocialCalendar.tsx",
+          "line": 35,
+          "message": "exported function/component \"SocialCalendar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/SocialListView.tsx",
+          "line": 48,
+          "message": "exported function/component \"SocialListView\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/StatusBadge.tsx",
+          "line": 28,
+          "message": "exported function/component \"StatusBadge\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/AboutSplitBlock.tsx",
+          "line": 23,
+          "message": "exported function/component \"AboutSplitBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/BlockRenderer.tsx",
+          "line": 31,
+          "message": "exported function/component \"BlockRenderer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CTABannerBlock.tsx",
+          "line": 24,
+          "message": "exported function/component \"CTABannerBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CategoriesShowcaseBlock.tsx",
+          "line": 62,
+          "message": "exported function/component \"CategoriesShowcaseBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/ClassPreviewBlock.tsx",
+          "line": 22,
+          "message": "exported function/component \"ClassPreviewBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CommissionFeatureBlock.tsx",
+          "line": 17,
+          "message": "exported function/component \"CommissionFeatureBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/FeaturedGridBlock.tsx",
+          "line": 27,
+          "message": "exported function/component \"FeaturedGridBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/HeroBlock.tsx",
+          "line": 17,
+          "message": "exported function/component \"HeroBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/NewsletterBlock.tsx",
+          "line": 14,
+          "message": "exported function/component \"NewsletterBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/TestimonialsBlock.tsx",
+          "line": 31,
+          "message": "exported function/component \"TestimonialsBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseCard.tsx",
+          "line": 33,
+          "message": "exported function/component \"CourseCard\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseCurriculum.tsx",
+          "line": 59,
+          "message": "exported function/component \"CourseCurriculum\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseFilters.tsx",
+          "line": 30,
+          "message": "exported function/component \"CourseFilters\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/EnrollButton.tsx",
+          "line": 7,
+          "message": "exported function/component \"EnrollButton\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/LessonComments.tsx",
+          "line": 56,
+          "message": "exported function/component \"LessonComments\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/LessonPlayer.tsx",
+          "line": 65,
+          "message": "exported function/component \"LessonPlayer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/BoldShowcaseTemplate.tsx",
+          "line": 146,
+          "message": "exported function/component \"BoldShowcaseTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/FunnelForm.tsx",
+          "line": 118,
+          "message": "exported function/component \"FunnelForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/FunnelViewTracker.tsx",
+          "line": 13,
+          "message": "exported function/component \"FunnelViewTracker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/GallerySpotlightTemplate.tsx",
+          "line": 31,
+          "message": "exported function/component \"GallerySpotlightTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/IntimateJournalTemplate.tsx",
+          "line": 47,
+          "message": "exported function/component \"IntimateJournalTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/ClassSignupForm.tsx",
+          "line": 21,
+          "message": "exported function/component \"ClassSignupForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/ContactFormClient.tsx",
+          "line": 10,
+          "message": "exported function/component \"ContactFormClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/GalleryGrid.tsx",
+          "line": 21,
+          "message": "exported function/component \"GalleryGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/NewsletterPopup.tsx",
+          "line": 26,
+          "message": "exported function/component \"NewsletterPopup\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/PageBodyShell.tsx",
+          "line": 16,
+          "message": "exported function/component \"PageBodyShell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/PixelScript.tsx",
+          "line": 9,
+          "message": "exported function/component \"PixelScript\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/CartDrawer.tsx",
+          "line": 8,
+          "message": "exported function/component \"CartDrawer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Footer.tsx",
+          "line": 39,
+          "message": "exported function/component \"Footer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/FooterNewsletter.tsx",
+          "line": 6,
+          "message": "exported function/component \"FooterNewsletter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Header.tsx",
+          "line": 19,
+          "message": "exported function/component \"Header\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Providers.tsx",
+          "line": 6,
+          "message": "exported function/component \"Providers\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/MasonryGrid.tsx",
+          "line": 45,
+          "message": "exported function/component \"MasonryGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/rate-limit.ts",
+          "line": 25,
+          "message": "exported function/component \"rateLimit\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/rate-limit.ts",
+          "line": 54,
+          "message": "exported function/component \"rateLimitResponse\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/respond.ts",
+          "line": 13,
+          "message": "exported function/component \"apiError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/respond.ts",
+          "line": 24,
+          "message": "exported function/component \"apiOk\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/cart/context.tsx",
+          "line": 104,
+          "message": "exported function/component \"CartProvider\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/cart/context.tsx",
+          "line": 218,
+          "message": "exported function/component \"useCart\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/crm/contacts.ts",
+          "line": 115,
+          "message": "exported function/component \"markUnsubscribed\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/cv.ts",
+          "line": 21,
+          "message": "exported function/component \"sectionLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/discounts/generate.ts",
+          "line": 43,
+          "message": "exported function/component \"generateDiscountCode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/discounts/validate.ts",
+          "line": 37,
+          "message": "exported function/component \"validateDiscountCode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/placeholders.ts",
+          "line": 21,
+          "message": "exported function/component \"substitutePlaceholders\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/render.ts",
+          "line": 28,
+          "message": "exported function/component \"renderAndSend\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/render.ts",
+          "line": 79,
+          "message": "exported function/component \"renderHtml\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/send.ts",
+          "line": 14,
+          "message": "exported function/component \"sendEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/send.ts",
+          "line": 63,
+          "message": "exported function/component \"sendOrderConfirmation\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 15,
+          "message": "exported function/component \"brandedShell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 50,
+          "message": "exported function/component \"discountCallout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 58,
+          "message": "exported function/component \"ctaButton\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 47,
+          "message": "exported function/component \"signUnsubscribeToken\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 56,
+          "message": "exported function/component \"verifyUnsubscribeToken\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 96,
+          "message": "exported function/component \"buildUnsubscribeUrl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 38,
+          "message": "exported function/component \"getCategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 42,
+          "message": "exported function/component \"getSubcategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 46,
+          "message": "exported function/component \"getSubcategoryOptions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 103,
+          "message": "exported function/component \"submitOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 130,
+          "message": "exported function/component \"getOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 134,
+          "message": "exported function/component \"getShipments\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 168,
+          "message": "exported function/component \"getShippingCost\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 22,
+          "message": "exported function/component \"getCatalogProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 26,
+          "message": "exported function/component \"getSyncProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 30,
+          "message": "exported function/component \"createOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 52,
+          "message": "exported function/component \"getOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 62,
+          "message": "exported function/component \"estimateShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 20,
+          "message": "exported function/component \"getRates\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 35,
+          "message": "exported function/component \"createLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 66,
+          "message": "exported function/component \"getTracking\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 70,
+          "message": "exported function/component \"validateAddress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/markdown.ts",
+          "line": 31,
+          "message": "exported function/component \"renderMarkdown\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/capi.ts",
+          "line": 29,
+          "message": "exported function/component \"sendServerEvent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/capi.ts",
+          "line": 48,
+          "message": "exported function/component \"hashSHA256\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/pixel.ts",
+          "line": 8,
+          "message": "exported function/component \"trackEvent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/pixel.ts",
+          "line": 14,
+          "message": "exported function/component \"trackPageView\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/track.ts",
+          "line": 13,
+          "message": "exported function/component \"track\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 11,
+          "message": "exported function/component \"recordRevision\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 39,
+          "message": "exported function/component \"listRevisions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 70,
+          "message": "exported function/component \"getRevision\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/schemas.ts",
+          "line": 430,
+          "message": "exported function/component \"getSchema\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 467,
+          "message": "exported function/component \"getServerAdapter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 471,
+          "message": "exported function/component \"registerServerAdapter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 475,
+          "message": "exported function/component \"listRegisteredAdapters\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/canvas-prints.ts",
+          "line": 39,
+          "message": "exported function/component \"findSize\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/canvas-prints.ts",
+          "line": 43,
+          "message": "exported function/component \"getWholesale\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/canvas-prints.ts",
+          "line": 49,
+          "message": "exported function/component \"getDefaultWorstCaseShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/compute.ts",
+          "line": 7,
+          "message": "exported function/component \"computeCustomerPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/compute.ts",
+          "line": 16,
+          "message": "exported function/component \"resolveMargin\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/lumaprints-cache.ts",
+          "line": 113,
+          "message": "exported function/component \"getCachedPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/lumaprints-cache.ts",
+          "line": 146,
+          "message": "exported function/component \"refreshCachedPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/medium-config.ts",
+          "line": 31,
+          "message": "exported function/component \"getMediumConfig\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/medium-config.ts",
+          "line": 52,
+          "message": "exported function/component \"getAllMediumConfigs\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 161,
+          "message": "exported function/component \"mediumLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 165,
+          "message": "exported function/component \"mediumConfig\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 169,
+          "message": "exported function/component \"sizeDimensions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 41,
+          "message": "exported function/component \"quoteShippingForZip\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 68,
+          "message": "exported function/component \"quoteWorstCaseCONUS\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 86,
+          "message": "exported function/component \"quoteLiveShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/wholesale-lookup.ts",
+          "line": 27,
+          "message": "exported function/component \"lookupVariantWholesale\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 234,
+          "message": "exported function/component \"getEmailFromAddress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 241,
+          "message": "exported function/component \"getBusinessEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 248,
+          "message": "exported function/component \"getOrderNotificationEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 255,
+          "message": "exported function/component \"isMaintenanceMode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 262,
+          "message": "exported function/component \"getAnnouncementBar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 12,
+          "message": "exported function/component \"clearStripeModeCache\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 47,
+          "message": "exported function/component \"webhookSecretFor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 53,
+          "message": "exported function/component \"getStripeMode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 57,
+          "message": "exported function/component \"getStripe\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 73,
+          "message": "exported function/component \"resolveStripe\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 79,
+          "message": "exported function/component \"isStripeKeyConfigured\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 83,
+          "message": "exported function/component \"isWebhookSecretConfigured\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 3,
+          "message": "exported function/component \"signUp\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 16,
+          "message": "exported function/component \"signIn\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 22,
+          "message": "exported function/component \"signInWithGoogle\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 34,
+          "message": "exported function/component \"signInWithMagicLink\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 45,
+          "message": "exported function/component \"signOut\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 51,
+          "message": "exported function/component \"resetPassword\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/client.ts",
+          "line": 5,
+          "message": "exported function/component \"createClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/middleware.ts",
+          "line": 4,
+          "message": "exported function/component \"updateSession\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 3,
+          "message": "exported function/component \"getPageContent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 29,
+          "message": "exported function/component \"getSectionContent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 34,
+          "message": "exported function/component \"getPageBlocks\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 46,
+          "message": "exported function/component \"getFeaturedProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 59,
+          "message": "exported function/component \"getFeaturedTestimonials\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 70,
+          "message": "exported function/component \"getPublishedCourses\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 84,
+          "message": "exported function/component \"getProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 118,
+          "message": "exported function/component \"getProductBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 129,
+          "message": "exported function/component \"getPublishedBlogPosts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 143,
+          "message": "exported function/component \"getCategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 153,
+          "message": "exported function/component \"getCategoryBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 164,
+          "message": "exported function/component \"getProductsByCategory\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 209,
+          "message": "exported function/component \"getCourseBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 220,
+          "message": "exported function/component \"getCourseModules\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 231,
+          "message": "exported function/component \"getCourseWithModulesAndLessons\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 259,
+          "message": "exported function/component \"getEnrollment\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 271,
+          "message": "exported function/component \"getLessonProgress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 281,
+          "message": "exported function/component \"getBlogPostBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/server.ts",
+          "line": 4,
+          "message": "exported function/component \"createClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/server.ts",
+          "line": 30,
+          "message": "exported function/component \"createServiceClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/proxy.ts",
+          "line": 48,
+          "message": "exported function/component \"proxy\" has no intent doc comment",
+          "rule": "doc-export"
+        }
+      ],
+      "detail": "473 undocumented (177 blocking)"
+    }
+  ]
+}

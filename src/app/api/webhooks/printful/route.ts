@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 // ---------------------------------------------------------------------------
 // Signature verification
@@ -16,7 +16,9 @@ function verifyPrintfulSignature(
     return false
   }
   const expected = createHmac('sha256', secret).update(body).digest('hex')
-  return signature === expected
+  const provided = Buffer.from(signature)
+  const computed = Buffer.from(expected)
+  return provided.length === computed.length && timingSafeEqual(provided, computed)
 }
 
 // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { headers } from 'next/headers'
 
+// POST /api/fulfillment/submit — route an order's items to their fulfillment providers; cron-only (CRON_SECRET) or admin only.
 export async function POST(request: Request) {
   // Authorize: internal cron (x-cron-secret) OR an authenticated admin/artist
   // session (the admin UI re-fires fulfillment without the cron secret).

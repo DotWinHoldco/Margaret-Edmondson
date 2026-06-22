@@ -38,6 +38,7 @@ function bySection(entries: CvEntry[]): Record<CvSection, CvEntry[]> {
   return out
 }
 
+// GET /cv.pdf — render the published CV entries as a downloadable PDF; public.
 export async function GET() {
   const { entries, settings } = await load()
   const grouped = bySection(entries)

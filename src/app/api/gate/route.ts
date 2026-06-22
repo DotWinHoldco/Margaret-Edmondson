@@ -12,6 +12,7 @@ async function sha256Hex(input: string) {
     .join('');
 }
 
+// POST /api/gate — verify the site-access password and set the access cookie; public.
 export async function POST(req: NextRequest) {
   const rl = rateLimit(req, { limit: 5, windowMs: 300_000, keyPrefix: 'gate' });
   if (!rl.ok) return rateLimitResponse(rl);

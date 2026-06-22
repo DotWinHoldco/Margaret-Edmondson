@@ -15,7 +15,7 @@ export default async function EditPagePage(props: {
 
   const { data: page, error } = await supabase
     .from('pages')
-    .select('*')
+    .select('id, title, slug, content_json, content_html, seo_title, seo_description, updated_at, is_published, hero_image_url, page_kind')
     .eq('id', id)
     .single()
 

@@ -82,6 +82,7 @@ async function syncProductCategories(
   )
 }
 
+// GET /api/admin/products/[id] — read a single product (incl. drafts) with images/variants/categories; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -105,6 +106,7 @@ export async function GET(
   return apiOk(data)
 }
 
+// PATCH /api/admin/products/[id] — update a product, its variants, categories, and prices with audit logging; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -132,7 +134,7 @@ export async function PATCH(
   // Snapshot the before state so we can write per-field audit rows.
   const { data: before } = await supabase
     .from('products')
-    .select('*')
+    .select('id, category_id, title, slug, description_json, description_html, story_json, story_html, medium, dimensions, base_price, compare_at_price, fulfillment_type, lumaprints_product_config, printful_sync_product_id, status, is_original, is_featured, tags, seo_title, seo_description, created_at, updated_at, prints_enabled, margin_pct, funnel_eligible, default_margin_pct, master_artwork_id')
     .eq('id', id)
     .single()
 
@@ -224,6 +226,7 @@ export async function PATCH(
   return apiOk(product)
 }
 
+// DELETE /api/admin/products/[id] — soft-delete a product by archiving it with audit logging; admin only.
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

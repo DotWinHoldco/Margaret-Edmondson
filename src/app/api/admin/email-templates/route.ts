@@ -24,19 +24,21 @@ const Update = z.object({
   is_active: z.boolean().optional(),
 })
 
+// GET /api/admin/email-templates — list email templates; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
 
   const { data, error } = await auth.supabase
     .from('email_templates')
-    .select('*')
+    .select('id, name, subject, content_json, content_html, template_type, category, variables, is_active, created_at, updated_at')
     .order('name', { ascending: true })
 
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return Response.json({ templates: data || [] })
 }
 
+// POST /api/admin/email-templates — create an email template; admin only.
 export async function POST(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -58,12 +60,13 @@ export async function POST(request: Request) {
   const { data, error } = await auth.supabase
     .from('email_templates')
     .insert(insert)
-    .select('*')
+    .select('id, name, subject, content_json, content_html, template_type, category, variables, is_active, created_at, updated_at')
     .single()
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return apiOk({ template: data }, 201)
 }
 
+// PATCH /api/admin/email-templates — update an email template by id; admin only.
 export async function PATCH(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

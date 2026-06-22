@@ -118,6 +118,7 @@ function buildReminderHtml(post: DuePost): string {
   )
 }
 
+// GET /api/cron/social-publish — mark due scheduled social posts as publishing and email the owner a reminder; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response

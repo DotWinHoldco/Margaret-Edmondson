@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/contact-lists/[id]/members — list members of a contact list (paginated); admin only.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

@@ -1,6 +1,7 @@
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
+// POST /api/courses/[id]/enroll — enroll in a free course or start Stripe Checkout for a paid one; authenticated users.
 export async function POST(
   request: Request,
   props: { params: Promise<{ id: string }> }

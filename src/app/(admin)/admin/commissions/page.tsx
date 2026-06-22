@@ -68,7 +68,7 @@ export default async function AdminCommissionsPage(props: {
 
   let query = supabase
     .from('commissions')
-    .select('*')
+    .select('id, commission_number, profile_id, client_name, client_email, client_phone, description, preferred_medium, preferred_size, budget_range, timeline, reference_images, status, quoted_price, deposit_amount, deposit_stripe_invoice_id, final_stripe_invoice_id, shipping_address, estimated_completion, created_at, updated_at')
     .order('created_at', { ascending: false })
 
   if (statusFilter !== 'all') {

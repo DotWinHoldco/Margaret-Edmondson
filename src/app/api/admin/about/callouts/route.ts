@@ -11,6 +11,7 @@ const Body = z.object({
   is_published: z.boolean().default(false),
 })
 
+// POST /api/admin/about/callouts — create a bio callout; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

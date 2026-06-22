@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+// GET /api/admin/faqs — list FAQs ordered by sort order; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -6,7 +7,7 @@ export async function GET() {
     const supabase = auth.supabase
     const { data, error } = await supabase
       .from('faqs')
-      .select('*')
+      .select('id, question, answer_json, answer_html, category, sort_order, is_published')
       .order('sort_order', { ascending: true })
 
     if (error) {
@@ -22,6 +23,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/faqs — create an FAQ; admin only.
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH /api/admin/faqs — update an FAQ by id; admin only.
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()

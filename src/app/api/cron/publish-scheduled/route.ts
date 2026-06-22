@@ -5,6 +5,7 @@ import { requireCron } from '@/lib/auth/require-cron'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// GET /api/cron/publish-scheduled — flip due scheduled blog posts to published; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response

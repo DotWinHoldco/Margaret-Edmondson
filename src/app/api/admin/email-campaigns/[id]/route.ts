@@ -16,6 +16,7 @@ const Patch = z.object({
   scheduled_at: z.string().nullable().optional(),
 })
 
+// GET /api/admin/email-campaigns/[id] — get an email campaign with audience and promo code; admin only.
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -32,6 +33,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   return apiOk({ campaign: data })
 }
 
+// PATCH /api/admin/email-campaigns/[id] — update an email campaign; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -44,12 +46,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('email_campaigns')
     .update(parsed.data)
     .eq('id', id)
-    .select('*')
+    .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .single()
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return apiOk({ campaign: data })
 }
 
+// DELETE /api/admin/email-campaigns/[id] — delete an email campaign; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

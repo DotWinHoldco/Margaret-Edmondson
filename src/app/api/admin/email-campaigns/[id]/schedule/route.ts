@@ -7,6 +7,7 @@ const Body = z.object({
   scheduledAt: z.string().min(1),
 })
 
+// POST /api/admin/email-campaigns/[id]/schedule — schedule a campaign for a future send time; admin only.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .from('email_campaigns')
     .update({ status: 'scheduled', scheduled_at: at.toISOString() })
     .eq('id', id)
-    .select('*')
+    .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .single()
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return apiOk({ campaign: data })

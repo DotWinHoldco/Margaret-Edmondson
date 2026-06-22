@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/notes/[id]/comments — list comments for a project note; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +14,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('project_note_comments')
-      .select('*')
+      .select('id, note_id, profile_id, sender_role, message, created_at')
       .eq('note_id', id)
       .order('created_at', { ascending: true })
 
@@ -28,6 +29,7 @@ export async function GET(
   }
 }
 
+// POST /api/admin/notes/[id]/comments — add a comment to a project note; admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

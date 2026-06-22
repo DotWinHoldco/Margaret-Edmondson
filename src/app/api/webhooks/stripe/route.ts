@@ -42,6 +42,7 @@ async function logEvent(
   }
 }
 
+// POST /api/webhooks/stripe — handle Stripe events (orders, enrollments, class bookings, refunds, disputes); webhook, signature-verified.
 export async function POST(request: Request) {
   const body = await request.text()
   const headersList = await headers()

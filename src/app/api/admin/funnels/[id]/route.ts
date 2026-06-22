@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+// GET /api/admin/funnels/[id] — fetch a funnel with its product, images, and variants; admin only.
 export async function GET(
   _request: Request,
   props: { params: Promise<{ id: string }> }
@@ -37,6 +38,7 @@ export async function GET(
   }
 }
 
+// PATCH /api/admin/funnels/[id] — update funnel fields or increment its view count; admin only.
 export async function PATCH(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -108,6 +110,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/funnels/[id] — delete a funnel by id; admin only.
 export async function DELETE(
   _request: Request,
   props: { params: Promise<{ id: string }> }

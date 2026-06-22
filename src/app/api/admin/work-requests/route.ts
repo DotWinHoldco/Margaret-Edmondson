@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/work-requests — list work requests with comment counts and audit log; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -31,6 +32,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/work-requests — create a work request and an initial audit entry; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH /api/admin/work-requests — update a work request's fields and write field-level audit entries; admin only.
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
@@ -103,7 +106,7 @@ export async function PATCH(request: NextRequest) {
 
     const { data: current } = await supabase
       .from('work_requests')
-      .select('*')
+      .select('id, profile_id, title, description, category, priority, status, estimated_hours, due_date, attachments, created_at, updated_at')
       .eq('id', body.id)
       .single()
 
@@ -163,6 +166,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE /api/admin/work-requests — delete a work request by id; admin only.
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()

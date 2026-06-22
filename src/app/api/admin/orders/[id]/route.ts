@@ -14,6 +14,7 @@ const VALID_STATUSES = [
 
 type OrderStatus = typeof VALID_STATUSES[number]
 
+// PATCH /api/admin/orders/[id] — update an order's status, issuing a Stripe refund when set to refunded; admin only.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -31,6 +31,7 @@ function errMessage(err: unknown): string {
   return String(err)
 }
 
+// POST /api/admin/integrations/test — run a live connectivity test against an integration; admin only.
 export async function POST(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

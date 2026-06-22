@@ -5,6 +5,7 @@ import { apiOk } from '@/lib/api/respond'
 import { listRevisions } from '@/lib/page-editor/revisions'
 import type { NextRequest } from 'next/server'
 
+// GET /api/admin/pages/[slug]/editor/[section]/revisions — list a page section's revision history; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string; section: string }> }

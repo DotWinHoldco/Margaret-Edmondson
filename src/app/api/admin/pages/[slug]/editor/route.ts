@@ -8,6 +8,7 @@ import { apiError, apiOk } from '@/lib/api/respond'
 import { getServerAdapter } from '@/lib/page-editor/server-registry'
 import type { NextRequest } from 'next/server'
 
+// GET /api/admin/pages/[slug]/editor — load a page's editable sections; admin only.
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

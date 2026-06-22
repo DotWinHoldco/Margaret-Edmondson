@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 
 const BUCKET = 'shared-files'
 
+// GET /api/admin/shared-files/signed-url — issue a short-lived signed download URL for a shared file; admin only.
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response

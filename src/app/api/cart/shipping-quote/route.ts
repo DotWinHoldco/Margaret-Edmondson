@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — public shipping-quote estimate for guest carts (input validated + rate-limited). Authored by DotWin.
 import { NextRequest } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { quoteLiveShipping } from '@/lib/pricing/shipping-quote'
@@ -29,6 +30,7 @@ function inferStateFromZip(zip: string): 'AK' | 'HI' | null {
   return null
 }
 
+// POST /api/cart/shipping-quote — compute server-trusted shipping surcharge for a guest cart and persist it; public.
 export async function POST(request: NextRequest) {
   const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'shipping-quote' })
   if (!rl.ok) return rateLimitResponse(rl)

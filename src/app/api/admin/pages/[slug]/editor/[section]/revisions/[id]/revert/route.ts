@@ -8,6 +8,7 @@ import { getServerAdapter } from '@/lib/page-editor/server-registry'
 import { getRevision, recordRevision } from '@/lib/page-editor/revisions'
 import type { NextRequest } from 'next/server'
 
+// POST /api/admin/pages/[slug]/editor/[section]/revisions/[id]/revert — restore a page section to a prior revision; admin only.
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string; section: string; id: string }> }

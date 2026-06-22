@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// POST /api/admin/products/[id]/images — upload images to storage and register them on a product; admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -95,6 +96,7 @@ export async function POST(
   }
 }
 
+// DELETE /api/admin/products/[id]/images — remove a product image from storage and the DB; admin only.
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -142,6 +144,7 @@ export async function DELETE(
   }
 }
 
+// PATCH /api/admin/products/[id]/images — set primary flag or alt text on a product image; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

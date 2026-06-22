@@ -1,5 +1,6 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
+// GET /api/lessons/[id]/comments — list a lesson's comments with author names/avatars; public.
 export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -28,6 +29,7 @@ export async function GET(
   }
 }
 
+// POST /api/lessons/[id]/comments — post a comment on a lesson the caller is enrolled in; authenticated users.
 export async function POST(
   request: Request,
   props: { params: Promise<{ id: string }> }

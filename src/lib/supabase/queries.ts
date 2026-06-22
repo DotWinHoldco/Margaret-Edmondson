@@ -4,7 +4,7 @@ export async function getPageContent(page: string, section?: string) {
   const supabase = await createClient()
   let query = supabase
     .from('site_content')
-    .select('*')
+    .select('id, page, section, content_key, content_value, content_type, is_active, updated_at, updated_by')
     .eq('page', page)
     .eq('is_active', true)
 
@@ -35,7 +35,7 @@ export async function getPageBlocks(page: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('page_blocks')
-    .select('*')
+    .select('id, page, block_type, sort_order, is_visible, config, created_at, updated_at')
     .eq('page', page)
     .eq('is_visible', true)
     .order('sort_order', { ascending: true })
@@ -60,7 +60,7 @@ export async function getFeaturedTestimonials() {
   const supabase = await createClient()
   const { data } = await supabase
     .from('testimonials')
-    .select('*')
+    .select('id, name, role, quote, avatar_url, is_featured, sort_order, created_at, title, content, source, event_context, date_received, status, updated_at, image_url')
     .eq('is_featured', true)
     .order('sort_order', { ascending: true })
 
@@ -71,7 +71,7 @@ export async function getPublishedCourses(limit?: number) {
   const supabase = await createClient()
   let query = supabase
     .from('courses')
-    .select('*')
+    .select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at')
     .eq('status', 'published')
     .order('created_at', { ascending: false })
 
@@ -130,7 +130,7 @@ export async function getPublishedBlogPosts(limit?: number) {
   const supabase = await createClient()
   let query = supabase
     .from('blog_posts')
-    .select('*')
+    .select('id, title, slug, excerpt, content_json, content_html, cover_image_url, author_id, status, tags, seo_title, seo_description, published_at, created_at, updated_at, publish_at')
     .eq('status', 'published')
     .order('published_at', { ascending: false })
 
@@ -144,7 +144,7 @@ export async function getCategories() {
   const supabase = await createClient()
   const { data } = await supabase
     .from('categories')
-    .select('*')
+    .select('id, name, slug, description, image_url, sort_order, default_margin_pct')
     .order('sort_order', { ascending: true })
 
   return data || []
@@ -154,7 +154,7 @@ export async function getCategoryBySlug(slug: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('categories')
-    .select('*')
+    .select('id, name, slug, description, image_url, sort_order, default_margin_pct')
     .eq('slug', slug)
     .single()
 
@@ -210,7 +210,7 @@ export async function getCourseBySlug(slug: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('courses')
-    .select('*')
+    .select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at')
     .eq('slug', slug)
     .single()
 
@@ -221,7 +221,7 @@ export async function getCourseModules(courseId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('course_modules')
-    .select('*')
+    .select('id, course_id, title, description, sort_order')
     .eq('course_id', courseId)
     .order('sort_order', { ascending: true })
 
@@ -232,7 +232,7 @@ export async function getCourseWithModulesAndLessons(courseId: string) {
   const supabase = await createClient()
   const { data: course } = await supabase
     .from('courses')
-    .select('*')
+    .select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at')
     .eq('id', courseId)
     .single()
 
@@ -260,7 +260,7 @@ export async function getEnrollment(profileId: string, courseId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('enrollments')
-    .select('*')
+    .select('id, profile_id, course_id, stripe_checkout_session_id, status, enrolled_at, completed_at')
     .eq('profile_id', profileId)
     .eq('course_id', courseId)
     .maybeSingle()
@@ -272,7 +272,7 @@ export async function getLessonProgress(enrollmentId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('lesson_progress')
-    .select('*')
+    .select('id, enrollment_id, lesson_id, is_completed, completed_at, last_position_seconds')
     .eq('enrollment_id', enrollmentId)
 
   return data || []
@@ -282,7 +282,7 @@ export async function getBlogPostBySlug(slug: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('blog_posts')
-    .select('*')
+    .select('id, title, slug, excerpt, content_json, content_html, cover_image_url, author_id, status, tags, seo_title, seo_description, published_at, created_at, updated_at, publish_at')
     .eq('slug', slug)
     .eq('status', 'published')
     .single()

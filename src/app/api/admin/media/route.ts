@@ -5,6 +5,7 @@ import { MEDIA_CATEGORIES, type MediaCategory } from '@/lib/media/categories'
 
 const PAGE_SIZE = 60
 
+// GET /api/admin/media — list media library items, filterable by category and search, paginated; admin only.
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

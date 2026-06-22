@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// PATCH /api/admin/classes/[id]/modules/[moduleId]/lessons/[lessonId] — update a lesson; admin only.
 export async function PATCH(
   request: NextRequest,
   {
@@ -56,6 +57,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/classes/[id]/modules/[moduleId]/lessons/[lessonId] — delete a lesson; admin only.
 export async function DELETE(
   _request: NextRequest,
   {

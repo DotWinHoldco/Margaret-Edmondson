@@ -25,6 +25,7 @@ const LEGACY_VARIANT_TYPE: Partial<Record<Medium, string>> = {
   // medium, not variant_type).
 }
 
+// POST /api/admin/variants/bulk-create — create priced variants for a product across medium and sizes (idempotent); admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

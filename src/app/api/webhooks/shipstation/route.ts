@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { timingSafeEqual } from 'crypto'
 
 // ---------------------------------------------------------------------------
 // Signature verification
@@ -11,9 +12,12 @@ function verifyShipStationSecret(url: string): boolean {
     return false
   }
   // ShipStation sends the webhook to a URL containing the secret as a query param
-  // e.g., /api/webhooks/shipstation?secret=xxx
-  const parsed = new URL(url)
-  return parsed.searchParams.get('secret') === secret
+  // e.g., /api/webhooks/shipstation?secret=xxx . Constant-time compare to avoid leaking
+  // the secret via timing. (The query-param transport is ShipStation's only mechanism;
+  // its exposure is noted in KNOWN_RISKS.)
+  const provided = Buffer.from(new URL(url).searchParams.get('secret') || '')
+  const expected = Buffer.from(secret)
+  return provided.length === expected.length && timingSafeEqual(provided, expected)
 }
 
 // ---------------------------------------------------------------------------

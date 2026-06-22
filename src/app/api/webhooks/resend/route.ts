@@ -22,6 +22,7 @@ interface ResendEvent {
   }
 }
 
+// POST /api/webhooks/resend — record email open/click/bounce/complaint events and auto-unsubscribe; webhook, signature-verified.
 export async function POST(request: Request) {
   const raw = await request.text()
 

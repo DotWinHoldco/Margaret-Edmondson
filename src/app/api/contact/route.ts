@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
 
+// POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'contact' })
   if (!rl.ok) return rateLimitResponse(rl)

@@ -17,6 +17,7 @@ const Patch = z.object({
   status: z.enum(['draft', 'published', 'sold_out', 'completed', 'cancelled']).optional(),
 })
 
+// PATCH /api/admin/class-sessions/[id] — update a class session; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -33,6 +34,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return apiOk({ id })
 }
 
+// DELETE /api/admin/class-sessions/[id] — delete a class session; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

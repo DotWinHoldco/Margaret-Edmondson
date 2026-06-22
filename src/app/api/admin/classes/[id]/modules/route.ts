@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/classes/[id]/modules — list a course's modules with lesson counts; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -28,6 +29,7 @@ export async function GET(
   }
 }
 
+// POST /api/admin/classes/[id]/modules — create a module in a course; admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -15,6 +15,7 @@ const CreateCampaign = z.object({
   scheduled_at: z.string().nullable().optional(),
 })
 
+// GET /api/admin/email-campaigns — list campaigns with audience and promo details; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -28,6 +29,7 @@ export async function GET() {
   return apiOk({ campaigns: data || [] })
 }
 
+// POST /api/admin/email-campaigns — create a campaign; admin only.
 export async function POST(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -42,7 +44,7 @@ export async function POST(request: Request) {
   const { data, error } = await auth.supabase
     .from('email_campaigns')
     .insert(insert)
-    .select('*')
+    .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .single()
 
   if (error || !data) return apiError(error?.message || 'Insert failed', 500, 'DB_ERROR')

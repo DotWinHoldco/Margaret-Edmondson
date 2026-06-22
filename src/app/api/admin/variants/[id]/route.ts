@@ -11,6 +11,7 @@ const Patch = z.object({
   is_active: z.boolean().optional(),
 })
 
+// PATCH /api/admin/variants/[id] — update a variant's margin/price overrides and recompute its price; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -47,6 +48,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return apiOk({ id, price_cents: newPriceCents })
 }
 
+// DELETE /api/admin/variants/[id] — delete a product variant by id; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

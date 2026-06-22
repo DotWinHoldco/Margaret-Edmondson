@@ -23,6 +23,7 @@ function payload(testMode: boolean) {
   }
 }
 
+// GET /api/admin/settings/stripe-mode — read the active Stripe test/live mode and key config; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -36,6 +37,7 @@ export async function GET() {
   return Response.json(payload(testMode))
 }
 
+// PATCH /api/admin/settings/stripe-mode — toggle Stripe test/live mode (requires a live key) and clear the cache; admin only.
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

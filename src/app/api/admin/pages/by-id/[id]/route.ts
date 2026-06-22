@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/pages/by-id/[id] — read a single page by id; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +14,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('pages')
-      .select('*')
+      .select('id, title, slug, content_json, content_html, seo_title, seo_description, updated_at, is_published, hero_image_url, page_kind')
       .eq('id', id)
       .single()
 
@@ -33,6 +34,7 @@ export async function GET(
   }
 }
 
+// PATCH /api/admin/pages/by-id/[id] — update allowed fields on a page; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -89,6 +91,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/pages/by-id/[id] — delete a page by id; admin only.
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

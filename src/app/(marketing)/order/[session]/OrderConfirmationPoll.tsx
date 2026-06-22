@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 /**
  * Shown on the order confirmation page when the order row isn't readable yet —
  * i.e. the Stripe webhook hasn't finished writing it (normal: a few seconds) or
- * SUPABASE_SERVICE_ROLE_KEY isn't set in the environment. Re-renders the server
+ * the server's elevated database key isn't set in the environment. Re-renders the server
  * component a handful of times so the receipt appears as soon as it lands,
  * then stops so we don't poll forever.
  */

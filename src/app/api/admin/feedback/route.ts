@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/feedback — list feedback items with comment counts and audit log, optionally filtered; admin only.
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdmin()
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/admin/feedback — create a feedback item and log its creation; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH /api/admin/feedback — update a feedback item and record field changes in the audit log; admin only.
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
@@ -122,7 +125,7 @@ export async function PATCH(request: NextRequest) {
     // Get current item for audit trail
     const { data: current } = await supabase
       .from('feedback_items')
-      .select('*')
+      .select('id, profile_id, category, page_or_feature, title, description, priority, status, created_at, updated_at')
       .eq('id', body.id)
       .single()
 
@@ -212,6 +215,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE /api/admin/feedback — delete a feedback item by id; admin only.
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()

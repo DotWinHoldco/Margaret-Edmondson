@@ -2,6 +2,7 @@ import { retryFulfillmentForItem } from '@/lib/fulfillment/router'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { headers } from 'next/headers'
 
+// POST /api/fulfillment/retry/[itemId] — retry fulfillment for a failed order item; cron-only (CRON_SECRET) or admin only.
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ itemId: string }> },

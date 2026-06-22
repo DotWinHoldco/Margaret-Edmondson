@@ -9,6 +9,7 @@ const Body = z.object({
   media_id: z.string().uuid().optional(),
 })
 
+// POST /api/admin/products/[id]/images/from-library — attach a media-library image to a product; admin only.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

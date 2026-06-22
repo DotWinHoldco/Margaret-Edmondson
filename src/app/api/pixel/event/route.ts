@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — public Meta pixel/CAPI event intake (input validated + rate-limited). Authored by DotWin.
 // Server mirror for Pixel events. Persists to meta_events (the
 // existing CAPI queue table) and fires CAPI immediately. Failures
 // are best-effort, the meta-event-sync cron retries any rows where
@@ -18,6 +19,7 @@ const ALLOWED_EVENTS = new Set([
   'CompleteRegistration',
 ])
 
+// POST /api/pixel/event — queue an allowed marketing event and forward it to the Meta CAPI; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'pixel' })
   if (!rl.ok) return rateLimitResponse(rl)

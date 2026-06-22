@@ -23,7 +23,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('addresses')
-    .select('*')
+    .select('id, profile_id, label, line1, line2, city, state, postal_code, country, is_default, created_at')
     .eq('profile_id', user.id)
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: false })
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       country: body.country || 'US',
       is_default: makeDefault,
     })
-    .select('*')
+    .select('id, profile_id, label, line1, line2, city, state, postal_code, country, is_default, created_at')
     .single()
 
   if (insertError) return apiError(insertError.message, 500, 'DB_ERROR')

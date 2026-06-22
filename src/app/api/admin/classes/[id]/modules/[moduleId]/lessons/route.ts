@@ -8,6 +8,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// POST /api/admin/classes/[id]/modules/[moduleId]/lessons — create a lesson in a module; admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; moduleId: string }> }

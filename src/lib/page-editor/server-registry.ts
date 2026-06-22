@@ -55,15 +55,15 @@ const aboutAdapter: ServerAdapter = {
     const [sections, callouts, credentials] = await Promise.all([
       supabase
         .from('bio_sections')
-        .select('*')
+        .select('id, section_key, heading, body_markdown, display_order, is_published, updated_at, image_url, image_alt')
         .order('display_order', { ascending: true }),
       supabase
         .from('bio_callouts')
-        .select('*')
+        .select('id, kind, label, body_markdown, display_order, is_published, updated_at')
         .order('display_order', { ascending: true }),
       supabase
         .from('bio_credentials_block')
-        .select('*')
+        .select('id, full_name, degrees, hero_image_url, contact_email, updated_at')
         .eq('id', true)
         .maybeSingle(),
     ])
@@ -166,12 +166,12 @@ const cvAdapter: ServerAdapter = {
     const [entries, settings] = await Promise.all([
       supabase
         .from('cv_entries')
-        .select('*')
+        .select('id, section, year, sort_year_numeric, title, venue, institution, location, juror, award, notes, linked_artwork_slug, display_order, is_published, created_at, updated_at')
         .order('sort_year_numeric', { ascending: false })
         .order('display_order', { ascending: true }),
       supabase
         .from('cv_settings')
-        .select('*')
+        .select('id, intro, contact_email, updated_at')
         .eq('id', true)
         .maybeSingle(),
     ])

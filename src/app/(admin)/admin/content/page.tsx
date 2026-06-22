@@ -20,7 +20,7 @@ export default async function AdminContentPage() {
   const supabase = await createClient()
   const { data: rows } = await supabase
     .from('site_content')
-    .select('*')
+    .select('id, page, section, content_key, content_value, content_type, is_active, updated_at, updated_by')
     .order('page', { ascending: true })
     .order('section', { ascending: true })
     .order('content_key', { ascending: true })

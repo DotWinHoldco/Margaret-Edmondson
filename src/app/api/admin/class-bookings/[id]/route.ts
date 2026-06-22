@@ -28,6 +28,7 @@ interface BookingRow {
   } | null
 }
 
+// PATCH /api/admin/class-bookings/[id] — update a class booking status/payment or resend instructions; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

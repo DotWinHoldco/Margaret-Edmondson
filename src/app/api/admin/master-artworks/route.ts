@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 
 const PAGE_SIZE = 60
 
+// GET /api/admin/master-artworks — list master artworks with usage counts, paginated and searchable; admin only.
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
   })
 }
 
+// POST /api/admin/master-artworks — register a master artwork record from an uploaded file; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
       dpi: body.dpi ?? null,
       uploaded_by: auth.user.id,
     })
-    .select('*')
+    .select('id, title, description, storage_path, file_name, file_size_bytes, mime_type, width_px, height_px, dpi, uploaded_by, created_at, updated_at')
     .single()
 
   if (error) {

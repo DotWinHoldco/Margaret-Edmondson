@@ -19,6 +19,7 @@ const COMMISSION_STATUSES = [
   'declined',
 ] as const
 
+// POST /api/commissions — submit a commission inquiry and notify the studio; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
   if (!rl.ok) return rateLimitResponse(rl)

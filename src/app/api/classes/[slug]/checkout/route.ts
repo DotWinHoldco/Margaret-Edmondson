@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — public class checkout (input validated + rate-limited). Authored by DotWin.
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
@@ -14,6 +15,7 @@ const Body = z.object({
   pet_photo_urls: z.array(z.string().trim().min(1).max(512)).max(5).optional(),
 })
 
+// POST /api/classes/[slug]/checkout — book a class seat and create a Stripe Checkout session for it; public.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-checkout' })
   if (!rl.ok) return rateLimitResponse(rl)

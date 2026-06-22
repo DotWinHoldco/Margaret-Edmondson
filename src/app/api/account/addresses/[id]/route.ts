@@ -71,7 +71,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', id)
     .eq('profile_id', user.id)
-    .select('*')
+    .select('id, profile_id, label, line1, line2, city, state, postal_code, country, is_default, created_at')
     .single()
 
   if (updateError) return apiError(updateError.message, 500, 'DB_ERROR')

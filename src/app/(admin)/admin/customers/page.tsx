@@ -31,7 +31,7 @@ export default async function AdminCustomersPage(props: {
   // Fetch profiles
   let profileQuery = supabase
     .from('profiles')
-    .select('*')
+    .select('id, full_name, email, phone, avatar_url, role, created_at, updated_at')
     .order('created_at', { ascending: false })
 
   if (search) {

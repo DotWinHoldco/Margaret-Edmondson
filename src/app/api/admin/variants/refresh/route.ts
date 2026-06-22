@@ -33,6 +33,7 @@ interface RefreshDiff {
   shipping_after: number
 }
 
+// POST /api/admin/variants/refresh — re-fetch live wholesale/shipping costs for a product's or variant's variants and re-price them; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

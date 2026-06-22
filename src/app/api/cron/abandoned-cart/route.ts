@@ -23,6 +23,7 @@ type CartRow = Database['public']['Tables']['carts']['Row']
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
+// GET /api/cron/abandoned-cart — send the 1h/24h/72h cart-abandonment email sequence; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
 
   const { data: step1Carts } = await supabase
     .from('carts')
-    .select('*')
+    .select('id, profile_id, email, items, subtotal, last_activity_at, converted_order_id, abandoned_email_1_sent_at, abandoned_email_2_sent_at, abandoned_email_3_sent_at, created_at, updated_at, contact_id, promo_code_id, nurture_started_at, nurture_last_sent_at, status, shipping_surcharge_cents')
     .not('email', 'is', null)
     .is('converted_order_id', null)
     .is('abandoned_email_1_sent_at', null)
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
 
   const { data: step2Carts } = await supabase
     .from('carts')
-    .select('*')
+    .select('id, profile_id, email, items, subtotal, last_activity_at, converted_order_id, abandoned_email_1_sent_at, abandoned_email_2_sent_at, abandoned_email_3_sent_at, created_at, updated_at, contact_id, promo_code_id, nurture_started_at, nurture_last_sent_at, status, shipping_surcharge_cents')
     .not('email', 'is', null)
     .is('converted_order_id', null)
     .not('abandoned_email_1_sent_at', 'is', null)
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 
   const { data: step3Carts } = await supabase
     .from('carts')
-    .select('*')
+    .select('id, profile_id, email, items, subtotal, last_activity_at, converted_order_id, abandoned_email_1_sent_at, abandoned_email_2_sent_at, abandoned_email_3_sent_at, created_at, updated_at, contact_id, promo_code_id, nurture_started_at, nurture_last_sent_at, status, shipping_surcharge_cents')
     .not('email', 'is', null)
     .is('converted_order_id', null)
     .not('abandoned_email_2_sent_at', 'is', null)

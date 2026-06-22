@@ -14,6 +14,7 @@ function sanitize(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120)
 }
 
+// GET /api/admin/shared-files — list shared files filtered by entity/tag; admin only.
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('shared_files')
-    .select('*')
+    .select('id, uploaded_by, entity_type, entity_id, file_path, file_name, mime_type, size_bytes, tag, notes, ai_processed, ai_result, created_at')
     .order('created_at', { ascending: false })
 
   if (entityType) query = query.eq('entity_type', entityType)
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
   return Response.json({ data })
 }
 
+// POST /api/admin/shared-files — upload a file to storage and record it against an entity; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -102,6 +104,7 @@ export async function POST(request: NextRequest) {
   return Response.json({ data }, { status: 201 })
 }
 
+// PATCH /api/admin/shared-files — update a shared file's tag, name, or notes; admin only.
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -136,6 +139,7 @@ export async function PATCH(request: NextRequest) {
   return Response.json({ data })
 }
 
+// DELETE /api/admin/shared-files — delete a shared file from storage and the DB by id; admin only.
 export async function DELETE(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response

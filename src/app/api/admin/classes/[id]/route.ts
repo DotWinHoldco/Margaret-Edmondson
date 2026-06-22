@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/classes/[id] — get a course with modules, lessons, and enrollment stats; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +14,7 @@ export async function GET(
 
     // Fetch course with modules and lessons
     const [courseResult, modulesResult, enrollmentResult] = await Promise.all([
-      supabase.from('courses').select('*').eq('id', id).single(),
+      supabase.from('courses').select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at').eq('id', id).single(),
       supabase
         .from('course_modules')
         .select('*, lessons(*)')
@@ -64,6 +65,7 @@ export async function GET(
   }
 }
 
+// PATCH /api/admin/classes/[id] — update a course; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -127,7 +129,7 @@ export async function PATCH(
 
     const { data: course, error: fetchError } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at')
       .eq('id', id)
       .single()
 
@@ -142,6 +144,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/classes/[id] — delete a course with its modules, lessons, and enrollments; admin only.
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

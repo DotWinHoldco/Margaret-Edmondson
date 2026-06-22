@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { type NextRequest } from 'next/server'
 
+// GET /api/fulfillment/status/[orderId] — return an order's items and derived fulfillment status; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> },

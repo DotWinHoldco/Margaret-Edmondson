@@ -7,6 +7,7 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { createClient } from '@/lib/supabase/server'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 
+// POST /api/discounts/validate — validate a discount code against the cart for instant client feedback; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 20, windowMs: 60_000, keyPrefix: 'discount-validate' })
   if (!rl.ok) return rateLimitResponse(rl)

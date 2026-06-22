@@ -15,6 +15,7 @@ import type { Database } from '@/lib/types/database'
 
 type AutomationStep = Database['public']['Tables']['email_automation_steps']['Row']
 
+// GET /api/cron/email-automations — run the cart-nurture automation, sending weekly follow-ups; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
 
   const { data: nurtureCarts } = await supabase
     .from('carts')
-    .select('*')
+    .select('id, profile_id, email, items, subtotal, last_activity_at, converted_order_id, abandoned_email_1_sent_at, abandoned_email_2_sent_at, abandoned_email_3_sent_at, created_at, updated_at, contact_id, promo_code_id, nurture_started_at, nurture_last_sent_at, status, shipping_surcharge_cents')
     .not('email', 'is', null)
     .is('converted_order_id', null)
     .not('nurture_started_at', 'is', null)

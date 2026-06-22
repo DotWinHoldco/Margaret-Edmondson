@@ -10,10 +10,12 @@ import { markUnsubscribed } from '@/lib/crm/contacts'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
+// GET /api/unsubscribe — unsubscribe a contact via an HMAC-signed token link; public (token-verified).
 export async function GET(request: Request) {
   return handle(request, 'link')
 }
 
+// POST /api/unsubscribe — one-click unsubscribe a contact via an HMAC-signed token; public (token-verified).
 export async function POST(request: Request) {
   return handle(request, 'one_click')
 }

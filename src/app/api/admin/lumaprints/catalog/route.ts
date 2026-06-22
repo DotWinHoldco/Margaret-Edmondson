@@ -12,6 +12,7 @@ interface Row {
   last_synced_at: string | null
 }
 
+// GET /api/admin/lumaprints/catalog — list synced Lumaprints mediums with sizes and options; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

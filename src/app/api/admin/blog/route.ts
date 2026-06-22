@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { sanitizeHtml } from '@/lib/sanitize'
 
+// GET /api/admin/blog — get one blog post by id or list all posts; admin only.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     if (id) {
       const { data: post, error } = await supabase
         .from('blog_posts')
-        .select('*')
+        .select('id, title, slug, excerpt, content_json, content_html, cover_image_url, author_id, status, tags, seo_title, seo_description, published_at, created_at, updated_at, publish_at')
         .eq('id', id)
         .single()
 
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
   }
 }
 
+// POST /api/admin/blog — create a blog post; admin only.
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -103,6 +105,7 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH /api/admin/blog — update a blog post by id; admin only.
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
@@ -152,6 +155,7 @@ export async function PATCH(request: Request) {
   }
 }
 
+// DELETE /api/admin/blog — delete a blog post by id; admin only.
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

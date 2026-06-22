@@ -24,6 +24,7 @@ const LUMAPRINTS_KEYS_PRESENT = Boolean(
   process.env.LUMAPRINTS_API_KEY && process.env.LUMAPRINTS_API_SECRET && process.env.LUMAPRINTS_STORE_ID,
 )
 
+// POST /api/admin/pricing/refresh — recompute variant prices via the legacy gross-margin model; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response

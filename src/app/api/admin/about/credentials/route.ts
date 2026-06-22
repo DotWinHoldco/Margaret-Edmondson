@@ -31,6 +31,7 @@ const Patch = z.object({
   contact_email: z.string().email().optional(),
 })
 
+// PATCH /api/admin/about/credentials — update the bio credentials block; admin only.
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

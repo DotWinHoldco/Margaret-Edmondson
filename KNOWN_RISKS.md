@@ -50,16 +50,15 @@ Required check: `npm run check:migrations`.
 Related tag: #types-missing, #migration-drift
 
 ### API route handlers lack intent doc comments
-Severity: medium (gate-blocking for green)
+Severity: medium
 Module: API routes
 Description: The `docs` gate requires an intent doc comment above each `app/**/route.ts` handler
-export. Most of the ~130 legacy routes are undocumented, so the `docs` gate fails until they are
-annotated. This is the largest single item between the current state and the first green.
-Current status: open.
-Required fix: add a one-line intent doc comment above each exported route handler (and Server
-Action, if any are added).
+export.
+Current status: RESOLVED 2026-06-22 (green-push). All API route handlers now carry an intent doc
+comment; `check:docs` reports 0 blocking. 296 non-route exported functions/components remain
+undocumented (medium, advisory, non-blocking) and can be cleared opportunistically.
 Required check: `npm run check:docs`.
-Related tag: #docs-route-intent
+Related tag: #docs-route-intent, #adopt-green-push-2026-06-22
 
 ### Migration ledger drift (2026061501–05)
 Severity: low
@@ -78,15 +77,39 @@ Related tag: #migration-drift
 ### Remaining P2 security backlog
 Severity: medium (collectively)
 Module: API routes · email · Supabase RPC · bookings
-Description: Deferred from the harden run, tracked in `audit/ADOPT-2026-06-21/FINDINGS.md`:
-zod input-validation gaps and missing rate limits on public routes (AZ-2/AZ-3), email HTML
-escaping (AZ-5), `reprice_variants` `search_path` pinning and anon grant review (DB-3),
-`class_bookings` capacity bypass (DB-5), schema-not-fully-in-git (DB-8), stale anon grant in a
-git migration (FIN-3), and FIN-4..8 / COM-4/5/6 hardening items.
-Current status: open; not in the adopt-finish scope (standardization + drift verification only).
-Required fix: a dedicated harden pass per finding, each with a regression test.
+Description: Tracked in `audit/ADOPT-2026-06-21/FINDINGS.md`. Cleared in the green-push: all
+`select('*')` replaced with explicit columns; webhook verification (shipstation/lumaprints/printful)
+upgraded to constant-time `timingSafeEqual`; intentional public writes documented; RLS gate clean.
+Still open (none gate-blocking): zod input-validation depth and rate-limit coverage (AZ-2/AZ-3),
+email HTML escaping (AZ-5), `reprice_variants` `search_path` pinning and anon grant review (DB-3),
+`class_bookings` capacity bypass (DB-5), schema-not-fully-in-git / `database.types.ts` (DB-8),
+stale anon grant in a git migration (FIN-3), 5 advisory `: any` annotations, and FIN-4..8 /
+COM-4/5/6 items.
+Current status: partially resolved; remainder is a dedicated harden pass, each with a regression test.
 Required check: `npm run check:security`, `npm run check:rls`, `npm run build-check`.
 Related tag: #findings, #reg-financial, #reg-comms, #reg-db
+
+### product_categories RLS now captured in git
+Severity: low (resolved-pending-apply)
+Module: Supabase / RLS / deployment
+Description: Migration `2026061501` created `product_categories` with no RLS; prod had RLS + 4
+policies applied out-of-band. Green-push migration `2026062205_adopt_rls_conformance.sql` captures
+the RLS enable + 4 policies into git (and tightens carts / unsubscribe_events / social_posts).
+Current status: resolved in git; APPLY `2026062205` to prod (idempotent; prod already matches for
+product_categories, behavior-preserving for the others), then re-test guest-cart + unsubscribe.
+Required check: `npm run check:rls` (0 blocking); `list_migrations` shows `2026062205` after apply.
+Related tag: #product-categories-rls-in-git, #adopt-green-push-2026-06-22
+
+### Latent: commission.messages has no backing column
+Severity: low
+Module: admin / commissions
+Description: `src/app/(admin)/admin/commissions/[id]/page.tsx` reads `commission.messages`, which is
+not a column on `commissions`; under the prior `select('*')` it was always undefined and the
+messages list rendered empty. Behavior is preserved (still empty) via a cast.
+Current status: open (cosmetic; the feature was never wired).
+Required fix: add a real commission-messages source (table + query) or remove the dead UI.
+Required check: judgment.
+Related tag: #adopt-green-push-2026-06-22
 
 ### Error boundaries: root only
 Severity: low

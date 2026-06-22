@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/work-requests/[id]/comments — list comments on a work request; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +14,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('work_request_comments')
-      .select('*')
+      .select('id, work_request_id, profile_id, sender_role, message, created_at')
       .eq('work_request_id', id)
       .order('created_at', { ascending: true })
 
@@ -28,6 +29,7 @@ export async function GET(
   }
 }
 
+// POST /api/admin/work-requests/[id]/comments — add a comment to a work request (sender role derived from user); admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

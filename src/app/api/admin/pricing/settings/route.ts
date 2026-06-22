@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { recomputeAllVariantPrices } from '@/lib/pricing/margin'
+// GET /api/admin/pricing/settings — read site default margin and shipping quote zips; admin only.
 export async function GET() {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -15,6 +16,7 @@ export async function GET() {
   return Response.json({ data })
 }
 
+// PATCH /api/admin/pricing/settings — update site default margin/zips and re-price inheriting variants; admin only.
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response

@@ -66,7 +66,7 @@ export async function validateDiscountCode(
   // admins reach the checkout route's full-row path.
   const { data: full } = await supabase
     .from('promo_codes')
-    .select('*')
+    .select('id, code, discount_type, discount_value, min_order_amount, usage_limit, usage_count, valid_from, valid_until, is_active, kind, audience_list_id, cart_id, contact_id, single_use_per_contact, description, created_by, stripe_coupon_id, created_at, updated_at')
     .eq('code', row.code as string)
     .maybeSingle()
 

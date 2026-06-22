@@ -9,6 +9,7 @@ const Body = z.object({
   default_margin_pct: z.number().min(0).max(1000).nullable(),
 })
 
+// PATCH /api/admin/products/[id]/margin — set a product's default markup and re-price its variants; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

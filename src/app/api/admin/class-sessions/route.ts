@@ -30,6 +30,7 @@ function slugify(title: string, startsAt: string): string {
   return `${base}-${month}-${day}-${year}`
 }
 
+// POST /api/admin/class-sessions — create a class session; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

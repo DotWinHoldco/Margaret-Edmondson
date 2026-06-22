@@ -8,6 +8,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// GET /api/admin/pages — list all pages; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -15,7 +16,7 @@ export async function GET() {
     const supabase = auth.supabase
     const { data, error } = await supabase
       .from('pages')
-      .select('*')
+      .select('id, title, slug, content_json, content_html, seo_title, seo_description, updated_at, is_published, hero_image_url, page_kind')
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -31,6 +32,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/pages — create a page with a unique slug; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

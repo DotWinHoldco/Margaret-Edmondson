@@ -25,6 +25,7 @@ function pickFields(body: Record<string, unknown>) {
   return out
 }
 
+// GET /api/admin/testimonials — list testimonials with their media; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -46,6 +47,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/testimonials — create an approved testimonial; admin only.
 export async function POST(request: Request) {
   try {
     const auth = await requireAdmin()
@@ -87,6 +89,7 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH /api/admin/testimonials — update a testimonial's mutable fields by id; admin only.
 export async function PATCH(request: Request) {
   try {
     const auth = await requireAdmin()
@@ -118,6 +121,7 @@ export async function PATCH(request: Request) {
   }
 }
 
+// DELETE /api/admin/testimonials — delete a testimonial and its media files by id; admin only.
 export async function DELETE(request: Request) {
   try {
     const auth = await requireAdmin()

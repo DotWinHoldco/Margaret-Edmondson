@@ -11,6 +11,7 @@ function safeSegment(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 80)
 }
 
+// POST /api/admin/testimonials/[id]/media — upload media files to storage and attach them to a testimonial; admin only.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -85,6 +86,7 @@ export async function POST(
   }
 }
 
+// PATCH /api/admin/testimonials/[id]/media — update a testimonial media item's caption or sort order; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -126,6 +128,7 @@ export async function PATCH(
   }
 }
 
+// DELETE /api/admin/testimonials/[id]/media — delete a testimonial media item from storage and the DB; admin only.
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

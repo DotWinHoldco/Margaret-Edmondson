@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
 
+// GET /api/admin/master-artworks/[id] — fetch a master artwork and the products using it; admin only.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -26,6 +27,7 @@ export async function GET(
   return Response.json({ data })
 }
 
+// PATCH /api/admin/master-artworks/[id] — update a master artwork's metadata; admin only.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -55,13 +57,14 @@ export async function PATCH(
     .from('master_artworks')
     .update(updates)
     .eq('id', id)
-    .select('*')
+    .select('id, title, description, storage_path, file_name, file_size_bytes, mime_type, width_px, height_px, dpi, uploaded_by, created_at, updated_at')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ data })
 }
 
+// DELETE /api/admin/master-artworks/[id] — delete a master artwork (blocked if products reference it) and remove its storage object; admin only.
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

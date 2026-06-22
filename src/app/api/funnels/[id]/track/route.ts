@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — public funnel analytics event (input validated + rate-limited). Authored by DotWin.
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 

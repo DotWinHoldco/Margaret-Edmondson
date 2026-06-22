@@ -6,6 +6,7 @@ import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
+// GET /api/admin/categories — list categories with product counts; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -27,6 +28,7 @@ const Create = z.object({
   default_margin_pct: z.number().min(0).nullable().optional(),
 })
 
+// POST /api/admin/categories — create a category; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

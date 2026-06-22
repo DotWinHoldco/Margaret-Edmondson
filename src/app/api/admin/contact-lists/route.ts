@@ -8,6 +8,7 @@ const Create = z.object({
   description: z.string().optional(),
 })
 
+// GET /api/admin/contact-lists — list contact lists with member counts; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -33,6 +34,7 @@ export async function GET() {
   return apiOk({ lists: enriched })
 }
 
+// POST /api/admin/contact-lists — create a contact list; admin only.
 export async function POST(request: Request) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
   const { data, error } = await auth.supabase
     .from('contact_lists')
     .insert({ slug: parsed.data.slug, name: parsed.data.name, description: parsed.data.description ?? null })
-    .select('*')
+    .select('id, slug, name, description, is_system, created_at, updated_at')
     .single()
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return apiOk({ list: data }, 201)

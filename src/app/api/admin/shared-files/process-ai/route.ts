@@ -207,6 +207,7 @@ async function extractFieldsFromPdf(client: Anthropic, pdfBuf: Buffer) {
   return { parsed: parseJsonResponse(textBlock.text), usage: response.usage }
 }
 
+// POST /api/admin/shared-files/process-ai — extract structured testimonial data from a shared .docx/.pdf file and create a testimonial; admin only.
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin()
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     const { data: file, error: fileErr } = await supabase
       .from('shared_files')
-      .select('*')
+      .select('id, uploaded_by, entity_type, entity_id, file_path, file_name, mime_type, size_bytes, tag, notes, ai_processed, ai_result, created_at')
       .eq('id', id)
       .single()
     if (fileErr || !file)

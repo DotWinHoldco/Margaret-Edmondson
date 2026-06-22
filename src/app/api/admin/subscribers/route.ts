@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+// GET /api/admin/subscribers — list newsletter subscribers; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -6,7 +7,7 @@ export async function GET() {
     const supabase = auth.supabase
     const { data, error } = await supabase
       .from('newsletter_subscribers')
-      .select('*')
+      .select('id, email, first_name, source, subscribed_at, unsubscribed_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -22,6 +23,7 @@ export async function GET() {
   }
 }
 
+// DELETE /api/admin/subscribers — unsubscribe a subscriber by id (soft, sets unsubscribed_at); admin only.
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

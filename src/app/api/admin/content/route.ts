@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+// PATCH /api/admin/content — update a site content value by id; admin only.
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()

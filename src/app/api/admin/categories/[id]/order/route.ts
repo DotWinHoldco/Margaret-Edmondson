@@ -13,6 +13,7 @@ import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 
 interface ImgRow { url: string | null; is_primary: boolean | null }
 
+// GET /api/admin/categories/[id]/order — list a category's active products in display order; admin only.
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -69,6 +70,7 @@ export async function GET(
 
 const Reorder = z.object({ orderedProductIds: z.array(z.string().uuid()).min(1) })
 
+// PUT /api/admin/categories/[id]/order — reorder a category's products; admin only.
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

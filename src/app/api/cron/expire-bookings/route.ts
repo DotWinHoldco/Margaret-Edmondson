@@ -8,6 +8,7 @@ import { requireCron } from '@/lib/auth/require-cron'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// GET /api/cron/expire-bookings — cancel stale awaiting-payment class bookings and prune old webhook logs; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response

@@ -10,6 +10,7 @@ const Patch = z.object({
   default_margin_pct: z.number().min(0).nullable().optional(),
 })
 
+// PATCH /api/admin/categories/[id] — update a category (re-prices products on margin change); admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -25,6 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return apiOk({ id, repriced })
 }
 
+// DELETE /api/admin/categories/[id] — delete a category and unassign its products; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

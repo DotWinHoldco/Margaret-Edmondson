@@ -29,6 +29,7 @@ function anyPresent(names: string[]): boolean {
   return names.some(has)
 }
 
+// GET /api/admin/integrations/status — report which integration env vars are configured; admin only.
 export async function GET() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

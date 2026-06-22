@@ -10,6 +10,7 @@ function slugify(input: string) {
     .slice(0, 48)
 }
 
+// GET /api/admin/shared-file-tags — list shared-file tags ordered by sort/label; admin only.
 export async function GET() {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -21,7 +22,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('shared_file_tags')
-    .select('*')
+    .select('slug, label, sort_order, is_default, created_at')
     .order('sort_order', { ascending: true })
     .order('label', { ascending: true })
 
@@ -29,6 +30,7 @@ export async function GET() {
   return Response.json({ data })
 }
 
+// POST /api/admin/shared-file-tags — create a shared-file tag (idempotent by slug); admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   const { data: existing } = await supabase
     .from('shared_file_tags')
-    .select('*')
+    .select('slug, label, sort_order, is_default, created_at')
     .eq('slug', slug)
     .maybeSingle()
   if (existing) return Response.json({ data: existing })

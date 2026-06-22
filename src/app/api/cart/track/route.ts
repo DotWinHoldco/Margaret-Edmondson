@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — anonymous guest cart sync (no profile) (input validated + rate-limited). Authored by DotWin.
 // Server cart sync. CartProvider on the client debounces every cart
 // mutation and POSTs here so we have a server-side record for the
 // abandonment sequence. Routes through the track_cart SECURITY
@@ -23,6 +24,7 @@ interface CartTrackPayload {
   subtotal?: number
 }
 
+// POST /api/cart/track — sync a guest cart server-side for abandonment tracking; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'cart-track' })
   if (!rl.ok) return rateLimitResponse(rl)

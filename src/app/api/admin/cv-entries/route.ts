@@ -19,6 +19,7 @@ const Body = z.object({
   is_published: z.boolean().default(true),
 })
 
+// POST /api/admin/cv-entries — create a CV entry; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

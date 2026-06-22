@@ -8,6 +8,7 @@ const Patch = z.object({
   description: z.string().nullable().optional(),
 })
 
+// PATCH /api/admin/contact-lists/[id] — update a contact list; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -19,12 +20,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('contact_lists')
     .update(parsed.data)
     .eq('id', id)
-    .select('*')
+    .select('id, slug, name, description, is_system, created_at, updated_at')
     .maybeSingle()
   if (error) return apiError(error.message, 500, 'DB_ERROR')
   return apiOk({ list: data })
 }
 
+// DELETE /api/admin/contact-lists/[id] — delete a non-system contact list; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

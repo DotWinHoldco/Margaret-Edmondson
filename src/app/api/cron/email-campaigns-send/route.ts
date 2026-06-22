@@ -24,6 +24,7 @@ type Recipient = Database['public']['Tables']['email_campaign_recipients']['Row'
 const BATCH_PER_RUN = 50
 const PARALLEL_CHUNK = 5
 
+// GET /api/cron/email-campaigns-send — drain queued recipients for scheduled email campaigns; cron-only (CRON_SECRET).
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response

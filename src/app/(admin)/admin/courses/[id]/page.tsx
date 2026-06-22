@@ -33,7 +33,7 @@ export default async function EditCoursePage(props: { params: Promise<{ id: stri
 
   // Mirrors GET /api/admin/classes/[id]: course + course_modules(*, lessons(*)) + enrollment stats
   const [courseResult, modulesResult, enrollmentResult] = await Promise.all([
-    supabase.from('courses').select('*').eq('id', id).maybeSingle(),
+    supabase.from('courses').select('id, title, slug, description, long_description, instructor_name, thumbnail_url, preview_video_url, price, stripe_price_id, course_type, difficulty_level, materials_needed, status, published_at, created_at, updated_at').eq('id', id).maybeSingle(),
     supabase
       .from('course_modules')
       .select('*, lessons(*)')

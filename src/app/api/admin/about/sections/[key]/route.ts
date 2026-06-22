@@ -14,6 +14,7 @@ const Patch = z.object({
 
 const ALLOWED_KEYS = new Set(['origin', 'journey', 'voice', 'subjects', 'direction'])
 
+// PATCH /api/admin/about/sections/[key] — update a bio section by key; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

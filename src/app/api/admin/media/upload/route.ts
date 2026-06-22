@@ -16,6 +16,7 @@ function safeName(name: string): string {
     .slice(0, 60)
 }
 
+// POST /api/admin/media/upload — upload a file to a storage bucket and record it in the media library; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

@@ -1,3 +1,4 @@
+// dotwin-allow:public-write — guest checkout session creation (input validated + rate-limited). Authored by DotWin.
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
@@ -10,6 +11,7 @@ function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
 }
 
+// POST /api/checkout — re-price the cart from DB and create a hosted Stripe Checkout session; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
   if (!rl.ok) return rateLimitResponse(rl)

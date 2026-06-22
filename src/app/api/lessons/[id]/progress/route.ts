@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 
+// PATCH /api/lessons/[id]/progress — update the caller's completion/position for a lesson they are enrolled in; authenticated users.
 export async function PATCH(
   request: Request,
   props: { params: Promise<{ id: string }> }

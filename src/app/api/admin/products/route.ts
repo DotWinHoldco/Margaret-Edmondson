@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/products — list active products with primary images; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -29,6 +30,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '')
 }
 
+// POST /api/admin/products — create a product (with optional variants) and a unique slug; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

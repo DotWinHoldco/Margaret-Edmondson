@@ -13,6 +13,7 @@ const Body = z.object({
   firstName: z.string().optional(),
 })
 
+// POST /api/admin/email-campaigns/[id]/test — send a test copy of the campaign to one address; admin only.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

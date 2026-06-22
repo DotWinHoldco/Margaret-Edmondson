@@ -37,6 +37,7 @@ import { MEDIUMS, mediumConfig, type Medium, type MediumSize } from '@/lib/prici
  * Idempotent. Requires LUMAPRINTS_API_KEY + LUMAPRINTS_API_SECRET (store id
  * is only needed for order submission, not pricing).
  */
+// POST /api/admin/lumaprints/sync — import wholesale print cost/size grids from the live Lumaprints catalog (?dump=1 for a dry run); admin only.
 
 interface MediumMapping {
   categoryId: number
@@ -132,6 +133,7 @@ function totalCostCents(entry: ProductCostResult): number {
   return Math.round((base + opts) * 100)
 }
 
+// POST /api/admin/lumaprints/sync — sync the LumaPrints catalog and pricing; admin only.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

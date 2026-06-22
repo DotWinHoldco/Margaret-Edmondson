@@ -10,6 +10,7 @@ const Patch = z.object({
   source: z.string().nullable().optional(),
 })
 
+// PATCH /api/admin/media/[id] — update a media library item's alt text, categories, or source; admin only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -24,6 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return apiOk({ id })
 }
 
+// DELETE /api/admin/media/[id] — delete a media library item and best-effort remove its storage object; admin only.
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response

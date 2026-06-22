@@ -13,6 +13,7 @@ import { revalidatePath } from 'next/cache'
  */
 const PUBLIC_PATHS = ['/', '/shop', '/gallery', '/blog', '/courses', '/about']
 
+// POST /api/admin/revalidate — revalidate public page caches; admin session or CRON_SECRET.
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
   const isCron =

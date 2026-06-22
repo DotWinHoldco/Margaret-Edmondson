@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { NextRequest } from 'next/server'
 
+// GET /api/admin/promo-codes — list all promo codes; admin only.
 export async function GET() {
   try {
     const auth = await requireAdmin()
@@ -8,7 +9,7 @@ export async function GET() {
     const supabase = auth.supabase
     const { data, error } = await supabase
       .from('promo_codes')
-      .select('*')
+      .select('id, code, discount_type, discount_value, min_order_amount, usage_limit, usage_count, valid_from, valid_until, is_active, kind, audience_list_id, cart_id, contact_id, single_use_per_contact, description, created_by, stripe_coupon_id, created_at, updated_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -24,6 +25,7 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/promo-codes — create a promo code; admin only.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -76,6 +78,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH /api/admin/promo-codes — update a promo code by id; admin only.
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
@@ -108,6 +111,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE /api/admin/promo-codes — delete a promo code by id; admin only.
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()

@@ -7,6 +7,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
+// POST /api/admin/email-campaigns/[id]/send — send the campaign to its audience now; admin only.
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -14,7 +15,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   const { data: campaign, error: cErr } = await auth.supabase
     .from('email_campaigns')
-    .select('*')
+    .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .eq('id', id)
     .maybeSingle()
   if (cErr || !campaign) return apiError('Campaign not found', 404, 'NOT_FOUND')
@@ -66,7 +67,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
       scheduled_at: null,
     })
     .eq('id', id)
-    .select('*')
+    .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .maybeSingle()
   if (updateErr) return apiError(updateErr.message, 500, 'DB_ERROR')
 
