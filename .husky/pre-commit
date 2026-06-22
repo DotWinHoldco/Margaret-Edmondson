@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Authored by DotWin
+# Verify BEFORE: fast, diff-scoped gate. Typecheck stays (lint does not catch type errors).
+npm run typecheck || exit 1
+node scripts/build-check.mjs --tier=pre --since=HEAD || exit 1

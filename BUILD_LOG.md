@@ -6,6 +6,87 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 ---
 
+<!-- dotwin:log-entries -->
+
+## #adopt-finish-2026-06-22 — adopt finish: factory rails + drift verify + JS gates
+
+- **Date:** 2026-06-22
+- **Module:** tooling/build-check · docs/standards · Supabase RLS (verification) · routing boundaries
+- **Category:** standardization / conformance rails / verification
+- **Summary:** Completed the adopt for ArtByME after the harden phase shipped. Imported the
+  factory executable kit, rule pack, and docs; verified the migration drift read-only; ran the
+  in-sandbox JS gates. No app code rebuilt. Scope (user): additive standardization + drift verify.
+  Build/test/conformance handed to the native toolchain (sandbox is macOS-arm64; `next build` +
+  `vitest` cannot run on Linux).
+
+### What changed (files only; UNCOMMITTED — sandbox cannot write `.git`)
+- **Gates:** copied spawn-kit scripts into `scripts/` (build-check.mjs, check-{secrets,security,
+  rls,migrations,supabase-boundaries,module-isolation,anchors,docs,authz,contract}.mjs) +
+  `scripts/lib/{scan,report,changed}.mjs`. No collisions; `scripts/check-env.mjs` preserved.
+- **package.json:** merged `check:*`, `build-check`, `build-check:write`, `build-check:strict`,
+  `verify`, `verify:changed`, `check:env`; set `lint` to `eslint .`; added `prepare: husky` +
+  `husky` devDependency.
+- **Rule pack:** new `RULES.md`; replaced `CLAUDE.md` + `AGENTS.md` with factory versions
+  (cleared the stale "ACTIVE BUILD" pointer and AI/prompt references; preserved proxy.ts, ArtByME
+  branding, Supabase client policy, artwork-inventory, and stats-strip facts; kept the
+  nextjs-agent-rules block).
+- **Docs:** `KNOWN_RISKS.md`, `DEPLOYMENT.md`, `SECURITY.md`, `TESTING.md`, `LESSONS.md`,
+  `MEMORY_INDEX.md`, `docs/api/README.md`, `docs/technical/README.md`.
+- **Boundaries:** `src/app/{error,loading,not-found}.tsx` (COM-7 partial). RLS deny-test
+  `test/rls/unauthorized-write.test.ts` (anon insert into orders; guarded by `SUPABASE_TEST_URL`).
+- **CI/hooks:** `.github/workflows/ci.yml`, `.husky/pre-commit`.
+- **NOT imported (deliberate divergence):** kit `src/kernel` + `src/modules/_example`
+  (route-handler architecture, not modular); kit `src/lib/supabase/*` + guards/helpers (project
+  has its own). Recorded in `KNOWN_RISKS.md`.
+
+### Migration drift 2026061501-05 (verified read-only on prod)
+- All schema objects present on prod (`categories.default_margin_pct`, `product_categories` +
+  `sort_order`, `product_variants.updated_at`, `reprice_variants`, `product_images.original_*`);
+  `royal` rename applied; `reprice_variants` body uses `(cost + shipping) * (1 + margin)` (the
+  2026061502 gross-margin formula).
+- The five versions are NOT in the prod migration ledger. Verdict: applied-but-unrecorded, low
+  risk (idempotent files in git). Optional ledger repair noted in DEPLOYMENT/KNOWN_RISKS.
+
+### In-sandbox JS gate results (`node scripts/build-check.mjs --tier=pre`)
+- PASS: typecheck (tsc, 0 err), lint (eslint, 0 err / 54 warn), secrets, migrations (1 medium:
+  no generated types), anchors. SKIP: module-isolation, contract (no `src/modules`).
+- FAIL (legacy P2 backlog, NOT regressions from this run): security 65 blocking (mostly
+  `select('*')` + some `: any`); authz 1 high (shipstation webhook unmatched by the guard regex)
+  + mediums (intentional public writes); rls 4 blocking; docs 177 blocking of 473 (route/action
+  intent-doc gap).
+
+### Two gate criticals investigated and proven
+- **supabase-boundaries critical on `OrderConfirmationPoll.tsx`: FALSE POSITIVE.** The file is
+  `'use client'` but only names `SUPABASE_SERVICE_ROLE_KEY` in a comment (imports are react +
+  next/navigation only). No key reaches the browser. Silence with `// dotwin-allow:
+  service-in-client` + reason, or reword the comment.
+- **rls critical "product_categories created without RLS" (migration 2026061501): PROD IS SAFE.**
+  On prod the table has RLS enabled with 4 policies (admin-only INSERT/UPDATE/DELETE via
+  `is_admin_or_artist()`; public SELECT). The GIT migration omits the RLS enable + policies, so a
+  from-zero replay would be world-writable (anon holds full DML grants). Real schema-in-git /
+  reproducibility gap. Tag `#product-categories-rls-in-git`.
+
+### Handoff (user, native toolchain)
+1. `git add -A && git commit -m "adopt(margaret-edmondson): factory rails + docs + boundaries" && git push`
+2. `npm install` (pulls husky and activates the pre-commit hook).
+3. `npm run build-check:write` to certify status + write `.dotwin/conformance.json`.
+4. Toward first green: close the docs route-intent gap and the security/rls/authz backlog; add a
+   `product_categories` RLS migration; generate `database.types.ts`.
+
+### Related files / deps
+`scripts/`, `package.json`, `RULES.md`, `CLAUDE.md`, `AGENTS.md`, the new docs,
+`src/app/{error,loading,not-found}.tsx`, `test/rls/unauthorized-write.test.ts`,
+`.github/workflows/ci.yml`, `.husky/pre-commit`. Deps: husky (added), @supabase/supabase-js.
+
+### Search keywords
+adopt finish, spawn-kit, build-check, gates, conformance baseline, migration drift,
+product_categories RLS, schema in git, false-positive service-role, docs route intent, husky.
+
+### Relevant history
+`#harden-2026-06-22`, `#findings`, `#migration-drift`.
+
+---
+
 ## #harden-2026-06-22 — harden: P0 + 7 P1 (money path + comms + cron auth)
 
 - **Date:** 2026-06-22

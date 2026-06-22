@@ -1,0 +1,49 @@
+# Memory Index
+
+Authored by DotWin
+
+## Purpose
+
+Indexes longform project memory by tag. Do not store longform memory here; it lives in
+`BUILD_LOG.md` and the `audit/` packet. Start from `STATE.md`, then pull only the tag you need.
+
+## Tags
+
+### #harden-2026-06-22
+
+File: `BUILD_LOG.md`
+Relevant when: reviewing the P0 + 7 P1 hardening (idempotency, fulfillment pre-claim, cron auth,
+newsletter RLS, email unsubscribe/suppression) and the apply order.
+Dependencies: migrations `2026062201`–`2026062204`; Stripe webhook + fulfillment router + email
+lib.
+Current relevance: High.
+
+### #findings
+
+File: `audit/ADOPT-2026-06-21/FINDINGS.md`
+Relevant when: working any P2/P3 item or needing the master finding register with file:line.
+Dependencies: `audit/ADOPT-2026-06-21/registers/`.
+Current relevance: High (P2 backlog open).
+
+### #reg-financial / #reg-comms / #reg-db / #reg-identity
+
+File: `audit/ADOPT-2026-06-21/registers/`
+Relevant when: auditing the money path, email/CRM, Supabase/RLS, or auth respectively.
+Dependencies: the audit packet.
+Current relevance: Medium.
+
+### #migration-drift
+
+File: `KNOWN_RISKS.md`
+Relevant when: reconciling prod schema vs the migration ledger (`2026061501`–`2026061505`
+applied but unrecorded; verified 2026-06-22).
+Dependencies: `supabase/migrations/2026061501..05`.
+Current relevance: Medium.
+
+### #adopt-finish-2026-06-22
+
+File: `BUILD_LOG.md`
+Relevant when: understanding what the factory adopt installed (gates, rule pack, docs, CI,
+boundaries) and what is left for the first native `green`.
+Dependencies: `scripts/`, `RULES.md`, `CLAUDE.md`, `AGENTS.md`, `.github/workflows/ci.yml`.
+Current relevance: High.

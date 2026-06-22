@@ -1,0 +1,112 @@
+# Known Risks
+
+Authored by DotWin
+
+Open risk and accepted divergences for ArtByME. Full per-finding detail lives in
+`audit/ADOPT-2026-06-21/FINDINGS.md`; this file is the current, greppable summary. P0 and all 7
+P1 from the 2026-06-21 adopt audit are fixed and live on prod (see `BUILD_LOG.md`
+`#harden-2026-06-22`). What remains below is P2/P3 backlog and structural divergence, none of it
+release-blocking on its own, all of it gating the first `green`.
+
+## Accepted divergences from the factory standard
+
+These are deliberate. The factory kit overlays a verification and documentation layer; it does
+not rebuild this app. Where the kit assumes a structure ArtByME does not use, the divergence is
+recorded here rather than forced.
+
+### Module/kernel pattern not used
+Severity: low (architectural)
+Module: whole app
+Description: ArtByME puts privileged logic in about 130 API route handlers, not in the kit's
+`src/kernel` + `src/modules/<name>` pattern. The `module-isolation` and `contract` gates
+self-skip (no `src/modules`), which is correct for this app.
+Current status: accepted; not migrating a working route-handler architecture.
+Required fix: none. Re-evaluate only on a major rebuild.
+Required check: n/a (gates skip).
+Related tag: #divergence-architecture
+
+### Supabase client file layout differs from the kit trio
+Severity: low
+Module: Supabase data access
+Description: The project ships its own `createClient` (cookie/anon) and `createServiceClient`
+(service-role) split rather than the kit's `lib/supabase/{browser,server,admin}.ts` filenames.
+Functionally equivalent and boundary-correct (`check:boundaries` passes).
+Current status: accepted; kit client files were not imported to avoid clobbering working code.
+Required fix: none.
+Required check: `npm run check:boundaries`.
+Related tag: #divergence-supabase-clients
+
+## Current risks (P2/P3 backlog)
+
+### Generated database types missing
+Severity: medium
+Module: Supabase data access
+Description: No `database.types.ts` is committed, so `check:migrations` reports a (non-blocking)
+types finding and type-safety against the live schema is weaker than it should be.
+Current status: open.
+Required fix: generate types from prod and commit at `src/lib/supabase/database.types.ts`;
+regenerate in the same commit as any future migration.
+Required check: `npm run check:migrations`.
+Related tag: #types-missing, #migration-drift
+
+### API route handlers lack intent doc comments
+Severity: medium (gate-blocking for green)
+Module: API routes
+Description: The `docs` gate requires an intent doc comment above each `app/**/route.ts` handler
+export. Most of the ~130 legacy routes are undocumented, so the `docs` gate fails until they are
+annotated. This is the largest single item between the current state and the first green.
+Current status: open.
+Required fix: add a one-line intent doc comment above each exported route handler (and Server
+Action, if any are added).
+Required check: `npm run check:docs`.
+Related tag: #docs-route-intent
+
+### Migration ledger drift (2026061501–05)
+Severity: low
+Module: deployment / Supabase
+Description: Migrations `2026061501`–`2026061505` are applied on prod (all schema objects exist;
+`reprice_variants` reflects the 2026061502 gross-margin formula; `royal` rename applied) but the
+prod migration ledger has no rows for them. Schema is not at risk; a from-zero replay driven by
+the ledger would skip them. The SQL files are in git and idempotent
+(`add column if not exists`, `create or replace`).
+Current status: open (verified applied 2026-06-22, read-only).
+Required fix: record them with `supabase migration repair --status applied 2026061501 2026061502
+2026061503 2026061504 2026061505` (no schema change), or accept and rely on the idempotent files.
+Required check: `list_migrations` shows the five versions present.
+Related tag: #migration-drift
+
+### Remaining P2 security backlog
+Severity: medium (collectively)
+Module: API routes · email · Supabase RPC · bookings
+Description: Deferred from the harden run, tracked in `audit/ADOPT-2026-06-21/FINDINGS.md`:
+zod input-validation gaps and missing rate limits on public routes (AZ-2/AZ-3), email HTML
+escaping (AZ-5), `reprice_variants` `search_path` pinning and anon grant review (DB-3),
+`class_bookings` capacity bypass (DB-5), schema-not-fully-in-git (DB-8), stale anon grant in a
+git migration (FIN-3), and FIN-4..8 / COM-4/5/6 hardening items.
+Current status: open; not in the adopt-finish scope (standardization + drift verification only).
+Required fix: a dedicated harden pass per finding, each with a regression test.
+Required check: `npm run check:security`, `npm run check:rls`, `npm run build-check`.
+Related tag: #findings, #reg-financial, #reg-comms, #reg-db
+
+### Error boundaries: root only
+Severity: low
+Module: error handling
+Description: Root `error.tsx`, `loading.tsx`, and `not-found.tsx` are now present (COM-7), but
+high-traffic segments (admin, shop, account) may still want their own boundaries for graceful
+degradation.
+Current status: partially addressed (root boundaries added 2026-06-22).
+Required fix: add segment-level boundaries where a thrown error should not unmount the section.
+Required check: judgment + manual review.
+Related tag: #com-7-error-boundaries
+
+## Format
+
+### Risk
+
+Severity:
+Module:
+Description:
+Current status:
+Required fix:
+Required check:
+Related tag:

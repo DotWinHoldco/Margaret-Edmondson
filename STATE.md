@@ -1,74 +1,103 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-22 (adopt run — harden phase: P0 + 7 P1 fixed, targeted checks passed)
-Baseline SHA: `2311869` (audit checkpoint; this harden work is staged on top, see BUILD_LOG #harden-2026-06-22)
+Last updated: 2026-06-22 (adopt finish: factory rails imported, drift verified, JS gates run)
+Baseline SHA: `a941169` (harden commit, on origin/main). Adopt-finish file changes are staged on
+top and UNCOMMITTED (sandbox cannot write `.git`). See BUILD_LOG `#adopt-finish-2026-06-22`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> First thing read each session. Current-only, not history. History: `audit/ADOPT-2026-06-21/`,
-> `BUILD_LOG.md`. No hand-set green status: authoritative `build-check` runner is not imported yet.
+<!-- dotwin:build-status:begin -->
+_Build-status block is written only by `npm run build-check:write` on a native (macOS) toolchain.
+Not yet populated. In-sandbox JS gate results as of 2026-06-22 are in section 10/11 and
+BUILD_LOG `#adopt-finish-2026-06-22`._
+<!-- dotwin:build-status:end -->
+
+> First thing read each session. Current-only, not history. History: `BUILD_LOG.md`,
+> `audit/ADOPT-2026-06-21/`. Green is whatever `npm run build-check` prints, never hand-set.
 
 ## 1. What is the project?
-ArtByME — Margaret Edmondson e-commerce art store + LMS + CRM/email + page builder/funnels. Next 16.2
-(App Router), React 19, TS, Supabase (@supabase/ssr), Stripe, Resend, LumaPrints/Printful fulfillment.
-130 API routes, 7 crons, 5 webhooks, 0 Server Actions (privileged logic in route handlers).
+ArtByME — Margaret Edmondson e-commerce art store + LMS + CRM/email + page builder/funnels. Next
+16.2 (App Router), React 19, TS, Supabase (`@supabase/ssr`), Stripe, Resend, LumaPrints/Printful.
+~130 API routes, 7 crons, 5 webhooks, 0 Server Actions (privileged logic in route handlers).
 
 ## 2. Current build state (NOT certified green)
-Adopt **in progress**. Audit done; **harden of P0 + all 7 P1 done in code** + migrations + regression
-tests. Targeted checks PASS here: typecheck 0 errors, lint 0 errors (53 pre-existing warnings), and the
-two pure security modules executed (AZ-1 + COM-3, 8/8). `vitest` + `next build` + DB constraint tests
-must run native/CI (sandbox node_modules is macOS-arm64). No `green` claim.
+Adopt finish in progress. Audit + harden (P0 + 7 P1) done and LIVE on prod. Factory rails now
+imported: gate scripts, package scripts, RULES/CLAUDE/AGENTS, KNOWN_RISKS/DEPLOYMENT/SECURITY/
+TESTING/LESSONS/MEMORY_INDEX, docs/api + docs/technical, CI, pre-commit, root error/loading/
+not-found, RLS deny-test. In-sandbox JS gates: typecheck PASS, lint PASS (54 warn),
+secrets/migrations/anchors PASS; security/authz/rls/docs FAIL on the open P2 backlog (these are
+legacy findings the gates now surface, not regressions from this run). First green needs that
+backlog cleared and the full runner run natively. No green claim.
 
-## 3. What is complete (this harden run)?
-- **FIN-1b (P0)** orders UNIQUE(stripe_payment_intent_id) — migration `2026062201`.
-- **FIN-1** order_items UNIQUE(order_id,product_id,variant_id) NULLS NOT DISTINCT + upsert; one-shot
-  side-effects gated on atomic `orders.side_effects_completed_at` claim — migration `2026062202` + webhook.
-- **FIN-2** fulfillment pre-claim to `submitting` before provider call — migration `2026062203` + router.
-- **AZ-1** shared fail-closed `requireCron()` (timingSafeEqual, 503 when unset) across all 7 cron routes.
-- **DB-2** newsletter SELECT → `is_admin_or_artist()` — migration `2026062204`.
-- **COM-1** List-Unsubscribe + List-Unsubscribe-Post (one-click) in central send path.
-- **COM-2** central `isSuppressed()` gate on renderAndSend + abandoned-cart + welcome/post-purchase.
-- **COM-3** unsubscribe token: dedicated secret only, fail-closed in prod, no accept-forever branch.
-- Prod read-only verified: 0 orders/0 order_items (constraints build clean); P0 latent, not yet live damage.
+## 3. What is complete (this adopt-finish run)?
+- **Push + harden migrations verified live**: local == origin/main; prod ledger has all four of
+  `2026062201..2026062204`.
+- **Drift 2026061501-05 verified** (read-only): APPLIED on prod (all schema objects present,
+  `reprice_variants` uses the 2026061502 gross-margin formula, `royal` rename done) but
+  UNRECORDED in the prod migration ledger. Low risk; files are idempotent and in git.
+- **spawn-kit gates imported** into `scripts/` (+ `scripts/lib/`); no collisions; project's own
+  `check-env.mjs`/`proxy.ts`/`eslint.config.mjs`/`.env.example` left untouched.
+- **package.json merged**: `check:*`, `build-check`, `build-check:write`, `verify`; husky added.
+- **Rule pack**: `RULES.md`; `CLAUDE.md` + `AGENTS.md` replaced with factory versions (stale
+  "ACTIVE BUILD" + AI/prompt references cleared; proxy/branding/Supabase/inventory facts kept).
+- **Docs**: KNOWN_RISKS, DEPLOYMENT, SECURITY, TESTING, LESSONS, MEMORY_INDEX, docs/api,
+  docs/technical.
+- **Boundaries**: root `error/loading/not-found.tsx` (COM-7 partial). RLS deny-test
+  `test/rls/unauthorized-write.test.ts` (guarded by `SUPABASE_TEST_URL`).
 
-## 4. What is incomplete? (remaining adopt steps)
-- **Apply the 4 migrations to prod** `klwkajukicsoiwpsgftt` and **push** to GitHub (this session = files only;
-  see Apply-order in #harden-2026-06-22). Migrations 2026062202/2026062203 MUST ship with their code.
-- Reconcile prod←git drift `2026061501..2026061505` (still pending from audit).
-- **P2 batch** (AZ-2/3/5, DB-3/5/6/8, FIN-4..8, COM-4/5/6) — not started.
-- Import `spawn-kit/` (build-check runner + RLS deny-test harness) → run native `build-check --write-state`.
-- Capture prod base schema into git (DB-8); fix stale anon grant in git (FIN-3).
+## 4. What is incomplete? (remaining for first green)
+- **Commit + push** the adopt-finish files (sandbox cannot write `.git`).
+- **Run `npm run build-check:write` natively** to certify status + write `.dotwin/conformance.json`.
+- **Clear the gate backlog for green**: document ~177 route/action handler exports (docs gate);
+  replace `select('*')` + `: any` (security, 65 blocking); review permissive anon-insert policies
+  on `carts` + `unsubscribe_events` and the `social_posts` predicate (rls); guard or annotate the
+  shipstation webhook + intentional public-write routes (authz).
+- **Capture prod RLS into git**: migration `2026061501` omits the `product_categories` RLS enable
+  + 4 policies that exist on prod (see #product-categories-rls-in-git); generate
+  `database.types.ts` (DB-8).
+- Optional: repair the prod migration ledger for `2026061501-05`.
 
 ## 5. What is blocked?
-- Native `build` + `test` + DB-constraint tests: sandbox can't run them (wrong-platform node_modules /
-  multi-minute build). Run on user machine or CI. Not a project defect.
-- Local git commit blocked once by a stale `.git/index.lock` — see BUILD_LOG if unresolved.
+- Native `build` + `test` + full `build-check`: sandbox `node_modules` are macOS-arm64, so
+  `next build` + `vitest` cannot run here. Run on the user machine or CI. Not a project defect.
+- Git writes from the sandbox blocked (`.git/index.lock` EPERM on the mount); the user commits.
 
 ## 6. What is unsafe or unresolved? (open risk)
-- P0 + 7 P1 are **fixed in code but NOT yet enforced on prod** (migrations unapplied, code unpushed).
-  Until applied: FIN-1b/FIN-1/FIN-2/DB-2 risks remain live on prod.
-- **P2/P3 still open**: zod gaps, rate limits, email HTML escaping (AZ-5), reprice_variants
-  search_path+anon (DB-3), class_bookings capacity bypass (DB-5), schema-not-in-git (DB-8), no error
-  boundaries (COM-7), root CLAUDE.md AI refs (authorship). See `#findings`.
+- **`product_categories`**: PROD is SAFE (RLS on; admin-only INSERT/UPDATE/DELETE via
+  `is_admin_or_artist()`; public SELECT). The GIT migration `2026061501` creates the table with
+  NO RLS and NO policies, so a from-zero replay would be world-writable (anon holds full DML
+  grants). Fix: a migration that enables RLS + recreates the 4 policies; capture full prod schema
+  into git. Tag `#product-categories-rls-in-git`.
+- **False positive**: `supabase-boundaries` flags `OrderConfirmationPoll.tsx` critical, but
+  service-role is only named in a comment (no import/use). Silence with `// dotwin-allow:
+  service-in-client` + reason, or reword the comment.
+- **P2/P3 backlog open**: security `select('*')`/`any`, rls permissive public writes, authz
+  public writes, zod gaps, rate limits, email HTML escaping (AZ-5), `class_bookings` capacity
+  (DB-5). See `#findings`, `KNOWN_RISKS.md`.
 
 ## 7. What modules exist?
 auth/authz · admin · account/LMS · shop/checkout/cart · Stripe webhooks · fulfillment · discounts ·
 CRM · email/newsletter · crons (7) · meta pixel/CAPI · page builder · funnels · storage · RLS.
 
 ## 8. Current module / focus
-Money path + comms hardened. Next up = apply migrations + push, then P2 batch, then spawn-kit import.
+Commit + push the adopt-finish files, then `build-check:write` natively, then work the P2 backlog
+toward first green.
 
 ## 9. Last commands run
-`tsc --noEmit` (pass) · `eslint .` (pass, 53 warn) · `node --experimental-strip-types` AZ-1/COM-3 (8/8) ·
-Supabase read-only prod verification (constraints/policies/columns/row-counts).
+`tsc --noEmit` (PASS) · `eslint .` (PASS, 54 warn) · `node scripts/build-check.mjs --tier=pre`
+(FAILED: security/authz/rls/docs) · prod read-only verification (drift objects + `product_categories`
+RLS/policies/grants).
 
-## 10/11. Checks passed / failed-not-run
-PASS: typecheck, lint, AZ-1+COM-3 executable proof. NOT RUN here: vitest (5 new specs authored), next
-build, DB constraint/RLS deny tests (guarded spec authored). P0/P1 regression tests authored.
+## 10/11. Checks passed / failed (in-sandbox JS gates, 2026-06-22)
+PASS: typecheck, lint, secrets, migrations (1 medium: no generated types), anchors.
+FAIL: security (65 blocking), authz (1 high + mediums), rls (4 blocking), docs (177 blocking of
+473). SKIP: module-isolation, contract (no `src/modules`). NOT RUN here (native/CI): `vitest`,
+`next build`, full `build-check:write`, `.dotwin/conformance.json`.
 
 ## 12. Tags for deeper context
-`#harden-2026-06-22` -> `BUILD_LOG.md` (this run: files, apply-order, decisions)
+`#adopt-finish-2026-06-22` -> `BUILD_LOG.md` (this run: files, gate results, drift, decisions)
+`#product-categories-rls-in-git` -> `KNOWN_RISKS.md` (prod safe, git migration incomplete)
+`#migration-drift` -> prod has 2026061501-05 applied but unrecorded; schema RLS not fully in git
+`#harden-2026-06-22` -> `BUILD_LOG.md` (P0 + 7 P1 money path + comms)
 `#findings` -> `audit/ADOPT-2026-06-21/FINDINGS.md` (master register + P2/P3 backlog)
-`#reg-financial` `#reg-comms` `#reg-db` `#reg-identity` -> `audit/ADOPT-2026-06-21/registers/`
-`#migration-drift` -> prod behind git `2026061501..2026061505`; apply with the 4 new harden migrations.
-`#proxy-not-middleware` -> middleware is `src/proxy.ts` (Next 16); do not create middleware.ts.
+`#proxy-not-middleware` -> middleware is `src/proxy.ts` (Next 16); do not create middleware.ts

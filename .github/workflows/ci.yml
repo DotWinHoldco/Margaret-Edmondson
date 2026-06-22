@@ -1,0 +1,36 @@
+# Authored by DotWin
+name: build-check
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; \
+          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+          else npm ci; fi
+        env:
+          # CI stubs public env so `next build` can run; real values live in Vercel.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-stub
+          NEXT_PUBLIC_SITE_URL: https://example.com
+      - name: DotWin build-check (typecheck + lint + test + build + gates)
+        run: node scripts/build-check.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-stub
+          NEXT_PUBLIC_SITE_URL: https://example.com
+      - name: Dependency audit (supply chain)
+        run: npm audit --audit-level=high
+      - name: Migration replay (schema reproducible from zero)
+        run: |
+          if command -v supabase >/dev/null 2>&1; then supabase db reset --no-seed || exit 1; else echo "supabase CLI not installed — wire migration replay in CI"; fi

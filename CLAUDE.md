@@ -1,44 +1,65 @@
-@AGENTS.md
+# ArtByME (Margaret Edmondson)
 
-# 🔴 ACTIVE BUILD — read before writing code
+Authored by DotWin
 
-The current end-to-end hardening & completion work is specified in **`audit/OVERNIGHT-PLAN.md`** (phased, executable — the source of truth for what to build and in what order). Supporting docs:
-- Audit narrative & verdict: **`audit/AUDIT-REPORT.md`**
-- Per-finding detail with `file:line` + copy-pasteable fixes: **`audit/findings/A-security.md` … `G-quality-build.md`** (referenced by finding ID throughout the plan)
-- Schema / RLS / functions reference: **`audit/00-backend-reference.md`**
+> Orientation doc. It auto-loads. Keep it small and current. Everything else is pulled on
+> demand (see `STATE.md`, `BUILD_LOG.md`, `docs/`, and the `audit/` packet).
 
-Operating rules for that build: work on `main` (no branches) with annotated `restore/*` tags; **never stop on a failed gate — fix forward and log it**; write integration/payment code env-guarded so it works once keys are added (don't skip a task for a missing key).
+## What this is
 
-**Critical gotcha:** the Next.js 16 middleware is **`src/proxy.ts`** (Next renamed `middleware`→`proxy`). Do **NOT** create `src/middleware.ts`. Audit items A-1/A-2/A-5/F-1 ("no middleware / admin exposed") are **false positives** — ignore them.
+ArtByME is Margaret Edmondson's e-commerce art store with an LMS, a CRM and email system, and a
+page builder with sales funnels. Next.js 16 (App Router), React 19, TypeScript, Supabase
+(`@supabase/ssr`), Stripe, Resend, and LumaPrints/Printful print fulfillment. The privileged
+logic lives in API route handlers (about 130 routes, 7 crons, 5 webhooks); there are no Server
+Actions.
 
-# Project Reminders
+## Read order (low context)
 
-## Dashboard Stats Strip
-**IMPORTANT:** Every time you push changes that add/remove pages, API routes, funnels, or significant code, update the stats strip in `src/app/(admin)/admin/ProjectHubClient.tsx`. Search for `Public Pages` to find the stats array. Update the values to reflect the current counts:
-- Public Pages: `find src/app/(marketing) -name "page.tsx" | wc -l`
-- Admin Pages: `find src/app/(admin) -name "page.tsx" | wc -l`
-- Sales Funnels: count from `artwork_funnels` table (currently 15)
-- API Routes: `find src/app/api -name "route.ts" | wc -l`
-- Lines of Code: `find src -name "*.tsx" -o -name "*.ts" | xargs wc -l | tail -1`
+1. This file. 2. `STATE.md` (current truth). 3. `RULES.md` (the always-on rule pack).
+4. the one active task. Pull `BUILD_LOG.md`, `audit/`, or `docs/memory/` only by tag when you
+need deeper history.
 
-## Branding
-- Always use "ArtByME" (capital M and E), never "ArtByMe" or "Artbyme"
-- Artist name: Margaret Edmondson
-- Artist photos must be SOLO photos of Margaret from `/public/Margaret Edmondson/Margaret Bio Photos/`
-- Never fabricate biographical content — use real documents from `/public/Margaret Edmondson/Artist and Artwork Details/`
+## Current focus
 
-## Supabase
-- Use `createClient` (cookie/anon) for user-session reads & writes that RLS should govern (admin pages, account pages, storefront queries).
-- Use `createServiceClient` where there is no user session or RLS must be bypassed deliberately: webhooks, crons, checkout/order lookups keyed by capability tokens (Stripe session id), and narrow server-side reads documented inline (e.g. lesson-comment author profiles, class bookings by email).
-- `SUPABASE_SERVICE_ROLE_KEY` MUST be set in Vercel (production). The money path (checkout → webhook → order), crons, the order-confirmation page, and the pixel queue all depend on it. If a "supabaseKey is required" 500 appears, this env var is missing.
+Adopt finish: the factory verification rails and rule pack are imported. First green and the
+conformance baseline are written by `npm run build-check:write` on a native (macOS) toolchain.
+Mirror `STATE.md` for the live state; do not duplicate history here.
 
-## Artwork inventory
+## Rules (non-negotiable)
 
-The canonical list of every original artwork lives in docs/artwork-inventory.md. Read this file before any of:
-- Creating, editing, or listing products
-- Building or modifying the variant configurator
-- Wiring CV award-piece links to artwork pages
-- Touching any artwork-detail page UI
-- Generating SEO descriptions or metadata for artwork
+- Stack is pinned: Next 16.2 / React 19 / `@supabase/ssr` / Tailwind 4 / Zod. See `AGENTS.md`
+  for Next-16 gotchas. To diverge, record it in `KNOWN_RISKS.md`.
+- Authorization is server-side. Never trust client state. Never use the service-role client to
+  dodge RLS; add a policy or a SECURITY DEFINER RPC.
+- Green is what `npm run build-check` prints. Never hand-type a status. Never call work done
+  until the gates pass.
+- This is DotWin work product. No references to AI, assistants, or prompts in code, docs, or
+  commits.
+- Document intent: every API route and Server Action needs an intent doc comment to go green.
 
-If Margaret adds, sells, or reclassifies an artwork, update this file in the same PR.
+## Project specifics (do not relearn the hard way)
+
+- Next 16 middleware is `src/proxy.ts` (exports `proxy`). Do NOT create `src/middleware.ts`.
+  Any audit item claiming "no middleware / admin exposed" on that basis is a false positive.
+- Supabase clients: use `createClient` (cookie/anon) for user-session reads and writes that RLS
+  should govern (admin, account, storefront). Use `createServiceClient` where there is no user
+  session or RLS must be bypassed deliberately: webhooks, crons, checkout/order lookups keyed by
+  a Stripe session id, and narrow documented server reads (for example lesson-comment author
+  profiles, class bookings by email). `SUPABASE_SERVICE_ROLE_KEY` must be set in Vercel; the
+  money path (checkout, webhook, order), crons, the order-confirmation page, and the pixel queue
+  depend on it. A "supabaseKey is required" 500 means this var is missing.
+- Branding: always "ArtByME" (capital M and E), never "ArtByMe" or "Artbyme". Artist: Margaret
+  Edmondson. Use only solo photos of Margaret from
+  `/public/Margaret Edmondson/Margaret Bio Photos/`. Never fabricate biographical content; use
+  the real documents in `/public/Margaret Edmondson/Artist and Artwork Details/`.
+- Artwork inventory: `docs/artwork-inventory.md` is canonical. Read it before creating, editing,
+  or listing products, touching the variant configurator or artwork-detail UI, wiring CV
+  award-piece links, or generating artwork SEO. Update it in the same change when an artwork is
+  added, sold, or reclassified.
+- Admin stats strip: when a change adds or removes pages, API routes, or funnels, update the
+  counts in `src/app/(admin)/admin/ProjectHubClient.tsx` (search `Public Pages`).
+
+## Commands
+
+`npm run build-check` · `npm run build-check:write` · `npm run verify` · `npm run check:rls` ·
+`npm run check:security` · `npm run check:secrets`
