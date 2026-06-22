@@ -1,14 +1,13 @@
 // Flips due scheduled blog posts to published (3.4). Runs every 5 minutes.
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireCron } from '@/lib/auth/require-cron'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCron(request)
+  if (!cron.ok) return cron.response
 
   const supabase = await createServiceClient()
   const nowIso = new Date().toISOString()

@@ -1,88 +1,74 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-21 (adopt run, audit phase complete)
-Baseline SHA: `5dda51840fbf21f8622e65f34f769bb6efff00ea` (clean tree, local == origin)
+Last updated: 2026-06-22 (adopt run — harden phase: P0 + 7 P1 fixed, targeted checks passed)
+Baseline SHA: `2311869` (audit checkpoint; this harden work is staged on top, see BUILD_LOG #harden-2026-06-22)
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> This document is the first thing read each session. It is current-only, not history.
-> History lives in `audit/ADOPT-2026-06-21/` and is referenced by tag below.
-> The build `Status:` line is written only by `build-check --write-state`, never by hand.
+> First thing read each session. Current-only, not history. History: `audit/ADOPT-2026-06-21/`,
+> `BUILD_LOG.md`. No hand-set green status: authoritative `build-check` runner is not imported yet.
 
 ## 1. What is the project?
-ArtByME — Margaret Edmondson's e-commerce art store + LMS (courses/classes/lessons) + CRM/email
-marketing + page builder + sales funnels. Next.js 16.2 (App Router), React 19, TypeScript, Supabase
-(@supabase/ssr), Stripe, Resend, fulfillment via LumaPrints/Printful (ShipStation inbound only).
-Inventory: 41 marketing pages, 43 admin pages, 130 API route handlers, 7 Vercel crons, 5 webhook
-handlers (stripe, lumaprints, printful, resend, shipstation), 42 migration files, 0 Server Actions
-(all privileged logic is in route handlers).
+ArtByME — Margaret Edmondson e-commerce art store + LMS + CRM/email + page builder/funnels. Next 16.2
+(App Router), React 19, TS, Supabase (@supabase/ssr), Stripe, Resend, LumaPrints/Printful fulfillment.
+130 API routes, 7 crons, 5 webhooks, 0 Server Actions (privileged logic in route handlers).
 
-## 2. Current build state (NOT certified)
-Adopt is **in progress**. Audit phase complete and evidence-backed; **hardening not started**.
-Authoritative `build-check` (test + build) has NOT been run — it must run native (user machine / CI)
-because the sandbox node_modules is macOS-arm64 and can't run Linux native bindings. No `green`.
+## 2. Current build state (NOT certified green)
+Adopt **in progress**. Audit done; **harden of P0 + all 7 P1 done in code** + migrations + regression
+tests. Targeted checks PASS here: typecheck 0 errors, lint 0 errors (53 pre-existing warnings), and the
+two pure security modules executed (AZ-1 + COM-3, 8/8). `vitest` + `next build` + DB constraint tests
+must run native/CI (sandbox node_modules is macOS-arm64). No `green` claim.
 
-## 3. What is complete?
-- Phase 0 baseline pinned; full inventory captured.
-- Full ultimate audit (phases 0-12) by 4 independent reviewers; detail in `audit/ADOPT-2026-06-21/`.
-- Highest-impact findings re-verified against **live prod**.
-- Gate evidence (this env): typecheck PASS (0 errors), lint PASS (0 errors / 53 warnings).
-- Prior June audit reconciled: A-security and ~19/20 B-payments findings verified FIXED in current code.
+## 3. What is complete (this harden run)?
+- **FIN-1b (P0)** orders UNIQUE(stripe_payment_intent_id) — migration `2026062201`.
+- **FIN-1** order_items UNIQUE(order_id,product_id,variant_id) NULLS NOT DISTINCT + upsert; one-shot
+  side-effects gated on atomic `orders.side_effects_completed_at` claim — migration `2026062202` + webhook.
+- **FIN-2** fulfillment pre-claim to `submitting` before provider call — migration `2026062203` + router.
+- **AZ-1** shared fail-closed `requireCron()` (timingSafeEqual, 503 when unset) across all 7 cron routes.
+- **DB-2** newsletter SELECT → `is_admin_or_artist()` — migration `2026062204`.
+- **COM-1** List-Unsubscribe + List-Unsubscribe-Post (one-click) in central send path.
+- **COM-2** central `isSuppressed()` gate on renderAndSend + abandoned-cart + welcome/post-purchase.
+- **COM-3** unsubscribe token: dedicated secret only, fail-closed in prod, no accept-forever branch.
+- Prod read-only verified: 0 orders/0 order_items (constraints build clean); P0 latent, not yet live damage.
 
-## 4. What is incomplete? (the remaining adopt steps)
-- **Harden**: fix 1 P0 + 7 P1 (+ P2 batch), one regression test per P0/P1. See
-  `audit/ADOPT-2026-06-21/FINDINGS.md` (#findings) for the ordered remediation plan.
-- Import `spawn-kit/` (gates, proxy, supabase client trio, guards, helpers, error/loading/not-found,
-  ESLint, CI, pre-commit) MERGING not clobbering; merge package scripts.
-- Import compact rule pack (`RULES.md`, `CLAUDE.md`, `AGENTS.md`) tuned to project, no AI references.
-- Emit `docs/technical/` + `docs/api/`; add `BUILD_LOG.md`, `LESSONS.md`, `MEMORY_INDEX.md`,
-  `KNOWN_RISKS.md`.
-- Establish conformance: native `build-check --write-state --docs-strict` -> `.dotwin/conformance.json`.
+## 4. What is incomplete? (remaining adopt steps)
+- **Apply the 4 migrations to prod** `klwkajukicsoiwpsgftt` and **push** to GitHub (this session = files only;
+  see Apply-order in #harden-2026-06-22). Migrations 2026062202/2026062203 MUST ship with their code.
+- Reconcile prod←git drift `2026061501..2026061505` (still pending from audit).
+- **P2 batch** (AZ-2/3/5, DB-3/5/6/8, FIN-4..8, COM-4/5/6) — not started.
+- Import `spawn-kit/` (build-check runner + RLS deny-test harness) → run native `build-check --write-state`.
+- Capture prod base schema into git (DB-8); fix stale anon grant in git (FIN-3).
 
 ## 5. What is blocked?
-- Native `build` + `test` gates: blocked in this sandbox (wrong-platform node_modules; multi-minute
-  build exceeds limits). Run on the user's machine or CI. Not a project defect.
+- Native `build` + `test` + DB-constraint tests: sandbox can't run them (wrong-platform node_modules /
+  multi-minute build). Run on user machine or CI. Not a project defect.
+- Local git commit blocked once by a stale `.git/index.lock` — see BUILD_LOG if unresolved.
 
-## 6. What is unsafe or unresolved? (open risk — fix in harden)
-- **P0** `#fin-1b-stripe-pi-unique` — `orders` has no UNIQUE/index on `stripe_payment_intent_id`
-  (verified live) -> Stripe retry double-creates order/fulfillment/email on the embedded Elements flow.
-- **P1** `#fin-1-order-items-unique` — `order_items` no `(order_id,product_id,variant_id)` unique ->
-  side-effects re-run on webhook resume.
-- **P1** `#fin-2-fulfillment-dedup` — provider order created before local `submitted` write -> retry
-  double-submits to LumaPrints/Printful.
-- **P1** `#az-1-cron-secret` — cron auth passes `Bearer undefined` when `CRON_SECRET` unset.
-- **P1** `#db-2-newsletter-select` — any authenticated user can read the full newsletter email list.
-- **P1** `#com-unsubscribe` — one-click unsubscribe headers never sent; suppression not enforced on
-  abandoned-cart/transactional; unsubscribe token secret degrades to a forgeable hardcoded value.
-- **P2/P3** — see `#findings` (zod gaps, rate limits, email HTML escaping, `reprice_variants`
-  search_path+anon grant, class_bookings capacity bypass, DB-8 schema-not-in-git, no error boundaries,
-  root CLAUDE.md AI references).
+## 6. What is unsafe or unresolved? (open risk)
+- P0 + 7 P1 are **fixed in code but NOT yet enforced on prod** (migrations unapplied, code unpushed).
+  Until applied: FIN-1b/FIN-1/FIN-2/DB-2 risks remain live on prod.
+- **P2/P3 still open**: zod gaps, rate limits, email HTML escaping (AZ-5), reprice_variants
+  search_path+anon (DB-3), class_bookings capacity bypass (DB-5), schema-not-in-git (DB-8), no error
+  boundaries (COM-7), root CLAUDE.md AI refs (authorship). See `#findings`.
 
 ## 7. What modules exist?
-auth/authz · admin dashboard · account/LMS (courses/classes/lessons) · shop/checkout/cart ·
-Stripe webhooks · fulfillment (lumaprints/printful) · discounts/promo · CRM · email/newsletter ·
-crons (7) · meta pixel/CAPI · page builder · sales funnels · storage (buckets) · RLS policies.
+auth/authz · admin · account/LMS · shop/checkout/cart · Stripe webhooks · fulfillment · discounts ·
+CRM · email/newsletter · crons (7) · meta pixel/CAPI · page builder · funnels · storage · RLS.
 
-## 8. What module is currently being worked on?
-None mid-edit. Next up = **harden**, starting with the money path (FIN-1b, FIN-1, FIN-2).
+## 8. Current module / focus
+Money path + comms hardened. Next up = apply migrations + push, then P2 batch, then spawn-kit import.
 
-## 9. What commands were last run?
-`git rev-parse HEAD` (5dda518) · `tsc --noEmit` (pass) · `eslint .` (pass, 53 warn) ·
-Supabase `get_advisors`/`list_migrations`/`execute_sql` (prod verification) · 4 audit reviewers.
+## 9. Last commands run
+`tsc --noEmit` (pass) · `eslint .` (pass, 53 warn) · `node --experimental-strip-types` AZ-1/COM-3 (8/8) ·
+Supabase read-only prod verification (constraints/policies/columns/row-counts).
 
-## 10. What checks have passed?
-typecheck (0 errors); lint (0 errors); prod-grant verification of FIN-3 (service-role-only on prod).
-
-## 11. What checks have failed / not run?
-test + build: NOT run here (native pending). No `build-check` green yet. P0/P1 regression tests: not
-yet written.
+## 10/11. Checks passed / failed-not-run
+PASS: typecheck, lint, AZ-1+COM-3 executable proof. NOT RUN here: vitest (5 new specs authored), next
+build, DB constraint/RLS deny tests (guarded spec authored). P0/P1 regression tests authored.
 
 ## 12. Tags for deeper context
-`#findings` -> `audit/ADOPT-2026-06-21/FINDINGS.md` (master register + remediation order)
-`#reg-identity` -> `audit/ADOPT-2026-06-21/registers/01-identity-authz-ingress.md`
-`#reg-db` -> `audit/ADOPT-2026-06-21/registers/02-database-rls-storage.md`
-`#reg-financial` -> `audit/ADOPT-2026-06-21/registers/03-financial-integrity.md`
-`#reg-comms` -> `audit/ADOPT-2026-06-21/registers/04-comms-crons-reliability-arch.md`
-`#migration-drift` -> prod is behind git by `2026061501..2026061505` (margin/category/rename/crop,
-non-destructive); apply to prod during harden. `#db-8-schema-not-in-git` -> capture prod base schema.
-`#proxy-not-middleware` -> middleware is `src/proxy.ts` (Next 16 rename); do not create middleware.ts.
+`#harden-2026-06-22` -> `BUILD_LOG.md` (this run: files, apply-order, decisions)
+`#findings` -> `audit/ADOPT-2026-06-21/FINDINGS.md` (master register + P2/P3 backlog)
+`#reg-financial` `#reg-comms` `#reg-db` `#reg-identity` -> `audit/ADOPT-2026-06-21/registers/`
+`#migration-drift` -> prod behind git `2026061501..2026061505`; apply with the 4 new harden migrations.
+`#proxy-not-middleware` -> middleware is `src/proxy.ts` (Next 16); do not create middleware.ts.

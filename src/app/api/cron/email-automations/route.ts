@@ -6,6 +6,7 @@
 // branches per trigger_event.
 
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireCron } from '@/lib/auth/require-cron'
 import { renderAndSend } from '@/lib/email/render'
 import { discountCallout } from '@/lib/email/shell'
 import { generateDiscountCode } from '@/lib/discounts/generate'
@@ -15,10 +16,8 @@ import type { Database } from '@/lib/types/database'
 type AutomationStep = Database['public']['Tables']['email_automation_steps']['Row']
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCron(request)
+  if (!cron.ok) return cron.response
 
   const supabase = await createServiceClient()
   let totalSent = 0

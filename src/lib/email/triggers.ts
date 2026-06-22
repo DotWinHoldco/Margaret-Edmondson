@@ -15,6 +15,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from './send'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { buildUnsubscribeUrl } from './unsubscribe'
+import { isSuppressed } from './suppression'
 import { upsertContact } from '@/lib/crm/contacts'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -137,6 +138,9 @@ export async function sendWelcomeEmail(
       )
       contactId = c?.id ?? null
     }
+
+    // COM-2: do not send the welcome to a contact who has unsubscribed.
+    if (await isSuppressed({ contactId, email: normalizedEmail }, supabase)) return
 
     const dedupeKey = `welcome:${contactId ?? normalizedEmail}`
     if (await alreadySent(supabase, dedupeKey)) return
@@ -266,6 +270,10 @@ export async function sendPostPurchaseEmail(
       )
       contactId = c?.id ?? null
     }
+
+    // COM-2: honor unsubscribe on this automated studio note. The order receipt
+    // (sendOrderConfirmation) is a separate transactional send and still goes out.
+    if (await isSuppressed({ contactId, email: normalizedEmail }, supabase)) return
 
     const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
     const greetingName = firstNameOrFriend(options?.name)

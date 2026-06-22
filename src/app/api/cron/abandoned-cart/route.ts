@@ -9,11 +9,13 @@
 //               until purchase or unsubscribe.
 
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireCron } from '@/lib/auth/require-cron'
 import { sendEmail } from '@/lib/email/send'
 import { renderHtml } from '@/lib/email/render'
 import { ctaButton, discountCallout } from '@/lib/email/shell'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
+import { isSuppressed } from '@/lib/email/suppression'
 import { upsertContact } from '@/lib/crm/contacts'
 import type { Database } from '@/lib/types/database'
 
@@ -22,10 +24,8 @@ type CartRow = Database['public']['Tables']['carts']['Row']
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCron(request)
+  if (!cron.ok) return cron.response
 
   const supabase = await createServiceClient()
   const now = new Date()
@@ -65,6 +65,11 @@ export async function GET(request: Request) {
   let sent = 0
 
   for (const cart of (step1Carts || []) as CartRow[]) {
+    // COM-2: skip + close out carts whose contact has unsubscribed.
+    if (await isSuppressed({ email: cart.email }, supabase)) {
+      await supabase.from('carts').update({ abandoned_email_1_sent_at: nowIso, status: 'dead' }).eq('id', cart.id)
+      continue
+    }
     const ok = await sendStep1(cart, supabase)
     if (ok) {
       await supabase.from('carts').update({ abandoned_email_1_sent_at: nowIso }).eq('id', cart.id)
@@ -73,6 +78,10 @@ export async function GET(request: Request) {
   }
 
   for (const cart of (step2Carts || []) as CartRow[]) {
+    if (await isSuppressed({ email: cart.email }, supabase)) {
+      await supabase.from('carts').update({ abandoned_email_2_sent_at: nowIso, status: 'dead' }).eq('id', cart.id)
+      continue
+    }
     const ok = await sendStep2(cart, supabase)
     if (ok) {
       await supabase.from('carts').update({ abandoned_email_2_sent_at: nowIso }).eq('id', cart.id)
@@ -81,6 +90,10 @@ export async function GET(request: Request) {
   }
 
   for (const cart of (step3Carts || []) as CartRow[]) {
+    if (await isSuppressed({ email: cart.email }, supabase)) {
+      await supabase.from('carts').update({ abandoned_email_3_sent_at: nowIso, status: 'dead' }).eq('id', cart.id)
+      continue
+    }
     const ok = await sendStep3(cart, supabase)
     if (ok) {
       await supabase

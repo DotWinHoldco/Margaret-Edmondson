@@ -12,6 +12,7 @@
 // so the wiring is in place without shipping the integration.
 
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireCron } from '@/lib/auth/require-cron'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell, ctaButton } from '@/lib/email/shell'
 import { getEmailFromAddress } from '@/lib/settings/accessor'
@@ -118,10 +119,8 @@ function buildReminderHtml(post: DuePost): string {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCron(request)
+  if (!cron.ok) return cron.response
 
   const supabase = await createServiceClient()
   const nowIso = new Date().toISOString()

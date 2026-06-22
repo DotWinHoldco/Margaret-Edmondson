@@ -7,6 +7,7 @@
 // happy. When the queue is empty the campaign flips to 'sent'.
 
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireCron } from '@/lib/auth/require-cron'
 import { renderAndSend } from '@/lib/email/render'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
 import { discountCallout } from '@/lib/email/shell'
@@ -24,10 +25,8 @@ const BATCH_PER_RUN = 50
 const PARALLEL_CHUNK = 5
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const cron = requireCron(request)
+  if (!cron.ok) return cron.response
 
   const supabase = await createServiceClient()
   const nowIso = new Date().toISOString()

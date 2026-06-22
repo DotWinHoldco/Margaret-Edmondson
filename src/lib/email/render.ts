@@ -6,6 +6,7 @@ import { sendEmail } from './send'
 import { brandedShell } from './shell'
 import { substitutePlaceholders, type PlaceholderContext } from './placeholders'
 import { buildUnsubscribeUrl } from './unsubscribe'
+import { isSuppressed } from './suppression'
 
 export interface RenderEmailOptions {
   to: string
@@ -25,6 +26,14 @@ export interface RenderEmailOptions {
 }
 
 export async function renderAndSend(opts: RenderEmailOptions) {
+  // COM-2: never send marketing/automated mail to an unsubscribed contact.
+  // Transactional sends pass hideUnsubscribe and are exempt.
+  if (!opts.hideUnsubscribe && (opts.contactId || opts.to)) {
+    if (await isSuppressed({ contactId: opts.contactId, email: opts.to })) {
+      return { suppressed: true } as const
+    }
+  }
+
   const unsubscribeUrl = opts.contactId
     ? buildUnsubscribeUrl(opts.contactId, opts.listId)
     : undefined
@@ -49,6 +58,14 @@ export async function renderAndSend(opts: RenderEmailOptions) {
   const tagHeaders: Record<string, string> = {}
   if (opts.campaignId) tagHeaders['X-Campaign-Id'] = opts.campaignId
   if (opts.recipientId) tagHeaders['X-Recipient-Id'] = opts.recipientId
+  // COM-1 (RFC 8058): advertise one-click unsubscribe so Gmail/Yahoo
+  // bulk-sender requirements are met and deliverability is preserved. The
+  // List-Unsubscribe-Post value tells the mailbox provider to POST the URL
+  // (handled by the POST export of /api/unsubscribe) for one-click opt-out.
+  if (unsubscribeUrl && !opts.hideUnsubscribe) {
+    tagHeaders['List-Unsubscribe'] = `<${unsubscribeUrl}>`
+    tagHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+  }
 
   return sendEmail({
     to: opts.to,

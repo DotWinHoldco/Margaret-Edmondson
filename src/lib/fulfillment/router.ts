@@ -379,7 +379,23 @@ export async function routeOrderToFulfillment(
   }
 
   // Process each provider group
-  for (const [provider, items] of Object.entries(grouped)) {
+  for (const [provider, groupItems] of Object.entries(grouped)) {
+    // FIN-2: atomically pre-claim this provider's items BEFORE the external
+    // call. Only rows still in a claimable state flip to 'submitting'; a
+    // concurrent run or webhook retry that lost the race gets zero rows back and
+    // skips submission, so the provider order is created at most once. An item
+    // left in 'submitting' (process killed mid-call) is a visible state for
+    // reconciliation, never a silent double-submit.
+    const { data: claimedRows } = await supabase
+      .from('order_items')
+      .update({ fulfillment_status: 'submitting' })
+      .in('id', groupItems.map((i) => i.id))
+      .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
+      .select('id')
+    const claimedIds = new Set((claimedRows || []).map((r) => r.id))
+    const items = groupItems.filter((it) => claimedIds.has(it.id))
+    if (items.length === 0) continue // another run owns these items
+
     try {
       let providerResults: FulfillmentResult[]
 
@@ -581,6 +597,24 @@ export async function retryFulfillmentForItem(
   const shippingAddress = (order.shipping_address || {}) as ShippingAddress
   const provider = item.fulfillment_type || 'self_ship'
   const enrichedItem = item as OrderItem & { product: Product; variant: Variant | null }
+
+  // FIN-2: atomically claim this item before the provider call. If it is not in
+  // a claimable state (already 'submitting' or 'submitted'), skip rather than
+  // submit a duplicate provider order.
+  const { data: claimed } = await supabase
+    .from('order_items')
+    .update({ fulfillment_status: 'submitting' })
+    .eq('id', itemId)
+    .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
+    .select('id')
+    .maybeSingle()
+  if (!claimed) {
+    return {
+      itemId,
+      success: false,
+      error: 'item not in a claimable state (already submitting or submitted)',
+    }
+  }
 
   try {
     let providerResults: FulfillmentResult[]

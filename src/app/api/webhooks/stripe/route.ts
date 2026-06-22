@@ -400,15 +400,21 @@ async function handleCheckoutCompleted(
       }
     }
 
-    await supabase.from('order_items').insert({
-      order_id: orderId,
-      product_id: ci.productId,
-      variant_id: ci.variantId || null,
-      quantity: ci.quantity,
-      unit_price: price,
-      fulfillment_type: fulfillmentType,
-      fulfillment_status: 'pending',
-    })
+    // FIN-1: idempotent on webhook replay/resume. A duplicate
+    // (order_id, product_id, variant_id) is ignored rather than inserting a
+    // second item row (which would double-submit to fulfillment + skew totals).
+    await supabase.from('order_items').upsert(
+      {
+        order_id: orderId,
+        product_id: ci.productId,
+        variant_id: ci.variantId || null,
+        quantity: ci.quantity,
+        unit_price: price,
+        fulfillment_type: fulfillmentType,
+        fulfillment_status: 'pending',
+      },
+      { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
+    )
   }
 
   // Mark cart converted.
@@ -419,106 +425,125 @@ async function handleCheckoutCompleted(
       .eq('id', session.metadata.cart_id)
   }
 
-  // CRM: ensure buyer exists, bump totals, record promo redemption (the single
-  // unique index makes a single-use code's second redemption a caught no-op).
-  try {
-    if (buyerEmail) {
-      await recordOrder(
-        buyerEmail,
-        orderTotal,
-        {
-          promoCodeId: session.metadata.promo_code_id || null,
-          amountOffCents: discountCents,
-          orderId: orderId as string,
-        },
-        supabase,
-      )
-    }
-  } catch (err) {
-    console.error('Buyer CRM update failed:', err)
-  }
-
-  // Meta CAPI Purchase.
-  try {
-    await sendServerEvent({
-      event_name: 'Purchase',
-      event_id: crypto.randomUUID(),
-      event_time: Math.floor(event.created || Date.now() / 1000),
-      user_data: buyerEmail ? { em: hashSHA256(buyerEmail) } : {},
-      custom_data: {
-        value: (session.amount_total || 0) / 100,
-        currency: 'USD',
-        content_ids: cartItems.map((i) => i.productId),
-      },
-      event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/${session.id}`,
-    })
-  } catch (err) {
-    console.error('Meta Purchase event failed:', err)
-  }
-
-  // Route to fulfillment (idempotent — only processes pending items).
+  // Route to fulfillment (idempotent — only processes pending items, and FIN-2
+  // pre-claims each item to 'submitting' before the provider call so a retry
+  // cannot double-submit). Runs on every delivery; it is safe to repeat.
   try {
     await routeOrderToFulfillment(orderId as string)
   } catch (err) {
     console.error('Fulfillment routing failed (will retry):', err)
   }
 
-  // Confirmation email.
-  if (buyerEmail) {
+  // FIN-1: the one-shot side effects below (CRM revenue, Meta Purchase,
+  // confirmation + studio-owner emails) must run at most once per order even if
+  // Stripe redelivers the event or a crashed delivery is resumed. Claim them
+  // with a single atomic flip of side_effects_completed_at from NULL -> now();
+  // only the delivery that wins the claim proceeds. A dedicated column is used
+  // rather than a status transition because orders_status_check has no
+  // 'confirmed' value and status is customer-visible.
+  const { data: sideEffectClaim } = await supabase
+    .from('orders')
+    .update({ side_effects_completed_at: new Date().toISOString() })
+    .eq('id', orderId as string)
+    .is('side_effects_completed_at', null)
+    .select('id')
+    .maybeSingle()
+
+  if (sideEffectClaim) {
+    // CRM: ensure buyer exists, bump totals, record promo redemption (the single
+    // unique index makes a single-use code's second redemption a caught no-op).
     try {
-      const { data: orderItems } = await supabase
-        .from('order_items')
-        .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
-        .eq('order_id', orderId)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const emailItems = (orderItems || []).map((oi: any) => ({
-        name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
-        quantity: oi.quantity,
-        price: oi.unit_price * oi.quantity,
-        variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
-      }))
-
-      await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+      if (buyerEmail) {
+        await recordOrder(
+          buyerEmail,
+          orderTotal,
+          {
+            promoCodeId: session.metadata.promo_code_id || null,
+            amountOffCents: discountCents,
+            orderId: orderId as string,
+          },
+          supabase,
+        )
+      }
     } catch (err) {
-      console.error('Order confirmation email failed:', err)
+      console.error('Buyer CRM update failed:', err)
     }
 
-    // Post-purchase automation (studio note / nurture). Idempotent per order
-    // (dedupe_key) and no-throw — never blocks the money path. (E-4)
-    await sendPostPurchaseEmail(buyerEmail, orderId as string, {
-      total: orderTotal,
-      contactId: session.metadata.contact_id || null,
-    })
-  }
+    // Meta CAPI Purchase.
+    try {
+      await sendServerEvent({
+        event_name: 'Purchase',
+        event_id: crypto.randomUUID(),
+        event_time: Math.floor(event.created || Date.now() / 1000),
+        user_data: buyerEmail ? { em: hashSHA256(buyerEmail) } : {},
+        custom_data: {
+          value: (session.amount_total || 0) / 100,
+          currency: 'USD',
+          content_ids: cartItems.map((i) => i.productId),
+        },
+        event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/${session.id}`,
+      })
+    } catch (err) {
+      console.error('Meta Purchase event failed:', err)
+    }
 
-  // Order notification to the studio owner (settings-driven, best-effort —
-  // never blocks the money path).
-  try {
-    const notifyEmail = await getOrderNotificationEmail(supabase)
-    if (notifyEmail) {
-      const { sendEmail } = await import('@/lib/email/send')
-      const { brandedShell, ctaButton } = await import('@/lib/email/shell')
-      const orderLabel = String(orderId).slice(0, 8).toUpperCase()
-      const totalLabel = `$${Number(orderTotal || 0).toFixed(2)}`
-      const itemsCount = cartItems.reduce((sum, i) => sum + (i.quantity || 0), 0)
-      const html = brandedShell(
-        `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New order #${orderLabel} — ${totalLabel}</h2>
-         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-           ${itemsCount} item${itemsCount === 1 ? '' : 's'} · total ${totalLabel}
-         </p>
-         ${ctaButton('https://artbyme.studio/admin/orders', 'View order')}`,
-        { hideUnsubscribe: true, preheader: `New order #${orderLabel} — ${totalLabel}` }
-      )
-      await sendEmail({
-        to: notifyEmail,
-        subject: `New order #${orderLabel} — ${totalLabel}`,
-        html,
-        ...(buyerEmail ? { replyTo: buyerEmail } : {}),
+    // Confirmation email.
+    if (buyerEmail) {
+      try {
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
+          .eq('order_id', orderId)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const emailItems = (orderItems || []).map((oi: any) => ({
+          name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
+          quantity: oi.quantity,
+          price: oi.unit_price * oi.quantity,
+          variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
+        }))
+
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+      } catch (err) {
+        console.error('Order confirmation email failed:', err)
+      }
+
+      // Post-purchase automation (studio note / nurture). Idempotent per order
+      // (dedupe_key) and no-throw — never blocks the money path. (E-4)
+      await sendPostPurchaseEmail(buyerEmail, orderId as string, {
+        total: orderTotal,
+        contactId: session.metadata.contact_id || null,
       })
     }
-  } catch (err) {
-    console.error('Order notification email failed:', err)
+
+    // Order notification to the studio owner (settings-driven, best-effort —
+    // never blocks the money path).
+    try {
+      const notifyEmail = await getOrderNotificationEmail(supabase)
+      if (notifyEmail) {
+        const { sendEmail } = await import('@/lib/email/send')
+        const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+        const orderLabel = String(orderId).slice(0, 8).toUpperCase()
+        const totalLabel = `$${Number(orderTotal || 0).toFixed(2)}`
+        const itemsCount = cartItems.reduce((sum, i) => sum + (i.quantity || 0), 0)
+        const html = brandedShell(
+          `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New order #${orderLabel} — ${totalLabel}</h2>
+           <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+             ${itemsCount} item${itemsCount === 1 ? '' : 's'} · total ${totalLabel}
+           </p>
+           ${ctaButton('https://artbyme.studio/admin/orders', 'View order')}`,
+          { hideUnsubscribe: true, preheader: `New order #${orderLabel} — ${totalLabel}` }
+        )
+        await sendEmail({
+          to: notifyEmail,
+          subject: `New order #${orderLabel} — ${totalLabel}`,
+          html,
+          ...(buyerEmail ? { replyTo: buyerEmail } : {}),
+        })
+      }
+    } catch (err) {
+      console.error('Order notification email failed:', err)
+    }
   }
 
   await logEvent(supabase, event, { kind: 'order', order_id: orderId })
@@ -645,15 +670,21 @@ async function handleElementsPaymentSucceeded(
       }
     }
 
-    await supabase.from('order_items').insert({
-      order_id: orderId,
-      product_id: ci.productId,
-      variant_id: ci.variantId || null,
-      quantity: ci.quantity,
-      unit_price: price,
-      fulfillment_type: fulfillmentType,
-      fulfillment_status: 'pending',
-    })
+    // FIN-1: idempotent on webhook replay/resume. A duplicate
+    // (order_id, product_id, variant_id) is ignored rather than inserting a
+    // second item row (which would double-submit to fulfillment + skew totals).
+    await supabase.from('order_items').upsert(
+      {
+        order_id: orderId,
+        product_id: ci.productId,
+        variant_id: ci.variantId || null,
+        quantity: ci.quantity,
+        unit_price: price,
+        fulfillment_type: fulfillmentType,
+        fulfillment_status: 'pending',
+      },
+      { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
+    )
   }
 
   // Mark cart converted.
@@ -664,103 +695,121 @@ async function handleElementsPaymentSucceeded(
       .eq('id', md.cart_id)
   }
 
-  // CRM: ensure buyer exists, bump totals, record promo redemption.
-  try {
-    if (buyerEmail) {
-      await recordOrder(
-        buyerEmail,
-        orderTotal,
-        {
-          promoCodeId: md.promo_code_id || null,
-          amountOffCents: discountCents,
-          orderId: orderId as string,
-        },
-        supabase,
-      )
-    }
-  } catch (err) {
-    console.error('Buyer CRM update failed:', err)
-  }
-
-  // Meta CAPI Purchase.
-  try {
-    await sendServerEvent({
-      event_name: 'Purchase',
-      event_id: crypto.randomUUID(),
-      event_time: Math.floor(event.created || Date.now() / 1000),
-      user_data: buyerEmail ? { em: hashSHA256(buyerEmail) } : {},
-      custom_data: {
-        value: totalCents / 100,
-        currency: 'USD',
-        content_ids: cartItems.map((i) => i.productId),
-      },
-      event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/${pi.id}`,
-    })
-  } catch (err) {
-    console.error('Meta Purchase event failed:', err)
-  }
-
-  // Route to fulfillment (idempotent — only processes pending items).
+  // Route to fulfillment (idempotent — only processes pending items, and FIN-2
+  // pre-claims each item to 'submitting' before the provider call so a retry
+  // cannot double-submit). Runs on every delivery; it is safe to repeat.
   try {
     await routeOrderToFulfillment(orderId as string)
   } catch (err) {
     console.error('Fulfillment routing failed (will retry):', err)
   }
 
-  // Confirmation email.
-  if (buyerEmail) {
+  // FIN-1: run the one-shot side effects (CRM revenue, Meta Purchase,
+  // confirmation + studio-owner emails) at most once per order, even on a
+  // redelivered payment_intent.succeeded or a resumed crashed delivery. The
+  // first delivery to flip side_effects_completed_at from NULL wins; the rest
+  // skip. (Dedicated column, not a status transition — orders_status_check has
+  // no 'confirmed' value and status is customer-visible.)
+  const { data: sideEffectClaim } = await supabase
+    .from('orders')
+    .update({ side_effects_completed_at: new Date().toISOString() })
+    .eq('id', orderId as string)
+    .is('side_effects_completed_at', null)
+    .select('id')
+    .maybeSingle()
+
+  if (sideEffectClaim) {
+    // CRM: ensure buyer exists, bump totals, record promo redemption.
     try {
-      const { data: orderItems } = await supabase
-        .from('order_items')
-        .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
-        .eq('order_id', orderId)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const emailItems = (orderItems || []).map((oi: any) => ({
-        name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
-        quantity: oi.quantity,
-        price: oi.unit_price * oi.quantity,
-        variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
-      }))
-
-      await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+      if (buyerEmail) {
+        await recordOrder(
+          buyerEmail,
+          orderTotal,
+          {
+            promoCodeId: md.promo_code_id || null,
+            amountOffCents: discountCents,
+            orderId: orderId as string,
+          },
+          supabase,
+        )
+      }
     } catch (err) {
-      console.error('Order confirmation email failed:', err)
+      console.error('Buyer CRM update failed:', err)
     }
 
-    // Post-purchase automation — idempotent per order, never blocks the money path.
-    await sendPostPurchaseEmail(buyerEmail, orderId as string, {
-      total: orderTotal,
-      contactId: md.contact_id || null,
-    })
-  }
+    // Meta CAPI Purchase.
+    try {
+      await sendServerEvent({
+        event_name: 'Purchase',
+        event_id: crypto.randomUUID(),
+        event_time: Math.floor(event.created || Date.now() / 1000),
+        user_data: buyerEmail ? { em: hashSHA256(buyerEmail) } : {},
+        custom_data: {
+          value: totalCents / 100,
+          currency: 'USD',
+          content_ids: cartItems.map((i) => i.productId),
+        },
+        event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order/${pi.id}`,
+      })
+    } catch (err) {
+      console.error('Meta Purchase event failed:', err)
+    }
 
-  // Order notification to the studio owner (best-effort).
-  try {
-    const notifyEmail = await getOrderNotificationEmail(supabase)
-    if (notifyEmail) {
-      const { sendEmail } = await import('@/lib/email/send')
-      const { brandedShell, ctaButton } = await import('@/lib/email/shell')
-      const orderLabel = String(orderId).slice(0, 8).toUpperCase()
-      const totalLabel = `$${Number(orderTotal || 0).toFixed(2)}`
-      const itemsCount = cartItems.reduce((sum, i) => sum + (i.quantity || 0), 0)
-      const html = brandedShell(
-        `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New order #${orderLabel} — ${totalLabel}</h2>
-         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-           ${itemsCount} item${itemsCount === 1 ? '' : 's'} · total ${totalLabel}
-         </p>
-         ${ctaButton('https://artbyme.studio/admin/orders', 'View order')}`,
-        { hideUnsubscribe: true, preheader: `New order #${orderLabel} — ${totalLabel}` }
-      )
-      await sendEmail({
-        to: notifyEmail,
-        subject: `New order #${orderLabel} — ${totalLabel}`,
-        html,
-        ...(buyerEmail ? { replyTo: buyerEmail } : {}),
+    // Confirmation email.
+    if (buyerEmail) {
+      try {
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
+          .eq('order_id', orderId)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const emailItems = (orderItems || []).map((oi: any) => ({
+          name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
+          quantity: oi.quantity,
+          price: oi.unit_price * oi.quantity,
+          variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
+        }))
+
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+      } catch (err) {
+        console.error('Order confirmation email failed:', err)
+      }
+
+      // Post-purchase automation — idempotent per order, never blocks the money path.
+      await sendPostPurchaseEmail(buyerEmail, orderId as string, {
+        total: orderTotal,
+        contactId: md.contact_id || null,
       })
     }
-  } catch (err) {
-    console.error('Order notification email failed:', err)
+
+    // Order notification to the studio owner (best-effort).
+    try {
+      const notifyEmail = await getOrderNotificationEmail(supabase)
+      if (notifyEmail) {
+        const { sendEmail } = await import('@/lib/email/send')
+        const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+        const orderLabel = String(orderId).slice(0, 8).toUpperCase()
+        const totalLabel = `$${Number(orderTotal || 0).toFixed(2)}`
+        const itemsCount = cartItems.reduce((sum, i) => sum + (i.quantity || 0), 0)
+        const html = brandedShell(
+          `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New order #${orderLabel} — ${totalLabel}</h2>
+           <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+             ${itemsCount} item${itemsCount === 1 ? '' : 's'} · total ${totalLabel}
+           </p>
+           ${ctaButton('https://artbyme.studio/admin/orders', 'View order')}`,
+          { hideUnsubscribe: true, preheader: `New order #${orderLabel} — ${totalLabel}` }
+        )
+        await sendEmail({
+          to: notifyEmail,
+          subject: `New order #${orderLabel} — ${totalLabel}`,
+          html,
+          ...(buyerEmail ? { replyTo: buyerEmail } : {}),
+        })
+      }
+    } catch (err) {
+      console.error('Order notification email failed:', err)
+    }
   }
 
   await logEvent(supabase, event, { kind: 'order', order_id: orderId })

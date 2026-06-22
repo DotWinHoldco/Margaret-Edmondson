@@ -62,6 +62,10 @@ const GROUPS = {
     { name: 'RESEND_API_KEY', required: true },
     { name: 'RESEND_WEBHOOK_SECRET', required: false },
     { name: 'EMAIL_FROM', required: false },
+    // COM-3: required in production (token signing/verification fails closed
+    // without it). Optional here so dev/test runs don't fail; the runtime guard
+    // enforces it in prod.
+    { name: 'UNSUBSCRIBE_SECRET', required: false },
   ],
   Fulfillment: [
     { name: 'LUMAPRINTS_API_KEY', required: false },
