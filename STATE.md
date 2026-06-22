@@ -9,11 +9,11 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 <!-- dotwin:build-status:begin -->
 ## Current Build Status
 
-Status: failed
-Last verified: 2026-06-22T18:20:14.631Z
+Status: green
+Last verified: 2026-06-22T21:27:12.930Z
 Last command: build-check --green
-Gates passed: 6/11 required
-Failing gates: security, supabase-boundaries, authz, rls, docs
+Gates passed: 11/11 required
+Failing gates: none
 Unrun required gates: none
 <!-- dotwin:build-status:end -->
 
