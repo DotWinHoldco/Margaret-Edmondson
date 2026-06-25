@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit';
+import { timingSafeEqualStr } from '@/lib/auth/timing-safe';
 
 const COOKIE_NAME = 'site-auth';
 const MAX_AGE = 60 * 60 * 24 * 30;
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const { password: submitted } = (await req.json().catch(() => ({}))) as {
     password?: string;
   };
-  if (!submitted || submitted !== password) {
+  if (!submitted || !timingSafeEqualStr(submitted, password)) {
     return NextResponse.json({ error: 'Invalid' }, { status: 401 });
   }
 

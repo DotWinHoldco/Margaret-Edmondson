@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { timingSafeEqualStr } from '@/lib/auth/timing-safe'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -15,10 +16,15 @@ const PUBLIC_PATHS = ['/', '/shop', '/gallery', '/blog', '/courses', '/about']
 
 // POST /api/admin/revalidate — revalidate public page caches; admin session or CRON_SECRET.
 export async function POST(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  const isCron =
-    !!process.env.CRON_SECRET &&
-    authHeader === `Bearer ${process.env.CRON_SECRET}`
+  const cronSecret = process.env.CRON_SECRET
+  // Fail closed: a missing/empty secret must never authenticate a request.
+  if (!cronSecret || cronSecret.length === 0) {
+    console.error('CRON_SECRET is not set — refusing request (fail closed)')
+    return Response.json({ error: 'Cron not configured' }, { status: 503 })
+  }
+
+  const authHeader = request.headers.get('authorization') ?? ''
+  const isCron = timingSafeEqualStr(authHeader, `Bearer ${cronSecret}`)
 
   if (!isCron) {
     const auth = await requireAdmin()

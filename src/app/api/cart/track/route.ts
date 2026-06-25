@@ -7,7 +7,7 @@
 // SELECT on carts, so the previous .insert(...).select('id') path
 // failed silently.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 
@@ -38,18 +38,20 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, cartId: null })
   }
 
-  const supabase = await createClient()
+  // track_cart is SECURITY DEFINER and EXECUTE-able only by service_role, so
+  // the privileged write runs on the service-role client. The route is the
+  // rate-limited, input-validated trust boundary.
+  const svc = await createServiceClient()
 
   let contactId: string | null = null
   if (email && email.includes('@')) {
     const contact = await upsertContact(
-      { email, source: 'cart', listSlug: 'cart-abandoners' },
-      supabase
+      { email, source: 'cart', listSlug: 'cart-abandoners' }
     )
     if (contact) contactId = contact.id
   }
 
-  const { data, error } = await supabase.rpc('track_cart', {
+  const { data, error } = await svc.rpc('track_cart', {
     p_cart_id: body.cartId ?? null,
     p_email: email,
     p_items: items as unknown as object,

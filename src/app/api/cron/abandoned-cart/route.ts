@@ -124,8 +124,7 @@ async function ensureContact(cart: CartRow, supabase: Awaited<ReturnType<typeof 
   if (cart.contact_id) return cart.contact_id
   if (!cart.email) return null
   const contact = await upsertContact(
-    { email: cart.email, source: 'cart_abandon', listSlug: 'cart-abandoners' },
-    supabase
+    { email: cart.email, source: 'cart_abandon', listSlug: 'cart-abandoners' }
   )
   if (!contact) return null
   await supabase.from('carts').update({ contact_id: contact.id }).eq('id', cart.id)

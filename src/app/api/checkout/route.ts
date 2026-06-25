@@ -150,8 +150,7 @@ export async function POST(request: Request) {
     if (promoCode && typeof promoCode === 'string') {
       const validation = await validateDiscountCode(
         promoCode,
-        { contactId, email, cartId, cartSubtotal },
-        supabase
+        { contactId, email, cartId, cartSubtotal }
       )
       if (!validation.ok) {
         return jsonError(`Promo code: ${validation.reason}`, 400, validation.reason)
@@ -247,7 +246,7 @@ export async function POST(request: Request) {
     // applied to the discounted merchandise subtotal, added as its own line
     // item. Fail-soft — an unreadable setting must never block checkout.
     try {
-      const settings = await getSiteSettings(supabase)
+      const settings = await getSiteSettings()
       const taxRatePct = Number(settings.tax_rate_pct)
       if (settings.tax_enabled === true && Number.isFinite(taxRatePct) && taxRatePct > 0) {
         const subtotalCents = Math.round(Number(cartSubtotal) * 100)

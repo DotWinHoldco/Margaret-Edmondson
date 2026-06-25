@@ -1,13 +1,15 @@
 // CRM contact helpers. Every public-facing entry point that captures
 // an email (newsletter signup, contact form, commissions, class
-// signup, cart sync, Stripe webhook) routes through the
-// upsert_contact_to_list SECURITY DEFINER RPC so anon callers can
-// write to crm_contacts + contact_list_members without needing
-// direct grants — and so admins call the exact same atomic path.
+// signup, cart sync, Stripe webhook) routes through these helpers,
+// which invoke the crm_contacts SECURITY DEFINER RPCs with the
+// service-role client. The RPCs are EXECUTE-able only by service_role
+// (revoked from anon/authenticated), so the route handler — which has
+// already rate-limited / validated / token-verified the request — is
+// the trust boundary; the privileged DB call is never reachable
+// directly via PostgREST by an untrusted role.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/types/database'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 type ContactRow = Database['public']['Tables']['crm_contacts']['Row']
 
@@ -28,13 +30,12 @@ export interface UpsertContactResult {
 
 /** Returns the contact id (creates the row if not already present). */
 export async function upsertContact(
-  input: UpsertContactInput,
-  supabaseClient?: SupabaseClient
+  input: UpsertContactInput
 ): Promise<UpsertContactResult | null> {
   const email = (input.email || '').toLowerCase().trim()
   if (!email || !email.includes('@')) return null
 
-  const supabase = supabaseClient ?? (await createClient())
+  const supabase = await createServiceClient()
   const { data, error } = await supabase.rpc('upsert_contact_to_list', {
     p_email: email,
     p_list_slug: input.listSlug ?? null,
@@ -55,10 +56,9 @@ export async function upsertContact(
 export async function upsertAndJoinList(
   email: string,
   listSlug: string,
-  extra?: Omit<UpsertContactInput, 'email' | 'listSlug'>,
-  supabaseClient?: SupabaseClient
+  extra?: Omit<UpsertContactInput, 'email' | 'listSlug'>
 ): Promise<string | null> {
-  const r = await upsertContact({ email, listSlug, ...(extra ?? {}) }, supabaseClient)
+  const r = await upsertContact({ email, listSlug, ...(extra ?? {}) })
   return r?.id ?? null
 }
 
@@ -66,27 +66,24 @@ export async function upsertAndJoinList(
 export async function addToList(
   contactIdOrEmail: string,
   listSlug: string,
-  source?: string | null,
-  supabaseClient?: SupabaseClient
+  source?: string | null
 ): Promise<boolean> {
   // The caller may pass either the contact id (uuid) or the email.
-  // We always route through the RPC so RLS is consistent.
+  // We always route through the service-role RPC so the path is identical.
   if (contactIdOrEmail.includes('@')) {
-    const r = await upsertAndJoinList(contactIdOrEmail, listSlug, { source }, supabaseClient)
+    const r = await upsertAndJoinList(contactIdOrEmail, listSlug, { source })
     return r !== null
   }
-  // If we got a uuid, we need the email to call the RPC. Look it up
-  // through a fresh anon-readable channel — but anon can't SELECT
-  // crm_contacts. In practice this branch is only hit from
-  // admin-authenticated code paths where SELECT works.
-  const supabase = supabaseClient ?? (await createClient())
+  // If we got a uuid, look up the email with the service-role client
+  // (the RPC keys on email).
+  const supabase = await createServiceClient()
   const { data: row } = await supabase
     .from('crm_contacts')
     .select('email')
     .eq('id', contactIdOrEmail)
     .maybeSingle()
   if (!row?.email) return false
-  const r = await upsertAndJoinList(row.email, listSlug, { source }, supabase)
+  const r = await upsertAndJoinList(row.email, listSlug, { source })
   return r !== null
 }
 
@@ -94,10 +91,9 @@ export async function addToList(
 export async function recordOrder(
   email: string,
   orderTotal: number,
-  options: { promoCodeId?: string | null; amountOffCents?: number; orderId?: string | null } = {},
-  supabaseClient?: SupabaseClient
+  options: { promoCodeId?: string | null; amountOffCents?: number; orderId?: string | null } = {}
 ): Promise<string | null> {
-  const supabase = supabaseClient ?? (await createClient())
+  const supabase = await createServiceClient()
   const { data, error } = await supabase.rpc('record_order_for_contact', {
     p_email: email,
     p_order_total: orderTotal,
@@ -117,10 +113,9 @@ export async function markUnsubscribed(
   listId: string | null | undefined,
   reason: string | null,
   source: string | null,
-  meta: { ip?: string | null; userAgent?: string | null; email?: string },
-  supabaseClient?: SupabaseClient
+  meta: { ip?: string | null; userAgent?: string | null; email?: string }
 ): Promise<void> {
-  const supabase = supabaseClient ?? (await createClient())
+  const supabase = await createServiceClient()
   const { error } = await supabase.rpc('mark_contact_unsubscribed', {
     p_contact_id: contactId,
     p_list_id: listId ?? null,

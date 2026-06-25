@@ -56,8 +56,7 @@ async function handle(request: Request, source: 'link' | 'one_click'): Promise<R
       verified.listId,
       null,
       source,
-      { ip, userAgent, email: contact.email },
-      supabase
+      { ip, userAgent, email: contact.email }
     )
   } catch (err) {
     console.error('unsubscribe error', err)

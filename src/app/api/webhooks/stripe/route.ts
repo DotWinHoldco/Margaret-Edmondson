@@ -4,6 +4,7 @@ import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { sendOrderConfirmation } from '@/lib/email/send'
 import { sendPostPurchaseEmail } from '@/lib/email/triggers'
+import { escapeHtml } from '@/lib/email/escape'
 import { recordOrder } from '@/lib/crm/contacts'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { headers } from 'next/headers'
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
   // Idempotency note: we do NOT gate on a webhook_logs marker written before
   // work (that would silently abandon a partially-processed order on retry).
   // Instead each branch is resilient + idempotent (orders UNIQUE +
-  // resume-if-no-items, booking status-transition, enrollment onConflict), and
+  // resume-until-items-complete, booking status-transition, enrollment onConflict), and
   // we throw on unexpected failure so Stripe retries cleanly. (review findings 1+2)
   try {
     switch (event.type) {
@@ -229,12 +230,12 @@ async function handleCheckoutCompleted(
           const { sendEmail } = await import('@/lib/email/send')
           const { brandedShell, ctaButton } = await import('@/lib/email/shell')
           const notifyEmail =
-            (await getOrderNotificationEmail(supabase).catch(() => null)) ||
+            (await getOrderNotificationEmail().catch(() => null)) ||
             'margaret117art@gmail.com'
           const studentHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Your spot is confirmed</h2>
              <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-               ${booking.name}, payment received. See you in class.
+               ${escapeHtml(booking.name)}, payment received. See you in class.
              </p>
              <div style="background:white;border:1px solid #e5e0d8;border-radius:8px;padding:20px;margin:20px 0;">
                <p style="margin:0 0 6px;"><strong>When:</strong> ${startsLabel}</p>
@@ -255,7 +256,7 @@ async function handleCheckoutCompleted(
           const adminHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New paid class booking</h2>
              <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-               <strong>${booking.name}</strong> (${booking.email}) just paid for ${cls.title} on ${startsLabel}.
+               <strong>${escapeHtml(booking.name)}</strong> (${escapeHtml(booking.email)}) just paid for ${cls.title} on ${startsLabel}.
              </p>
              ${ctaButton(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/admin`, 'Open admin')}`,
             { hideUnsubscribe: true }
@@ -299,16 +300,47 @@ async function handleCheckoutCompleted(
   }
 
   // ── Product order ─────────────────────────────────────────────────────
-  // Resume-safe idempotency: fully-processed orders (row + items) short-circuit;
-  // an order row that exists with NO items (a prior crash) is resumed.
+  // Resume-safe idempotency: an order only short-circuits as fully processed
+  // once the count of persisted order_items equals the number of distinct line
+  // items in the cart being processed. An order row with NO items, or with only
+  // SOME of them (a crash mid-loop), falls through and the idempotent upsert
+  // loop below re-runs — the (order_id, product_id, variant_id) unique key keeps
+  // already-inserted rows a no-op, so nothing is duplicated or double-charged.
   const { data: existingOrder } = await supabase
     .from('orders')
     .select('id, total, order_items(id)')
     .eq('stripe_checkout_session_id', session.id)
     .maybeSingle()
 
+  // B-5: line items come from the cart row, not Stripe metadata (500-char cap).
+  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
+  if (session.metadata.cart_id) {
+    const { data: cart } = await supabase
+      .from('carts')
+      .select('items')
+      .eq('id', session.metadata.cart_id)
+      .maybeSingle()
+    if (Array.isArray(cart?.items)) {
+      cartItems = (cart.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
+        (i) => i && i.productId && i.quantity,
+      )
+    }
+  }
+
   const existingItems = (existingOrder?.order_items as { id: string }[] | undefined) ?? []
-  if (existingOrder && existingItems.length > 0) {
+  // Distinct (product, variant) pairs each map to exactly one order_items row
+  // (the upsert key), so this is how many rows a complete order should hold.
+  const expectedItemCount = new Set(
+    cartItems.map((i) => `${i.productId}:${i.variantId || ''}`),
+  ).size
+  // Short-circuit ONLY when every expected row is already persisted. With no
+  // readable cart (expectedItemCount 0) fall back to the prior "has any items"
+  // guard so behaviour is unchanged for that case.
+  const fullyProcessed =
+    expectedItemCount > 0
+      ? existingItems.length >= expectedItemCount
+      : existingItems.length > 0
+  if (existingOrder && fullyProcessed) {
     return // already fully processed
   }
 
@@ -355,23 +387,8 @@ async function handleCheckoutCompleted(
     orderTotal = created.total
   }
 
-  // B-5: line items come from the cart row, not Stripe metadata (500-char cap).
   // B-7/B-8/B-9: re-derive price + fulfillment from authoritative server data in
   // batched lookups (never trust cart-stored price), and claim originals atomically.
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
-  if (session.metadata.cart_id) {
-    const { data: cart } = await supabase
-      .from('carts')
-      .select('items')
-      .eq('id', session.metadata.cart_id)
-      .maybeSingle()
-    if (Array.isArray(cart?.items)) {
-      cartItems = (cart.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
-        (i) => i && i.productId && i.quantity,
-      )
-    }
-  }
-
   const productIds = [...new Set(cartItems.map((i) => i.productId))]
   const variantIds = cartItems.filter((i) => i.variantId).map((i) => i.variantId as string)
   const [{ data: products }, { data: variants }] = await Promise.all([
@@ -463,7 +480,6 @@ async function handleCheckoutCompleted(
             amountOffCents: discountCents,
             orderId: orderId as string,
           },
-          supabase,
         )
       }
     } catch (err) {
@@ -520,7 +536,7 @@ async function handleCheckoutCompleted(
     // Order notification to the studio owner (settings-driven, best-effort —
     // never blocks the money path).
     try {
-      const notifyEmail = await getOrderNotificationEmail(supabase)
+      const notifyEmail = await getOrderNotificationEmail()
       if (notifyEmail) {
         const { sendEmail } = await import('@/lib/email/send')
         const { brandedShell, ctaButton } = await import('@/lib/email/shell')
@@ -563,16 +579,47 @@ async function handleElementsPaymentSucceeded(
   const pi = event.data.object as Stripe.PaymentIntent
   const md = (pi.metadata || {}) as Record<string, string>
 
-  // Resume-safe idempotency: fully-processed orders (row + items) short-circuit;
-  // an order row that exists with NO items (a prior crash) is resumed.
+  // Resume-safe idempotency: an order only short-circuits as fully processed
+  // once the count of persisted order_items equals the number of distinct line
+  // items in the cart being processed. An order row with NO items, or with only
+  // SOME of them (a crash mid-loop), falls through and the idempotent upsert
+  // loop below re-runs — the (order_id, product_id, variant_id) unique key keeps
+  // already-inserted rows a no-op, so nothing is duplicated or double-charged.
   const { data: existingOrder } = await supabase
     .from('orders')
     .select('id, total, order_items(id)')
     .eq('stripe_payment_intent_id', pi.id)
     .maybeSingle()
 
+  // B-5: line items come from the cart row, not Stripe metadata.
+  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
+  if (md.cart_id) {
+    const { data: cart } = await supabase
+      .from('carts')
+      .select('items')
+      .eq('id', md.cart_id)
+      .maybeSingle()
+    if (Array.isArray(cart?.items)) {
+      cartItems = (cart.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
+        (i) => i && i.productId && i.quantity,
+      )
+    }
+  }
+
   const existingItems = (existingOrder?.order_items as { id: string }[] | undefined) ?? []
-  if (existingOrder && existingItems.length > 0) {
+  // Distinct (product, variant) pairs each map to exactly one order_items row
+  // (the upsert key), so this is how many rows a complete order should hold.
+  const expectedItemCount = new Set(
+    cartItems.map((i) => `${i.productId}:${i.variantId || ''}`),
+  ).size
+  // Short-circuit ONLY when every expected row is already persisted. With no
+  // readable cart (expectedItemCount 0) fall back to the prior "has any items"
+  // guard so behaviour is unchanged for that case.
+  const fullyProcessed =
+    expectedItemCount > 0
+      ? existingItems.length >= expectedItemCount
+      : existingItems.length > 0
+  if (existingOrder && fullyProcessed) {
     return // already fully processed
   }
 
@@ -626,21 +673,6 @@ async function handleElementsPaymentSucceeded(
     }
     orderId = created.id
     orderTotal = created.total
-  }
-
-  // B-5: line items come from the cart row, not Stripe metadata.
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
-  if (md.cart_id) {
-    const { data: cart } = await supabase
-      .from('carts')
-      .select('items')
-      .eq('id', md.cart_id)
-      .maybeSingle()
-    if (Array.isArray(cart?.items)) {
-      cartItems = (cart.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
-        (i) => i && i.productId && i.quantity,
-      )
-    }
   }
 
   const productIds = [...new Set(cartItems.map((i) => i.productId))]
@@ -731,7 +763,6 @@ async function handleElementsPaymentSucceeded(
             amountOffCents: discountCents,
             orderId: orderId as string,
           },
-          supabase,
         )
       }
     } catch (err) {
@@ -786,7 +817,7 @@ async function handleElementsPaymentSucceeded(
 
     // Order notification to the studio owner (best-effort).
     try {
-      const notifyEmail = await getOrderNotificationEmail(supabase)
+      const notifyEmail = await getOrderNotificationEmail()
       if (notifyEmail) {
         const { sendEmail } = await import('@/lib/email/send')
         const { brandedShell, ctaButton } = await import('@/lib/email/shell')

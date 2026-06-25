@@ -21,6 +21,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .update({ default_margin_pct: parsed.data.default_margin_pct, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return apiError(error.message, 500, 'DB_ERROR')
-  const repriced = await recomputeProductVariantPrices(auth.supabase, id)
+  const repriced = await recomputeProductVariantPrices(id)
   return apiOk({ id, default_margin_pct: parsed.data.default_margin_pct, repriced })
 }

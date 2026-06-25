@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const PatchBody = z.object({
   label: z.string().trim().min(1).max(80).optional(),
@@ -26,6 +27,9 @@ export async function PATCH(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return apiError('Authentication required', 401, 'UNAUTHORIZED')
+
+  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
+  if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, PatchBody)
   if (!parsed.ok) return parsed.response
@@ -80,7 +84,7 @@ export async function PATCH(
 
 // DELETE /api/account/addresses/[id] — remove an address the user owns.
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -90,6 +94,9 @@ export async function DELETE(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return apiError('Authentication required', 401, 'UNAUTHORIZED')
+
+  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
+  if (!rl.ok) return rateLimitResponse(rl)
 
   const { data, error } = await supabase
     .from('addresses')

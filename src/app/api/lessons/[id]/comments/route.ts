@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
-// GET /api/lessons/[id]/comments — list a lesson's comments with author names/avatars; public.
+// GET /api/lessons/[id]/comments — list a lesson's comments with author names/avatars; enrolled students only.
 export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -8,11 +9,53 @@ export async function GET(
   const { id: lessonId } = await props.params
 
   try {
-    // Service client: the profiles join nulls out under RLS for everyone but
-    // the comment's own author, which hides commenter names/avatars.
-    const supabase = await createServiceClient()
+    const supabase = await createClient()
 
-    const { data: comments, error } = await supabase
+    // Authenticate user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // Get the lesson and its course
+    const { data: lesson, error: lessonError } = await supabase
+      .from('lessons')
+      .select('id, module_id, course_modules(course_id)')
+      .eq('id', lessonId)
+      .single()
+
+    if (lessonError || !lesson) {
+      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+    }
+
+    const courseModule = lesson.course_modules as unknown as { course_id: string } | null
+    if (!courseModule?.course_id) {
+      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+    }
+    const courseId = courseModule.course_id
+
+    // profiles.id IS auth.uid() — there is no auth_user_id column.
+    const profileId = user.id
+
+    // Verify enrollment
+    const { data: enrollment } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('profile_id', profileId)
+      .eq('course_id', courseId)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    if (!enrollment) {
+      return Response.json({ error: 'Not enrolled in this course' }, { status: 403 })
+    }
+
+    // Authorized: read with the service client so the profiles join resolves
+    // author names/avatars for every comment (the join nulls out under RLS for
+    // all but the comment's own author). The enrollment gate above is the trust
+    // boundary for this privileged read.
+    const svc = await createServiceClient()
+    const { data: comments, error } = await svc
       .from('lesson_comments')
       .select('*, profiles(id, full_name, avatar_url)')
       .eq('lesson_id', lessonId)
@@ -44,6 +87,10 @@ export async function POST(
     if (!user) {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    // Per-user throttle so a single valid account can't spam comments.
+    const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'lesson-comment', key: user.id })
+    if (!rl.ok) return rateLimitResponse(rl)
 
     const body = await request.json()
     const { content, parent_id } = body

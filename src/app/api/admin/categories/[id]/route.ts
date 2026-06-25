@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (error) return apiError(error.message, error.code === '23505' ? 409 : 500, 'DB_ERROR')
   // A category margin change re-prices every product in the category.
   let repriced = 0
-  if (parsed.data.default_margin_pct !== undefined) repriced = await recomputeCategoryVariantPrices(auth.supabase, id)
+  if (parsed.data.default_margin_pct !== undefined) repriced = await recomputeCategoryVariantPrices(id)
   return apiOk({ id, repriced })
 }
 
@@ -37,6 +37,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   await auth.supabase.from('products').update({ category_id: null }).eq('category_id', id)
   const { error } = await auth.supabase.from('categories').delete().eq('id', id)
   if (error) return apiError(error.message, 500, 'DB_ERROR')
-  for (const p of affected || []) await recomputeProductVariantPrices(auth.supabase, p.id)
+  for (const p of affected || []) await recomputeProductVariantPrices(p.id)
   return apiOk({ deleted: true, reassigned: (affected || []).length })
 }

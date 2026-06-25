@@ -44,8 +44,12 @@ export async function renderAndSend(opts: RenderEmailOptions) {
     unsubscribe_url: unsubscribeUrl || '',
   }
 
+  // Subject and preheader are plain text (the preheader is HTML-escaped by
+  // brandedShell), so substituted values stay raw there. The body is rendered
+  // into HTML, so escape the substituted values to neutralize markup injection
+  // from per-recipient CRM fields like first_name.
   const subject = substitutePlaceholders(opts.subject, fullContext)
-  const body = substitutePlaceholders(opts.body, fullContext)
+  const body = substitutePlaceholders(opts.body, fullContext, { escape: true })
   const preheader = opts.preheader ? substitutePlaceholders(opts.preheader, fullContext) : undefined
 
   const html = brandedShell(body, {
@@ -78,7 +82,9 @@ export async function renderAndSend(opts: RenderEmailOptions) {
 
 export function renderHtml(body: string, opts: { preheader?: string; unsubscribeUrl?: string; context?: PlaceholderContext; hideUnsubscribe?: boolean }) {
   const ctx = opts.context || {}
-  const expandedBody = substitutePlaceholders(body, ctx)
+  // Escape values in the HTML body; leave the preheader raw since brandedShell
+  // HTML-escapes it.
+  const expandedBody = substitutePlaceholders(body, ctx, { escape: true })
   const expandedPreheader = opts.preheader ? substitutePlaceholders(opts.preheader, ctx) : undefined
   return brandedShell(expandedBody, {
     preheader: expandedPreheader,

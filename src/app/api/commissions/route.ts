@@ -1,6 +1,7 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
+import { escapeHtml } from '@/lib/email/escape'
 import { upsertContact } from '@/lib/crm/contacts'
 import { signBucketUrls } from '@/lib/storage/signed'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -45,11 +46,12 @@ export async function POST(request: Request) {
     ? reference_images.filter((u: unknown): u is string => typeof u === 'string').slice(0, 20)
     : []
 
-  const supabase = await createClient()
+  // The commissions insert runs on the service-role client: anon INSERT is
+  // revoked and the public submitter doesn't need to read the row back (no
+  // .select()). The route is the rate-limited, input-validated trust boundary.
+  const svc = await createServiceClient()
 
-  // No .select() here — RLS only allows admins to SELECT commissions,
-  // and the public submitter doesn't need to read back the inserted row.
-  const { error } = await supabase
+  const { error } = await svc
     .from('commissions')
     .insert({
       client_name,
@@ -79,8 +81,7 @@ export async function POST(request: Request) {
         phone: client_phone || null,
         source: 'commission_request',
         listSlug: 'contact-form',
-      },
-      supabase
+      }
     )
   } catch (err) {
     console.error('Commission CRM upsert failed:', err)
@@ -99,16 +100,16 @@ export async function POST(request: Request) {
     : ''
   const html = brandedShell(
     `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New Commission Request</h2>
-     <p style="margin:0 0 12px;color:#666;font-size:14px;">From <strong>${client_name}</strong> &lt;${client_email}&gt;</p>
+     <p style="margin:0 0 12px;color:#666;font-size:14px;">From <strong>${escapeHtml(client_name)}</strong> &lt;${escapeHtml(client_email)}&gt;</p>
      <ul style="padding-left:18px;color:#444;font-size:14px;line-height:1.6;">
-       <li><strong>Phone:</strong> ${client_phone || 'Not provided'}</li>
-       <li><strong>Medium:</strong> ${preferred_medium || 'Not specified'}</li>
-       <li><strong>Size:</strong> ${preferred_size || 'Not specified'}</li>
-       <li><strong>Budget:</strong> ${budget_range || 'Not specified'}</li>
-       <li><strong>Timeline:</strong> ${timeline || 'Not specified'}</li>
+       <li><strong>Phone:</strong> ${escapeHtml(client_phone) || 'Not provided'}</li>
+       <li><strong>Medium:</strong> ${escapeHtml(preferred_medium) || 'Not specified'}</li>
+       <li><strong>Size:</strong> ${escapeHtml(preferred_size) || 'Not specified'}</li>
+       <li><strong>Budget:</strong> ${escapeHtml(budget_range) || 'Not specified'}</li>
+       <li><strong>Timeline:</strong> ${escapeHtml(timeline) || 'Not specified'}</li>
      </ul>
      <p style="margin-top:16px;"><strong>Description</strong></p>
-     <p style="color:#444;font-size:14px;line-height:1.6;">${description}</p>
+     <p style="color:#444;font-size:14px;line-height:1.6;">${escapeHtml(description)}</p>
      ${refsHtml}`,
     { hideUnsubscribe: true, preheader: `Commission request from ${client_name}` }
   )

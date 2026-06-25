@@ -1,7 +1,7 @@
 // dotwin-allow:public-write — public class checkout (input validated + rate-limited). Authored by DotWin.
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -40,9 +40,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // Atomic capacity check + booking insert. book_class_session locks the
   // session row FOR UPDATE so two concurrent buyers cannot oversell the last
-  // seat (replaces the prior count-then-insert TOCTOU race). (B-10)
+  // seat (replaces the prior count-then-insert TOCTOU race). (B-10) The RPC is
+  // SECURITY DEFINER and EXECUTE-able only by service_role, so it runs on the
+  // service-role client; the route is the rate-limited trust boundary.
+  const svc = await createServiceClient()
   const bookingId = crypto.randomUUID()
-  const { data: bookResult, error: bookErr } = await supabase.rpc('book_class_session', {
+  const { data: bookResult, error: bookErr } = await svc.rpc('book_class_session', {
     p_session_id: session.id,
     p_booking_id: bookingId,
     p_name: body.name,

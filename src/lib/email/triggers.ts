@@ -14,6 +14,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from './send'
 import { brandedShell, ctaButton, discountCallout } from './shell'
+import { escapeHtml } from './escape'
 import { buildUnsubscribeUrl } from './unsubscribe'
 import { isSuppressed } from './suppression'
 import { upsertContact } from '@/lib/crm/contacts'
@@ -133,8 +134,7 @@ export async function sendWelcomeEmail(
     let contactId = options?.contactId ?? null
     if (!contactId) {
       const c = await upsertContact(
-        { email: normalizedEmail, firstName: name ?? null, source: 'newsletter', listSlug: 'newsletter' },
-        supabase
+        { email: normalizedEmail, firstName: name ?? null, source: 'newsletter', listSlug: 'newsletter' }
       )
       contactId = c?.id ?? null
     }
@@ -146,7 +146,9 @@ export async function sendWelcomeEmail(
     if (await alreadySent(supabase, dedupeKey)) return
 
     const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
-    const greetingName = firstNameOrFriend(name)
+    // greetingName is user-supplied (signup name) and only ever rendered into
+    // HTML bodies / content_html below, so escape it at the source.
+    const greetingName = escapeHtml(firstNameOrFriend(name))
 
     // Prefer the admin-managed automation; fall back to the built-in template.
     const loaded = await loadAutomation(supabase, 'welcome')
@@ -265,8 +267,7 @@ export async function sendPostPurchaseEmail(
     let contactId = options?.contactId ?? null
     if (!contactId) {
       const c = await upsertContact(
-        { email: normalizedEmail, firstName: options?.name ?? null, source: 'order' },
-        supabase
+        { email: normalizedEmail, firstName: options?.name ?? null, source: 'order' }
       )
       contactId = c?.id ?? null
     }
@@ -276,7 +277,8 @@ export async function sendPostPurchaseEmail(
     if (await isSuppressed({ contactId, email: normalizedEmail }, supabase)) return
 
     const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
-    const greetingName = firstNameOrFriend(options?.name)
+    // greetingName is user-supplied and only rendered into HTML below — escape it.
+    const greetingName = escapeHtml(firstNameOrFriend(options?.name))
     const shortOrder = orderId.slice(0, 8).toUpperCase()
 
     const loaded = await loadAutomation(supabase, 'post-purchase')

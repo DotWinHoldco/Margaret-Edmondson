@@ -52,6 +52,6 @@ export async function PATCH(request: NextRequest) {
   // Cascade: the site default is the lowest-priority margin — changing it
   // re-prices every variant that inherits it (no category/product/variant override).
   let repriced = 0
-  if (marginChanged) repriced = await recomputeAllVariantPrices(supabase)
+  if (marginChanged) repriced = await recomputeAllVariantPrices()
   return Response.json({ data, repriced })
 }

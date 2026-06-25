@@ -1,12 +1,14 @@
 // dotwin-allow:public-write — public funnel analytics event (input validated + rate-limited). Authored by DotWin.
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 // Public endpoint that the funnel landing page calls to increment the
 // view / add_to_cart / purchase counters on artwork_funnels. The RLS
 // policy on artwork_funnels gates UPDATE to admins, so we route through
 // a SECURITY DEFINER RPC (increment_funnel_metric) that performs the
-// narrow update without exposing UPDATE rights to the public.
+// narrow update without exposing UPDATE rights to the public. The RPC is
+// EXECUTE-able only by service_role, so it is invoked with the service-role
+// client; the route is the rate-limited trust boundary.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -28,8 +30,8 @@ export async function POST(
     return Response.json({ error: 'metric must be views|add_to_cart|purchase' }, { status: 400 })
   }
 
-  const supabase = await createClient()
-  const { error } = await supabase.rpc('increment_funnel_metric', {
+  const svc = await createServiceClient()
+  const { error } = await svc.rpc('increment_funnel_metric', {
     p_funnel_id: id,
     p_metric: body.metric,
   })

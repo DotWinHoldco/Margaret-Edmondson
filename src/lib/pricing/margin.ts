@@ -10,6 +10,7 @@
  * resolves the *effective product default* (the number passed to that fn).
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export const SITE_MARGIN_FALLBACK = 100
 
@@ -53,19 +54,26 @@ export async function getEffectiveProductMargin(sb: SupabaseClient, productId: s
  * stored Lumaprints cost for every non-manual-override variant. Skips manual
  * price overrides. No Lumaprints call. Returns the number of variants updated.
  */
-export async function recomputeProductVariantPrices(sb: SupabaseClient, productId: string): Promise<number> {
+// reprice_variants is SECURITY DEFINER and EXECUTE-able only by
+// service_role (revoked from anon/authenticated), so these wrappers
+// invoke it with the service-role client. Callers are admin routes
+// already gated by requireAdmin().
+export async function recomputeProductVariantPrices(productId: string): Promise<number> {
+  const sb = await createServiceClient()
   const { data } = await sb.rpc('reprice_variants', { p_product: productId, p_category: null })
   return Number(data ?? 0)
 }
 
 /** Reprice every product in a category (used when a category's default margin changes). */
-export async function recomputeCategoryVariantPrices(sb: SupabaseClient, categoryId: string): Promise<number> {
+export async function recomputeCategoryVariantPrices(categoryId: string): Promise<number> {
+  const sb = await createServiceClient()
   const { data } = await sb.rpc('reprice_variants', { p_product: null, p_category: categoryId })
   return Number(data ?? 0)
 }
 
 /** Reprice every variant in the catalog (used when the site-wide default margin changes). */
-export async function recomputeAllVariantPrices(sb: SupabaseClient): Promise<number> {
+export async function recomputeAllVariantPrices(): Promise<number> {
+  const sb = await createServiceClient()
   const { data } = await sb.rpc('reprice_variants', { p_product: null, p_category: null })
   return Number(data ?? 0)
 }
