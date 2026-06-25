@@ -215,12 +215,14 @@ grant execute on function public.reserve_original(uuid) to service_role;
 -- promo_codes: any signed-in user could read every code (and the contact email in
 -- description). Validation runs via the service-role RPC, so restrict read to admins.
 drop policy if exists "Authenticated can read promo_codes" on public.promo_codes;
+drop policy if exists promo_codes_admin_read on public.promo_codes;
 create policy promo_codes_admin_read on public.promo_codes
   for select to authenticated using (public.is_admin_or_artist());
 
 -- site_settings: USING(true) exposed internal config (margin %, tax, order-notification
 -- email) to anon. The server reads via the service-role client; restrict RLS read to admins.
 drop policy if exists site_settings_read on public.site_settings;
+drop policy if exists site_settings_admin_read on public.site_settings;
 create policy site_settings_admin_read on public.site_settings
   for select to authenticated using (public.is_admin_or_artist());
 
