@@ -233,7 +233,7 @@ The docs are inconsistent about whether sizes are integers or decimals:
 | `getOrder` | `GET /api/v1/stores/{STORE_ID}/orders/{orderNumber}` | `GET /api/v1/orders/{orderNumber}` | ❌ wrong path |
 | `getShipments` | `GET /api/v1/stores/{STORE_ID}/shipments/{orderNumber}` | `GET /api/v1/shipments/{orderNumber}` | ❌ wrong path |
 
-> The three ❌ rows are why orders can't be fulfilled today; the `submitOrder` row is also where custom `width`/`height` must be added. Fixes are specified in the build prompt (`docs/claude-code/product-builder-and-ordering.md`, Phase 6). The `getProductsCost` ✅ row is the live custom-size price source the build wires into variant pricing.
+> The three ❌ rows are why orders can't be fulfilled today; the `submitOrder` row is also where custom `width`/`height` must be added. Fixes are specified in the build prompt (`audit/PRODUCT-BUILDER-AND-ORDERING-PLAN.md`, Phase 6). The `getProductsCost` ✅ row is the live custom-size price source the build wires into variant pricing.
 
 ## What the custom-size goal *requires*, in one place
 
