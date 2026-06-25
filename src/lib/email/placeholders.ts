@@ -2,6 +2,8 @@
 // Tokens look like {{first_name}}. Unknown tokens collapse to '' so a
 // missing variable never leaks "{{...}}" to the recipient.
 
+import { escapeHtml } from './escape'
+
 export interface PlaceholderContext {
   first_name?: string | null
   last_name?: string | null
@@ -18,9 +20,18 @@ export interface PlaceholderContext {
 
 const TOKEN_RE = /\{\{\s*([a-z0-9_]+)\s*\}\}/gi
 
+export interface SubstituteOptions {
+  // HTML-escape each substituted VALUE (not the template itself) so a CRM
+  // field such as a first name cannot inject markup into an email HTML body.
+  // Leave off for plain-text contexts like subject lines and preheaders,
+  // where escaping would corrupt characters such as '&' (e.g. "Tom & Jerry").
+  escape?: boolean
+}
+
 export function substitutePlaceholders(
   template: string,
-  ctx: PlaceholderContext
+  ctx: PlaceholderContext,
+  options: SubstituteOptions = {}
 ): string {
   const enriched: PlaceholderContext = {
     site_url: process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio',
@@ -35,7 +46,7 @@ export function substitutePlaceholders(
   return template.replace(TOKEN_RE, (_match, key: string) => {
     const v = enriched[key.toLowerCase()]
     if (v === null || v === undefined) return ''
-    return String(v)
+    return options.escape ? escapeHtml(v) : String(v)
   })
 }
 

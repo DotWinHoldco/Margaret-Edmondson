@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const AddressBody = z.object({
   label: z.string().trim().min(1, 'Label is required').max(80),
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return apiError('Authentication required', 401, 'UNAUTHORIZED')
+
+  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
+  if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, AddressBody)
   if (!parsed.ok) return parsed.response

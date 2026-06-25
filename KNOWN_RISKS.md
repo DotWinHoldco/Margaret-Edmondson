@@ -198,6 +198,27 @@ schema-not-in-git baseline (incl. `shared-files`).
 Required check: `npm run build-check`.
 Related tag: #harden-sprint-2026-06-25, #az-5, #az-3, #fin-2
 
+### Storage authorization hardening (2026-06-25, pt. 2)
+Severity: medium (resolved)
+Module: storage / RLS
+Description: A full `storage.objects` policy audit found broad "any authenticated user"
+over-grants coexisting with (or replacing) the admin-gated policies. Most significant:
+the PRIVATE `print-masters` bucket (high-res master scans — source IP) had
+`Auth can read/write/update/delete print-masters` open to every signed-in user — a
+non-admin could enumerate + download all 39 master files (verified live, then closed).
+Also `product-images` (`Authenticated users can upload/update/delete`) and `testimonials`
+(`Auth write testimonials bucket`) allowed any authenticated user to overwrite/delete
+catalog + testimonial images. FIXED by migration 2026062504: dropped the print-masters
+over-grants (admin-gated `Admin …` policies + service-role fulfillment path remain), and
+replaced the product-images/testimonials broad write with admin-gated `Admins manage …`
+policies. Migration 2026062503 also dropped the public-read SELECT policies on the four
+public buckets to stop anonymous object enumeration (public object URLs are unaffected) —
+this supersedes the previously-accepted "public bucket listing" item above.
+Verified (rolled-back, then applied): non-admin print-masters/product-images reads → 0;
+admin upload/delete path preserved via authenticated-admin + service-role clients.
+Required check: `npm run check:rls`, `npm run build-check`; advisor public_bucket_allows_listing clears.
+Related tag: #storage-authz-2026-06-25, #print-masters-ip
+
 ## Format
 
 ### Risk
