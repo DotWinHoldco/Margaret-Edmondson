@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
+import { escapeHtml } from '@/lib/email/escape'
 import { upsertContact } from '@/lib/crm/contacts'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { signBucketUrls } from '@/lib/storage/signed'
@@ -105,10 +106,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New class signup</h2>
      <p style="margin:0 0 6px;"><strong>Class:</strong> ${sessionLabel}</p>
      <p style="margin:0 0 6px;"><strong>Location:</strong> ${session.location_name}, ${session.location_address}</p>
-     <p style="margin:0 0 6px;"><strong>Name:</strong> ${body.name}</p>
-     <p style="margin:0 0 6px;"><strong>Email:</strong> ${body.email}</p>
-     <p style="margin:0 0 6px;"><strong>Phone:</strong> ${body.phone || '—'}</p>
-     <p style="margin:0 0 12px;"><strong>Notes:</strong> ${body.special_notes || '—'}</p>
+     <p style="margin:0 0 6px;"><strong>Name:</strong> ${escapeHtml(body.name)}</p>
+     <p style="margin:0 0 6px;"><strong>Email:</strong> ${escapeHtml(body.email)}</p>
+     <p style="margin:0 0 6px;"><strong>Phone:</strong> ${escapeHtml(body.phone) || '—'}</p>
+     <p style="margin:0 0 12px;"><strong>Notes:</strong> ${escapeHtml(body.special_notes) || '—'}</p>
      ${photoLinks ? `<p><strong>Pet photos:</strong></p><ul>${photoLinks}</ul>` : '<p><em>No pet photos uploaded.</em></p>'}
      <p style="margin-top:16px;color:#666;font-size:13px;">Mark the booking paid in admin once payment arrives.</p>`,
     { hideUnsubscribe: true, preheader: `Signup from ${body.name} for ${session.title}` }

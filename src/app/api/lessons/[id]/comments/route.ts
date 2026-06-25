@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 // GET /api/lessons/[id]/comments — list a lesson's comments with author names/avatars; enrolled students only.
 export async function GET(
@@ -86,6 +87,10 @@ export async function POST(
     if (!user) {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    // Per-user throttle so a single valid account can't spam comments.
+    const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'lesson-comment', key: user.id })
+    if (!rl.ok) return rateLimitResponse(rl)
 
     const body = await request.json()
     const { content, parent_id } = body

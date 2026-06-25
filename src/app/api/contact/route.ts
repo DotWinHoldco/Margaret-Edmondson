@@ -2,6 +2,7 @@ import { sendEmail } from '@/lib/email/send'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
+import { escapeHtml } from '@/lib/email/escape'
 
 // POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
@@ -38,10 +39,13 @@ export async function POST(request: Request) {
     console.error('Contact CRM upsert failed:', err)
   }
 
-  const safeName = String(name).replace(/[<>]/g, '')
-  const safeEmail = String(email).replace(/[<>]/g, '')
-  const safeSubject = String(subject || 'general').replace(/[<>]/g, '')
-  const safeMessage = String(message).replace(/[<>]/g, '').replace(/\n/g, '<br>')
+  // Escape every interpolated field for the HTML body; keep raw values for the
+  // plain-text subject line and the preheader (brandedShell escapes preheaders).
+  const rawSubject = subject || 'general'
+  const safeName = escapeHtml(name)
+  const safeEmail = escapeHtml(email)
+  const safeSubject = escapeHtml(rawSubject)
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>')
   const newsletterFlag = joinNewsletter ? '<p style="color:#3A7D7B;"><strong>This contact opted into the newsletter.</strong></p>' : ''
 
   const html = brandedShell(
@@ -51,12 +55,12 @@ export async function POST(request: Request) {
      <p><strong>Message:</strong></p>
      <p>${safeMessage}</p>
      ${newsletterFlag}`,
-    { hideUnsubscribe: true, preheader: `New contact from ${safeName}` }
+    { hideUnsubscribe: true, preheader: `New contact from ${name}` }
   )
 
   await sendEmail({
     to: 'hello@artbyme.studio',
-    subject: `[ArtByME Contact] ${safeSubject}: from ${safeName}`,
+    subject: `[ArtByME Contact] ${rawSubject}: from ${name}`,
     html,
     replyTo: email,
   })

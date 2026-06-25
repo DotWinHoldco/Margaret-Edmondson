@@ -1,14 +1,22 @@
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { timingSafeEqualStr } from '@/lib/auth/timing-safe'
 import { headers } from 'next/headers'
 
 // POST /api/fulfillment/submit — route an order's items to their fulfillment providers; cron-only (CRON_SECRET) or admin only.
 export async function POST(request: Request) {
   // Authorize: internal cron (x-cron-secret) OR an authenticated admin/artist
   // session (the admin UI re-fires fulfillment without the cron secret).
+  const cronSecret = process.env.CRON_SECRET
+  // Fail closed: a missing/empty secret must never authenticate a request.
+  if (!cronSecret || cronSecret.length === 0) {
+    console.error('CRON_SECRET is not set — refusing request (fail closed)')
+    return Response.json({ error: 'Cron not configured' }, { status: 503 })
+  }
+
   const headersList = await headers()
-  const secret = headersList.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  const secret = headersList.get('x-cron-secret') ?? ''
+  if (!timingSafeEqualStr(secret, cronSecret)) {
     const auth = await requireAdmin()
     if (!auth.ok) return auth.response
   }

@@ -176,6 +176,28 @@ Current status: open.
 Required fix: enable leaked-password protection in Supabase Auth settings (config, not a migration).
 Related tag: #auth-leaked-password
 
+### Security hardening sprint (2026-06-25)
+Severity: medium (resolved) / low (deferred)
+Module: email · API rate limiting · auth · money path · storage
+Description: Closed the application-hygiene backlog surfaced by the 2026-06-25 posture
+assessment. FIXED: (AZ-5) HTML injection in outbound emails — added `src/lib/email/escape.ts`
+`escapeHtml()` and escaped every user-origin value across commissions/contact/class-signup/
+Stripe-webhook/welcome/order-confirmation templates; per-user (user-id-keyed) rate limiting on
+the authenticated LMS endpoints `lessons/[id]/comments`, `lessons/[id]/progress`,
+`courses/[id]/enroll` (rate-limit helper extended with an explicit `key`); constant-time secret
+comparison via `src/lib/auth/timing-safe.ts` applied to `fulfillment/submit`,
+`fulfillment/retry/[itemId]`, `admin/revalidate`, the `gate` route, and `proxy.ts` (edge-safe
+inline compare); Stripe webhook resume idempotency now compares persisted vs expected
+order_items count (no partial-order on mid-loop crash); `testimonials` bucket bounded
+(migration 2026062502: 10 MB + image mime types).
+Current status: resolved in git; deploy + apply 2026062502.
+Deferred (low): per-user rate limits on `account/addresses` and `account/wishlist` writes
+(RLS-scoped to the user's own rows — self-churn only, no cross-user/cost impact); campaign
+`{{first_name}}` placeholder HTML escaping (self-only recipient render); the broader DB-8
+schema-not-in-git baseline (incl. `shared-files`).
+Required check: `npm run build-check`.
+Related tag: #harden-sprint-2026-06-25, #az-5, #az-3, #fin-2
+
 ## Format
 
 ### Risk

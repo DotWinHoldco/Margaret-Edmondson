@@ -1,4 +1,5 @@
 import { brandedShell, ctaButton, discountCallout } from './shell'
+import { escapeHtml } from './escape'
 import { getEmailFromLine } from '@/lib/settings/accessor'
 
 const RESEND_API = 'https://api.resend.com/emails'
@@ -70,7 +71,7 @@ export async function sendOrderConfirmation(
     .map(
       (i) =>
         `<tr>
-          <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;">${i.name}${i.variant ? `<br><span style="color: #888; font-size: 12px;">${i.variant}</span>` : ''}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;">${escapeHtml(i.name)}${i.variant ? `<br><span style="color: #888; font-size: 12px;">${escapeHtml(i.variant)}</span>` : ''}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">${i.quantity}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">$${i.price.toFixed(2)}</td>
         </tr>`
@@ -124,7 +125,7 @@ export async function sendWelcomeSubscriber(
   firstName?: string,
   options?: { discountCode?: string; percentOff?: number; expiresLabel?: string; unsubscribeUrl?: string }
 ) {
-  const greeting = firstName ? `Hi ${firstName},` : 'Welcome!'
+  const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Welcome!'
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
   const codeBlock = options?.discountCode && options.percentOff

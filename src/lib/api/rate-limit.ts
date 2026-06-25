@@ -14,6 +14,7 @@ export interface RateLimitConfig {
   limit: number       // max requests per window
   windowMs: number    // window length
   keyPrefix?: string  // e.g. 'commissions' (prevents collisions)
+  key?: string        // explicit bucket id (e.g. an authenticated user id); overrides the client IP
 }
 
 export interface RateLimitResult {
@@ -23,8 +24,10 @@ export interface RateLimitResult {
 }
 
 export function rateLimit(request: Request, config: RateLimitConfig): RateLimitResult {
-  const ip = clientIp(request)
-  const key = `${config.keyPrefix || 'default'}:${ip}`
+  // An explicit key (e.g. an authenticated user id) lets callers throttle
+  // per-account rather than per-IP; fall back to the client IP when absent.
+  const id = config.key ?? clientIp(request)
+  const key = `${config.keyPrefix || 'default'}:${id}`
   const now = Date.now()
   const bucket = buckets.get(key)
 

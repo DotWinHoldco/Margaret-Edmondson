@@ -3,6 +3,8 @@
 // automated (cart abandon, nurture), and one-off admin tests all pass
 // through this wrapper so the visual identity is consistent.
 
+import { escapeHtml } from './escape'
+
 interface ShellOptions {
   preheader?: string
   unsubscribeUrl?: string
@@ -60,12 +62,4 @@ export function ctaButton(href: string, label: string, accent: 'teal' | 'coral' 
   return `<div style="text-align:center;margin:28px 0;">
     <a href="${href}" style="display:inline-block;background:${bg};color:#fff;padding:14px 36px;text-decoration:none;border-radius:4px;font-size:14px;font-weight:600;">${escapeHtml(label)}</a>
   </div>`
-}
-
-function escapeHtml(s: string): string {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

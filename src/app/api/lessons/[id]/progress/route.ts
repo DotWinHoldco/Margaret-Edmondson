@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 // PATCH /api/lessons/[id]/progress — update the caller's completion/position for a lesson they are enrolled in; authenticated users.
 export async function PATCH(
@@ -15,6 +16,10 @@ export async function PATCH(
     if (!user) {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    // Per-user throttle so a single valid account can't hammer progress writes.
+    const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'lesson-progress', key: user.id })
+    if (!rl.ok) return rateLimitResponse(rl)
 
     const body = await request.json()
     const { is_completed, last_position_seconds } = body

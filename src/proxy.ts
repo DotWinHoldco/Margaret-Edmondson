@@ -3,6 +3,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const GATE_COOKIE = 'site-auth'
 
+// Constant-time string compare for the gate token. Inlined (not imported from
+// lib/auth/timing-safe) because this middleware runs in the edge runtime, where
+// node:crypto.timingSafeEqual is unavailable. Token and expected are both
+// fixed-length 64-char SHA-256 hex, so the length check leaks nothing.
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let mismatch = 0
+  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return mismatch === 0
+}
+
 async function expectedGateToken(secret: string) {
   const data = new TextEncoder().encode(secret)
   const digest = await crypto.subtle.digest('SHA-256', data)
@@ -36,7 +47,7 @@ async function gateCheck(request: NextRequest): Promise<NextResponse | null> {
 
   const token = request.cookies.get(GATE_COOKIE)?.value
   const expected = await expectedGateToken(password + secret)
-  if (token === expected) return null
+  if (token && constantTimeEqual(token, expected)) return null
 
   const url = request.nextUrl.clone()
   url.pathname = '/gate'

@@ -1,5 +1,6 @@
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 // POST /api/courses/[id]/enroll — enroll in a free course or start Stripe Checkout for a paid one; authenticated users.
 export async function POST(
@@ -30,6 +31,10 @@ export async function POST(
     if (!user) {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    // Per-user throttle so a single valid account can't hammer enrollment.
+    const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'course-enroll', key: user.id })
+    if (!rl.ok) return rateLimitResponse(rl)
 
     // Validate course exists and is published
     const { data: course, error: courseError } = await supabase
