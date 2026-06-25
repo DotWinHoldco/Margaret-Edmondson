@@ -8,6 +8,12 @@ import PixelScript from '@/components/marketing/PixelScript'
 import { createClient } from '@/lib/supabase/server'
 import { getAnnouncementBar, isMaintenanceMode } from '@/lib/settings/accessor'
 
+// The marketing chrome renders live, settings-driven state (announcement bar,
+// maintenance mode) per request. Site settings are now read via the service-role
+// client (no `cookies()` side effect), so mark the segment dynamic explicitly
+// rather than relying on that side effect to opt out of static prerendering.
+export const dynamic = 'force-dynamic'
+
 export default async function MarketingLayout({
   children,
 }: {

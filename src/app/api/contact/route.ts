@@ -1,6 +1,5 @@
 import { sendEmail } from '@/lib/email/send'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { createClient } from '@/lib/supabase/server'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
 
@@ -22,8 +21,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const supabase = await createClient()
-
   // Log every inbound contact to the CRM and tag with the contact-form list
   // (regardless of whether they opted into marketing).
   try {
@@ -35,8 +32,7 @@ export async function POST(request: Request) {
         source: 'contact_form',
         tags: ['contact-form'],
         listSlug: 'contact-form',
-      },
-      supabase
+      }
     )
   } catch (err) {
     console.error('Contact CRM upsert failed:', err)

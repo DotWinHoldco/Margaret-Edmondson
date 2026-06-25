@@ -203,7 +203,7 @@ export async function PATCH(
   // A margin or category change shifts the effective markup → re-price the
   // product's variants (skips manual overrides).
   if (productFields.default_margin_pct !== undefined || productFields.category_id !== undefined) {
-    await recomputeProductVariantPrices(supabase, id)
+    await recomputeProductVariantPrices(id)
   }
 
   if (before && hasProductChanges) {

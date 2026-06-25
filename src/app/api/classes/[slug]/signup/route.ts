@@ -53,9 +53,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   // Atomic capacity check + booking insert (locks the session row FOR UPDATE so
-  // concurrent signups cannot oversell the last seat). (B-10)
+  // concurrent signups cannot oversell the last seat). (B-10) book_class_session
+  // is SECURITY DEFINER and EXECUTE-able only by service_role, so it runs on the
+  // service-role client; the route is the rate-limited trust boundary.
+  const svc = await createServiceClient()
   const newId = crypto.randomUUID()
-  const { data: bookResult, error: bookErr } = await supabase.rpc('book_class_session', {
+  const { data: bookResult, error: bookErr } = await svc.rpc('book_class_session', {
     p_session_id: session.id,
     p_booking_id: newId,
     p_name: body.name,
@@ -88,15 +91,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         phone: body.phone || null,
         source: 'class_signup',
         listSlug: 'contact-form',
-      },
-      supabase
+      }
     )
   } catch (err) {
     console.error('Class signup CRM upsert failed:', err)
   }
 
   const notifyEmail =
-    (await getOrderNotificationEmail(supabase).catch(() => null)) ||
+    (await getOrderNotificationEmail().catch(() => null)) ||
     'margaret117art@gmail.com'
 
   const margaretHtml = brandedShell(

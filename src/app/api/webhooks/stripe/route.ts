@@ -229,7 +229,7 @@ async function handleCheckoutCompleted(
           const { sendEmail } = await import('@/lib/email/send')
           const { brandedShell, ctaButton } = await import('@/lib/email/shell')
           const notifyEmail =
-            (await getOrderNotificationEmail(supabase).catch(() => null)) ||
+            (await getOrderNotificationEmail().catch(() => null)) ||
             'margaret117art@gmail.com'
           const studentHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Your spot is confirmed</h2>
@@ -463,7 +463,6 @@ async function handleCheckoutCompleted(
             amountOffCents: discountCents,
             orderId: orderId as string,
           },
-          supabase,
         )
       }
     } catch (err) {
@@ -520,7 +519,7 @@ async function handleCheckoutCompleted(
     // Order notification to the studio owner (settings-driven, best-effort —
     // never blocks the money path).
     try {
-      const notifyEmail = await getOrderNotificationEmail(supabase)
+      const notifyEmail = await getOrderNotificationEmail()
       if (notifyEmail) {
         const { sendEmail } = await import('@/lib/email/send')
         const { brandedShell, ctaButton } = await import('@/lib/email/shell')
@@ -731,7 +730,6 @@ async function handleElementsPaymentSucceeded(
             amountOffCents: discountCents,
             orderId: orderId as string,
           },
-          supabase,
         )
       }
     } catch (err) {
@@ -786,7 +784,7 @@ async function handleElementsPaymentSucceeded(
 
     // Order notification to the studio owner (best-effort).
     try {
-      const notifyEmail = await getOrderNotificationEmail(supabase)
+      const notifyEmail = await getOrderNotificationEmail()
       if (notifyEmail) {
         const { sendEmail } = await import('@/lib/email/send')
         const { brandedShell, ctaButton } = await import('@/lib/email/shell')

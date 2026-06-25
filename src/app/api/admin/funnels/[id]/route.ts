@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { createServiceClient } from '@/lib/supabase/server'
 // GET /api/admin/funnels/[id] — fetch a funnel with its product, images, and variants; admin only.
 export async function GET(
   _request: Request,
@@ -50,9 +51,12 @@ export async function PATCH(
     if (!auth.ok) return auth.response
     const supabase = auth.supabase
 
-    // Handle view count increment separately via RPC-style
+    // Handle view count increment separately via RPC-style. increment_funnel_metric
+    // is EXECUTE-able only by service_role, so the privileged increment runs on the
+    // service-role client; this route is already requireAdmin-gated.
     if (body.views_count_increment) {
-      const { error: rpcError } = await supabase.rpc('increment_funnel_metric', { p_funnel_id: id, p_metric: 'views' })
+      const svc = await createServiceClient()
+      const { error: rpcError } = await svc.rpc('increment_funnel_metric', { p_funnel_id: id, p_metric: 'views' })
       if (rpcError) {
         // Fallback: fetch current count and increment
         const { data: current } = await supabase

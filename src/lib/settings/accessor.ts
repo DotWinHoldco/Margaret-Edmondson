@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 
 /**
  * Typed server-side accessor for the single `site_settings` row.
@@ -7,6 +6,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * `site_settings.id` is BOOLEAN and always `true`, so every read/write
  * targets `.eq('id', true)`. All of the Phase 4.5 configuration columns
  * live on this one row.
+ *
+ * This is a server-only accessor. Direct `anon` SELECT on `site_settings`
+ * is revoked (the row carries internal config such as margin %, tax, and
+ * the order-notification email), so reads always use the service-role
+ * client. The storefront renders these values server-side; the browser
+ * never reads the table directly.
  *
  * Reads are memoized per server instance with a 5-minute TTL so hot paths
  * (layout metadata, email send, shipping quotes) avoid a round trip on every
@@ -186,18 +191,15 @@ function normalize(row: Record<string, unknown> | null): SiteSettings {
 }
 
 /**
- * Read the site settings row. Pass an existing authed Supabase client to
- * reuse the caller's session/RLS context; otherwise a fresh server client is
- * created. Results are memoized for 5 minutes.
+ * Read the site settings row with the service-role client. Results are
+ * memoized for 5 minutes.
  */
-export async function getSiteSettings(
-  supabase?: SupabaseClient
-): Promise<SiteSettings> {
+export async function getSiteSettings(): Promise<SiteSettings> {
   const now = Date.now()
   if (cached && cached.expires > now) return cached.value
 
   try {
-    const client = supabase ?? (await createClient())
+    const client = await createServiceClient()
     const { data, error } = await client
       .from('site_settings')
       .select(SITE_SETTINGS_COLUMNS.join(', '))
@@ -222,47 +224,35 @@ export async function getSiteSettings(
 
 /* ─── Convenience single-value getters ─── */
 
-export async function getEmailFromLine(
-  supabase?: SupabaseClient
-): Promise<string> {
-  const s = await getSiteSettings(supabase)
+export async function getEmailFromLine(): Promise<string> {
+  const s = await getSiteSettings()
   const name = s.email_from_name || 'ArtByME'
   const address = s.email_from_address || 'hello@artbyme.studio'
   return `${name} <${address}>`
 }
 
-export async function getEmailFromAddress(
-  supabase?: SupabaseClient
-): Promise<string> {
-  const s = await getSiteSettings(supabase)
+export async function getEmailFromAddress(): Promise<string> {
+  const s = await getSiteSettings()
   return s.email_from_address || 'hello@artbyme.studio'
 }
 
-export async function getBusinessEmail(
-  supabase?: SupabaseClient
-): Promise<string> {
-  const s = await getSiteSettings(supabase)
+export async function getBusinessEmail(): Promise<string> {
+  const s = await getSiteSettings()
   return s.business_email || 'hello@artbyme.studio'
 }
 
-export async function getOrderNotificationEmail(
-  supabase?: SupabaseClient
-): Promise<string | null> {
-  const s = await getSiteSettings(supabase)
+export async function getOrderNotificationEmail(): Promise<string | null> {
+  const s = await getSiteSettings()
   return s.order_notification_email || null
 }
 
-export async function isMaintenanceMode(
-  supabase?: SupabaseClient
-): Promise<boolean> {
-  const s = await getSiteSettings(supabase)
+export async function isMaintenanceMode(): Promise<boolean> {
+  const s = await getSiteSettings()
   return s.maintenance_mode === true
 }
 
-export async function getAnnouncementBar(
-  supabase?: SupabaseClient
-): Promise<{ enabled: boolean; text: string | null }> {
-  const s = await getSiteSettings(supabase)
+export async function getAnnouncementBar(): Promise<{ enabled: boolean; text: string | null }> {
+  const s = await getSiteSettings()
   return {
     enabled: s.announcement_bar_enabled === true && !!s.announcement_bar_text,
     text: s.announcement_bar_text,

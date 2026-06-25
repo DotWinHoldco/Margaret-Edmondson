@@ -1,4 +1,4 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 import { upsertContact } from '@/lib/crm/contacts'
@@ -45,11 +45,12 @@ export async function POST(request: Request) {
     ? reference_images.filter((u: unknown): u is string => typeof u === 'string').slice(0, 20)
     : []
 
-  const supabase = await createClient()
+  // The commissions insert runs on the service-role client: anon INSERT is
+  // revoked and the public submitter doesn't need to read the row back (no
+  // .select()). The route is the rate-limited, input-validated trust boundary.
+  const svc = await createServiceClient()
 
-  // No .select() here — RLS only allows admins to SELECT commissions,
-  // and the public submitter doesn't need to read back the inserted row.
-  const { error } = await supabase
+  const { error } = await svc
     .from('commissions')
     .insert({
       client_name,
@@ -79,8 +80,7 @@ export async function POST(request: Request) {
         phone: client_phone || null,
         source: 'commission_request',
         listSlug: 'contact-form',
-      },
-      supabase
+      }
     )
   } catch (err) {
     console.error('Commission CRM upsert failed:', err)

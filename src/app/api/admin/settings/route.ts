@@ -72,7 +72,7 @@ export async function GET() {
       .eq('page', 'global')
       .maybeSingle()
 
-    const settings = await getSiteSettings(supabase)
+    const settings = await getSiteSettings()
 
     return Response.json({
       integrations,
@@ -197,7 +197,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     clearSettingsCache()
-    const settings: SiteSettings = await getSiteSettings(supabase)
+    const settings: SiteSettings = await getSiteSettings()
 
     return Response.json({ success: true, settings })
   } catch {

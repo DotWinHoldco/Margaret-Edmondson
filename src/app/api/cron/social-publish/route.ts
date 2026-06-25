@@ -70,7 +70,7 @@ async function resolveOwnerEmail(
 
   // Last resort: the configured from-address (settings first, env fallback).
   try {
-    return await getEmailFromAddress(supabase)
+    return await getEmailFromAddress()
   } catch {
     const from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
     const match = from.match(/<([^>]+)>/)

@@ -1,11 +1,12 @@
-// Validate a promo code via the validate_promo_code_public RPC so
-// anon callers (the cart page) can check codes without granting
-// public SELECT on promo_codes. Admin callers use the same path so
-// the rules can never drift.
+// Validate a promo code via the validate_promo_code_public RPC. The RPC
+// is SECURITY DEFINER and EXECUTE-able only by service_role (revoked
+// from anon/authenticated), so this helper invokes it with the
+// service-role client. The route handler (cart / checkout) is the
+// rate-limited trust boundary; promo_codes is never readable or the
+// validator callable directly via PostgREST by an untrusted role.
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/types/database'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 type PromoCodeRow = Database['public']['Tables']['promo_codes']['Row']
 
@@ -36,13 +37,12 @@ interface RpcRow {
 
 export async function validateDiscountCode(
   rawCode: string,
-  opts: ValidateOptions,
-  supabaseClient?: SupabaseClient
+  opts: ValidateOptions
 ): Promise<ValidateResult> {
   const code = (rawCode || '').toUpperCase().trim()
   if (!code) return { ok: false, reason: 'empty' }
 
-  const supabase = supabaseClient ?? (await createClient())
+  const supabase = await createServiceClient()
 
   const { data, error } = await supabase.rpc('validate_promo_code_public', {
     p_code: code,
@@ -61,17 +61,16 @@ export async function validateDiscountCode(
   if (!row.ok) return { ok: false, reason: row.reason }
 
   // For Stripe coupon creation the checkout route still needs the
-  // full promo_codes row. Admins can SELECT directly; for anon at
-  // checkout we re-read via the RPC's confirmed code — but only
-  // admins reach the checkout route's full-row path.
+  // full promo_codes row; read it with the same service-role client
+  // (promo_codes is otherwise admin-only).
   const { data: full } = await supabase
     .from('promo_codes')
     .select('id, code, discount_type, discount_value, min_order_amount, usage_limit, usage_count, valid_from, valid_until, is_active, kind, audience_list_id, cart_id, contact_id, single_use_per_contact, description, created_by, stripe_coupon_id, created_at, updated_at')
     .eq('code', row.code as string)
     .maybeSingle()
 
-  // The full row read may return null for anon (no SELECT on
-  // promo_codes), so build a minimal row from the RPC response.
+  // Defensive: if the full row read returns null, build a minimal row
+  // from the RPC response.
   const minimalRow: PromoCodeRow = (full as PromoCodeRow) ?? ({
     id: '',
     code: row.code as string,

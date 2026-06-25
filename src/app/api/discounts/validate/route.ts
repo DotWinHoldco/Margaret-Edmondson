@@ -41,8 +41,7 @@ export async function POST(request: Request) {
 
   const result = await validateDiscountCode(
     code,
-    { contactId, email: email ?? null, cartId: cartId ?? null, cartSubtotal },
-    supabase
+    { contactId, email: email ?? null, cartId: cartId ?? null, cartSubtotal }
   )
 
   if (!result.ok) {

@@ -123,8 +123,7 @@ export async function POST(request: Request) {
           null,
           event.type,
           'resend_webhook',
-          { email: contact.email },
-          supabase
+          { email: contact.email }
         )
       } catch (err) {
         console.error('webhook unsubscribe failed', err)

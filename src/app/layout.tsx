@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Source_Sans_3, Caveat, Playfair_Display, Nunito, DM_Serif_Display, Lora, Dancing_Script } from "next/font/google";
 import { getSiteSettings } from "@/lib/settings/accessor";
-import { createServiceClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -72,7 +71,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let seoDescription: string | null = null;
   let ogImageUrl: string | null = null;
   try {
-    const settings = await getSiteSettings(await createServiceClient());
+    const settings = await getSiteSettings();
     seoTitle = settings.seo_title;
     seoDescription = settings.seo_description;
     ogImageUrl = settings.og_image_url;

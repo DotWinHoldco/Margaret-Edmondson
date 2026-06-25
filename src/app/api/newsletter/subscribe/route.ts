@@ -1,5 +1,5 @@
 // dotwin-allow:public-write — public newsletter signup (input validated + rate-limited). Authored by DotWin.
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { sendWelcomeEmail } from '@/lib/email/triggers'
 
@@ -27,11 +27,14 @@ export async function POST(request: Request) {
   }
 
   const normalizedEmail = email.toLowerCase().trim()
-  const supabase = await createClient()
+  // Privileged writes run on the service-role client. The subscribe RPC and
+  // the legacy mirror are EXECUTE/grant-restricted to service_role; the route
+  // is the rate-limited, input-validated trust boundary.
+  const svc = await createServiceClient()
 
   // Legacy mirror — keep newsletter_subscribers in sync for existing
   // consumers (CSV export, etc.).
-  const { error: legacyErr } = await supabase
+  const { error: legacyErr } = await svc
     .from('newsletter_subscribers')
     .upsert(
       { email: normalizedEmail, first_name: firstName ?? null, source: source ?? null },
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
   // join, and a single-use 24h 10% off code. The function is
   // SECURITY DEFINER so anon callers can mutate crm_contacts and
   // promo_codes without needing direct table grants.
-  const { data, error } = await supabase.rpc('subscribe_to_newsletter', {
+  const { data, error } = await svc.rpc('subscribe_to_newsletter', {
     p_email: normalizedEmail,
     p_first_name: firstName ?? null,
     p_source: source ?? 'unknown',

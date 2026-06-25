@@ -122,6 +122,60 @@ Required fix: add segment-level boundaries where a thrown error should not unmou
 Required check: judgment + manual review.
 Related tag: #com-7-error-boundaries
 
+### Data-exposure hardening (2026-06-25 adversarial audit)
+Severity: high (resolved-pending-apply)
+Module: Supabase RPC · RLS · API routes
+Description: A live adversarial data-exposure audit (`audit/data-exposure-audit-2026-06-25.md`)
+confirmed the customer PII/payment tables are RLS-protected, but eight issues at the direct
+PostgREST surface: anon/PUBLIC-EXECUTE on the SECURITY DEFINER RPCs (`track_cart` IDOR,
+`mark_contact_unsubscribed` zero-authz, `subscribe_to_newsletter`/`upsert_contact_to_list`
+oracles + writes, `validate_promo_code_public` enumeration, anon-callable `reprice_variants`),
+a `promo_codes` policy readable by any signed-in user, and `site_settings` `USING(true)`.
+Fix: privileged DB calls moved to the service-role client behind the route trust boundary;
+migration `2026062501_harden_data_exposure.sql` revokes EXECUTE from anon/authenticated on all
+sensitive definer functions, restricts `promo_codes`/`site_settings` reads to admins, drops the
+broad public INSERT policies, and hardens `track_cart`/`subscribe_to_newsletter`/`reprice_variants`
+bodies. Resolves the prior DB-3 (`reprice_variants` search_path + anon grant) and FIN-3 items.
+Current status: resolved in git; APPLY `2026062501` to prod, then re-run the audit probes
+(anon RPC EXECUTE → permission denied; `promo_codes`/`site_settings` → 0 rows to untrusted roles)
+and re-run `get_advisors(security)`.
+Required check: `npm run check:rls`, `npm run check:security`, `npm run build-check`; advisors clear.
+Related tag: #data-exposure-2026-06-25, #db-3, #fin-3
+
+### Public storage buckets allow object listing
+Severity: low (accepted)
+Module: storage
+Description: Supabase advisor `public_bucket_allows_listing` flags broad `storage.objects` SELECT
+policies on the public buckets `about-images`, `library`, `product-images`, `testimonials`,
+allowing filename enumeration. Contents are non-sensitive marketing/catalog images (the PII buckets
+`commission-references`, `class-pet-photos`, `print-masters`, `shared-files` are private). The
+listing policy is left in place because the admin media manager lists these buckets; removing it
+without repointing those reads to the service-role client would break listing.
+Current status: accepted; low impact (no sensitive payload).
+Required fix: narrow the public SELECT policies to per-object access after confirming admin `.list()`
+paths use the service-role client.
+Related tag: #storage-public-listing
+
+### ShipStation webhook secret transported as URL query param
+Severity: low (accepted; vendor-mandated)
+Module: webhooks / shipstation
+Description: `src/app/api/webhooks/shipstation/route.ts` receives its shared secret as `?secret=`
+(ShipStation's only mechanism) and compares it constant-time (`timingSafeEqual`). The secret can
+surface in access/proxy logs.
+Current status: accepted; ShipStation provides no header/signature option.
+Required fix: rotate the secret periodically; optionally add an IP allowlist; ensure the platform
+does not log query strings.
+Related tag: #shipstation-secret-query
+
+### Auth: leaked-password protection disabled
+Severity: low
+Module: auth
+Description: Supabase advisor `auth_leaked_password_protection` — HaveIBeenPwned check is off, so
+compromised passwords are accepted at signup/reset.
+Current status: open.
+Required fix: enable leaked-password protection in Supabase Auth settings (config, not a migration).
+Related tag: #auth-leaked-password
+
 ## Format
 
 ### Risk

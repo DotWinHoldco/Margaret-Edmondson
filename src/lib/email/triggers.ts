@@ -133,8 +133,7 @@ export async function sendWelcomeEmail(
     let contactId = options?.contactId ?? null
     if (!contactId) {
       const c = await upsertContact(
-        { email: normalizedEmail, firstName: name ?? null, source: 'newsletter', listSlug: 'newsletter' },
-        supabase
+        { email: normalizedEmail, firstName: name ?? null, source: 'newsletter', listSlug: 'newsletter' }
       )
       contactId = c?.id ?? null
     }
@@ -265,8 +264,7 @@ export async function sendPostPurchaseEmail(
     let contactId = options?.contactId ?? null
     if (!contactId) {
       const c = await upsertContact(
-        { email: normalizedEmail, firstName: options?.name ?? null, source: 'order' },
-        supabase
+        { email: normalizedEmail, firstName: options?.name ?? null, source: 'order' }
       )
       contactId = c?.id ?? null
     }
