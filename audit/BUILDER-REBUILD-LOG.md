@@ -113,3 +113,15 @@ Judgment calls / human notes (Phase 6):
 - **Recipient name**: the order's `shipping_address` (from Stripe) stores only the address, not a name, so `parseRecipient` falls back to `Customer`/`Customer` (same limitation as the old `parseShippingAddress`). Capturing the real recipient name end-to-end is a follow-up (webhook would need to persist `shipping_details.name`).
 - LumaPrints **default billing address** must be set in the dashboard or submit 400s ("Default billing address not set") — on the human action list.
 - Fractional width/height: the documented `/orders` schema accepts `number`; the builder mostly emits whole/quarter inches and the padded master guarantees the 1% rule. Confirm fractional acceptance in the sandbox dry-run (Phase 8.3).
+
+---
+
+## PHASE 7 — Status → portal → email — DONE (2026-06-25)
+
+- **7.1 LumaPrints webhook** — `webhooks/lumaprints/route.ts`: on `order.shipped`/`shipment.created`, after the order_items update it resolves the buyer email + canonical `orders.id` (`resolveOrderForReference`) and calls **`notifyShipped()`** (the previously-uncalled `sendShippingUpdate`, now wrapped replay-safe with a `shipped:<orderId>` dedupe in `triggers.ts`) + **`recomputeOrderStatus()`**. `order.delivered` also rolls up. Both calls are exception-safe so the webhook still returns 200.
+- **`recomputeOrderStatus(supabase, orderId)`** (`lib/fulfillment/order-status.ts`, new) — rolls `orders.status`: all delivered→`delivered`; all shipped/delivered→`shipped`; some→`partially_fulfilled`; else leave; never downgrades a cancelled/refunded order; reads ALL items for the order.
+- **7.2 Status-poll cron** `api/cron/lumaprints-status/route.ts` (CRON_SECRET-guarded, `runtime=nodejs`, added to `vercel.json` `*/30`): for `order_items` in `submitted`/`in_production` with an `external_order_id`, polls `getOrder()`, maps `orderStatus`→our status, pulls best-effort tracking from `getShipments()`, updates items, fires `notifyShipped` once (dedupe), and rolls up `orders.status`. Capped at 15 orders/run (≤2 calls each, under the 40 req/min limit) — deferred count is reported, not silently dropped. Backstops missed webhooks.
+- **7.3 Customer order detail** `account/orders/[id]/page.tsx` (new, auth-gated): ownership verified via the RLS session client, then items read via the service client (order_items aren't exposed to buyers via RLS — same pattern as the receipt). Shows each item (title, medium, real size, qty, price), per-item `fulfillment_status`, and carrier/tracking link; order totals + shipping address. The orders **list** rows now link to it.
+- **7.4** — `sendOrderConfirmation` + `sendPostPurchaseEmail` unchanged; the shipping email uses the built-in `sendShippingUpdate` template.
+- **Stats** — `ProjectHubClient` Public Pages 38→39, API Routes 134→135.
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.

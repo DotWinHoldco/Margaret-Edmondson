@@ -12,7 +12,7 @@
 // path or signup flow — we log and return.
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendEmail } from './send'
+import { sendEmail, sendShippingUpdate } from './send'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { buildUnsubscribeUrl } from './unsubscribe'
@@ -328,5 +328,31 @@ export async function sendPostPurchaseEmail(
     }
   } catch (err) {
     console.error('sendPostPurchaseEmail failed (suppressed):', err)
+  }
+}
+
+/**
+ * Replay-safe shipping notification. Wraps sendShippingUpdate with a
+ * `shipped:<orderId>` dedupe so the LumaPrints webhook + the status-poll cron
+ * can both fire it without double-sending. No-throw — a failure never breaks the
+ * webhook/cron (both must keep returning 200).
+ */
+export async function notifyShipped(
+  supabase: SupabaseClient,
+  args: { email: string; orderId: string; trackingUrl?: string | null },
+): Promise<void> {
+  try {
+    if (!args.email) return
+    const key = `shipped:${args.orderId}`
+    if (await alreadySent(supabase, key)) return
+    const result = await sendShippingUpdate(args.email, args.orderId, args.trackingUrl ?? undefined)
+    await recordSend(supabase, {
+      dedupeKey: key,
+      email: args.email,
+      resendMessageId: resendMessageId(result),
+      status: result ? 'sent' : 'failed',
+    })
+  } catch (err) {
+    console.error('notifyShipped failed (suppressed):', args.orderId, err)
   }
 }

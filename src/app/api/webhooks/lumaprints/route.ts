@@ -1,5 +1,27 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { createHmac, timingSafeEqual } from 'crypto'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
+import { notifyShipped } from '@/lib/email/triggers'
+
+// Resolve our canonical orders.id + buyer email from a LumaPrints order
+// reference. The reference is our order_items.external_order_id (the LumaPrints
+// order number); fall back to treating it as our orders.id directly.
+async function resolveOrderForReference(
+  supabase: SupabaseClient,
+  orderReference: string,
+): Promise<{ orderId: string; email: string | null }> {
+  const { data: oi } = await supabase
+    .from('order_items')
+    .select('order_id')
+    .eq('external_order_id', String(orderReference))
+    .eq('fulfillment_type', 'lumaprints')
+    .limit(1)
+    .maybeSingle()
+  const orderId = (oi?.order_id as string) ?? orderReference
+  const { data: order } = await supabase.from('orders').select('id, email').eq('id', orderId).maybeSingle()
+  return { orderId: (order?.id as string) ?? orderId, email: (order?.email as string | null) ?? null }
+}
 
 // ---------------------------------------------------------------------------
 // Signature verification
@@ -128,6 +150,12 @@ export async function POST(request: Request) {
       console.log(
         `Lumaprints order ${orderReference} shipped — tracking: ${trackingNumber}`,
       )
+
+      // Notify the buyer (replay-safe) + roll up orders.status. Both are
+      // exception-safe so the webhook still returns 200.
+      const { orderId, email } = await resolveOrderForReference(supabase, orderReference)
+      if (email) await notifyShipped(supabase, { orderId, email, trackingUrl: trackingUrl ?? undefined })
+      await recomputeOrderStatus(supabase, orderId)
       break
     }
 
@@ -141,6 +169,8 @@ export async function POST(request: Request) {
         .eq('external_order_id', String(orderReference))
         .eq('fulfillment_type', 'lumaprints')
 
+      const { orderId } = await resolveOrderForReference(supabase, orderReference)
+      await recomputeOrderStatus(supabase, orderId)
       break
     }
 

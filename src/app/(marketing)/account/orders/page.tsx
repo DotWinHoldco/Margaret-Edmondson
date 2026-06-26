@@ -63,7 +63,11 @@ export default async function OrdersPage() {
                 const color = statusColor[order.status] || 'bg-charcoal/10 text-charcoal/60'
 
                 return (
-                  <div key={order.id} className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 px-6 py-4">
+                  <Link
+                    key={order.id}
+                    href={`/account/orders/${order.id}`}
+                    className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 px-6 py-4 hover:bg-charcoal/[0.02] transition-colors"
+                  >
                     <div>
                       <span className="sm:hidden font-body text-xs text-charcoal/40 mr-2">Order:</span>
                       <span className="font-body text-sm font-medium text-charcoal">
@@ -93,7 +97,7 @@ export default async function OrdersPage() {
                         ${Number(order.total).toFixed(2)}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
