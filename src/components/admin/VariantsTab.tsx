@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import { MEDIUMS, mediumLabel, type Medium } from '@/lib/pricing/mediums'
-import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { customerPriceCents, grossMarginPct } from '@/lib/pricing/variant-pricing'
 import {
   aspectFromMaster,
   partnerDimension,
@@ -69,11 +69,6 @@ const TIER_NAME: Record<SizeTier, string> = { S: 'Small', M: 'Medium', L: 'Large
 function fmtCents(c: number | null | undefined): string {
   if (c == null) return '—'
   return `$${(c / 100).toFixed(2)}`
-}
-
-function grossMarginPct(priceCents: number, costCents: number, shipCents: number): number {
-  if (priceCents <= 0) return 0
-  return ((priceCents - costCents - shipCents) / priceCents) * 100
 }
 
 export default function VariantsTab({

@@ -128,3 +128,33 @@ Judgment calls / human notes (Phase 6):
 
 ### Money-path adversarial verification (Phase 6) — FIXED-FORWARD + documented
 A 3-lens adversarial review of the order path confirmed it correct + safe (null-safe snapshot, idempotency spine intact, contract-faithful submit). Cheap fixes applied in `harden(fulfillment)`: (A, medium) the Stripe ship-to **name** is now persisted in `shipping_address` in both webhook handlers, so LumaPrints/Printful no longer ship to "Customer Customer"; (B, low) `submitOrder` throws a clear error if `LUMAPRINTS_STORE_ID` is unset/non-numeric (was emitting `storeId:null` → 400); (C, low) `validateLumaprintsItem` now falls back to the live `variant.width_in/height_in` (added to the Variant select) when the snapshot is absent, matching its comment. Two pre-existing residuals documented in `KNOWN_RISKS.md` (#order-path-verify-2026-06-25): duplicate-order on **manual** retry of a `failed` print item (human caution to verify in the dashboard first), and stranded-`pending` items on a transient routing throw (needs a re-route sweep). Neither is release-blocking; both are pre-existing.
+
+---
+
+## PHASE 8 — Tests, gates, sandbox dry-run — DONE (2026-06-25)
+
+- **8.1 Unit/golden** — `test/order-path.test.ts` (11): `grossMarginPct` (now a shared pure export in `variant-pricing.ts`, refactored out of VariantsTab + lumaprints-cache), `customerPriceCents`, `recomputeOrderStatus` transitions (all-delivered/all-shipped/partial/none/terminal-guard/no-op), and the **`submitOrder` POST /api/v1/orders body shape** (asserts externalId, `storeId:42` as a number, recipient.zipCode, and each orderItem's externalItemId/subcategoryId/quantity/width/height/file.imageUrl/orderItemOptions; plus the STORE_ID guard throws instead of sending `storeId:null`). The size-tier golden tests (25) + `sizeDimensions` decimals are from Phase 2.
+- **8.2 Master crop quality** — extracted the pure crop transform to `scripts/lib/crop-transform.mjs` (worker now imports it); `test/master-crop.test.ts` (node env, 3): full_bleed → lossless deflate TIFF, exact crop dims, **DPI preserved**, original untouched; matte → aspect-preserving border; **losslessness** → the output crop pixel is byte-identical to the source pixel (no resample).
+- **8.3 Sandbox dry-run** — `scripts/lumaprints-sandbox-dryrun.mjs` written (HUMAN-GATED): refuses unless `LUMAPRINTS_BASE_URL` is the sandbox host, then prices a custom size, runs `checkImageConfig`, submits ONE order, reads it back, and saves to `audit/diag/`. **Not executed here** (needs sandbox keys + a public master URL) — operator runs it before authorizing the first production order.
+- **8.4 Final gate** — typecheck ✓, lint ✓ (0 errors), build ✓, `npm test` **130 passed / 6 skipped** (+14 this phase), advisors unchanged (2 pre-existing WARNs, **0 ERRORs, no new criticals**).
+
+---
+
+## Definition of done — verification
+
+- ✅ Legacy print variants gone (844 deleted; 22 originals preserved); each printable product can generate **draft** S/M/L defaults with real-dimension labels; Margaret can add aspect-locked **custom** variants (name + bidirectional height/width auto-fill), see live LumaPrints cost + gross margin, override price, and flip Draft→Live to publish.
+- ✅ Storefront shows live variants grouped by medium with true sizes; add-to-cart → checkout → the order reaches LumaPrints via the corrected `POST /api/v1/orders` with `width/height` + the padded master URL. (LumaPrints submit verified by the payload-shape test + the contract review; the actual sandbox order is the human dry-run.)
+- ✅ Order status + tracking flow to the customer (shipping email + `/account/orders/[id]`) and roll up to `orders.status`; the `lumaprints-status` cron backstops the webhook.
+- ✅ The master crop tool works server-side on full-res TIFFs (lossless, non-destructive, DPI-preserving — tested); originals preserved.
+- ✅ All existing functionality intact; `main` builds green; advisors show no new criticals.
+
+## Decisions & human action
+
+**What only a human can do (go-live gates):**
+1. Set/confirm in **Vercel**: `LUMAPRINTS_API_KEY` / `LUMAPRINTS_API_SECRET` / `LUMAPRINTS_STORE_ID` (+ a sandbox set), `LUMAPRINTS_WEBHOOK_SECRET`, and `CRON_SECRET`. Set the LumaPrints **default billing address** in the dashboard (submit 400s without it). Subscribe the `shipping` webhook to `/api/webhooks/lumaprints`.
+2. Per artwork: choose **full_bleed vs matte** and **crop the master once** (the editor's "Crop master / set print area"), then run the operator worker `node scripts/process-master-crop.mjs` to generate the print-ready master (`print_status` → ready).
+3. **Generate S/M/L** + add any custom sizes per product, **sign off the prices/margins**, and flip variants **Draft → Live**.
+4. Run `scripts/lumaprints-sandbox-dryrun.mjs` against the **sandbox**, confirm the order echoes the dimensions + a shipping-webhook simulation updates item status/`orders.status`/email/portal, THEN authorize the first **production** order. Keep Stripe in its current mode.
+5. Decide where the crop worker runs long-term (operator-run `scripts/` job vs a small always-on worker) — see Appendix A.
+
+**Carry-overs / residual risk (non-blocking):** the two `KNOWN_RISKS.md` items (#order-path-verify-2026-06-25); the dormant `site_settings.default_margin_pct=0.65` column-default landmine (live value is correct `100`); recipient name now persisted but only when Stripe collected it.

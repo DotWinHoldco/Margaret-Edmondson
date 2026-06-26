@@ -23,12 +23,12 @@ import * as tus from 'tus-js-client'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { applyMasterCrop } from './lib/crop-transform.mjs'
 
 sharp.cache(false)
 
 const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const BUCKET = 'print-masters'
-const MATTE_FRACTION = 0.05 // per-side border = 5% of each axis; preserves aspect
 const DIRECT_UPLOAD_MAX = 40 * 1024 * 1024 // <40MB → direct upload; else resumable
 
 // --- env (.env.local, no dotenv dep) ---
@@ -55,10 +55,6 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   process.exit(1)
 }
 const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
-
-function clampInt(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, Math.round(v)))
-}
 
 // Resumable (tus) upload of a file at `filePath` to BUCKET/`objectName`.
 function resumableUpload(filePath, objectName, contentType) {
@@ -111,44 +107,16 @@ async function processOne(m) {
     if (dlErr || !blob) throw new Error(`download failed: ${dlErr?.message || 'no data'}`)
     const srcBuf = Buffer.from(await blob.arrayBuffer())
 
-    const base = sharp(srcBuf, { limitInputPixels: false })
-    const meta = await base.metadata()
-    const W = m.width_px || meta.width
-    const H = m.height_px || meta.height
-    if (!W || !H) throw new Error('could not determine source dimensions')
-
-    // 2. Extract the crop region (fractions → integer pixels, clamped in-bounds).
-    const cb = m.crop_box
-    const left = clampInt(cb.x * W, 0, W - 1)
-    const top = clampInt(cb.y * H, 0, H - 1)
-    const width = clampInt(cb.w * W, 1, W - left)
-    const height = clampInt(cb.h * H, 1, H - top)
-
-    let pipeline = sharp(srcBuf, { limitInputPixels: false }).extract({ left, top, width, height })
-
-    let outW = width
-    let outH = height
-    // 3. Matte: uniform border (preserves the crop aspect), baked in border_color.
-    if (m.border_mode === 'matte') {
-      const bx = Math.round(width * MATTE_FRACTION)
-      const by = Math.round(height * MATTE_FRACTION)
-      pipeline = pipeline.extend({
-        top: by,
-        bottom: by,
-        left: bx,
-        right: bx,
-        background: m.border_color || '#ffffff',
-      })
-      outW = width + 2 * bx
-      outH = height + 2 * by
-    }
-
-    // 4. Lossless TIFF (deflate), DPI carried through (pure crop = no resample).
-    const dpi = m.dpi && m.dpi > 0 ? Math.round(m.dpi) : 300
-    const outBuf = await pipeline
-      .withMetadata({ density: dpi })
-      .tiff({ compression: 'deflate', predictor: 'horizontal' })
-      .toBuffer()
+    // 2-4. Extract crop → optional aspect-preserving matte → lossless TIFF
+    // (shared with the crop-quality test).
+    const { buffer: outBuf, width: outW, height: outH, dpi } = await applyMasterCrop(srcBuf, {
+      cropBox: m.crop_box,
+      borderMode: m.border_mode,
+      borderColor: m.border_color || '#ffffff',
+      dpi: m.dpi,
+      widthPx: m.width_px,
+      heightPx: m.height_px,
+    })
 
     // 5. Upload to print/<id>.tif (resumable for large output).
     const objectName = `print/${m.id}.tif`
@@ -167,7 +135,7 @@ async function processOne(m) {
       .eq('id', m.id)
 
     console.log(
-      `OK   ${label}: ${W}×${H} → crop ${width}×${height}${m.border_mode === 'matte' ? ` → matte ${outW}×${outH}` : ''} @${dpi}dpi, ${(outBuf.length / 1e6).toFixed(1)}MB via ${via} → ${objectName}`,
+      `OK   ${label}: print ${outW}×${outH}${m.border_mode === 'matte' ? ' (matte)' : ''} @${dpi}dpi, ${(outBuf.length / 1e6).toFixed(1)}MB via ${via} → ${objectName}`,
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

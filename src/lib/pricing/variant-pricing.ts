@@ -37,6 +37,16 @@ export function customerPriceCents(
 }
 
 /**
+ * True gross margin as a percent: (price − cost − shipping) / price. Returns 0
+ * for a non-positive price. This is the displayed margin (distinct from the
+ * markup `margin_pct` that drives `customerPriceCents`).
+ */
+export function grossMarginPct(priceCents: number, costCents: number, shippingCents: number): number {
+  if (priceCents <= 0) return 0
+  return ((priceCents - costCents - shippingCents) / priceCents) * 100
+}
+
+/**
  * Resolve a margin percent from various inputs to a finite number, with
  * `siteFallback` as the final defense. Useful at refresh time when a
  * product row's default_margin_pct may be null.

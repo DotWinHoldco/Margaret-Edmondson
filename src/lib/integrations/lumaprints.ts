@@ -182,9 +182,10 @@ export interface LumaPrintsOrderResponse {
  */
 export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOrderResponse> {
   const storeId = Number(STORE_ID)
-  if (!Number.isFinite(storeId)) {
-    // Guard: Number(undefined) is NaN, which JSON-serializes to null → 400.
-    throw new Error('LUMAPRINTS_STORE_ID is not configured (or not numeric) — cannot submit order')
+  if (!Number.isFinite(storeId) || storeId <= 0) {
+    // Guard: Number(undefined)=NaN (→null in JSON) and Number('')=0 are both
+    // invalid store ids and would 400 at submit.
+    throw new Error('LUMAPRINTS_STORE_ID is not configured (or not a positive number) — cannot submit order')
   }
   const body = {
     externalId: input.externalId,

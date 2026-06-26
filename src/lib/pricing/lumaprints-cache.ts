@@ -21,7 +21,7 @@ import {
 import { quoteWorstCaseCONUS } from '@/lib/pricing/shipping-quote'
 import { sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { getMediumConfig, type MediumConfig } from '@/lib/pricing/medium-config'
-import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { customerPriceCents, grossMarginPct } from '@/lib/pricing/variant-pricing'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { sizeLabel } from '@/lib/pricing/size-tiers'
 import { SizeOutOfBoundsError, LumaprintsUnavailableError } from '@/lib/pricing/pricing-errors'
@@ -251,9 +251,10 @@ export async function priceCustomVariant(
     },
     effectiveMargin,
   )
-  const grossMarginPct =
-    customerPrice_cents > 0
-      ? ((customerPrice_cents - cost_cents - shipping_cents) / customerPrice_cents) * 100
-      : 0
-  return { cost_cents, shipping_cents, customerPrice_cents, grossMarginPct }
+  return {
+    cost_cents,
+    shipping_cents,
+    customerPrice_cents,
+    grossMarginPct: grossMarginPct(customerPrice_cents, cost_cents, shipping_cents),
+  }
 }
