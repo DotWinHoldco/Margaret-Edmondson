@@ -291,7 +291,7 @@ interface CheckoutSession {
   customer_email: string
   // Guest checkouts (no pre-filled email) land the buyer's address here, not
   // on customer_email — Stripe collects it on the hosted checkout page.
-  customer_details?: { email?: string | null }
+  customer_details?: { name?: string | null; email?: string | null }
   metadata: {
     cart_id?: string
     course_id?: string
@@ -302,7 +302,7 @@ interface CheckoutSession {
     promo_code_id?: string
     promo_code?: string
   }
-  shipping_details?: { address: Record<string, string> }
+  shipping_details?: { name?: string; address: Record<string, string> }
   amount_total: number
   amount_subtotal?: number
   total_details?: { amount_discount?: number; amount_shipping?: number; amount_tax?: number }
@@ -487,7 +487,10 @@ async function handleCheckoutCompleted(
         discount: discountCents / 100,
         total: (session.amount_total || 0) / 100,
         promo_code: session.metadata.promo_code || null,
-        shipping_address: session.shipping_details?.address || {},
+        shipping_address: {
+          ...(session.shipping_details?.address || {}),
+          name: session.shipping_details?.name || session.customer_details?.name || '',
+        },
       })
       .select('id, total')
       .single()
@@ -734,9 +737,13 @@ async function handleElementsPaymentSucceeded(
     buyerEmail = 'unknown@artbyme.studio'
   }
 
-  // Same JSON shape the session branch stores (address object only).
-  const shippingAddress =
-    (pi.shipping?.address as unknown as Record<string, string> | undefined) || {}
+  // Same JSON shape the session branch stores — address + the ship-to name
+  // (the name is a sibling of the address on the PaymentIntent's shipping).
+  const piShipping = pi.shipping as { name?: string; address?: Record<string, string> } | null | undefined
+  const shippingAddress = {
+    ...((piShipping?.address as Record<string, string> | undefined) || {}),
+    name: piShipping?.name || '',
+  }
 
   let orderId = existingOrder?.id ?? null
   let orderTotal = existingOrder?.total ?? totalCents / 100

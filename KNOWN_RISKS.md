@@ -255,6 +255,40 @@ admin upload/delete path preserved via authenticated-admin + service-role client
 Required check: `npm run check:rls`, `npm run build-check`; advisor public_bucket_allows_listing clears.
 Related tag: #storage-authz-2026-06-25, #print-masters-ip
 
+### Duplicate LumaPrints order on manual retry of a `failed` print item
+
+Severity: P2 (money; manual-trigger only)
+Module: fulfillment (`src/lib/fulfillment/router.ts` retryFulfillmentForItem / submitToLumaprints)
+Description: If `submitOrder` throws AFTER LumaPrints actually created the order (lost response,
+DB write failure stamping `submitted`+`external_order_id`), the item is marked `failed` with a
+null `external_order_id`. A later **manual** admin retry re-claims the `failed` item and resubmits
+with the same top-level `externalId=orderId`. LumaPrints does not dedupe on `externalId` (only
+`externalItemId` is documented unique), so a second physical print+ship can result (double cost).
+Current status: ACCEPTED for now — pre-existing; the FIN-2 `submitting` pre-claim already makes the
+happy path exactly-once, and the only resubmit path today is a human-initiated retry (the new
+`lumaprints-status` cron polls status only, never resubmits). No auto-sweep resubmits `failed`
+items.
+Required fix (go-live): before resubmitting a `failed` (vs never-submitted `pending`) LumaPrints
+item, look up an existing order for `externalId` (list-by-store+date) and adopt its `orderNumber`,
+or gate auto-resubmission to `pending` only. **Human caution:** verify in the LumaPrints dashboard
+before manually retrying a failed print item.
+Related tag: #order-path-verify-2026-06-25
+
+### Transient routing throw can strand paid order items at zero fulfillment submissions
+
+Severity: P3
+Module: fulfillment / Stripe webhook (`routeOrderToFulfillment` invoked from `webhooks/stripe`)
+Description: `routeOrderToFulfillment` is wrapped in try/catch and the webhook still returns 200.
+Per-item failures are caught inside the router (items → `failed`, recoverable), but a throw BEFORE
+the provider loop (transient order/items fetch error) leaves items `pending` with no
+`external_order_id`. Stripe won't redeliver (already 200'd); a redelivery short-circuits on
+`fullyProcessed`; and the Phase 7 status cron keys on `external_order_id`, so it can't see a
+`pending` item. Net: rare transient → items stranded until manual `/api/fulfillment/submit`.
+Current status: ACCEPTED — pre-existing; near-zero frequency.
+Required fix: a periodic sweep that re-routes paid orders whose items are still `pending` past a
+grace window (claiming `pending` only, to avoid the duplicate-retry risk above).
+Related tag: #order-path-verify-2026-06-25
+
 ## Format
 
 ### Risk

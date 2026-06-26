@@ -181,9 +181,14 @@ export interface LumaPrintsOrderResponse {
  * Throws LumaprintsApiError (with .status) on a non-2xx — callers branch on 406.
  */
 export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOrderResponse> {
+  const storeId = Number(STORE_ID)
+  if (!Number.isFinite(storeId)) {
+    // Guard: Number(undefined) is NaN, which JSON-serializes to null → 400.
+    throw new Error('LUMAPRINTS_STORE_ID is not configured (or not numeric) — cannot submit order')
+  }
   const body = {
     externalId: input.externalId,
-    storeId: Number(STORE_ID),
+    storeId,
     shippingMethod: input.shippingMethod || 'default',
     productionTime: input.productionTime || 'regular',
     ...(input.specialInstructions ? { specialInstructions: input.specialInstructions } : {}),

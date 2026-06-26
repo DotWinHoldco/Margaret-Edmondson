@@ -68,6 +68,8 @@ interface Variant {
   fulfillment_metadata: Record<string, string> | null
   medium: string | null
   size_label: string | null
+  width_in: number | null
+  height_in: number | null
 }
 
 interface Product {
@@ -183,8 +185,8 @@ async function validateLumaprintsItem(
     return { ok: false, reason: `subcategory not set for medium "${medium}"` }
   }
 
-  const width = item.print_width_in
-  const height = item.print_height_in
+  const width = item.print_width_in ?? item.variant?.width_in ?? null
+  const height = item.print_height_in ?? item.variant?.height_in ?? null
   if (!width || width <= 0 || !height || height <= 0) {
     return { ok: false, reason: 'order_item print width/height missing or non-positive' }
   }
@@ -392,7 +394,9 @@ export async function routeOrderToFulfillment(
         external_variant_id,
         fulfillment_metadata,
         medium,
-        size_label
+        size_label,
+        width_in,
+        height_in
       )
     `)
     .eq('order_id', orderId)
@@ -619,7 +623,9 @@ export async function retryFulfillmentForItem(
         external_variant_id,
         fulfillment_metadata,
         medium,
-        size_label
+        size_label,
+        width_in,
+        height_in
       )
     `)
     .eq('id', itemId)
