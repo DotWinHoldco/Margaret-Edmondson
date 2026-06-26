@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { data, error } = await auth.supabase
     .from('product_variants')
     .select(
-      'id, product_id, medium, size_label, lumaprints_cost_cents, shipping_cost_cents, margin_override_pct, manual_price_override_cents, is_active, is_lumaprints_available, last_priced_at',
+      'id, product_id, name, medium, size_label, width_in, height_in, is_custom_size, size_tier, lumaprints_cost_cents, shipping_cost_cents, margin_override_pct, manual_price_override_cents, is_active, is_lumaprints_available, last_priced_at',
     )
     .eq('product_id', id)
     .not('medium', 'is', null)

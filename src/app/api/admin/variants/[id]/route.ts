@@ -9,6 +9,8 @@ const Patch = z.object({
   margin_override_pct: z.number().nullable().optional(),
   manual_price_override_cents: z.number().int().nonnegative().nullable().optional(),
   is_active: z.boolean().optional(),
+  // Custom-size variants can be renamed inline (e.g. "Life Size").
+  name: z.string().trim().min(1).max(120).optional(),
 })
 
 // PATCH /api/admin/variants/[id] — update a variant's margin/price overrides and recompute its price; admin only.

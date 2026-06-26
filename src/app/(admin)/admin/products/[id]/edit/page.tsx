@@ -12,7 +12,6 @@ import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } fr
 import ArrangeCollection from '../../ArrangeCollection'
 import CropModal from '@/components/admin/CropModal'
 import MasterCropModal from '@/components/admin/MasterCropModal'
-import { orientationForAspect } from '@/lib/pricing/mediums'
 import type { Medium } from '@/lib/pricing/mediums'
 
 interface MasterApiRow {
@@ -241,25 +240,6 @@ export default function EditProductPage({
   } | null>(null)
   const [showArtworkPicker, setShowArtworkPicker] = useState(false)
   const [showMasterCrop, setShowMasterCrop] = useState(false)
-  // Fallback orientation source: when the master artwork has no pixel
-  // dimensions (or none is attached), read the primary display image's natural
-  // aspect ratio so the variant builder can still recommend a shape.
-  const [primaryImageDims, setPrimaryImageDims] = useState<{ w: number; h: number } | null>(null)
-  useEffect(() => {
-    if (masterArtwork?.width_px && masterArtwork?.height_px) {
-      setPrimaryImageDims(null)
-      return
-    }
-    const primary = images.find((i) => i.is_primary) ?? images[0]
-    if (!primary?.url) {
-      setPrimaryImageDims(null)
-      return
-    }
-    const img = new window.Image()
-    img.onload = () => setPrimaryImageDims({ w: img.naturalWidth, h: img.naturalHeight })
-    img.onerror = () => setPrimaryImageDims(null)
-    img.src = primary.url
-  }, [images, masterArtwork])
 
   useEffect(() => {
     async function fetchData() {
@@ -327,6 +307,8 @@ export default function EditProductPage({
         const allVariants = product.product_variants as Array<{
           id: string; name: string; price: number; sku: string;
           medium: string | null; size_label: string | null;
+          width_in: number | null; height_in: number | null;
+          is_custom_size: boolean | null; size_tier: 'S' | 'M' | 'L' | null;
           lumaprints_cost_cents: number | null; shipping_cost_cents: number | null;
           margin_override_pct: number | null; manual_price_override_cents: number | null;
           is_active: boolean; is_lumaprints_available: boolean;
@@ -349,13 +331,18 @@ export default function EditProductPage({
             .map((v) => ({
               id: v.id,
               product_id: id,
+              name: v.name ?? null,
               medium: v.medium as Medium,
               size_label: v.size_label,
+              width_in: v.width_in ?? null,
+              height_in: v.height_in ?? null,
+              is_custom_size: v.is_custom_size ?? false,
+              size_tier: v.size_tier ?? null,
               lumaprints_cost_cents: v.lumaprints_cost_cents,
               shipping_cost_cents: v.shipping_cost_cents,
               margin_override_pct: v.margin_override_pct,
               manual_price_override_cents: v.manual_price_override_cents,
-              is_active: v.is_active ?? true,
+              is_active: v.is_active ?? false,
               is_lumaprints_available: v.is_lumaprints_available ?? true,
               last_priced_at: v.last_priced_at,
             })),
@@ -1179,12 +1166,22 @@ export default function EditProductPage({
             productDefaultMargin={effectiveMargin}
             variants={printVariants}
             mediumCatalog={mediumCatalog}
-            artworkOrientation={
-              masterArtwork?.width_px && masterArtwork?.height_px
-                ? orientationForAspect(masterArtwork.width_px, masterArtwork.height_px)
-                : primaryImageDims
-                  ? orientationForAspect(primaryImageDims.w, primaryImageDims.h)
-                  : null
+            master={
+              masterArtwork
+                ? {
+                    print_width_px: masterArtwork.print_width_px ?? null,
+                    print_height_px: masterArtwork.print_height_px ?? null,
+                    width_px: masterArtwork.width_px ?? null,
+                    height_px: masterArtwork.height_px ?? null,
+                    border_mode: masterArtwork.border_mode ?? null,
+                    print_status: masterArtwork.print_status ?? null,
+                  }
+                : null
+            }
+            onEditCrop={
+              masterArtwork && (images.find((i) => i.is_primary)?.url ?? images[0]?.url)
+                ? () => setShowMasterCrop(true)
+                : undefined
             }
           />
 

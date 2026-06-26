@@ -70,3 +70,21 @@ Judgment calls (Phase 1):
 - **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
 
 Note: the **price-preview endpoint** (Appendix C.5) is built in Phase 4 (it's the builder UI dependency); Phase 3 is the cache + helper it calls.
+
+---
+
+## PHASE 4 — Admin product builder rebuild — DONE (2026-06-25)
+
+- **Shared `buildPricedVariantRow()`** (`variant-insert.ts`) — factored bulk-create's priced-insert (byte-identical 24-key row: cents + mirrored legacy dollar cols + `fulfillment_metadata` snapshot) into one place; carries the new `is_custom_size`/`size_tier`/`aspect_ratio`/custom `name`/`is_active` fields + the `LEGACY_VARIANT_TYPE` map. `bulk-create` refactored onto it (passes `is_active:true` to preserve its semantics).
+- **`subcategory-bounds.ts`** — canvas-family bounds (5–120×5–52 @ 200 DPI) + generic fallback. UI hint only; the live products-cost API is the authoritative gate.
+- **`builder-context.ts`** — shared loader (product → master print px (prefers `print_*`, falls back to raw scan) → medium cfg → bounds), typed failures.
+- **4.1 generate-defaults** `POST …/variants/generate-defaults {medium}` — `deriveDefaultTiers` from the master's print px, prices each, inserts S/M/L as **DRAFT** (`is_active:false`, `is_custom_size:false`, `size_tier`, `aspect_ratio`, `name="Small — 12 × 9 in"`). Idempotent (skips existing); returns `droppedTiers` for the "Large skipped" toast.
+- **4.2 custom creator** `POST …/variants/custom {medium,name,width_in,height_in,...}` — server `validateCustomSize` guard (blocks bounds/resolution/aspect), inserts `is_custom_size:true`, `size_tier:null`, `aspect_ratio`, snapshot. Draft or Live.
+- **C.5 price-preview** `POST …/variants/price-preview {medium,width_in,height_in}` — returns validation flags + live cost/shipping/price/gross margin; typed `SIZE_OUT_OF_BOUNDS`/`LUMAPRINTS_UNAVAILABLE` rendered inline; no variant written.
+- **`[id]` PATCH** now also accepts `name` (inline custom rename).
+- **VariantsTab rebuilt** (Appendix C): master banner (print px, aspect, max-at-DPI, border, Edit-crop) with amber "no print master" gate; per-medium **Generate S/M/L** (primary until defaults exist) + **Add custom size** + **Refresh prices**; disabled mediums show "Run Lumaprints sync"; table = Live toggle / inline-editable label (custom) / size+tier badge / cost(+set-cost) / margin % / price(+✎ override ★) / color-coded gross margin / Duplicate + Delete. **CustomSizeModal**: aspect-locked Height↔Width auto-fill (`partnerDimension`), live ✓/✗ validation row (`validateCustomSize`, pure import), debounced price-preview panel, margin + manual-price override, **Save as Draft / Save & Publish** (blocked with reason on hard fail). Reuses the proven debounced-PATCH/reload/delete machinery; legacy AddVariantModal + orientation "Fix & generate" removed.
+- **Edit page**: `printVariants` mapper extended (name/width_in/height_in/is_custom_size/size_tier; new default = Draft); passes `master`{print px, border_mode, print_status} + `onEditCrop` (opens the Phase 1 crop modal). Removed the now-dead `primaryImageDims`/`orientationForAspect` fallback.
+- **4.4 stats** — `ProjectHubClient` API Routes 121 → **134** (actual `route.ts` count after the new endpoints).
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
+
+Resolves the adversarial-review [medium] `orientationForSize` finding: the rebuilt builder matches sizes by the master aspect (`validateCustomSize`/`partnerDimension`), not the tol-0 orientation bucket — no near-square false "mismatch"/deletion.
