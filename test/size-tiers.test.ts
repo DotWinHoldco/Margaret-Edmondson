@@ -155,6 +155,15 @@ describe('validateCustomSize — golden cases', () => {
     expect(check.reasons.join(' ')).toMatch(/height exceeds/i)
   })
 
+  it('FAILS closed when dpi is 0/unknown (never lets an oversize order through)', () => {
+    const check = validateCustomSize(
+      { widthIn: 40, heightIn: 40 },
+      { ratio: 1, bounds: CANVAS_BOUNDS, printPx: { width: 1000, height: 1000 }, dpi: 0 },
+    )
+    expect(check.ok).toBe(false)
+    expect(check.resolutionOk).toBe(false)
+  })
+
   it('FAILS an off-aspect request (does not match the artwork shape)', () => {
     // 4:3 master, ask for a 1:1 — 25% off, fails only on aspect.
     const check = validateCustomSize(
@@ -195,6 +204,14 @@ describe('deriveDefaultTiers', () => {
     expect(tiers.map((t) => t.tier)).toEqual(['S', 'L'])
     expect(tiers.find((t) => t.tier === 'S')).toMatchObject({ width_in: 12, height_in: 4 })
     expect(tiers.find((t) => t.tier === 'L')).toMatchObject({ width_in: 30, height_in: 10 })
+  })
+
+  it('picks the true longer pixel side for a near-square portrait master', () => {
+    // 9700×10000 is "square" within the 3% band but is genuinely portrait;
+    // tiers must put the long edge on HEIGHT (height ≥ width), not be dropped.
+    const tiers = deriveDefaultTiers(9700, 10000, CANVAS_BOUNDS, DPI)
+    expect(tiers.length).toBeGreaterThanOrEqual(2)
+    for (const t of tiers) expect(t.height_in).toBeGreaterThanOrEqual(t.width_in)
   })
 
   it('labels: machine size_label is parseable; display carries units', () => {

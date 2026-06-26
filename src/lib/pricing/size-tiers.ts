@@ -181,18 +181,24 @@ export function validateCustomSize(
     reasons.push(`${trimNum(heightIn)} in height is below this product's ${trimNum(bounds.minH)} in minimum.`)
   }
 
-  // 2. Resolution.
+  // 2. Resolution. dpi ≤ 0 means "no required DPI known" → fail closed (never
+  //    let an oversize order through to be rejected later at LumaPrints submit).
   const resolutionOk =
-    widthIn * dpi <= printPx.width + EPS && heightIn * dpi <= printPx.height + EPS
+    dpi > 0 && widthIn * dpi <= printPx.width + EPS && heightIn * dpi <= printPx.height + EPS
   if (!resolutionOk) {
     reasons.push(
       `Too large — your master only supports up to ${trimNum(maxWidthIn)}×${trimNum(maxHeightIn)} in at ${dpi} DPI. Use a smaller size or a higher-res master.`,
     )
   }
 
-  // 3. Aspect (1% rule).
+  // 3. Aspect (1% rule). Measure the delta against the SMALLER ratio so the gate
+  //    is conservative under either reading of LumaPrints' rule (deviation as a
+  //    percent of the image ratio vs of the ordered ratio) — validator-ok ⇒
+  //    LumaPrints-ok regardless. The disagreement band is sub-0.01% in practice.
   const orderedRatio = widthIn / heightIn
-  const aspectDeltaPct = ratio > 0 ? (Math.abs(orderedRatio - ratio) / ratio) * 100 : Number.POSITIVE_INFINITY
+  const aspectBase = Math.min(ratio, orderedRatio)
+  const aspectDeltaPct =
+    aspectBase > 0 ? (Math.abs(orderedRatio - ratio) / aspectBase) * 100 : Number.POSITIVE_INFINITY
   const aspectOk = aspectDeltaPct <= ASPECT_TOLERANCE * 100 + EPS
   if (!aspectOk) {
     reasons.push(
@@ -244,10 +250,12 @@ export function deriveDefaultTiers(
 ): DerivedTier[] {
   const longEdges = opts.longEdges ?? DEFAULT_TIER_LONG_EDGES
   const step = opts.step ?? DEFAULT_SIZE_STEP
-  const { ratio, orientation } = aspectFromMaster(printWidthPx, printHeightPx)
+  const { ratio } = aspectFromMaster(printWidthPx, printHeightPx)
 
-  // Long axis: portrait → height, landscape → width, square → width (either).
-  const longAxis: 'width' | 'height' = orientation === 'portrait' ? 'height' : 'width'
+  // Long axis = the genuinely longer pixel side (NOT the 3%-banded orientation),
+  // so a near-square portrait master isn't forced onto its short axis — which
+  // would derive a longer partner and needlessly drop a tier at the res ceiling.
+  const longAxis: 'width' | 'height' = printHeightPx >= printWidthPx ? 'height' : 'width'
 
   const out: DerivedTier[] = []
   const seen = new Set<string>()
@@ -270,7 +278,15 @@ export function deriveDefaultTiers(
     const label = sizeLabel(widthIn, heightIn)
     if (seen.has(label)) continue
     seen.add(label)
-    out.push({ tier, width_in: widthIn, height_in: heightIn, size_label: label, display: displaySize(widthIn, heightIn) })
+    // Store width_in/height_in at the same ≤4-decimal precision as the label so
+    // the numeric dims and the size_label can never desync.
+    out.push({
+      tier,
+      width_in: Number(widthIn.toFixed(4)),
+      height_in: Number(heightIn.toFixed(4)),
+      size_label: label,
+      display: displaySize(widthIn, heightIn),
+    })
   }
 
   return out
