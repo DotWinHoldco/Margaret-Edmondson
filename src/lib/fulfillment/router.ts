@@ -25,6 +25,7 @@ interface ProductImage {
 interface MasterArtwork {
   id: string
   storage_path: string
+  print_storage_path: string | null
   file_name: string
   mime_type: string
 }
@@ -105,7 +106,9 @@ async function mintLumaprintsImageUrl(product: Product): Promise<string> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!serviceKey || !supabaseUrl) return ''
 
-  const masterPath = product.master_artwork?.storage_path
+  // Prefer the cropped + aspect-padded print master (Phase 1), then the raw
+  // master scan, then the legacy per-image print master path.
+  const masterPath = product.master_artwork?.print_storage_path || product.master_artwork?.storage_path
   const legacyPath = product.product_images
     ?.slice()
     .sort((a: ProductImage, b: ProductImage) => a.position - b.position)
@@ -343,7 +346,7 @@ export async function routeOrderToFulfillment(
         printful_sync_product_id,
         master_artwork_id,
         master_artwork:master_artworks (
-          id, storage_path, file_name, mime_type
+          id, storage_path, print_storage_path, file_name, mime_type
         ),
         product_images ( url, position, print_master_path )
       ),
@@ -564,7 +567,7 @@ export async function retryFulfillmentForItem(
         printful_sync_product_id,
         master_artwork_id,
         master_artwork:master_artworks (
-          id, storage_path, file_name, mime_type
+          id, storage_path, print_storage_path, file_name, mime_type
         ),
         product_images ( url, position, print_master_path )
       ),

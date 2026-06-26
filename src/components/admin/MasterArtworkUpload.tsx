@@ -1,10 +1,43 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import * as tus from 'tus-js-client'
 import { createClient } from '@/lib/supabase/client'
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/tiff', 'application/pdf']
 const MAX_BYTES = 500 * 1024 * 1024 // 500MB — matches bucket limit
+// Above this, the plain client upload caps out — use a tus resumable upload
+// (multi-GB reliable). Smaller files keep the simpler direct upload.
+const RESUMABLE_THRESHOLD = 25 * 1024 * 1024
+
+// Resumable (tus) upload to Supabase Storage. RLS still applies because we send
+// the user's session access token, not the anon key.
+function resumableUpload(
+  supabaseUrl: string,
+  accessToken: string,
+  objectName: string,
+  file: File,
+  onProgress: (pct: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 1000, 3000, 5000],
+      headers: { authorization: `Bearer ${accessToken}`, 'x-upsert': 'false' },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: { bucketName: 'print-masters', objectName, contentType: file.type, cacheControl: '3600' },
+      chunkSize: 6 * 1024 * 1024, // Supabase requires a fixed 6MB chunk
+      onError: reject,
+      onProgress: (sent, total) => onProgress(total ? Math.round((sent / total) * 100) : 0),
+      onSuccess: () => resolve(),
+    })
+    upload.findPreviousUploads().then((prev) => {
+      if (prev.length) upload.resumeFromPreviousUpload(prev[0])
+      upload.start()
+    })
+  })
+}
 
 export interface UploadedArtwork {
   id: string
@@ -56,6 +89,7 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'idle' | 'uploading' | 'creating'>('idle')
+  const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
 
@@ -87,18 +121,30 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
     }
     setError(null)
     setStatus('uploading')
+    setProgress(null)
 
     const supabase = createClient()
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
     const rand = crypto.randomUUID()
     const path = `library/${rand}/${file.name}`
 
     try {
-      const { error: upErr } = await supabase.storage
-        .from('print-masters')
-        .upload(path, file, { contentType: file.type, upsert: false })
-      if (upErr) throw upErr
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
 
+      if (file.size >= RESUMABLE_THRESHOLD && token && supabaseUrl) {
+        // Large master → resumable upload (the plain client upload caps out).
+        setProgress(0)
+        await resumableUpload(supabaseUrl, token, path, file, setProgress)
+      } else {
+        // Small file (or no session token) → direct upload fallback.
+        const { error: upErr } = await supabase.storage
+          .from('print-masters')
+          .upload(path, file, { contentType: file.type, upsert: false })
+        if (upErr) throw upErr
+      }
+
+      setProgress(null)
       setStatus('creating')
       const dims = await readDimensions(file)
 
@@ -132,6 +178,7 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
       setStatus('idle')
+      setProgress(null)
     }
   }
 
@@ -217,9 +264,15 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
         <div className="rounded-md bg-teal/5 border border-teal/20 px-3 py-2">
           <p className="font-body text-sm text-deep-teal">
             Uploading {file ? formatBytes(file.size) : ''} to storage…
+            {progress !== null && <span className="font-medium"> {progress}%</span>}
           </p>
+          {progress !== null && (
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-teal/15">
+              <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          )}
           <p className="mt-0.5 font-body text-[11px] text-charcoal/55">
-            Large files can take several minutes — keep this tab open.
+            Large files use a resumable upload — keep this tab open.
           </p>
         </div>
       )}

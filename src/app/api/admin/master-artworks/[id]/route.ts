@@ -16,6 +16,9 @@ export async function GET(
     .select(
       `id, title, description, storage_path, file_name, file_size_bytes,
        mime_type, width_px, height_px, dpi, created_at, updated_at,
+       crop_box, print_storage_path, print_width_px, print_height_px,
+       border_mode, border_color, print_updated_at, print_status,
+       print_requested_at, print_error,
        used_by:products(id, title, slug, status)`,
     )
     .eq('id', id)

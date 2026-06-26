@@ -11,8 +11,46 @@ import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
 import ArrangeCollection from '../../ArrangeCollection'
 import CropModal from '@/components/admin/CropModal'
+import MasterCropModal from '@/components/admin/MasterCropModal'
 import { orientationForAspect } from '@/lib/pricing/mediums'
 import type { Medium } from '@/lib/pricing/mediums'
+
+interface MasterApiRow {
+  id: string
+  title: string
+  file_name: string
+  file_size_bytes?: number | null
+  mime_type?: string | null
+  width_px?: number | null
+  height_px?: number | null
+  crop_box?: { x: number; y: number; w: number; h: number } | null
+  border_mode?: 'full_bleed' | 'matte' | null
+  border_color?: string | null
+  print_status?: string | null
+  print_storage_path?: string | null
+  print_width_px?: number | null
+  print_height_px?: number | null
+}
+
+// Normalize a master-artworks API row to the editor's masterArtwork state shape.
+function mapMaster(d: MasterApiRow) {
+  return {
+    id: d.id,
+    title: d.title,
+    file_name: d.file_name,
+    file_size_bytes: d.file_size_bytes ?? 0,
+    mime_type: d.mime_type ?? '',
+    width_px: d.width_px ?? null,
+    height_px: d.height_px ?? null,
+    crop_box: d.crop_box ?? null,
+    border_mode: d.border_mode ?? null,
+    border_color: d.border_color ?? null,
+    print_status: d.print_status ?? null,
+    print_storage_path: d.print_storage_path ?? null,
+    print_width_px: d.print_width_px ?? null,
+    print_height_px: d.print_height_px ?? null,
+  }
+}
 
 function MasterFooter({
   productId,
@@ -193,8 +231,16 @@ export default function EditProductPage({
     mime_type: string
     width_px: number | null
     height_px: number | null
+    crop_box?: { x: number; y: number; w: number; h: number } | null
+    border_mode?: 'full_bleed' | 'matte' | null
+    border_color?: string | null
+    print_status?: string | null
+    print_storage_path?: string | null
+    print_width_px?: number | null
+    print_height_px?: number | null
   } | null>(null)
   const [showArtworkPicker, setShowArtworkPicker] = useState(false)
+  const [showMasterCrop, setShowMasterCrop] = useState(false)
   // Fallback orientation source: when the master artwork has no pixel
   // dimensions (or none is attached), read the primary display image's natural
   // aspect ratio so the variant builder can still recommend a shape.
@@ -272,17 +318,7 @@ export default function EditProductPage({
         fetch(`/api/admin/master-artworks/${product.master_artwork_id}`)
           .then((r) => r.json())
           .then((j) => {
-            if (j.data) {
-              setMasterArtwork({
-                id: j.data.id,
-                title: j.data.title,
-                file_name: j.data.file_name,
-                file_size_bytes: j.data.file_size_bytes,
-                mime_type: j.data.mime_type,
-                width_px: j.data.width_px ?? null,
-                height_px: j.data.height_px ?? null,
-              })
-            }
+            if (j.data) setMasterArtwork(mapMaster(j.data))
           })
           .catch(() => {})
       }
@@ -1087,7 +1123,46 @@ export default function EditProductPage({
                   <p className="mt-1 font-body text-[11px] text-charcoal/55">
                     {(masterArtwork.file_size_bytes / 1024 / 1024).toFixed(1)} MB ·{' '}
                     {masterArtwork.mime_type.replace('image/', '').toUpperCase()}
+                    {masterArtwork.width_px && masterArtwork.height_px
+                      ? ` · ${masterArtwork.width_px}×${masterArtwork.height_px}px`
+                      : ''}
                   </p>
+                  {/* Print master crop — sets the area every variant prints from. */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-charcoal/10 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowMasterCrop(true)}
+                      disabled={!(images.find((i) => i.is_primary)?.url ?? images[0]?.url)}
+                      className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-40"
+                    >
+                      {masterArtwork.crop_box ? 'Edit print crop' : 'Crop master / set print area'}
+                    </button>
+                    {masterArtwork.print_status && masterArtwork.print_status !== 'none' ? (
+                      <span
+                        className={`font-body text-[11px] ${
+                          masterArtwork.print_status === 'ready'
+                            ? 'text-teal'
+                            : masterArtwork.print_status === 'failed'
+                              ? 'text-coral'
+                              : 'text-charcoal/55'
+                        }`}
+                      >
+                        Print master: {masterArtwork.print_status}
+                        {masterArtwork.print_status === 'ready' && masterArtwork.print_width_px
+                          ? ` (${masterArtwork.print_width_px}×${masterArtwork.print_height_px}px)`
+                          : ''}
+                      </span>
+                    ) : (
+                      <span className="font-body text-[11px] text-amber-700">
+                        No print-ready master yet — crop before generating print sizes.
+                      </span>
+                    )}
+                  </div>
+                  {!(images.find((i) => i.is_primary)?.url ?? images[0]?.url) && (
+                    <p className="mt-2 font-body text-[11px] text-charcoal/45">
+                      Add a product image first — it is used as the crop preview.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="mt-4 font-body text-sm text-charcoal/50">Loading artwork details…</p>
@@ -1199,6 +1274,35 @@ export default function EditProductPage({
         />
       )}
 
+      {showMasterCrop && masterArtwork && (
+        <MasterCropModal
+          master={{
+            id: masterArtwork.id,
+            title: masterArtwork.title,
+            proxyUrl: images.find((i) => i.is_primary)?.url ?? images[0]?.url ?? '',
+            crop_box: masterArtwork.crop_box ?? null,
+            border_mode: masterArtwork.border_mode ?? null,
+            border_color: masterArtwork.border_color ?? null,
+            print_status: masterArtwork.print_status ?? null,
+          }}
+          onClose={() => setShowMasterCrop(false)}
+          onSaved={(next) => {
+            setMasterArtwork((prev) =>
+              prev
+                ? { ...prev, print_status: next.print_status, border_mode: next.border_mode, border_color: next.border_color }
+                : prev,
+            )
+            // Re-fetch so a completed worker run (print px / status) shows through.
+            fetch(`/api/admin/master-artworks/${masterArtwork.id}`)
+              .then((r) => r.json())
+              .then((j) => {
+                if (j.data) setMasterArtwork(mapMaster(j.data))
+              })
+              .catch(() => {})
+          }}
+        />
+      )}
+
       {showArtworkPicker && (
         <MasterArtworkPicker
           selectedId={masterArtworkId}
@@ -1217,17 +1321,7 @@ export default function EditProductPage({
               fetch(`/api/admin/master-artworks/${artwork.id}`)
                 .then((r) => r.json())
                 .then((j) => {
-                  if (j.data) {
-                    setMasterArtwork({
-                      id: j.data.id,
-                      title: j.data.title,
-                      file_name: j.data.file_name,
-                      file_size_bytes: j.data.file_size_bytes,
-                      mime_type: j.data.mime_type,
-                      width_px: j.data.width_px ?? null,
-                      height_px: j.data.height_px ?? null,
-                    })
-                  }
+                  if (j.data) setMasterArtwork(mapMaster(j.data))
                 })
                 .catch(() => {})
             } else {

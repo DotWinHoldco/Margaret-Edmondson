@@ -36,6 +36,26 @@ Judgment calls:
 - **Gate GREEN**: typecheck ✓, lint ✓ (0 err), `npm test` 114 passed/6 skipped (+23), build ✓.
 
 Design decisions (size math):
-- **`size_label` is the machine form `"WxH"`** (e.g. `30x22.5`) so `sizeDimensions()` + the pricing-cache key keep working; the customer **display** string (`"30 × 22.5 in"`) is separate (`displaySize`, stored on `name`). The plan's `"{W} × {H} in"` for `size_label` would have broken `sizeDimensions`/cache — resolved in favor of the machine form.
+- **`size_label` is the machine form `"WxH"`** (e.g. `30x22.5`) so `sizeDimensions()` + the pricing-cache key keep working; the customer **display** string (`"30 × 22.5 in"`) is separate (`displaySize`, stored on `name`). The plan's `"{W} × {H} in"` for `size_label` would have broken `sizeDimensions`/cache — resolved in favor of the machine form. (Confirmed by the size-math adversarial review, which flagged the plan's wording as a [high] hazard already pre-empted here.)
 - **Bounds + DPI are function inputs**, not read from `lumaprints_mediums` (which has neither column). Production callers pass the subcategory's real bounds (+ canvas DPI 200); a hardcoded bounds config / live probe seeds them (Phase 3/4).
 - **Default step 0.25"** (per Appendix C.4.3). For extreme/irrational aspects, a tier whose rounded short edge drifts >1% off-aspect is **dropped** (the builder will surface a "Large skipped" toast); the admin adds an aspect-locked custom size instead. Spec-compliant ("drop rather than distort").
+
+### Phase 2 hardening (adversarial size-math review) — FIXED-FORWARD
+A 3-lens adversarial verification confirmed the core math correct and surfaced low/medium edges, fixed in `harden(pricing)`: dpi≤0 now fails closed (was disabling the resolution ceiling); long axis chosen from the true longer pixel side (not the 3%-banded orientation); 1% aspect delta measured against the smaller ratio (validator-ok ⇒ LumaPrints-ok either way); width_in/height_in stored at the same ≤4-decimal precision as the label. The [medium] `orientationForSize` bucket-matching issue lives in the legacy `VariantsTab.runFixGenerate`, which Phase 4 replaces with aspect-based matching → resolved by the rebuild. +2 tests (25 total).
+
+---
+
+## PHASE 1 — Master crop + aspect-pad pipeline — DONE (2026-06-25)
+
+- **1.1 Crop UI** — `src/components/admin/MasterCropModal.tsx` (new) mirrors `CropModal`'s 4-corner free-form drag/clamp/inversion math + box-shadow overlay, but: draws on a **web-res proxy** (the product's primary image — never the source TIFF), stores a **normalized 0..1 rect**, captures **border_mode** (full bleed / matte) + **matte color**, and POSTs JSON (no rasterization). Wired into the editor's "Artwork source" section (`edit/page.tsx`): an "Edit print crop / Crop master" button + a live `print_status` line (amber "no print-ready master yet" until ready). A real whitespace auto-detector does not exist in the repo (the storefront "matte" is only edge-color CSS sampling), so a fake "suggest crop" was NOT added — the modal defaults to the full image; auto-detect noted as future work.
+- **1.2 Endpoint** `POST /api/admin/master-artworks/[id]/crop` (admin, zod-validated): rect bounds + `#RRGGBB` checks, writes `crop_box`/`border_mode`/`border_color`, sets `print_status='pending'` + `print_requested_at`, returns job status. **Never** processes the source file in-request. Extended the GET route to return the crop/print columns.
+- **Migration 2026061603** (additive, applied) — `master_artworks.print_status` (none/pending/processing/ready/failed +check) / `print_requested_at` / `print_error` for job tracking (no queue table; Appendix A).
+- **1.3 Worker** `scripts/process-master-crop.mjs` (Node + sharp, operator-run): claims a master, streams the original from `print-masters`, **region-extracts** the crop_box (libvips keeps an 800 MB TIFF low-memory), matte = uniform aspect-preserving `border_color` border, re-encodes **lossless deflate TIFF** with DPI carried (pure crop = zero resample), uploads to `print/<id>.tif` (resumable tus for >40 MB, direct fallback), writes `print_storage_path`/`print_width_px`/`print_height_px`/`print_updated_at`/`print_status='ready'`. Original never modified (revertible). `--id <uuid>` / `--all` / default-pending. Self-loads `.env.local`.
+- **1.4 Resumable ingest** — `MasterArtworkUpload.tsx` now uploads masters ≥25 MB via **tus-js-client** (session-token auth so RLS still applies, 6 MB chunks, resume + progress bar); <25 MB keeps the direct upload.
+- **1.5 Mint** — `mintLumaprintsImageUrl()` (`router.ts`) now prefers `master_artwork.print_storage_path` → `storage_path` → legacy `print_master_path`; both order-item queries select `print_storage_path`.
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
+
+Judgment calls (Phase 1):
+- **Matte = uniform aspect-preserving border** (5%/side, `MATTE_FRACTION`). The plan's "pad to the crop's exact aspect" is ambiguous; preserving the crop aspect keeps the single-master/one-shape invariant (every size matches within 1%) while giving the cosmetic mat. Matte width is a constant, easily tuned.
+- **Crop proxy = the product's primary web image** (assumed same framing as the master, per the regen pipeline). If no product image exists yet, the crop button is disabled with a hint. A per-master downscaled preview generator is future work.
+- Worker is **operator-run** (lowest-effort per Appendix A); the editor polls `print_status`. A small always-on worker can run the identical code if one-click is wanted later.
