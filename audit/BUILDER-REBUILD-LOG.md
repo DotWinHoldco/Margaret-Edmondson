@@ -59,3 +59,14 @@ Judgment calls (Phase 1):
 - **Matte = uniform aspect-preserving border** (5%/side, `MATTE_FRACTION`). The plan's "pad to the crop's exact aspect" is ambiguous; preserving the crop aspect keeps the single-master/one-shape invariant (every size matches within 1%) while giving the cosmetic mat. Matte width is a constant, easily tuned.
 - **Crop proxy = the product's primary web image** (assumed same framing as the master, per the regen pipeline). If no product image exists yet, the crop button is disabled with a hint. A per-master downscaled preview generator is future work.
 - Worker is **operator-run** (lowest-effort per Appendix A); the editor polls `print_status`. A small always-on worker can run the identical code if one-click is wanted later.
+
+---
+
+## PHASE 3 — Live custom-size pricing + cache + margin — DONE (2026-06-25)
+
+- **3.1 Live custom cost** — `lumaprints-cache.ts`: factored `costCentsForSize()`. A label IN the synced grid uses the stored cost (0 → "Set cost"); a CUSTOM label (not in the grid) is priced **live** via `getProductsCost([{subcategoryId, size:{width,height}, options}])` → base + Σ option prices → cents. Cache keys on `(medium, size_label)` unchanged (custom labels like `31x50` fit). Typed errors: **`SizeOutOfBoundsError`** (LumaPrints can't price it) + **`LumaprintsUnavailableError`** (keys missing / API down) in `pricing-errors.ts`; env-guarded by `lumaprintsConfigured()` (new, in `lumaprints.ts`).
+- **3.2 Server helper** `priceCustomVariant(supabase, {productId, medium, widthIn, heightIn})` → `{cost_cents, shipping_cents, customerPrice_cents, grossMarginPct}`: machine `sizeLabel()` → `getCachedPrice` (live cost + worst-case CONUS shipping) → `getEffectiveProductMargin` cascade → `customerPriceCents` → true gross margin `(price−cost−shipping)/price`. Pure margin math stays in `variant-pricing.ts`. Quote zips from `site_settings.shipping_quote_zips` (4-corner default fallback).
+- **Verified live**: `site_settings.default_margin_pct = "100"` (correct PERCENT scale; the `0.65` column default is a dormant landmine, never the live value — left as-is, out of scope), `shipping_quote_zips = ['33101','98101','04401','92101']`.
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
+
+Note: the **price-preview endpoint** (Appendix C.5) is built in Phase 4 (it's the builder UI dependency); Phase 3 is the cache + helper it calls.

@@ -12,10 +12,19 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getShippingCost } from '@/lib/integrations/lumaprints'
+import {
+  getShippingCost,
+  getProductsCost,
+  lumaprintsConfigured,
+  type ProductCostResult,
+} from '@/lib/integrations/lumaprints'
 import { quoteWorstCaseCONUS } from '@/lib/pricing/shipping-quote'
 import { sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { getMediumConfig, type MediumConfig } from '@/lib/pricing/medium-config'
+import { customerPriceCents } from '@/lib/pricing/variant-pricing'
+import { getEffectiveProductMargin } from '@/lib/pricing/margin'
+import { sizeLabel } from '@/lib/pricing/size-tiers'
+import { SizeOutOfBoundsError, LumaprintsUnavailableError } from '@/lib/pricing/pricing-errors'
 
 export interface CachedPrice {
   medium: Medium
@@ -38,13 +47,47 @@ interface CacheRow {
 const FRESH_TTL_MS = 24 * 60 * 60 * 1000
 
 /**
- * Look up the per-size cost the admin set in lumaprints_mediums.sizes.
- * Returns 0 if no cost is recorded yet — the variant builder surfaces
- * that as "Set cost" so the admin knows to fix it before publishing.
+ * Resolve the per-unit print cost (cents) for a (medium × size).
+ *
+ * Standard grid sizes use the cost the Lumaprints sync stored in
+ * lumaprints_mediums.sizes (0 = not yet synced → builder shows "Set cost").
+ * A CUSTOM size (a label not in the grid, e.g. "31x50") is priced LIVE via the
+ * products-cost API: unit cost = base price + Σ option prices. Throws a typed
+ * SizeOutOfBoundsError when Lumaprints can't price the size, or
+ * LumaprintsUnavailableError when the keys are missing / the API is unreachable.
  */
-function costFromMediumConfig(cfg: MediumConfig, size_label: string): number {
-  const match = cfg.sizes.find((s) => s.size_label === size_label)
-  return Number(match?.cost_cents) || 0
+async function costCentsForSize(
+  cfg: MediumConfig,
+  medium: Medium,
+  size_label: string,
+  dims: { width: number; height: number },
+): Promise<number> {
+  const gridMatch = cfg.sizes.find((s) => s.size_label === size_label)
+  if (gridMatch) return Number(gridMatch.cost_cents) || 0
+
+  // Custom size — price live.
+  if (!lumaprintsConfigured()) {
+    throw new LumaprintsUnavailableError('LumaPrints API keys are not configured')
+  }
+  if (!cfg.subcategory_id) {
+    throw new LumaprintsUnavailableError(`Medium ${medium} has no subcategory configured`)
+  }
+  let results: ProductCostResult[]
+  try {
+    results = await getProductsCost([
+      { subcategoryId: cfg.subcategory_id, size: { width: dims.width, height: dims.height }, options: cfg.option_ids },
+    ])
+  } catch (err) {
+    throw new LumaprintsUnavailableError(err instanceof Error ? err.message : 'LumaPrints pricing request failed')
+  }
+  const item = results?.[0]
+  if (!item || item.success === false || typeof item.price !== 'number') {
+    throw new SizeOutOfBoundsError(
+      item?.error || `LumaPrints could not price ${dims.width}×${dims.height} in for ${medium}`,
+    )
+  }
+  const optionsTotal = (item.options || []).reduce((sum, o) => sum + (o.price || 0), 0)
+  return Math.round((item.price + optionsTotal) * 100)
 }
 
 async function fetchLivePrice(
@@ -60,7 +103,7 @@ async function fetchLivePrice(
   const dims = sizeDimensions(size_label)
   if (!dims) throw new Error(`Unrecognized size_label ${size_label}`)
 
-  const cost_cents = costFromMediumConfig(cfg, size_label)
+  const cost_cents = await costCentsForSize(cfg, medium, size_label, dims)
 
   let shipping_cents = 0
   try {
@@ -159,4 +202,58 @@ export async function refreshCachedPrice(
       { onConflict: 'medium,size_label' },
     )
   return live
+}
+
+// The four-corner CONUS box used for the worst-case shipping quote. Mirrors the
+// site_settings.shipping_quote_zips default; used when that column is empty.
+const DEFAULT_QUOTE_ZIPS = ['33101', '98101', '04401', '92101']
+
+async function getQuoteZips(supabase: SupabaseClient): Promise<string[]> {
+  const { data } = await supabase
+    .from('site_settings')
+    .select('shipping_quote_zips')
+    .eq('id', true)
+    .maybeSingle()
+  const zips = (data?.shipping_quote_zips as string[] | null) || []
+  return zips.length ? zips : DEFAULT_QUOTE_ZIPS
+}
+
+export interface CustomVariantPrice {
+  cost_cents: number
+  shipping_cents: number
+  customerPrice_cents: number
+  /** True gross margin = (price − cost − shipping) / price, as a percent. */
+  grossMarginPct: number
+}
+
+/**
+ * Price a custom-size variant end to end: live Lumaprints cost (base + options)
+ * + worst-case CONUS shipping (both via getCachedPrice), the effective product
+ * margin cascade, and the resulting customer price + true gross margin. The
+ * margin math itself stays pure in customerPriceCents; this just orchestrates
+ * the I/O. Throws SizeOutOfBoundsError / LumaprintsUnavailableError (typed) which
+ * the price-preview endpoint surfaces to the builder.
+ */
+export async function priceCustomVariant(
+  supabase: SupabaseClient,
+  { productId, medium, widthIn, heightIn }: { productId: string; medium: Medium; widthIn: number; heightIn: number },
+): Promise<CustomVariantPrice> {
+  const label = sizeLabel(widthIn, heightIn)
+  const zips = await getQuoteZips(supabase)
+  const { cost_cents, shipping_cents } = await getCachedPrice(supabase, medium, label, zips)
+  const effectiveMargin = await getEffectiveProductMargin(supabase, productId)
+  const customerPrice_cents = customerPriceCents(
+    {
+      lumaprints_cost_cents: cost_cents,
+      shipping_cost_cents: shipping_cents,
+      margin_override_pct: null,
+      manual_price_override_cents: null,
+    },
+    effectiveMargin,
+  )
+  const grossMarginPct =
+    customerPrice_cents > 0
+      ? ((customerPrice_cents - cost_cents - shipping_cents) / customerPrice_cents) * 100
+      : 0
+  return { cost_cents, shipping_cents, customerPrice_cents, grossMarginPct }
 }

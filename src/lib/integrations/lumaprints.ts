@@ -8,6 +8,13 @@ function getAuthHeader() {
   return `Basic ${encoded}`
 }
 
+// True when the API key + secret are present. Pricing/shipping need these; order
+// submission additionally needs LUMAPRINTS_STORE_ID. Callers env-guard with this
+// so a missing key surfaces a typed "unavailable" error instead of a 401.
+export function lumaprintsConfigured(): boolean {
+  return Boolean(process.env.LUMAPRINTS_API_KEY && process.env.LUMAPRINTS_API_SECRET)
+}
+
 const RETRYABLE_STATUS = new Set([429, 502, 503, 504])
 const MAX_RETRIES = 3
 
