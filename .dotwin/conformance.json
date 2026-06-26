@@ -1,5 +1,21 @@
 {
   "lastGreenCommit": "b211a17087568942e3c5adbcb89409645b87e27c",
   "status": "green",
-  "timestamp": "2026-06-22T21:27:12.930Z"
+  "timestamp": "2026-06-22T21:27:12.930Z",
+  "mode": "adopt",
+  "ratchet": {
+    "table-ownership": false,
+    "atomicity": false,
+    "event-boundaries": false,
+    "no-duplicate-transactions": false
+  },
+  "_adopt": {
+    "domainCellBaseline": "2026-06-24",
+    "protocol": "domain-cell-conformance-protocol.md",
+    "auditPacket": "audit/ADOPT-2026-06-24/",
+    "alwaysBlocking": ["domain-isolation", "contract", "read-boundary", "rpc-exists"],
+    "scoredUntilCellsLand": ["table-ownership", "atomicity", "event-boundaries", "no-duplicate-transactions"],
+    "note": "Hybrid adopt enforcement: the always-blocking gates run on every build (domain-isolation/contract/read-boundary skip until src/domains/ cells exist; rpc-exists is ACTIVE and passing against the declared registry). The scored gates ratchet to blocking per-domain as the staged refactor lands; flip a ratchet flag to true only after that domain's cells + tests exist. Status/lastGreenCommit are rewritten only by a native build-check:write run.",
+    "pendingNativeRecert": true
+  }
 }

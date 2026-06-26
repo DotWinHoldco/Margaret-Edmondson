@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Authored by DotWin
 // The build-check runner. Runs the command gates (typecheck / lint / test / build)
-// and the DotWin custom gates, computes an honest status, and — only when gates
-// actually pass — may write `green` into STATE.md. "green" is never hand-typed.
+// and the DotWin custom gates, computes an honest status, and only when gates
+// actually pass may write `green` into STATE.md. "green" is never hand-typed.
 //
 // Usage:
 //   node scripts/build-check.mjs                 # green-build gates
@@ -23,8 +23,15 @@ import { runCheck as security } from './check-security.mjs';
 import { runCheck as rls } from './check-rls.mjs';
 import { runCheck as migrations } from './check-migrations.mjs';
 import { runCheck as boundaries } from './check-supabase-boundaries.mjs';
-import { runCheck as moduleIsolation } from './check-module-isolation.mjs';
+import { runCheck as domainIsolation } from './check-domain-isolation.mjs';
+import { runCheck as tableOwnership } from './check-table-ownership.mjs';
+import { runCheck as rpcExists } from './check-rpc-exists.mjs';
+import { runCheck as atomicity } from './check-atomicity.mjs';
+import { runCheck as eventBoundaries } from './check-event-boundaries.mjs';
+import { runCheck as readBoundary } from './check-read-boundary.mjs';
+import { runCheck as noDuplicateTx } from './check-no-duplicate-transactions.mjs';
 import { runCheck as anchors } from './check-anchors.mjs';
+import { runCheck as state } from './check-state.mjs';
 import { runCheck as docs } from './check-docs.mjs';
 import { runCheck as authz } from './check-authz.mjs';
 import { runCheck as contract } from './check-contract.mjs';
@@ -75,11 +82,19 @@ function main() {
 
   // Resolve the diff scope. --changed reads the last green commit from the conformance baseline.
   const confPath = path.join(root, '.dotwin', 'conformance.json');
+  const conf = readJSON(confPath) || {};
+  // Enforcement mode (01-core-standards/architecture-doctrine.md). spawn: every domain gate
+  // blocks. adopt: hybrid, the behavior-preserving gates block, the data-model gates are scored
+  // and ratchet to blocking per .dotwin/conformance.json as legacy debt is fixed.
+  const mode = (args.find((a) => a.startsWith('--mode=')) || '').split('=')[1] || conf.mode || 'spawn';
+  const ratchet = conf.ratchet || {};
+  const ALWAYS_BLOCK = new Set(['domain-isolation', 'contract', 'read-boundary', 'rpc-exists']);
+  const domainRequired = (name) => mode === 'spawn' ? true : (ALWAYS_BLOCK.has(name) ? true : !!ratchet[name]);
   let since = sinceArg;
-  if (flag('--changed') && !since) { const c = readJSON(confPath); since = c ? c.lastGreenCommit : null; }
+  if (flag('--changed') && !since) since = conf.lastGreenCommit || null;
   const scope = changedFiles(root, since);
   const migChanged = !scope || [...scope].some((p) => p.includes('supabase/migrations'));
-  const modulesChanged = !scope || [...scope].some((p) => p.includes('src/modules/'));
+  const cellsChanged = !scope || [...scope].some((p) => p.includes('src/domains/') || p.includes('src/modules/') || p.includes('src/contracts/'));
 
   if (!pkg) {
     gates.push(gate('package.json', { status: 'blocked', findings: [], detail: 'no package.json at root' }));
@@ -103,9 +118,17 @@ function main() {
   gates.push(boundaries(root, { scope }));
   gates.push(authz(root, { scope }));
   if (migChanged) { gates.push(rls(root)); gates.push(migrations(root)); }
-  if (modulesChanged) gates.push(moduleIsolation(root));
-  if (modulesChanged) gates.push(contract(root));
+  // Domain-cell gates (architecture-doctrine.md, domain-cell-gates-spec.md). Each gate's
+  // `required` is set by the enforcement mode: spawn blocks all; adopt blocks the always-on set
+  // and scores the rest until ratcheted.
+  if (cellsChanged || migChanged) {
+    for (const g of [domainIsolation(root), contract(root), readBoundary(root), tableOwnership(root), atomicity(root), eventBoundaries(root), rpcExists(root), noDuplicateTx(root)]) {
+      if (g.status !== 'skipped') g.required = domainRequired(g.name);
+      gates.push(g);
+    }
+  }
   if (!scope) gates.push(anchors(root));
+  if (!scope) gates.push(state(root));
   gates.push(docs(root, { strict: docsStrict, scope }));
 
   // --tier=pre is a fast pre-build/pre-commit check, not a build-status run. It passes when no
@@ -137,6 +160,12 @@ function main() {
   }
 
   let status = computeStatus(gates);
+  // Adopt hybrid: a scored domain gate with open findings does not hard-fail the build, but it
+  // does prevent a green claim. Full conversion is the target; scored gates ratchet to required.
+  if (mode === 'adopt' && status === 'green') {
+    const scoredOpen = gates.filter((g) => !g.required && (g.status === 'fail' || g.status === 'blocked') && /^(domain-isolation|contract|read-boundary|rpc-exists|table-ownership|atomicity|event-boundaries|no-duplicate-transactions)$/.test(g.name));
+    if (scoredOpen.length) status = 'passing-partial';
+  }
   if (status === 'green' && profile === 'production-candidate') status = 'production-candidate';
   if (status === 'green' && profile === 'enterprise-ready') status = 'enterprise-ready';
 
@@ -144,6 +173,7 @@ function main() {
   const report = {
     timestamp: new Date().toISOString(),
     profile,
+    mode,
     status,
     summary: {
       passed: requiredGates.filter((g) => g.status === 'pass').length,
@@ -169,7 +199,7 @@ function main() {
       const commit = headCommit(root);
       if (commit) {
         fs.mkdirSync(path.join(root, '.dotwin'), { recursive: true });
-        fs.writeFileSync(confPath, JSON.stringify({ lastGreenCommit: commit, status, timestamp: report.timestamp }, null, 2));
+        fs.writeFileSync(confPath, JSON.stringify({ ...conf, lastGreenCommit: commit, status, timestamp: report.timestamp, mode }, null, 2));
         wroteConf = true;
       }
     }

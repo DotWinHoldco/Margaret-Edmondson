@@ -1,9 +1,10 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-22 (adopt green-push: security + docs gates cleared in-sandbox)
-Baseline SHA: `4509d69` (adopt rails, on origin/main). Green-push changes are staged on top and
-UNCOMMITTED. See BUILD_LOG `#adopt-green-push-2026-06-22`.
+Last updated: 2026-06-24 (adopt re-run: domain-cell conformance system)
+Baseline SHA: `074ffc8` (prior adopt green, on origin/main). This run's changes (kit gates,
+`src/contracts`, audit packet, test, docs) are staged on top and UNCOMMITTED.
+See BUILD_LOG `#adopt-domain-cell-2026-06-24`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
 <!-- dotwin:build-status:begin -->
@@ -17,85 +18,87 @@ Failing gates: none
 Unrun required gates: none
 <!-- dotwin:build-status:end -->
 
-> The status block above is the LAST runner verdict (before the green-push). The 5 gates it lists
-> as failing are now resolved in-sandbox (see section 10/11). It is stale until you re-run
-> `npm run build-check:write` natively, which is the only thing that may rewrite it. Expected: green.
+> The status block above is the LAST native runner verdict (2026-06-22). This run is
+> behavior-preserving (dev scripts + `src/contracts` + audit docs + a skipped test; no app runtime
+> code changed), so the prior green still holds for the app. It is refreshed only by re-running
+> `npm run build-check:write` natively, which now also writes `mode: adopt` into the baseline.
 
 > First thing read each session. Current-only, not history. History: `BUILD_LOG.md`,
-> `audit/ADOPT-2026-06-21/`. Green is whatever `npm run build-check` prints, never hand-set.
+> `audit/ADOPT-2026-06-24/`, `audit/ADOPT-2026-06-21/`. Green is whatever `npm run build-check`
+> prints, never hand-set.
 
 ## 1. What is the project?
 ArtByME — Margaret Edmondson e-commerce art store + LMS + CRM/email + page builder/funnels. Next
 16.2 (App Router), React 19, TS, Supabase (`@supabase/ssr`), Stripe, Resend, LumaPrints/Printful.
-~130 API routes, 7 crons, 5 webhooks, 0 Server Actions (privileged logic in route handlers).
+~135 API routes, 7 crons, 5 webhooks, 0 Server Actions (privileged logic in route handlers). No
+`src/domains/` cells yet — a route-handler monolith on the factory rails.
 
-## 2. Current build state (green-pending native re-certify)
-Adopt rails imported and the standards backlog cleared in code. Every gate that runs in the
-sandbox now PASSES: typecheck, lint (0 err), secrets, security, supabase-boundaries, authz, rls,
-migrations, docs. `build` (next) and `test` (vitest) require the native macOS toolchain; they
-passed on the prior native run (2026-06-22). Re-run `npm run build-check:write` natively to
-re-certify after the green-push and write `.dotwin/conformance.json`. No green claim until it does.
+## 2. Current build state (domain-cell adopt complete; green-pending native re-cert)
+Re-ran the parts of adopt added after the 2026-06-22 green: the domain-cell conformance system.
+Rails imported, `src/contracts` authored, `.dotwin/conformance.json` set to `mode: adopt` + ratchet,
+Rule 1 / ACID audit done (`#acid-register-2026-06-24`). In-sandbox: typecheck, lint,
+`check-rpc-exists` (1 declared tx), all security gates PASS; domain-cell gates skip cleanly (no
+cells). `build` + `test` need the native macOS toolchain. Re-run `npm run build-check:write`
+natively to refresh the status block + baseline. No green claim until it does.
 
-## 3. What is complete (green-push run)?
-- **security**: replaced all 65 `select('*')` with explicit column lists (full prod columns, behavior
-  preserved); typecheck surfaced + fixed one latent `commission.messages` access (non-column).
-- **supabase-boundaries**: reworded the `OrderConfirmationPoll.tsx` comment that falsely tripped the
-  service-role-in-client rule.
-- **authz**: hardened shipstation/lumaprints/printful webhook verification to `timingSafeEqual`
-  (constant-time + gate-recognized); annotated 9 intentional public-write routes with
-  `dotwin-allow:public-write` + reason.
-- **rls**: migration `2026062205_adopt_rls_conformance.sql` enables RLS + 4 policies for
-  `product_categories` (matching prod), tightens anon insert on `carts` (`profile_id is null`) and
-  `unsubscribe_events` (`email is not null`), and makes the `social_posts` admin policy's identity
-  dependence explicit. 0 blocking rls findings.
-- **docs**: intent doc comments added to all API route handlers (177 → 0 blocking).
-- Earlier (adopt-finish): spawn-kit gates, rule pack, KNOWN_RISKS/DEPLOYMENT/SECURITY/TESTING/
-  LESSONS/MEMORY_INDEX, docs/api+technical, CI, pre-commit, root error/loading/not-found, RLS
-  deny-test. Drift `2026061501-05` verified applied-but-unrecorded on prod.
+## 3. What is complete (this run)?
+- **Kit delta imported** (dev scripts only, behavior-preserving): 9 new domain-cell gates +
+  `lib/cells.mjs`; 6 updated (`build-check`, `check-docs`, `check-contract`, `check-anchors`,
+  `lib/report`, `check-module-isolation` shim); `package.json` `check:*` scripts; `check:modules`
+  → `check:domains`.
+- **`src/contracts/`** from the real 73-table schema: `domain-map.ts`, `table-ownership.ts`,
+  `transaction-registry.ts` (`record_order_for_contact` declared; `check-rpc-exists` verifies its
+  touches), `event-registry.ts`.
+- **`.dotwin/conformance.json`** → `mode: adopt` + `ratchet` (hybrid enforcement).
+- **Audit packet** `audit/ADOPT-2026-06-24/`: ACID register, per-boundary score, staged plan,
+  domain map + collisions.
+- **Regression test** `test/acid-transaction-owners.test.ts` (atomicity of the declared tx owner).
 
-## 4. What is incomplete? (to certify green)
-- **Apply migration `2026062205`** to prod `klwkajukicsoiwpsgftt` (RLS conformance + policy tightenings).
-- **Commit + push** the green-push files (sandbox cannot write `.git`).
-- **Run `npm run build-check:write` natively** to run build + test + all gates and write
-  `.dotwin/conformance.json` (expected: green).
-- Optional follow-ups (non-blocking): repair the prod migration ledger for `2026061501-05`;
-  generate `database.types.ts`; clear the 5 advisory `: any` and 296 advisory non-route doc
-  findings; wire a real commission-messages source.
+## 4. What is incomplete? (to re-certify green)
+- **Run `npm run build-check:write` natively** (build + test + all gates in adopt mode) to refresh
+  the status block and rewrite `.dotwin/conformance.json` with the new green commit + `mode: adopt`.
+- **Commit + push** this run's staged files (sandbox cannot write `.git`).
+- Optional follow-ups (non-blocking): the 4 P2 staged owner RPCs (`STAGED-REFACTOR-PLAN.md`);
+  generate `database.types.ts`; clear 5 advisory `: any` + 296 advisory non-route doc findings.
 
 ## 5. What is blocked?
 - Native `build` + `test`: sandbox `node_modules` are macOS-arm64; run on the user machine or CI.
-- Git writes from the sandbox blocked (`.git` EPERM on the mount); the user commits.
+- Git writes from the sandbox blocked (`.git` EPERM on the mount); the user commits + pushes.
 
 ## 6. What is unsafe or unresolved? (open risk)
-- **Apply-before-deploy**: migration `2026062205` tightens live policies (carts, unsubscribe_events,
-  social_posts) and adds product_categories RLS to git. Apply it and re-test the guest-cart and
-  unsubscribe flows on a branch before relying on green.
-- Advisory only (non-blocking): 5 `: any` (stripe webhook, a layout, 2 email paths); 296 non-route
-  exported functions/components without doc comments; `commission.messages` has no backing column
-  (renders empty, behavior preserved). See `KNOWN_RISKS.md`.
+- **No P0/P1.** 4 P2 atomicity-of-record gaps, each reconciled today and staged to a consolidating
+  RPC (`#acid-register-2026-06-24`): ACID-1 webhook order write, ACID-2 fulfillment finalize,
+  ACID-3 admin course-delete cascade, ACID-4 AI testimonial duplicate. Dated exceptions in
+  `KNOWN_RISKS.md`. None release-blocking.
+- Advisory only: 5 `: any`; 296 non-route exported symbols without doc comments. See `KNOWN_RISKS.md`.
 
 ## 7. What modules exist?
 auth/authz · admin · account/LMS · shop/checkout/cart · Stripe webhooks · fulfillment · discounts ·
 CRM · email/newsletter · crons (7) · meta pixel/CAPI · page builder · funnels · storage · RLS.
+Declared as 17 domain areas in `src/contracts/domain-map.ts` (not yet folder-enforced).
 
 ## 8. Current module / focus
-Apply `2026062205`, commit + push, re-run `build-check:write` natively to certify green.
+Native `build-check:write` re-cert (adopt mode), then commit + push. After that, Stage 1 of
+`audit/ADOPT-2026-06-24/STAGED-REFACTOR-PLAN.md` (the 4 P2 owner RPCs) when scheduled.
 
 ## 9. Last commands run
-`tsc --noEmit` (PASS) · `eslint .` (PASS, 54 warn) · `build-check --tier=pre` (all custom gates
-PASS) · prod read-only verification (drift + product_categories RLS/policies/grants).
+`tsc --noEmit` (PASS) · `eslint src/contracts` (PASS) · `check-rpc-exists` (PASS, 1 declared tx) ·
+`build-check --tier=pre` (custom + domain gates; domain gates skip; state tags resolve).
 
-## 10/11. Checks passed / failed (in-sandbox, 2026-06-22 green-push)
-PASS: typecheck, lint, secrets, security (5 advisory), supabase-boundaries, authz, rls (0 blocking;
-4 advisory public-read), migrations (47 files), docs (0 blocking; 296 advisory), anchors.
-SKIP (optional): module-isolation, contract (no `src/modules`). NOT RUN here (native/CI): `vitest`,
-`next build`, full `build-check:write`, `.dotwin/conformance.json`.
+## 10/11. Checks passed / failed (in-sandbox, 2026-06-24)
+PASS: typecheck, lint, secrets, security (5 advisory `: any`), supabase-boundaries, authz, rls
+(0 blocking; 4 advisory permissive-read), migrations (47 files), rpc-exists (1 declared), anchors,
+state, docs (0 blocking; 296 advisory).
+SKIP (optional, no `src/domains/`): domain-isolation, contract, read-boundary, table-ownership,
+atomicity, event-boundaries, no-duplicate-transactions.
+NOT RUN here (native/CI): `vitest`, `next build`, full `build-check:write`.
 
 ## 12. Tags for deeper context
-`#adopt-green-push-2026-06-22` -> `BUILD_LOG.md` (this run: select-star, webhooks, rls, route docs)
-`#adopt-finish-2026-06-22` -> `BUILD_LOG.md` (rails, drift verify)
-`#product-categories-rls-in-git` -> `KNOWN_RISKS.md` + migration `2026062205`
-`#migration-drift` -> prod has 2026061501-05 applied but unrecorded
+`#adopt-domain-cell-2026-06-24` -> `BUILD_LOG.md` (this run: kit delta, contracts, conformance mode)
+`#acid-register-2026-06-24` -> `audit/ADOPT-2026-06-24/ACID-REGISTER.md` (Rule 1 audit; 0 P0/P1, 4 P2)
+`#domain-cell-conformance` -> the adopt protocol this run implements
+`#adopt-green-push-2026-06-22` -> `BUILD_LOG.md` (select-star, webhooks, rls, route docs)
 `#harden-2026-06-22` -> `BUILD_LOG.md` (P0 + 7 P1 money path + comms)
 `#findings` -> `audit/ADOPT-2026-06-21/FINDINGS.md`
+`#migration-drift` -> prod has 2026061501-05 applied but unrecorded
 `#proxy-not-middleware` -> middleware is `src/proxy.ts` (Next 16); do not create middleware.ts

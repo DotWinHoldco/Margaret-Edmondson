@@ -2,9 +2,9 @@
 // Gate: written code carries intent documentation (the "why", not just the "what").
 //
 // Layered enforcement:
-//   BLOCKING (high) — API route handlers (app/**/route.ts) and Server Actions
+//   BLOCKING (high): API route handlers (app/**/route.ts) and Server Actions
 //     ('use server' exports). These are the published API and must be documented.
-//   ADVISORY (medium) — every other exported function/component, each module's README,
+//   ADVISORY (medium): every other exported function/component, each domain's README,
 //     and the project technical/API docs directory. Promote to blocking with --docs-strict
 //     (new spawns default to strict).
 //
@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { walk, readText, rel, safeIsDir, safeExists, scopeFilter } from './lib/scan.mjs';
+import { cellsDir } from './lib/cells.mjs';
 import { finding, gate } from './lib/report.mjs';
 
 const CODE_EXTS = ['.ts', '.tsx', '.js', '.jsx'];
@@ -98,12 +99,13 @@ export function runCheck(root, { strict = false, scope } = {}) {
     }
   }
 
-  // Module READMEs (intent / technical doc per module).
-  const modulesDir = path.join(root, 'src', 'modules');
-  if (!scope && safeIsDir(modulesDir)) {
-    for (const e of fs.readdirSync(modulesDir, { withFileTypes: true })) {
-      if (e.isDirectory() && !safeExists(path.join(modulesDir, e.name, 'README.md'))) {
-        findings.push(finding({ severity: docSev, file: `src/modules/${e.name}`, message: `Module "${e.name}" has no README.md (intent / technical doc)`, rule: 'doc-module-readme' }));
+  // Domain READMEs (intent / technical doc per domain). Targets src/domains, falls back to
+  // src/modules (legacy), so adopted apps not yet renamed are still checked.
+  const cells = cellsDir(root);
+  if (!scope && cells) {
+    for (const e of fs.readdirSync(cells.dir, { withFileTypes: true })) {
+      if (e.isDirectory() && !safeExists(path.join(cells.dir, e.name, 'README.md'))) {
+        findings.push(finding({ severity: docSev, file: `src/${cells.seg}/${e.name}`, message: `Domain "${e.name}" has no README.md (intent / technical doc)`, rule: 'doc-domain-readme' }));
       }
     }
   }
@@ -126,8 +128,8 @@ if (path.resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
   const strict = process.argv.includes('--docs-strict') || process.env.DOTWIN_DOCS_STRICT === '1';
   const rootArg = process.argv.slice(2).find((a) => !a.startsWith('--'));
   const g = runCheck(rootArg || process.cwd(), { strict });
-  for (const f of g.findings.slice(0, 40)) console.log(`[${f.severity}] ${f.message} — ${f.file}${f.line ? ':' + f.line : ''}`);
-  if (g.findings.length > 40) console.log(`… ${g.findings.length - 40} more`);
+  for (const f of g.findings.slice(0, 40)) console.log(`[${f.severity}] ${f.message} ${f.file}${f.line ? ':' + f.line : ''}`);
+  if (g.findings.length > 40) console.log(`... ${g.findings.length - 40} more`);
   console.log(`docs: ${g.status} (${g.detail})`);
   process.exit(g.status === 'fail' ? 1 : 0);
 }

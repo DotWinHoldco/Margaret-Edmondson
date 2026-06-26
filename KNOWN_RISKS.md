@@ -14,16 +14,22 @@ These are deliberate. The factory kit overlays a verification and documentation 
 not rebuild this app. Where the kit assumes a structure ArtByME does not use, the divergence is
 recorded here rather than forced.
 
-### Module/kernel pattern not used
+### Domain-cell structure not yet adopted (route-handler monolith)
 Severity: low (architectural)
 Module: whole app
-Description: ArtByME puts privileged logic in about 130 API route handlers, not in the kit's
-`src/kernel` + `src/modules/<name>` pattern. The `module-isolation` and `contract` gates
-self-skip (no `src/modules`), which is correct for this app.
-Current status: accepted; not migrating a working route-handler architecture.
-Required fix: none. Re-evaluate only on a major rebuild.
-Required check: n/a (gates skip).
-Related tag: #divergence-architecture
+Description: ArtByME puts privileged logic in ~135 API route handlers, not in the doctrine's
+`src/kernel` + `src/domains/<key>` cells. The cell gates (`domain-isolation`, `contract`,
+`read-boundary`, `table-ownership`, `atomicity`, `event-boundaries`, `no-duplicate-transactions`)
+self-skip without `src/domains/`. Per the 2026-06-24 domain-cell adopt, ownership is now DECLARED
+in `src/contracts/` and scored per boundary (`audit/ADOPT-2026-06-24/CONFORMANCE-SCORE.md`):
+transaction boundary mostly converted (real RPC owners), context/read boundaries unconverted.
+`.dotwin/conformance.json` is `mode: adopt` with a ratchet; `check-rpc-exists` is ACTIVE + passing.
+Current status: accepted as a staged conversion, not a rewrite. The write boundary is enforced at
+the DB by RLS (the real backstop) meanwhile.
+Required fix: none now. `STAGED-REFACTOR-PLAN.md` Stage 3 converts cells domain-by-domain; each
+flips its ratchet flag from scored to blocking.
+Required check: `npm run check:rpc-exists` (active); cell gates activate when `src/domains/` exists.
+Related tag: #divergence-architecture, #domain-cell-conformance
 
 ### Supabase client file layout differs from the kit trio
 Severity: low
@@ -37,6 +43,36 @@ Required check: `npm run check:boundaries`.
 Related tag: #divergence-supabase-clients
 
 ## Current risks (P2/P3 backlog)
+
+### ACID atomicity-of-record gaps (Rule 1 audit, 2026-06-24)
+Severity: medium (P2 ×4) — dated exception below
+Module: Stripe webhook · fulfillment · admin LMS · AI testimonial import
+Description: The 2026-06-24 Rule 1 / ACID audit (`audit/ADOPT-2026-06-24/ACID-REGISTER.md`) found
+0 P0, 0 P1, and four P2 multi-table writes that are non-atomic but reconciled today: ACID-1 the
+Stripe webhook builds an order from sequential `orders` + `order_items` writes (idempotent +
+resume-safe via Stripe redelivery); ACID-2 fulfillment finalizes status after the provider call
+(FIN-2 at-most-once holds; residual `submitting` window); ACID-3 admin course delete is four
+unguarded cascade deletes (admin-only, re-runnable); ACID-4 AI testimonial import can duplicate on
+re-run (admin-only, unpublished). Money paths (booking, promo redemption, enrollment, inventory)
+are already atomic via SECURITY DEFINER RPCs.
+Current status: ACCEPTED with dated exception through the next scheduled harden (review by
+2026-07-31). None release-blocking; each is reconciled in production today.
+Required fix: the staged owner RPCs in `audit/ADOPT-2026-06-24/STAGED-REFACTOR-PLAN.md` Stage 1
+(`create_order_with_items`, `submit_order_item`, `admin_delete_course`/cascade FKs,
+`create_testimonial_from_ai`), each with a failure-injection test before its ratchet flips.
+Required check: `npm run check:rpc-exists`; `npm run check:atomicity` (after cells land).
+Related tag: #acid-register-2026-06-24, #domain-cell-conformance
+
+### Silent side-write errors (non-ACID, fix backlog)
+Severity: low
+Module: admin social posts · AI testimonial import
+Description: `social/posts/[id]` PATCH (L114, L122) and `shared-files/process-ai` (L315) `await` a
+`.delete()/.insert()` without checking `error`, turning a torn write into a silent one. Not a Rule 1
+violation; a visibility gap.
+Current status: open (backlog).
+Required fix: capture + log those errors (Stage 4 of the staged plan).
+Required check: judgment + review.
+Related tag: #acid-register-2026-06-24
 
 ### Generated database types missing
 Severity: medium

@@ -47,7 +47,8 @@ export function printReport(report) {
   const { gates, status } = report;
   console.log('');
   console.log(MARK.bold('  DotWin build-check'));
-  console.log(MARK.dim('  ' + report.timestamp + (report.profile ? `  ·  profile: ${report.profile}` : '')));
+  console.log(MARK.dim('  ' + report.timestamp + (report.profile ? `  ·  profile: ${report.profile}` : '') + (report.mode ? `  ·  mode: ${report.mode}` : '')));
+  console.log(MARK.dim('  Rule 1: ACID invariants outrank module purity'));
   console.log('');
   for (const g of gates) {
     const tag =
@@ -56,7 +57,7 @@ export function printReport(report) {
       g.status === 'blocked' ? MARK.yellow(GLYPH.blocked) :
       MARK.dim(GLYPH.skipped);
     const req = g.required ? '' : MARK.dim(' (optional)');
-    console.log(`  ${tag} ${g.name}${req}${g.detail ? MARK.dim('  — ' + g.detail) : ''}`);
+    console.log(`  ${tag} ${g.name}${req}${g.detail ? MARK.dim('  ·  ' + g.detail) : ''}`);
     for (const f of g.findings.slice(0, 12)) {
       const loc = f.file ? `${f.file}${f.line ? ':' + f.line : ''}` : '';
       console.log(`      ${MARK.dim('[' + f.severity + ']')} ${f.message}${loc ? '  ' + MARK.dim(loc) : ''}`);
@@ -141,7 +142,7 @@ export function appendLog(root, report, { cap = 150 } = {}) {
     text += `\n\n${entry}`;
   }
 
-  // Cap: if active log exceeds `cap` lines, archive the oldest entries — splitting only on
+  // Cap: if active log exceeds `cap` lines, archive the oldest entries, splitting only on
   // entry-header boundaries so an entry and its @anchor are never orphaned mid-block.
   const lines = text.split('\n');
   if (lines.length > cap) {

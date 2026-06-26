@@ -5,6 +5,17 @@ Authored by DotWin
 The compact, always-loaded rule pack. Identical in every DotWin project, spawned or adopted.
 Deep detail lives in the factory; this is the low-context set you keep in head every session.
 
+## Rule 1: ACID invariants outrank module purity
+
+A domain boundary may organize code, but it may never force an atomic business operation into
+eventual consistency. If an operation must be atomic, it is implemented once, under one declared
+transaction owner, as a single database transaction (a Supabase `SECURITY DEFINER` RPC or one CTE
+statement — a TypeScript "transaction wrapper" over `supabase-js` is NOT atomic), and verified by
+gates. This rule outranks every other rule here. Declared cross-domain owners live in
+`src/contracts/transaction-registry.ts` and are proven real by `check-rpc-exists`. Never rewrite a
+money or safety transaction without a failure-injection test that proves the new path is atomic and
+the old torn state can no longer occur. (Adopt status + open items: `#acid-register-2026-06-24`.)
+
 ## Non-negotiable
 
 - Authorization is server-side. Every Route Handler and Server Action self-authorizes (the

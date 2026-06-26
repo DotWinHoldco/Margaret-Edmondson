@@ -1,13 +1,12 @@
 // Authored by DotWin
-// Gate (advisory): the BUILD_LOG is a grep index, so its anchors must resolve.
-// Every `@anchor:` referenced in BUILD_LOG.md / STATE.md must exist as a real
-// `@anchor:` token in source, and source anchors must be unique. Evidence: the doctrine
-// "never trust the log alone — confirm file:line anchors still exist" only works if
-// something actually confirms it.
+// Gate (advisory): the BUILD_LOG/STATE reference source @anchors, so those anchors must resolve.
+// Every `@anchor:` referenced in BUILD_LOG.md / STATE.md must exist as a real `@anchor:` token in
+// source, and source anchors must be unique. Tag resolution and state discipline are enforced
+// separately, as a REQUIRED gate, by check-state.mjs.
 
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { walk, readText, rel, safeIsDir, safeExists } from './lib/scan.mjs';
+import { walk, readText, safeIsDir, safeExists } from './lib/scan.mjs';
 import { finding, gate } from './lib/report.mjs';
 
 const ANCHOR_RE = /@anchor:\s*([a-z0-9_.\-]+)/gi;
@@ -57,7 +56,7 @@ export function runCheck(root) {
 
 if (path.resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
   const g = runCheck(process.argv[2] || process.cwd());
-  for (const f of g.findings) console.log(`[${f.severity}] ${f.message} — ${f.file}${f.line ? ':' + f.line : ''}`);
+  for (const f of g.findings) console.log(`[${f.severity}] ${f.message} ${f.file}${f.line ? ':' + f.line : ''}`);
   console.log(`anchors: ${g.status}`);
   process.exit(0);
 }

@@ -9,6 +9,24 @@ Indexes longform project memory by tag. Do not store longform memory here; it li
 
 ## Tags
 
+### #adopt-domain-cell-2026-06-24
+
+File: `BUILD_LOG.md` + `audit/ADOPT-2026-06-24/README.md`
+Relevant when: understanding the domain-cell adopt re-run — kit gate delta, `src/contracts`,
+`mode: adopt` + ratchet in `.dotwin/conformance.json`, and why the cell gates skip (no
+`src/domains/` yet) while `check-rpc-exists` is active.
+Dependencies: `scripts/check-*.mjs`, `src/contracts/*`, `.dotwin/conformance.json`.
+Current relevance: High.
+
+### #acid-register-2026-06-24
+
+File: `audit/ADOPT-2026-06-24/ACID-REGISTER.md`
+Relevant when: working any P2 atomicity-of-record item or the Rule 1 transaction owners. 0 P0/P1;
+4 P2 staged (`STAGED-REFACTOR-PLAN.md`). Money paths already atomic via RPC.
+Dependencies: `src/contracts/transaction-registry.ts`; `supabase/migrations/2026060806`,
+`20260522_crm_anon_rpcs.sql`.
+Current relevance: High (P2 backlog open).
+
 ### #harden-2026-06-22
 
 File: `BUILD_LOG.md`

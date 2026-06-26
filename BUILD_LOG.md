@@ -20,6 +20,53 @@ Verified: 6/11 required gates
 Failing: security, supabase-boundaries, authz, rls, docs
 
 
+## #adopt-domain-cell-2026-06-24 — re-run adopt for the domain-cell conformance system
+
+- **Date:** 2026-06-24
+- **Module:** factory rails (scripts/gates) · src/contracts · audit packet · STATE/docs
+- **Category:** adopt re-run (domain-cell conformance), behavior-preserving — no app runtime change
+- **Summary:** The prior adopt (2026-06-22) certified green before the factory added the
+  domain-cell conformance system (Rule 1 / ACID audit, derived `contracts/`, 8 domain-cell gates,
+  `mode: adopt` hybrid enforcement). This run adds exactly those missing parts. The earlier
+  security/auth/billing/RLS audit was NOT redone; it still stands (`#findings`,
+  `#harden-2026-06-22`, `#adopt-green-push-2026-06-22`).
+- **Why it matters:** without this, the runner would read no `mode` from
+  `.dotwin/conformance.json`, default to `spawn`, and treat the legacy app as if every domain gate
+  must block — wrong for a hybrid adopt. The contracts were also absent, so `check-rpc-exists`
+  (the keystone that makes the transaction registry honest) had nothing to verify.
+
+### What changed
+- **Kit delta imported** (dev scripts only): 9 new gates — `check-{atomicity,domain-isolation,
+  event-boundaries,no-duplicate-transactions,read-boundary,rpc-exists,state,table-ownership}.mjs`
+  + `lib/cells.mjs`; 6 updated — `build-check.mjs`, `check-docs.mjs`, `check-contract.mjs`,
+  `check-anchors.mjs`, `lib/report.mjs`, `check-module-isolation.mjs` (now a thin re-export shim).
+  `package.json` gained the `check:*` scripts; `check:modules` → `check:domains`. CI + husky call
+  `build-check` generically, so they pick up the new gates with no edit.
+- **`src/contracts/`** authored from the real 73-table schema: `domain-map.ts` (17 areas),
+  `table-ownership.ts` (table → owner + core/recoverable), `transaction-registry.ts`
+  (`record_order_for_contact` declared, touches verified), `event-registry.ts` (implicit flows).
+- **`.dotwin/conformance.json`** → `mode: adopt` + `ratchet` (4 scored gates start false). Hybrid:
+  always-blocking gates run (rpc-exists ACTIVE + passing; domain-isolation/contract/read-boundary
+  skip until cells exist); the data-model gates score until the staged plan ratchets them.
+- **ACID register** (`#acid-register-2026-06-24`): Rule 1 audit of the real money paths. 0 P0,
+  0 P1. 4 P2 atomicity-of-record gaps (webhook order write, fulfillment finalize, admin course
+  delete, AI testimonial) with dated exceptions + staged owner RPCs. Full packet:
+  `audit/ADOPT-2026-06-24/`.
+- **Regression test** `test/acid-transaction-owners.test.ts`: proves `record_order_for_contact`
+  is atomic at runtime (a failed single-use redemption rolls back the contact bump + usage_count).
+  Skipped without a disposable test DB (like the existing FIN tests).
+
+### Verified (in-sandbox)
+`tsc --noEmit` PASS · `eslint src/contracts` PASS · `check-rpc-exists` PASS (1 declared tx) ·
+domain gates skip cleanly · all security gates pass (advisories only). Native `next build` +
+`vitest` cannot run in the Linux sandbox (macOS `node_modules`); unchanged from the prior green and
+no runtime code changed. GREEN-PENDING native re-cert: `npm run build-check:write`.
+
+### Carried context (resolving tags)
+`#proxy-not-middleware`: middleware lives in `src/proxy.ts` (Next 16); never create `middleware.ts`.
+`#domain-cell-conformance`: the adopt protocol this run implements (factory
+`06-audit-system/domain-cell-conformance-protocol.md`).
+
 ## #adopt-green-push-2026-06-22 — clear the standards backlog to first green
 
 - **Date:** 2026-06-22
