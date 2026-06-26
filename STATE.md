@@ -1,11 +1,18 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-24 (adopt re-run: domain-cell conformance system)
-Baseline SHA: `074ffc8` (prior adopt green, on origin/main). This run's changes (kit gates,
-`src/contracts`, audit packet, test, docs) are staged on top and UNCOMMITTED.
-See BUILD_LOG `#adopt-domain-cell-2026-06-24`.
+Last updated: 2026-06-25 (Product Builder + Variant System + LumaPrints ordering REBUILD — all 9 phases shipped + pushed to main)
+Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
+`52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
+
+> **Current truth (2026-06-25):** the print variant system + admin product builder + storefront
+> + LumaPrints ordering pipeline are rebuilt for true-to-aspect custom print sizing. Migrations
+> 2026061601/02/03 applied to prod (844 legacy print variants retired, 22 originals kept). Gate
+> green (typecheck/lint/build/test 130 passed), advisors 0 new criticals. Go-live is HUMAN-gated:
+> set LumaPrints/CRON env in Vercel, crop each master + run the worker, generate/price/Live the
+> variants, run the sandbox dry-run, then authorize the first production order. See the
+> "Decisions & human action" section of `audit/BUILDER-REBUILD-LOG.md`.
 
 <!-- dotwin:build-status:begin -->
 ## Current Build Status
