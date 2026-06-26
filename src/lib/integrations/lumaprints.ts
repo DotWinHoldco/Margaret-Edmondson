@@ -20,6 +20,20 @@ const MAX_RETRIES = 3
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Typed API error so callers can branch on the status — e.g. the fulfillment
+// router treats a 406 (image dimension/aspect mismatch) as failed_validation,
+// not a generic failure, and logs the expected-vs-actual dimensions.
+export class LumaprintsApiError extends Error {
+  readonly status: number
+  readonly body: string
+  constructor(status: number, body: string) {
+    super(`Lumaprints API error (${status}): ${body.slice(0, 300)}`)
+    this.name = 'LumaprintsApiError'
+    this.status = status
+    this.body = body
+  }
+}
+
 async function request(path: string, options: RequestInit = {}, attempt = 0): Promise<unknown> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -37,7 +51,7 @@ async function request(path: string, options: RequestInit = {}, attempt = 0): Pr
   }
   if (!res.ok) {
     const error = await res.text()
-    throw new Error(`Lumaprints API error (${res.status}): ${error.slice(0, 300)}`)
+    throw new LumaprintsApiError(res.status, error)
   }
   return res.json()
 }
@@ -107,45 +121,105 @@ export async function getProductsCost(items: ProductCostRequestItem[]): Promise<
   }) as Promise<ProductCostResult[]>
 }
 
-export async function submitOrder(orderData: {
-  reference: string
-  items: Array<{
-    imageUrl: string
-    categoryId: string
-    subcategoryId: string
-    // option IDs as an array (matches the pricing/shipping API shape); the
-    // previous {id:id} self-map was rejected by the order API. (B-16)
-    orderItemOptions: number[]
-    quantity: number
-  }>
-  shippingAddress: {
-    name: string
-    address1: string
-    address2?: string
-    city: string
-    state: string
-    zip: string
-    country: string
-  }
-}): Promise<LumaPrintsOrderResponse> {
-  return request(`/api/v1/stores/${STORE_ID}/orders`, {
-    method: 'POST',
-    body: JSON.stringify(orderData),
-  }) as Promise<LumaPrintsOrderResponse>
+// --- Order submission (documented /api/v1/orders contract) ---------------
+
+export interface LumaprintsRecipient {
+  firstName: string
+  lastName: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  company?: string
+  phone?: string
 }
 
-export async function getOrder(orderNumber: string): Promise<LumaPrintsOrderResponse> {
-  return request(`/api/v1/stores/${STORE_ID}/orders/${orderNumber}`) as Promise<LumaPrintsOrderResponse>
+export interface LumaprintsOrderItem {
+  externalItemId: string
+  subcategoryId: number
+  quantity: number
+  width: number
+  height: number
+  file: { imageUrl: string; saveImage?: boolean }
+  orderItemOptions: number[]
+  solidColorHexCode?: string
 }
 
-export async function getShipments(orderNumber: string): Promise<unknown> {
-  return request(`/api/v1/stores/${STORE_ID}/shipments/${orderNumber}`)
+export interface SubmitOrderInput {
+  externalId: string
+  recipient: LumaprintsRecipient
+  orderItems: LumaprintsOrderItem[]
+  shippingMethod?: string
+  productionTime?: string
+  specialInstructions?: string
 }
 
 export interface LumaPrintsOrderResponse {
-  orderNumber?: string
-  id?: string | number
+  message?: string
+  orderNumber?: string | number
+  externalId?: string
+  orderStatus?: string
+  orderItems?: Array<{
+    externalItemId?: string
+    subcategoryId?: number
+    quantity?: number
+    width?: number
+    height?: number
+  }>
+  recipient?: Record<string, unknown>
   [key: string]: unknown
+}
+
+/**
+ * Submit an order to LumaPrints. Body shape per the OpenAPI contract:
+ * POST /api/v1/orders with top-level externalId + storeId + recipient +
+ * orderItems[{externalItemId, subcategoryId, quantity, width, height,
+ * file:{imageUrl}, orderItemOptions}]. The submit auto-validates each image's
+ * aspect within 1% of the ordered W:H (else 406) and enforces requiredDPI.
+ * Throws LumaprintsApiError (with .status) on a non-2xx — callers branch on 406.
+ */
+export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOrderResponse> {
+  const body = {
+    externalId: input.externalId,
+    storeId: Number(STORE_ID),
+    shippingMethod: input.shippingMethod || 'default',
+    productionTime: input.productionTime || 'regular',
+    ...(input.specialInstructions ? { specialInstructions: input.specialInstructions } : {}),
+    recipient: input.recipient,
+    orderItems: input.orderItems,
+  }
+  return request(`/api/v1/orders`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }) as Promise<LumaPrintsOrderResponse>
+}
+
+export async function getOrder(orderNumber: string | number): Promise<LumaPrintsOrderResponse> {
+  return request(`/api/v1/orders/${orderNumber}`) as Promise<LumaPrintsOrderResponse>
+}
+
+export async function getShipments(orderNumber: string | number): Promise<unknown> {
+  return request(`/api/v1/shipments/${orderNumber}`)
+}
+
+export interface CheckImageConfigInput {
+  subcategoryId: number
+  printWidth: number
+  printHeight: number
+  imageUrl: string
+  orderItemOptions: string[]
+}
+
+// Defensive pre-submit validation of an image's resolution + aspect vs the
+// ordered size. Returns the parsed body on 200; throws LumaprintsApiError on 406
+// (sized incorrectly — body carries expected vs actual px) or 400 (bad URL).
+export async function checkImageConfig(input: CheckImageConfigInput): Promise<Record<string, unknown>> {
+  return request(`/api/v1/images/checkImageConfig`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }) as Promise<Record<string, unknown>>
 }
 
 export interface LumaPrintsShippingRecipient {

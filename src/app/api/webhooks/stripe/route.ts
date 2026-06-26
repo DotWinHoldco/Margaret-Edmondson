@@ -43,6 +43,124 @@ async function logEvent(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Purchase-time fulfillment snapshot (Phase 6.1)
+// ---------------------------------------------------------------------------
+// We snapshot the exact print spec onto each order_items row at purchase so an
+// order can be fulfilled deterministically even if the variant is later edited
+// or deleted. Everything here is best-effort + null-safe: a missing master,
+// medium config, or column must NEVER break order creation.
+
+interface OiCartItem {
+  productId: string
+  variantId?: string | null
+  quantity: number
+}
+interface OiProduct {
+  id: string
+  base_price: number
+  fulfillment_type: string | null
+  master_artwork?: { print_storage_path: string | null } | { print_storage_path: string | null }[] | null
+}
+interface OiVariant {
+  id: string
+  price: number
+  variant_type: string | null
+  medium: string | null
+  size_label: string | null
+  width_in: number | null
+  height_in: number | null
+  fulfillment_metadata: Record<string, unknown> | null
+}
+interface OiMedium {
+  medium: string
+  subcategory_id: number | null
+  option_ids: number[] | null
+}
+
+interface OrderItemData {
+  productMap: Map<string, OiProduct>
+  variantMap: Map<string, OiVariant>
+  mediumMap: Map<string, OiMedium>
+}
+
+// Batched, authoritative lookups for the order_items rows + the print snapshot.
+async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem[]): Promise<OrderItemData> {
+  const productIds = [...new Set(cartItems.map((i) => i.productId))]
+  const variantIds = cartItems.filter((i) => i.variantId).map((i) => i.variantId as string)
+  const [{ data: products }, { data: variants }] = await Promise.all([
+    productIds.length
+      ? supabase
+          .from('products')
+          .select('id, base_price, fulfillment_type, master_artwork:master_artworks(print_storage_path)')
+          .in('id', productIds)
+      : Promise.resolve({ data: [] as OiProduct[] }),
+    variantIds.length
+      ? supabase
+          .from('product_variants')
+          .select('id, price, variant_type, medium, size_label, width_in, height_in, fulfillment_metadata')
+          .in('id', variantIds)
+      : Promise.resolve({ data: [] as OiVariant[] }),
+  ])
+  const productMap = new Map(((products || []) as OiProduct[]).map((p) => [p.id, p]))
+  const variantMap = new Map(((variants || []) as OiVariant[]).map((v) => [v.id, v]))
+
+  const mediums = [...new Set(((variants || []) as OiVariant[]).map((v) => v.medium).filter(Boolean) as string[])]
+  let mediumMap = new Map<string, OiMedium>()
+  if (mediums.length) {
+    const { data: rows } = await supabase
+      .from('lumaprints_mediums')
+      .select('medium, subcategory_id, option_ids')
+      .in('medium', mediums)
+    mediumMap = new Map(((rows || []) as OiMedium[]).map((r) => [r.medium, r]))
+  }
+  return { productMap, variantMap, mediumMap }
+}
+
+// Build one order_items insert row, including the print snapshot for print items.
+// `id` is pre-generated so external_item_id can equal order_items.id; on a
+// resumed/duplicate delivery the (order_id,product_id,variant_id) upsert ignores
+// the new id and preserves the original row's snapshot.
+function buildOrderItemRow(
+  orderId: string,
+  ci: OiCartItem,
+  p: OiProduct | undefined,
+  v: OiVariant | null | undefined,
+  mediumMap: Map<string, OiMedium>,
+): Record<string, unknown> {
+  const price = v?.price ?? p?.base_price ?? 0
+  const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
+  const id = crypto.randomUUID()
+  const row: Record<string, unknown> = {
+    id,
+    order_id: orderId,
+    product_id: ci.productId,
+    variant_id: ci.variantId || null,
+    quantity: ci.quantity,
+    unit_price: price,
+    fulfillment_type: fulfillmentType,
+    fulfillment_status: 'pending',
+  }
+
+  const isPrint = fulfillmentType !== 'self_ship' && v?.variant_type !== 'original' && Boolean(v?.medium)
+  if (isPrint && v) {
+    const cfg = v.medium ? mediumMap.get(v.medium) : undefined
+    const meta = (v.fulfillment_metadata || {}) as Record<string, unknown>
+    const metaSub = typeof meta.lumaprints_subcategory_id === 'number' ? meta.lumaprints_subcategory_id : null
+    const metaOpts = Array.isArray(meta.lumaprints_option_ids) ? (meta.lumaprints_option_ids as number[]) : []
+    const masterArtwork = Array.isArray(p?.master_artwork) ? p?.master_artwork[0] : p?.master_artwork
+    row.medium = v.medium
+    row.size_label = v.size_label
+    row.print_width_in = v.width_in
+    row.print_height_in = v.height_in
+    row.lumaprints_subcategory_id = cfg?.subcategory_id ?? metaSub
+    row.lumaprints_option_ids = cfg?.option_ids ?? metaOpts
+    row.print_storage_path = masterArtwork?.print_storage_path ?? null
+    row.external_item_id = id
+  }
+  return row
+}
+
 // POST /api/webhooks/stripe — handle Stripe events (orders, enrollments, class bookings, refunds, disputes); webhook, signature-verified.
 export async function POST(request: Request) {
   const body = await request.text()
@@ -389,24 +507,11 @@ async function handleCheckoutCompleted(
 
   // B-7/B-8/B-9: re-derive price + fulfillment from authoritative server data in
   // batched lookups (never trust cart-stored price), and claim originals atomically.
-  const productIds = [...new Set(cartItems.map((i) => i.productId))]
-  const variantIds = cartItems.filter((i) => i.variantId).map((i) => i.variantId as string)
-  const [{ data: products }, { data: variants }] = await Promise.all([
-    productIds.length
-      ? supabase.from('products').select('id, base_price, fulfillment_type').in('id', productIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; base_price: number; fulfillment_type: string | null }> }),
-    variantIds.length
-      ? supabase.from('product_variants').select('id, price, variant_type').in('id', variantIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; price: number; variant_type: string | null }> }),
-  ])
-  const productMap = new Map((products || []).map((p) => [p.id, p]))
-  const variantMap = new Map((variants || []).map((v) => [v.id, v]))
+  const { productMap, variantMap, mediumMap } = await loadOrderItemData(supabase, cartItems)
 
   for (const ci of cartItems) {
     const p = productMap.get(ci.productId)
     const v = ci.variantId ? variantMap.get(ci.variantId) : null
-    const price = v?.price ?? p?.base_price ?? 0
-    const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
 
     // B-9: atomically claim a one-of-a-kind original. reserve_original clamps at
     // 0 (safe on resume) and returns false only when it was already sold out.
@@ -422,15 +527,7 @@ async function handleCheckoutCompleted(
     // (order_id, product_id, variant_id) is ignored rather than inserting a
     // second item row (which would double-submit to fulfillment + skew totals).
     await supabase.from('order_items').upsert(
-      {
-        order_id: orderId,
-        product_id: ci.productId,
-        variant_id: ci.variantId || null,
-        quantity: ci.quantity,
-        unit_price: price,
-        fulfillment_type: fulfillmentType,
-        fulfillment_status: 'pending',
-      },
+      buildOrderItemRow(orderId, ci, p, v, mediumMap),
       { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
     )
   }
@@ -675,24 +772,11 @@ async function handleElementsPaymentSucceeded(
     orderTotal = created.total
   }
 
-  const productIds = [...new Set(cartItems.map((i) => i.productId))]
-  const variantIds = cartItems.filter((i) => i.variantId).map((i) => i.variantId as string)
-  const [{ data: products }, { data: variants }] = await Promise.all([
-    productIds.length
-      ? supabase.from('products').select('id, base_price, fulfillment_type').in('id', productIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; base_price: number; fulfillment_type: string | null }> }),
-    variantIds.length
-      ? supabase.from('product_variants').select('id, price, variant_type').in('id', variantIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; price: number; variant_type: string | null }> }),
-  ])
-  const productMap = new Map((products || []).map((p) => [p.id, p]))
-  const variantMap = new Map((variants || []).map((v) => [v.id, v]))
+  const { productMap, variantMap, mediumMap } = await loadOrderItemData(supabase, cartItems)
 
   for (const ci of cartItems) {
     const p = productMap.get(ci.productId)
     const v = ci.variantId ? variantMap.get(ci.variantId) : null
-    const price = v?.price ?? p?.base_price ?? 0
-    const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
 
     // B-9: atomically claim a one-of-a-kind original.
     if (v?.variant_type === 'original' && ci.variantId) {
@@ -707,15 +791,7 @@ async function handleElementsPaymentSucceeded(
     // (order_id, product_id, variant_id) is ignored rather than inserting a
     // second item row (which would double-submit to fulfillment + skew totals).
     await supabase.from('order_items').upsert(
-      {
-        order_id: orderId,
-        product_id: ci.productId,
-        variant_id: ci.variantId || null,
-        quantity: ci.quantity,
-        unit_price: price,
-        fulfillment_type: fulfillmentType,
-        fulfillment_status: 'pending',
-      },
+      buildOrderItemRow(orderId, ci, p, v, mediumMap),
       { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
     )
   }

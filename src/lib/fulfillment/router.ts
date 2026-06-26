@@ -1,5 +1,9 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { submitOrder as lumaprintsSubmitOrder } from '@/lib/integrations/lumaprints'
+import {
+  submitOrder as lumaprintsSubmitOrder,
+  LumaprintsApiError,
+  type LumaprintsRecipient,
+} from '@/lib/integrations/lumaprints'
 import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
 
 // ---------------------------------------------------------------------------
@@ -45,6 +49,16 @@ interface OrderItem {
   carrier: string | null
   shipped_at: string | null
   delivered_at: string | null
+  // Purchase-time print snapshot (Phase 6.1). Fulfillment reads THESE, never the
+  // live variant, so a later variant edit/delete can't corrupt an in-flight order.
+  medium: string | null
+  size_label: string | null
+  print_width_in: number | null
+  print_height_in: number | null
+  lumaprints_subcategory_id: number | null
+  lumaprints_option_ids: number[] | null
+  print_storage_path: string | null
+  external_item_id: string | null
 }
 
 interface Variant {
@@ -94,28 +108,13 @@ function resolveImageUrl(url: string): string {
   return `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
-// Mint a 1-hour signed URL for a master print file in the private
-// print-masters bucket. Reads from products.master_artwork first
-// (the canonical place); falls back to the legacy primary product
-// image's print_master_path so older products without the FK still fire.
-// Returns an empty string when no source is available; callers should
-// treat that as a validation failure rather than firing with a low-res
-// web image.
-async function mintLumaprintsImageUrl(product: Product): Promise<string> {
+// Mint a 1-hour signed URL for an object in the private print-masters bucket.
+// Returns '' when storage isn't configured or the path is empty; callers treat
+// that as a validation failure rather than firing with a low-res web image.
+async function mintSignedUrl(path: string): Promise<string> {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!serviceKey || !supabaseUrl) return ''
-
-  // Prefer the cropped + aspect-padded print master (Phase 1), then the raw
-  // master scan, then the legacy per-image print master path.
-  const masterPath = product.master_artwork?.print_storage_path || product.master_artwork?.storage_path
-  const legacyPath = product.product_images
-    ?.slice()
-    .sort((a: ProductImage, b: ProductImage) => a.position - b.position)
-    ?.[0]?.print_master_path
-  const path = masterPath || legacyPath
-  if (!path) return ''
-
+  if (!serviceKey || !supabaseUrl || !path) return ''
   try {
     const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/print-masters/${path}`, {
       method: 'POST',
@@ -133,6 +132,17 @@ async function mintLumaprintsImageUrl(product: Product): Promise<string> {
   }
 }
 
+// Live-product fallback path when an order_item has no snapshotted
+// print_storage_path: cropped print master → raw master scan → legacy per-image.
+function productMasterPath(product: Product): string {
+  const masterPath = product.master_artwork?.print_storage_path || product.master_artwork?.storage_path
+  const legacyPath = product.product_images
+    ?.slice()
+    .sort((a: ProductImage, b: ProductImage) => a.position - b.position)
+    ?.[0]?.print_master_path
+  return masterPath || legacyPath || ''
+}
+
 interface ValidationFailure {
   ok: false
   reason: string
@@ -140,62 +150,74 @@ interface ValidationFailure {
 interface ValidationOk {
   ok: true
   imageUrl: string
-  categoryId: number
   subcategoryId: number
   optionIds: number[]
+  width: number
+  height: number
+  externalItemId: string
+  quantity: number
 }
 type ValidationResult = ValidationOk | ValidationFailure
 
+// Validate a print order_item using its PURCHASE-TIME SNAPSHOT (Phase 6.3):
+// subcategory, options, width/height, and the print master path all come from
+// the order_item, falling back to the live medium config / product master only
+// when the snapshot is absent (orders placed before the snapshot existed).
 async function validateLumaprintsItem(
   item: OrderItem & { product: Product; variant: Variant | null },
   mediumsByKey: Map<string, LumaprintsMedium>,
   shippingAddress: ShippingAddress,
 ): Promise<ValidationResult> {
   if (!item.product) return { ok: false, reason: 'product missing' }
-  if (!item.product.master_artwork_id || !item.product.master_artwork) {
-    return { ok: false, reason: 'product.master_artwork_id not set' }
+
+  const medium = item.medium ?? item.variant?.medium ?? null
+  if (!medium) return { ok: false, reason: 'order_item.medium not set (no print snapshot)' }
+
+  const cfg = mediumsByKey.get(medium)
+  if (cfg && cfg.enabled === false) {
+    return { ok: false, reason: `medium "${medium}" is disabled` }
   }
-  if (!item.variant) return { ok: false, reason: 'variant missing' }
-  if (!item.variant.medium) {
-    return { ok: false, reason: 'variant.medium not set' }
+
+  const subcategoryId = item.lumaprints_subcategory_id ?? cfg?.subcategory_id ?? null
+  if (!subcategoryId) {
+    return { ok: false, reason: `subcategory not set for medium "${medium}"` }
   }
-  if (!item.variant.size_label) {
-    return { ok: false, reason: 'variant.size_label not set' }
+
+  const width = item.print_width_in
+  const height = item.print_height_in
+  if (!width || width <= 0 || !height || height <= 0) {
+    return { ok: false, reason: 'order_item print width/height missing or non-positive' }
   }
-  const medium = mediumsByKey.get(item.variant.medium)
-  if (!medium) {
-    return {
-      ok: false,
-      reason: `medium "${item.variant.medium}" not registered in lumaprints_mediums`,
-    }
-  }
-  if (!medium.enabled) {
-    return { ok: false, reason: `medium "${item.variant.medium}" is disabled` }
-  }
-  if (!medium.category_id || !medium.subcategory_id) {
-    return {
-      ok: false,
-      reason: `medium "${item.variant.medium}" missing category_id / subcategory_id`,
-    }
-  }
+
+  const optionIds =
+    item.lumaprints_option_ids && item.lumaprints_option_ids.length
+      ? item.lumaprints_option_ids
+      : cfg?.option_ids || []
+
   if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postal_code) {
     return { ok: false, reason: 'shipping address incomplete' }
   }
 
-  const imageUrl = await mintLumaprintsImageUrl(item.product)
+  // Mint from the snapshotted print master, else the live product master.
+  const path = item.print_storage_path || productMasterPath(item.product)
+  const imageUrl = await mintSignedUrl(path)
   if (!imageUrl) {
-    return { ok: false, reason: 'could not mint signed URL for master artwork' }
+    return { ok: false, reason: 'could not mint signed URL for print master' }
   }
 
   return {
     ok: true,
     imageUrl,
-    categoryId: medium.category_id,
-    subcategoryId: medium.subcategory_id,
-    optionIds: medium.option_ids || [],
+    subcategoryId,
+    optionIds,
+    width: Number(width),
+    height: Number(height),
+    externalItemId: item.external_item_id || item.id,
+    quantity: item.quantity,
   }
 }
 
+// Printful recipient (name + address1/zip…). LumaPrints uses parseRecipient.
 function parseShippingAddress(addr: ShippingAddress) {
   return {
     name: addr.name || 'Customer',
@@ -204,6 +226,25 @@ function parseShippingAddress(addr: ShippingAddress) {
     city: addr.city || '',
     state: addr.state || '',
     zip: addr.postal_code || '',
+    country: addr.country || 'US',
+  }
+}
+
+// LumaPrints RecipientDto: split a single shipping name into first/last (both
+// required by the API). Address from the order's stored shipping_address.
+function parseRecipient(addr: ShippingAddress): LumaprintsRecipient {
+  const fullName = (addr.name || 'Customer').trim()
+  const parts = fullName.split(/\s+/).filter(Boolean)
+  const firstName = parts[0] || 'Customer'
+  const lastName = parts.length > 1 ? parts.slice(1).join(' ') : firstName
+  return {
+    firstName,
+    lastName,
+    addressLine1: addr.line1 || '',
+    addressLine2: addr.line2 || undefined,
+    city: addr.city || '',
+    state: addr.state || '',
+    zipCode: addr.postal_code || '',
     country: addr.country || 'US',
   }
 }
@@ -220,29 +261,24 @@ async function submitToLumaprints(
   }>,
   shippingAddress: ShippingAddress,
 ): Promise<FulfillmentResult[]> {
-  const addr = parseShippingAddress(shippingAddress)
-
-  const lumaprintsItems = validatedItems.map(({ item, validated }) => ({
-    imageUrl: validated.imageUrl,
-    categoryId: String(validated.categoryId),
-    subcategoryId: String(validated.subcategoryId),
-    // B-16: send the selected option IDs as an array (matching the Lumaprints
-    // pricing/shipping API shape), not the previous {id:id} self-map which the
-    // order API rejects. NOTE: verify the exact order payload (option array vs
-    // {optionId} objects, width/height/file wrapper) against Lumaprints docs
-    // with live keys before go-live.
+  // Documented POST /api/v1/orders contract: top-level externalId + storeId +
+  // recipient + orderItems[{externalItemId, subcategoryId, quantity, width,
+  // height, file:{imageUrl}, orderItemOptions}].
+  const recipient = parseRecipient(shippingAddress)
+  const orderItems = validatedItems.map(({ validated }) => ({
+    externalItemId: validated.externalItemId,
+    subcategoryId: validated.subcategoryId,
+    quantity: validated.quantity,
+    width: validated.width,
+    height: validated.height,
+    file: { imageUrl: validated.imageUrl },
     orderItemOptions: validated.optionIds,
-    quantity: item.quantity,
   }))
 
-  const response = await lumaprintsSubmitOrder({
-    reference: orderId,
-    items: lumaprintsItems,
-    shippingAddress: addr,
-  })
+  const response = await lumaprintsSubmitOrder({ externalId: orderId, recipient, orderItems })
 
-  // Lumaprints returns a single order — map the external ID to every item
-  const externalId = response?.orderNumber || response?.id || ''
+  // Lumaprints returns a single order — map its number to every item.
+  const externalId = response?.orderNumber ?? ''
   return validatedItems.map(({ item }) => ({
     itemId: item.id,
     success: true,
@@ -511,6 +547,11 @@ export async function routeOrderToFulfillment(
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown error'
+      // A 406 = LumaPrints rejected the image dimensions/aspect. Treat it as a
+      // validation failure (admin can re-crop the master + refire), not a
+      // transient failure, and capture the expected-vs-actual dims in the log.
+      const is406 = err instanceof LumaprintsApiError && err.status === 406
+      const failStatus = is406 ? 'failed_validation' : 'failed'
       console.error(
         `Fulfillment submission failed for ${provider}:`,
         errorMessage,
@@ -519,11 +560,12 @@ export async function routeOrderToFulfillment(
       // Log the failure
       await supabase.from('webhook_logs').insert({
         source: `fulfillment_${provider}`,
-        event_type: 'order_submission_failed',
+        event_type: is406 ? 'order_failed_validation' : 'order_submission_failed',
         payload: {
           order_id: orderId,
           provider,
           error: errorMessage,
+          ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
         } as unknown as Record<string, unknown>,
       })
 
@@ -533,7 +575,7 @@ export async function routeOrderToFulfillment(
         if (item.fulfillment_status !== 'failed_validation') {
           await supabase
             .from('order_items')
-            .update({ fulfillment_status: 'failed' })
+            .update({ fulfillment_status: failStatus })
             .eq('id', item.id)
         }
         results.push({
@@ -706,16 +748,25 @@ export async function retryFulfillmentForItem(
     return result
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+    const is406 = err instanceof LumaprintsApiError && err.status === 406
     console.error(`Fulfillment retry failed for item ${itemId}:`, errorMessage)
+
+    // Move the claimed item out of 'submitting' so it isn't stuck. A 406 (image
+    // dims/aspect) is a validation failure the admin fixes by re-cropping.
+    await supabase
+      .from('order_items')
+      .update({ fulfillment_status: is406 ? 'failed_validation' : 'failed' })
+      .eq('id', itemId)
 
     await supabase.from('webhook_logs').insert({
       source: `fulfillment_${provider}`,
-      event_type: 'item_retry_failed',
+      event_type: is406 ? 'item_failed_validation' : 'item_retry_failed',
       payload: {
         item_id: itemId,
         order_id: order.id,
         provider,
         error: errorMessage,
+        ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
       } as unknown as Record<string, unknown>,
     })
 
