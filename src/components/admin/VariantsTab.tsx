@@ -102,6 +102,8 @@ export default function VariantsTab({
   const printW = master?.print_width_px ?? master?.width_px ?? null
   const printH = master?.print_height_px ?? master?.height_px ?? null
   const hasPrintMaster = Boolean(master?.print_width_px && master?.print_height_px)
+  // A variant can only go Live once the print master is READY (cropped/processed).
+  const masterReady = master?.print_status === 'ready'
   const aspect = printW && printH ? aspectFromMaster(printW, printH) : null
   const repDpi = 200 // canvas required DPI, used for the banner's max-size readout
   const maxPrintIn = printW && printH
@@ -361,7 +363,21 @@ export default function VariantsTab({
                       return (
                         <tr key={v.id} className={!v.is_active ? 'bg-charcoal/[0.015]' : ''}>
                           <td className="px-3 py-2">
-                            <input type="checkbox" checked={v.is_active} onChange={(e) => onActiveChange(v.id, e.target.checked)} title={v.is_active ? 'Live on the site' : 'Draft — not shown on the site'} />
+                            <input
+                              type="checkbox"
+                              checked={v.is_active}
+                              disabled={!v.is_active && !(masterReady && configured)}
+                              onChange={(e) => onActiveChange(v.id, e.target.checked)}
+                              title={
+                                !v.is_active && !(masterReady && configured)
+                                  ? masterReady
+                                    ? 'Run the Lumaprints sync to enable this medium first.'
+                                    : 'Crop the master / set the print area before going Live.'
+                                  : v.is_active
+                                    ? 'Live on the site'
+                                    : 'Draft — not shown on the site'
+                              }
+                            />
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal">
                             {v.is_custom_size ? (

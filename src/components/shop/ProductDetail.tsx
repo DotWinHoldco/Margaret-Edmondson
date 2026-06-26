@@ -80,6 +80,10 @@ interface Product {
   tags: string[] | null
   product_images: ProductImage[]
   product_variants: ProductVariant[]
+  master_artwork?:
+    | { print_status: string | null; print_storage_path: string | null }
+    | { print_status: string | null; print_storage_path: string | null }[]
+    | null
 }
 
 interface RelatedProduct {
@@ -525,14 +529,20 @@ export default function ProductDetail({
   const originalAvailable = originalVariant && (originalVariant.inventory_count === null || originalVariant.inventory_count > 0)
   const isPubliclyAvailable = (v: ProductVariant) =>
     v.is_active !== false && v.is_lumaprints_available !== false
-  // Live print variants are now driven by `medium` (Draft variants are is_active
+  // Belt-and-suspenders for the Live gate: never offer print variants unless the
+  // product's master is print-ready — otherwise the order would 406 at LumaPrints.
+  const master = Array.isArray(product.master_artwork) ? product.master_artwork[0] : product.master_artwork
+  const masterReady = master?.print_status === 'ready' && !!master?.print_storage_path
+  // Live print variants are driven by `medium` (Draft variants are is_active
   // false and excluded). Group by medium; within a medium order by area.
   const printVariants = useMemo(
     () =>
-      (product.product_variants?.filter((v) => v.medium && isPubliclyAvailable(v)) || []).sort(
-        (a, b) => (a.width_in || 0) * (a.height_in || 0) - (b.width_in || 0) * (b.height_in || 0),
-      ),
-    [product.product_variants]
+      !masterReady
+        ? []
+        : (product.product_variants?.filter((v) => v.medium && isPubliclyAvailable(v)) || []).sort(
+            (a, b) => (a.width_in || 0) * (a.height_in || 0) - (b.width_in || 0) * (b.height_in || 0),
+          ),
+    [product.product_variants, masterReady]
   )
   const printGroups = useMemo<PrintGroup[]>(() => {
     const order = Object.keys(MEDIUM_GROUP_LABEL)

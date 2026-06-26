@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
+import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability'
 
 const Patch = z.object({
   margin_override_pct: z.number().nullable().optional(),
@@ -20,6 +21,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params
   const parsed = await parseBody(request, Patch)
   if (!parsed.ok) return parsed.response
+
+  // Live gate: a variant may only go Live when it will actually fulfill at
+  // LumaPrints — print-ready master + configured/enabled medium (+ framed
+  // option). Prevents selling a print whose order would 406/fail at submit.
+  if (parsed.data.is_active === true) {
+    const fulfill = await loadVariantFulfillability(auth.supabase, id)
+    if (!fulfill.ok) {
+      return apiError(`Can't set Live: ${fulfill.reason}`, 409, 'NOT_FULFILLABLE')
+    }
+  }
 
   const { data: existing, error: readErr } = await auth.supabase
     .from('product_variants')

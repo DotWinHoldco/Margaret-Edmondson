@@ -7,6 +7,7 @@ import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { escapeHtml } from '@/lib/email/escape'
 import { recordOrder } from '@/lib/crm/contacts'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
+import { checkFulfillable } from '@/lib/fulfillment/fulfillability'
 import { headers } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
@@ -56,11 +57,15 @@ interface OiCartItem {
   variantId?: string | null
   quantity: number
 }
+interface OiMasterArtwork {
+  print_storage_path: string | null
+  print_status: string | null
+}
 interface OiProduct {
   id: string
   base_price: number
   fulfillment_type: string | null
-  master_artwork?: { print_storage_path: string | null } | { print_storage_path: string | null }[] | null
+  master_artwork?: OiMasterArtwork | OiMasterArtwork[] | null
 }
 interface OiVariant {
   id: string
@@ -76,6 +81,7 @@ interface OiMedium {
   medium: string
   subcategory_id: number | null
   option_ids: number[] | null
+  enabled: boolean
 }
 
 interface OrderItemData {
@@ -105,7 +111,7 @@ async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem
     productIds.length
       ? supabase
           .from('products')
-          .select('id, base_price, fulfillment_type, master_artwork:master_artworks(print_storage_path)')
+          .select('id, base_price, fulfillment_type, master_artwork:master_artworks(print_storage_path, print_status)')
           .in('id', productIds)
       : Promise.resolve({ data: [] as OiProduct[] }),
     variantIds.length
@@ -123,7 +129,7 @@ async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem
   if (mediums.length) {
     const { data: rows } = await supabase
       .from('lumaprints_mediums')
-      .select('medium, subcategory_id, option_ids')
+      .select('medium, subcategory_id, option_ids, enabled')
       .in('medium', mediums)
     mediumMap = new Map(((rows || []) as OiMedium[]).map((r) => [r.medium, r]))
   }
@@ -174,6 +180,53 @@ function buildOrderItemRow(
   return row
 }
 
+// Order-time safety net: is this print item fulfillable at LumaPrints right now
+// (print-ready master + configured/enabled medium + framed option)? Originals /
+// self-ship are always "ok". Returns a human reason when not.
+function printItemFulfillability(
+  p: OiProduct | undefined,
+  v: OiVariant | null | undefined,
+  mediumMap: Map<string, OiMedium>,
+): { ok: boolean; reason?: string } {
+  const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
+  if (fulfillmentType === 'self_ship' || v?.variant_type === 'original' || !v?.medium) return { ok: true }
+  const cfg = mediumMap.get(v.medium)
+  const master = Array.isArray(p?.master_artwork) ? p?.master_artwork[0] : p?.master_artwork
+  return checkFulfillable({
+    medium: v.medium,
+    subcategoryId: cfg?.subcategory_id ?? null,
+    mediumEnabled: Boolean(cfg?.enabled),
+    mediumOptionIds: cfg?.option_ids ?? [],
+    printStatus: master?.print_status ?? null,
+    printStoragePath: master?.print_storage_path ?? null,
+  })
+}
+
+// Email Margaret when a PAID order has a print item that can't auto-submit, so
+// nothing fails silently. No-throw — never breaks the webhook.
+async function notifyOrderNeedsAttention(orderId: string, reasons: string[]): Promise<void> {
+  if (reasons.length === 0) return
+  try {
+    const { sendEmail } = await import('@/lib/email/send')
+    const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+    const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
+    const html = brandedShell(
+      `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">An order needs a quick fix to fulfill</h2>
+       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+         Order <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> was paid, but a print item can't be sent to Lumaprints yet:
+       </p>
+       <ul style="color:#666;font-size:14px;line-height:1.7;">${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
+       <p style="text-align:center;color:#666;font-size:13px;line-height:1.6;">Fix the item (e.g. crop the master), then refire the order from the admin.</p>
+       ${ctaButton(`${site}/admin/orders/${orderId}`, 'Open the order')}`,
+      { hideUnsubscribe: true, preheader: 'A paid order needs attention to fulfill.' },
+    )
+    await sendEmail({ to, subject: 'Action needed: an order can’t auto-fulfill', html })
+  } catch (e) {
+    console.error('notifyOrderNeedsAttention failed:', e)
+  }
+}
+
 // POST /api/webhooks/stripe — handle Stripe events (orders, enrollments, class bookings, refunds, disputes); webhook, signature-verified.
 export async function POST(request: Request) {
   const body = await request.text()
@@ -218,7 +271,11 @@ export async function POST(request: Request) {
   // we throw on unexpected failure so Stripe retries cleanly. (review findings 1+2)
   try {
     switch (event.type) {
+      case 'checkout.session.async_payment_succeeded':
       case 'checkout.session.completed': {
+        // async_payment_succeeded fires when a delayed-notification payment
+        // finally clears; it runs the same idempotent path (the payment_status
+        // gate inside skips the earlier 'unpaid' completed delivery).
         await handleCheckoutCompleted(supabase, stripe, event)
         break
       }
@@ -302,6 +359,8 @@ interface CheckoutSession {
   id: string
   payment_intent: string
   customer_email: string
+  // 'paid' | 'unpaid' | 'no_payment_required' — gates async (delayed) payments.
+  payment_status?: string
   // Guest checkouts (no pre-filled email) land the buyer's address here, not
   // on customer_email — Stripe collects it on the hosted checkout page.
   customer_details?: { name?: string | null; email?: string | null }
@@ -431,6 +490,20 @@ async function handleCheckoutCompleted(
   }
 
   // ── Product order ─────────────────────────────────────────────────────
+  // G5: only fulfill a PAID session. checkout.session.completed fires
+  // immediately for delayed-notification (async) payment methods with
+  // payment_status='unpaid'; the real money arrives later via
+  // checkout.session.async_payment_succeeded (also routed here). Never create +
+  // fulfill an unpaid product order. (For card checkout this is always 'paid'.)
+  if (
+    session.payment_status &&
+    session.payment_status !== 'paid' &&
+    session.payment_status !== 'no_payment_required'
+  ) {
+    await logEvent(supabase, event, { kind: 'product_order_unpaid', payment_status: session.payment_status })
+    return
+  }
+
   // Resume-safe idempotency: an order only short-circuits as fully processed
   // once the count of persisted order_items equals the number of distinct line
   // items in the cart being processed. An order row with NO items, or with only
@@ -555,6 +628,20 @@ async function handleCheckoutCompleted(
       .from('carts')
       .update({ converted_order_id: orderId, status: 'converted' })
       .eq('id', session.metadata.cart_id)
+  }
+
+  // Order-time safety net: alert Margaret about any paid print item that can't
+  // auto-submit (no print-ready master / unconfigured-disabled medium / missing
+  // framed option) so nothing fails silently. The order is still created.
+  {
+    const attention = new Set<string>()
+    for (const ci of cartItems) {
+      const p = productMap.get(ci.productId)
+      const v = ci.variantId ? variantMap.get(ci.variantId) : null
+      const fz = printItemFulfillability(p, v, mediumMap)
+      if (!fz.ok && fz.reason) attention.add(fz.reason)
+    }
+    if (attention.size > 0) await notifyOrderNeedsAttention(orderId as string, [...attention])
   }
 
   // Route to fulfillment (idempotent — only processes pending items, and FIN-2
@@ -824,6 +911,20 @@ async function handleElementsPaymentSucceeded(
       .from('carts')
       .update({ converted_order_id: orderId, status: 'converted' })
       .eq('id', md.cart_id)
+  }
+
+  // Order-time safety net: alert Margaret about any paid print item that can't
+  // auto-submit (no print-ready master / unconfigured-disabled medium / missing
+  // framed option) so nothing fails silently. The order is still created.
+  {
+    const attention = new Set<string>()
+    for (const ci of cartItems) {
+      const p = productMap.get(ci.productId)
+      const v = ci.variantId ? variantMap.get(ci.variantId) : null
+      const fz = printItemFulfillability(p, v, mediumMap)
+      if (!fz.ok && fz.reason) attention.add(fz.reason)
+    }
+    if (attention.size > 0) await notifyOrderNeedsAttention(orderId as string, [...attention])
   }
 
   // Route to fulfillment (idempotent — only processes pending items, and FIN-2

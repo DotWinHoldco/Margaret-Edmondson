@@ -170,3 +170,19 @@ A 3-lens audit of every phase against the plan + Definition of Done found the bu
 - **[minor, ACCEPTED] Appendix C cosmetics deferred** (capability fully present, not functional gaps): the custom-size modal has no Medium `<select>` (it opens scoped to the section's medium — one card per medium); the aspect-locked pair has the lock chip but no per-field "auto/driver" chip. Documented as accepted minor deviations.
 
 - **Gate GREEN** (post-fix): typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 130 passed/6 skipped; advisors 0 new criticals.
+
+---
+
+## Gap-closure — flawless end-to-end ordering (plan: `enchanted-knitting-sutton.md`) — DONE (2026-06-26)
+
+Verified the ordering path with 3 independent audits (money-path, sizing, LumaPrints-model). **Core confirmed correct** (S/M/L locked to exact master aspect; confirmed-payment auto-fires the LumaPrints order with no manual step; custom variants aspect-locked + live priced; correct per-variant size sent). Clarified that **LumaPrints has no "create product once" API** — it's order-driven, and the build's correct equivalent is "crop the master once, reuse it per order" (no per-order reprocessing). Closed the gaps that could make an order need Margaret's intervention:
+
+- **Shared `checkFulfillable`** (`src/lib/fulfillment/fulfillability.ts`, new + 6 tests): a variant is fulfillable only with a configured+enabled medium, a **print-ready master** (`print_status='ready'` + `print_storage_path`), and a frame-style option for framed (102xxx) subcategories.
+- **G1/G4 Live-flip gate** — `PATCH /api/admin/variants/[id]` rejects `is_active:true` (409 `NOT_FULFILLABLE`) unless `loadVariantFulfillability` passes; `VariantsTab` disables the Live toggle (with a reason) until the master is ready + medium configured. A variant literally cannot be published unless it will fulfill.
+- **G1/G4 storefront filter** — `getProductBySlug` now joins the master's `print_status`; `ProductDetail` offers **no** print variants unless the master is print-ready (belt-and-suspenders so an un-ready variant can't reach the cart).
+- **G1/G3/G4 order-time safety net** — the Stripe webhook loads `print_status` + medium `enabled`, and after creating order_items emails Margaret (`notifyOrderNeedsAttention`, no-throw) if any **paid** print item isn't fulfillable — nothing fails silently. Order still created.
+- **G2 bulk-create** — the legacy endpoint now creates **drafts** (`is_active:false`), so it can't publish an unfulfillable variant (and must pass the Live gate to go Live).
+- **G5 payment hardening** — `handleCheckoutCompleted` skips the product path unless `payment_status` is `paid`/`no_payment_required`; added a `checkout.session.async_payment_succeeded` case running the same idempotent path — safe if any delayed-payment method is ever enabled.
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` **136 passed**/6 skipped.
+
+Net: no art piece or variant can reach checkout unless it will fulfill cleanly at LumaPrints with the correct size; anything that still slips through alerts Margaret instead of failing silently.

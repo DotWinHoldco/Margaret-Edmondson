@@ -66,7 +66,10 @@ export async function POST(request: NextRequest) {
         cfg,
         zips,
         margin_override_pct: parsed.data.margin_override_pct ?? null,
-        is_active: true, // bulk-create publishes immediately (legacy behavior)
+        // Create as DRAFT — going Live is gated on a print-ready master +
+        // enabled medium (PATCH /variants/[id]). This legacy endpoint must not
+        // publish an unfulfillable variant straight to the storefront.
+        is_active: false,
       }),
     )
   }
