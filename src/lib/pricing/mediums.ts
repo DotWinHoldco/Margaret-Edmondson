@@ -167,9 +167,16 @@ export function mediumConfig(medium: Medium): MediumConfig {
 }
 
 export function sizeDimensions(size_label: string): { width: number; height: number } | null {
-  const match = size_label.match(/^(\d+)\s*[x×]\s*(\d+)$/i)
+  // Accepts whole OR fractional inches ("18x24", "9.25x11", "31 × 50"), with
+  // optional surrounding whitespace and either 'x' or '×'. Custom-size variants
+  // can carry decimal labels, so an integer-only parse silently priced them at
+  // $0 (the bug Phase 2.1 fixes). Rejects empty/garbage and trailing junk.
+  const match = size_label.match(/^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*$/i)
   if (!match) return null
-  return { width: Number(match[1]), height: Number(match[2]) }
+  const width = Number(match[1])
+  const height = Number(match[2])
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null
+  return { width, height }
 }
 
 export type Orientation = 'square' | 'portrait' | 'landscape'

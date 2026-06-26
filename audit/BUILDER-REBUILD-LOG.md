@@ -23,3 +23,19 @@ Supabase prod: `klwkajukicsoiwpsgftt`.
 
 Judgment calls:
 - Committed the prior session's uncommitted adopt work as its own commit before starting, so the builder starts from a clean tree and restore tags are meaningful. It is behavior-preserving (dev scripts + contracts + docs), per `STATE.md`.
+
+---
+
+## PHASE 2 — Aspect-locked size math + validation — DONE (2026-06-25)
+
+> Built BEFORE Phase 1 (Phase 1's crop-modal map was still being gathered async; Phase 2 is pure + fully independent + foundational for Phases 3/4). Phase 1 follows.
+
+- **2.1 Decimal sizes** — `sizeDimensions()` (`src/lib/pricing/mediums.ts`) regex now `^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*$` + positivity guard. Parses `9.25x11`, `31 × 50`, trims whitespace; rejects trailing junk (`12 × 22 in`) so display labels can't be mis-parsed. Custom sizes no longer silently price at $0.
+- **2.2 New pure module** `src/lib/pricing/size-tiers.ts`: `aspectFromMaster()`, `partnerDimension()` (bidirectional aspect-locked auto-fill, optional grid step), `deriveDefaultTiers()` (S/M/L at long-edge {12,20,30}, all one shape, clamped to bounds + resolution ceiling, **drops a tier rather than distorting**), `validateCustomSize()` ({ok, reasons[], boundsOk, resolutionOk, aspectOk, aspectDeltaPct, maxWidthIn, maxHeightIn} — bounds + resolution (`in·dpi ≤ printPx`) + 1% aspect). Plus `roundToStep`, `sizeLabel`/`displaySize` helpers.
+- **Golden tests** `test/size-tiers.test.ts` (23 tests): decimals + rejects; Poolside 4×12 / Dig 9.25×11 / Dolphin 7.5×9.5 / square pass; over-resolution, out-of-bounds, off-aspect each fail with the right reason flag; partner-dimension exact inverse; tier all-3 / drop-L (small master) / drop-M (3:1 panorama rounding).
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), `npm test` 114 passed/6 skipped (+23), build ✓.
+
+Design decisions (size math):
+- **`size_label` is the machine form `"WxH"`** (e.g. `30x22.5`) so `sizeDimensions()` + the pricing-cache key keep working; the customer **display** string (`"30 × 22.5 in"`) is separate (`displaySize`, stored on `name`). The plan's `"{W} × {H} in"` for `size_label` would have broken `sizeDimensions`/cache — resolved in favor of the machine form.
+- **Bounds + DPI are function inputs**, not read from `lumaprints_mediums` (which has neither column). Production callers pass the subcategory's real bounds (+ canvas DPI 200); a hardcoded bounds config / live probe seeds them (Phase 3/4).
+- **Default step 0.25"** (per Appendix C.4.3). For extreme/irrational aspects, a tier whose rounded short edge drifts >1% off-aspect is **dropped** (the builder will surface a "Large skipped" toast); the admin adds an aspect-locked custom size instead. Spec-compliant ("drop rather than distort").
