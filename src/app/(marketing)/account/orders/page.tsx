@@ -13,7 +13,7 @@ export default async function OrdersPage() {
   const { data: orders } = await supabase
     .from('orders')
     .select('id, order_number, profile_id, email, stripe_checkout_session_id, stripe_payment_intent_id, status, subtotal, shipping_cost, tax, discount, total, promo_code, shipping_address, billing_address, notes, created_at, updated_at, side_effects_completed_at')
-    .eq('user_id', user.id)
+    .eq('profile_id', user.id)
     .order('created_at', { ascending: false })
 
   return (

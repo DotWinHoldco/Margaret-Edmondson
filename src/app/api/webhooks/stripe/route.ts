@@ -84,6 +84,19 @@ interface OrderItemData {
   mediumMap: Map<string, OiMedium>
 }
 
+// Link a product order to a registered account by matching the buyer's email to
+// a profile (profiles.id == auth.uid()), so it appears under /account/orders.
+// Best-effort + null-safe — never blocks order creation.
+async function resolveProfileId(supabase: SupabaseClient, email: string | null | undefined): Promise<string | null> {
+  if (!email) return null
+  try {
+    const { data } = await supabase.from('profiles').select('id').ilike('email', email).limit(1)
+    return (data?.[0]?.id as string) ?? null
+  } catch {
+    return null
+  }
+}
+
 // Batched, authoritative lookups for the order_items rows + the print snapshot.
 async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem[]): Promise<OrderItemData> {
   const productIds = [...new Set(cartItems.map((i) => i.productId))]
@@ -479,6 +492,7 @@ async function handleCheckoutCompleted(
       .insert({
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id: session.payment_intent as string,
+        profile_id: await resolveProfileId(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
         subtotal: subtotalCents / 100,
@@ -753,6 +767,7 @@ async function handleElementsPaymentSucceeded(
       .from('orders')
       .insert({
         stripe_payment_intent_id: pi.id,
+        profile_id: await resolveProfileId(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
         subtotal: subtotalCents / 100,

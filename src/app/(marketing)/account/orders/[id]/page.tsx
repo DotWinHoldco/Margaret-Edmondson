@@ -56,7 +56,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     .from('orders')
     .select('id, order_number, status, subtotal, shipping_cost, tax, discount, total, shipping_address, created_at')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('profile_id', user.id)
     .maybeSingle()
   if (!order) notFound()
 

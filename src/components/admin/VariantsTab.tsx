@@ -263,7 +263,7 @@ export default function VariantsTab({
         {printW && printH && aspect && maxPrintIn ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-body text-xs text-charcoal/80">
-              {hasPrintMaster ? 'Print master' : 'Master (uncropped)'}: <strong>{printW}×{printH}px</strong>
+              {hasPrintMaster ? 'Print master' : 'Master (uncropped)'}: <strong>{printW}×{printH}px</strong> @ {repDpi}DPI
               {' · '}aspect <strong>{aspect.ratio.toFixed(3)}</strong> ({aspect.orientation})
               {' · '}max at {repDpi} DPI: <strong>{maxPrintIn.w}×{maxPrintIn.h} in</strong>
               {' · '}border: {master?.border_mode === 'matte' ? 'Matte' : 'Full bleed'}
@@ -381,6 +381,9 @@ export default function VariantsTab({
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap" title={`base ${fmtCents(cost)} + shipping ${fmtCents(ship)}`}>
                             {cost + ship > 0 ? fmtCents(cost + ship) : <span className="text-amber-600">Set cost</span>}
+                            {cost + ship > 0 && v.last_priced_at && (
+                              <span className="block text-[9px] text-charcoal/35">as of {new Date(v.last_priced_at).toLocaleDateString()}</span>
+                            )}
                           </td>
                           <td className="px-3 py-2">
                             <input
@@ -660,6 +663,12 @@ function CustomSizeModal({
               <span className="font-body text-[11px] text-charcoal/50">Gross margin</span>
               <span className={`font-body text-xs font-medium ${gmColor}`}>{Math.round(gm)}%</span>
             </div>
+            {useManual && landed > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="font-body text-[11px] text-charcoal/50">Implied margin</span>
+                <span className="font-body text-[11px] text-charcoal/55">{Math.round((computedPrice / landed - 1) * 100)}%</span>
+              </div>
+            )}
           </div>
 
           {error && <p className="mt-3 font-body text-xs text-coral">{error}</p>}

@@ -158,3 +158,15 @@ A 3-lens adversarial review of the order path confirmed it correct + safe (null-
 5. Decide where the crop worker runs long-term (operator-run `scripts/` job vs a small always-on worker) — see Appendix A.
 
 **Carry-overs / residual risk (non-blocking):** the two `KNOWN_RISKS.md` items (#order-path-verify-2026-06-25); the dormant `site_settings.default_margin_pct=0.65` column-default landmine (live value is correct `100`); recipient name now persisted but only when Stripe collected it.
+
+---
+
+## Completeness audit (final) — FIXED-FORWARD
+
+A 3-lens audit of every phase against the plan + Definition of Done found the build genuinely shipped, with **one major functional gap** (fixed) + minor UI-fidelity items:
+
+- **[major, FIXED] Customer order portal queried a non-existent column.** `account/orders/[id]/page.tsx` (and the **pre-existing** list page I copied from) filtered `orders.user_id`, but `orders` has `profile_id` (RLS: `auth.uid() = profile_id`), and the order-creation path never linked orders to a buyer. So the portal would 404 every order once real orders exist. Fixed: both pages now query `.eq('profile_id', user.id)` (matching the RLS), and **the Stripe webhook now links each order to a profile by email** (`resolveProfileId`, best-effort/null-safe) in both handlers — so a registered buyer's orders appear under `/account/orders`. Verified the `orders` RLS + `profiles`/`orders` columns live.
+- **[minor, FIXED] Appendix C fidelity**: banner now shows `…px @ {dpi}DPI`; the Cost column shows a muted `as of {last_priced_at}`; the custom modal shows the `Implied margin: NN%` readout when manual price is on.
+- **[minor, ACCEPTED] Appendix C cosmetics deferred** (capability fully present, not functional gaps): the custom-size modal has no Medium `<select>` (it opens scoped to the section's medium — one card per medium); the aspect-locked pair has the lock chip but no per-field "auto/driver" chip. Documented as accepted minor deviations.
+
+- **Gate GREEN** (post-fix): typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 130 passed/6 skipped; advisors 0 new criticals.
