@@ -26,10 +26,41 @@ interface ProductVariant {
   price: number
   sku: string | null
   variant_type: 'original' | 'canvas_print' | 'framed_canvas_print' | null
+  medium: string | null
+  width_in: number | null
+  height_in: number | null
+  size_tier: 'S' | 'M' | 'L' | null
+  is_custom_size: boolean | null
   inventory_count: number | null
   sort_order: number
   is_active?: boolean
   is_lumaprints_available?: boolean
+}
+
+// Friendly storefront labels per Lumaprints medium (the variants carry the raw
+// medium key; the dimension/tier detail is in each variant's name).
+const MEDIUM_GROUP_LABEL: Record<string, string> = {
+  canvas: 'Stretched Canvas',
+  framed_canvas: 'Framed Canvas',
+  fine_art_paper: 'Fine Art Paper',
+  framed_fine_art_paper: 'Framed Fine Art Paper',
+  foam_mounted_fine_art_paper: 'Foam-Mounted Print',
+  metal: 'Metal Print',
+  peel_and_stick: 'Peel & Stick',
+  rolled_canvas: 'Rolled Canvas',
+}
+
+// Customer-facing option label: real dimensions + the custom name when present.
+function variantOptionLabel(v: ProductVariant): string {
+  const dims = v.width_in != null && v.height_in != null ? `${v.width_in} × ${v.height_in} in` : ''
+  if (v.is_custom_size && v.name) return dims ? `${v.name} — ${dims}` : v.name
+  return v.name || dims // S/M/L default names already read "Small — 12 × 9 in"
+}
+
+interface PrintGroup {
+  medium: string
+  label: string
+  variants: ProductVariant[]
 }
 
 interface Product {
@@ -327,30 +358,27 @@ function Lightbox({
 function VariantSelector({
   product,
   originalVariant,
-  canvasVariants,
-  framedVariants,
+  printGroups,
   selectedVariantId,
   onSelect,
 }: {
   product: Product
   originalVariant: ProductVariant | undefined
-  canvasVariants: ProductVariant[]
-  framedVariants: ProductVariant[]
+  printGroups: PrintGroup[]
   selectedVariantId: string | undefined
   onSelect: (variant: ProductVariant) => void
 }) {
   const hasOriginal = !!originalVariant
-  const hasPrints = canvasVariants.length > 0
+  const hasPrints = printGroups.length > 0
   const isSold = product.status === 'sold' || (originalVariant && originalVariant.inventory_count !== null && originalVariant.inventory_count <= 0)
 
   // Build all variants into a flat list for lookup
   const allVariants = useMemo(() => {
     const list: ProductVariant[] = []
     if (originalVariant && !isSold) list.push(originalVariant)
-    list.push(...canvasVariants)
-    list.push(...framedVariants)
+    for (const g of printGroups) list.push(...g.variants)
     return list
-  }, [originalVariant, canvasVariants, framedVariants, isSold])
+  }, [originalVariant, printGroups, isSold])
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const variant = allVariants.find((v) => v.id === e.target.value)
@@ -358,7 +386,7 @@ function VariantSelector({
   }
 
   const selectedVariant = allVariants.find((v) => v.id === selectedVariantId)
-  const isPrint = selectedVariant?.variant_type === 'canvas_print' || selectedVariant?.variant_type === 'framed_canvas_print'
+  const isPrint = !!selectedVariant?.medium
 
   return (
     <div>
@@ -401,36 +429,25 @@ function VariantSelector({
             </optgroup>
           )}
 
-          {/* Canvas prints group */}
-          {canvasVariants.length > 0 && (
-            <optgroup label="Stretched Canvas Prints">
-              {canvasVariants.map((v) => (
+          {/* One group per medium, sizes ordered by area */}
+          {printGroups.map((g) => (
+            <optgroup key={g.medium} label={g.label}>
+              {g.variants.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name} &mdash; ${v.price.toFixed(2)}
+                  {variantOptionLabel(v)} &mdash; ${v.price.toFixed(2)}
                 </option>
               ))}
             </optgroup>
-          )}
-
-          {/* Framed canvas prints group */}
-          {framedVariants.length > 0 && (
-            <optgroup label="Framed Canvas Prints">
-              {framedVariants.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} &mdash; ${v.price.toFixed(2)}
-                </option>
-              ))}
-            </optgroup>
-          )}
+          ))}
         </select>
       )}
 
       {/* Footnote */}
       {hasPrints && (
         <p className="mt-2 font-hand text-xs text-charcoal/45 leading-relaxed">
-          * All prints are gallery-quality stretched canvas.{' '}
+          * Museum-quality prints, made to order.{' '}
           <Link href="/commissions/request" className="underline hover:text-teal transition-colors">
-            Need a different medium? Request it here &rarr;
+            Need a different size or medium? Request it here &rarr;
           </Link>
         </p>
       )}
@@ -508,30 +525,47 @@ export default function ProductDetail({
   const originalAvailable = originalVariant && (originalVariant.inventory_count === null || originalVariant.inventory_count > 0)
   const isPubliclyAvailable = (v: ProductVariant) =>
     v.is_active !== false && v.is_lumaprints_available !== false
-  const canvasVariants = useMemo(
-    () => (product.product_variants?.filter((v) => v.variant_type === 'canvas_print' && isPubliclyAvailable(v)) || []).sort((a, b) => a.sort_order - b.sort_order),
+  // Live print variants are now driven by `medium` (Draft variants are is_active
+  // false and excluded). Group by medium; within a medium order by area.
+  const printVariants = useMemo(
+    () =>
+      (product.product_variants?.filter((v) => v.medium && isPubliclyAvailable(v)) || []).sort(
+        (a, b) => (a.width_in || 0) * (a.height_in || 0) - (b.width_in || 0) * (b.height_in || 0),
+      ),
     [product.product_variants]
   )
-  const framedVariants = useMemo(
-    () => (product.product_variants?.filter((v) => v.variant_type === 'framed_canvas_print' && isPubliclyAvailable(v)) || []).sort((a, b) => a.sort_order - b.sort_order),
-    [product.product_variants]
-  )
+  const printGroups = useMemo<PrintGroup[]>(() => {
+    const order = Object.keys(MEDIUM_GROUP_LABEL)
+    const byMedium = new Map<string, ProductVariant[]>()
+    for (const v of printVariants) {
+      const m = v.medium as string
+      if (!byMedium.has(m)) byMedium.set(m, [])
+      byMedium.get(m)!.push(v)
+    }
+    return [...byMedium.entries()]
+      .sort((a, b) => {
+        const ai = order.indexOf(a[0])
+        const bi = order.indexOf(b[0])
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+      })
+      .map(([medium, variants]) => ({ medium, label: MEDIUM_GROUP_LABEL[medium] || medium, variants }))
+  }, [printVariants])
 
-  const isSold = product.status === 'sold' || (!!originalVariant && !originalAvailable && canvasVariants.length === 0)
-  const hasPrints = canvasVariants.length > 0
+  const isSold = product.status === 'sold' || (!!originalVariant && !originalAvailable && printVariants.length === 0)
+  const hasPrints = printVariants.length > 0
   // A made-to-order commission example (e.g. Custom Portraits): active, no
   // purchasable variants, no prints, not an original for sale. Shown with a
   // "commission" CTA instead of a price + cart.
   const isCommission = !isSold && !originalVariant && !hasPrints && !product.is_original && !product.prints_enabled
 
-  // Default variant: original if available, else first canvas print
-  const defaultVariant = originalAvailable ? originalVariant : canvasVariants[0] || framedVariants[0]
+  // Default variant: original if available, else the smallest print.
+  const defaultVariant = originalAvailable ? originalVariant : printVariants[0]
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(defaultVariant?.id)
 
   const selectedVariant = useMemo(() => {
-    const all = [...(originalVariant ? [originalVariant] : []), ...canvasVariants, ...framedVariants]
+    const all = [...(originalVariant ? [originalVariant] : []), ...printVariants]
     return all.find((v) => v.id === selectedVariantId)
-  }, [selectedVariantId, originalVariant, canvasVariants, framedVariants])
+  }, [selectedVariantId, originalVariant, printVariants])
 
   const price = selectedVariant?.price ?? product.base_price
   const isOriginalSelected = selectedVariant?.variant_type === 'original'
@@ -682,8 +716,7 @@ export default function ProductDetail({
               <VariantSelector
                 product={product}
                 originalVariant={originalAvailable ? originalVariant : undefined}
-                canvasVariants={canvasVariants}
-                framedVariants={framedVariants}
+                printGroups={printGroups}
                 selectedVariantId={selectedVariantId}
                 onSelect={(v) => setSelectedVariantId(v.id)}
               />

@@ -88,3 +88,11 @@ Note: the **price-preview endpoint** (Appendix C.5) is built in Phase 4 (it's th
 - **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
 
 Resolves the adversarial-review [medium] `orientationForSize` finding: the rebuilt builder matches sizes by the master aspect (`validateCustomSize`/`partnerDimension`), not the tol-0 orientation bucket — no near-square false "mismatch"/deletion.
+
+---
+
+## PHASE 5 — Storefront product detail rebuild — DONE (2026-06-25)
+
+- **5.1 medium→size selector** — `ProductDetail.tsx` now derives `printVariants` by **`medium` set + `is_active` + `is_lumaprints_available`** (Draft = `is_active:false` → hidden), groups them into `printGroups` (one `<optgroup>` per medium, ordered canvas→framed→paper→…), each size ordered by area and labeled with **real dimensions + custom name** (`variantOptionLabel`: `"Life Size — 31 × 50 in"`, defaults already read `"Medium — 18 × 22 in"`). Originals + sold/commission fallbacks unchanged; add-to-cart payload unchanged (variantId + variant_type; new mediums route to `lumaprints`). `VariantSelector` reworked to take `printGroups`; `isPrint` now keys off `!!medium`.
+- **5.2 no regressions** — grep confirmed: the only `size_label` parsing is the decimal-safe `sizeDimensions` + an exact-string cache match (no integer assumption). The funnel templates (`Gallery/Intimate/Bold`) and `pricing/refresh` still filter by `variant_type` but **keep working** because `buildPricedVariantRow` preserves the `canvas_print`/`framed_canvas_print` mirror for those two mediums; they render the new `v.name` labels fine. Gallery/zoom/related untouched.
+- **Gate GREEN**: typecheck ✓, lint ✓ (0 err), build ✓, `npm test` 116 passed/6 skipped.
