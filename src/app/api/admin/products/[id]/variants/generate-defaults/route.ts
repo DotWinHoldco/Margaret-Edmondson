@@ -29,8 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!ctxRes.ok) return apiError(ctxRes.message, ctxRes.status, ctxRes.code)
   const { printW, printH, ratio, cfg, bounds, dpi } = ctxRes.ctx
 
-  const tiers = deriveDefaultTiers(printW, printH, bounds, dpi)
-  const droppedTiers = (['S', 'M', 'L'] as SizeTier[]).filter((t) => !tiers.some((x) => x.tier === t))
+  const { tiers, dropped } = deriveDefaultTiers(printW, printH, bounds, dpi)
   if (tiers.length === 0) {
     return apiError(
       `No default size fits this master at ${dpi} DPI within the medium's limits. Use a higher-res master or add a custom size.`,
@@ -91,5 +90,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     created = data as typeof created
   }
 
-  return apiOk({ created, skipped, droppedTiers })
+  return apiOk({ created, skipped, dropped })
 }

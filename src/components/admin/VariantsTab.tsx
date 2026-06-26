@@ -213,9 +213,9 @@ export default function VariantsTab({
       const body = await res.json().catch(() => ({}))
       if (res.ok) {
         const created = body.data?.created?.length ?? 0
-        const dropped: SizeTier[] = body.data?.droppedTiers ?? []
+        const dropped: Array<{ tier: SizeTier; reason: string }> = body.data?.dropped ?? []
         const droppedMsg = dropped.length
-          ? ` ${dropped.map((t) => TIER_NAME[t]).join(' & ')} skipped — exceeds master resolution.`
+          ? ` Skipped: ${dropped.map((d) => `${TIER_NAME[d.tier]} ${d.reason}`).join('; ')}.`
           : ''
         setGenMsg((m) => ({ ...m, [medium]: `Created ${created} draft size${created === 1 ? '' : 's'}.${droppedMsg}` }))
         await reload()
@@ -380,16 +380,13 @@ export default function VariantsTab({
                             />
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal">
-                            {v.is_custom_size ? (
-                              <input
-                                type="text"
-                                defaultValue={v.name ?? ''}
-                                onBlur={(e) => { if (e.target.value.trim() && e.target.value !== v.name) onNameChange(v.id, e.target.value) }}
-                                className="w-36 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
-                              />
-                            ) : (
-                              <span className="text-charcoal/80">{v.name || (v.size_tier ? TIER_NAME[v.size_tier] : '')}</span>
-                            )}
+                            {/* Every label is editable — rename any size (S/M/L too). */}
+                            <input
+                              type="text"
+                              defaultValue={v.name ?? (v.size_tier ? TIER_NAME[v.size_tier] : '')}
+                              onBlur={(e) => { if (e.target.value.trim() && e.target.value !== v.name) onNameChange(v.id, e.target.value) }}
+                              className="w-40 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
+                            />
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap">
                             {v.width_in != null && v.height_in != null ? `${v.width_in} × ${v.height_in} in` : v.size_label}
@@ -415,7 +412,12 @@ export default function VariantsTab({
                             <button type="button" onClick={() => onManualOverride(v.id, v.manual_price_override_cents)} className="ml-1.5 text-charcoal/40 hover:text-charcoal" title="Manual price override">✎</button>
                             {hasManual && <span className="ml-0.5 text-gold" title="Manual override">★</span>}
                           </td>
-                          <td className={`px-3 py-2 font-body text-sm font-medium ${gmColor}`}>{Math.round(gm)}%</td>
+                          <td
+                            className={`px-3 py-2 font-body text-sm font-medium ${gmColor}`}
+                            title={`Gross margin = profit ÷ price (the share of each sale that's profit). It's the same deal as the Margin %, just measured on the sale price instead of cost: a 100% markup = 50% gross, 110% markup = ~52% gross.`}
+                          >
+                            {Math.round(gm)}%
+                          </td>
                           <td className="px-3 py-2 text-right whitespace-nowrap">
                             <button
                               type="button"
@@ -676,7 +678,7 @@ function CustomSizeModal({
               <span className="font-display text-lg font-semibold text-charcoal">{fmtCents(computedPrice)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-body text-[11px] text-charcoal/50">Gross margin</span>
+              <span className="font-body text-[11px] text-charcoal/50" title="Profit ÷ price. 100% markup = 50% gross; 110% markup = ~52% gross.">Gross margin</span>
               <span className={`font-body text-xs font-medium ${gmColor}`}>{Math.round(gm)}%</span>
             </div>
             {useManual && landed > 0 && (

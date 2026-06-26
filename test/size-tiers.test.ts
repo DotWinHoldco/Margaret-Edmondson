@@ -181,8 +181,9 @@ describe('validateCustomSize — golden cases', () => {
 
 describe('deriveDefaultTiers', () => {
   it('produces all three tiers on a large 4:3 landscape master, all the same shape', () => {
-    const tiers = deriveDefaultTiers(8000, 6000, CANVAS_BOUNDS, DPI)
+    const { tiers, dropped } = deriveDefaultTiers(8000, 6000, CANVAS_BOUNDS, DPI)
     expect(tiers.map((t) => t.tier)).toEqual(['S', 'M', 'L'])
+    expect(dropped).toEqual([])
     expect(tiers.map((t) => `${t.width_in}x${t.height_in}`)).toEqual(['12x9', '20x15', '30x22.5'])
     // every tier shares the master's aspect within 1%
     for (const t of tiers) {
@@ -190,32 +191,49 @@ describe('deriveDefaultTiers', () => {
     }
   })
 
-  it('drops L when the master cannot supply 30 in at the required DPI', () => {
+  it('drops L (with an accurate reason) when the master cannot supply 30 in at the required DPI', () => {
     // Square master 4751px → max 23.75 in at 200 DPI; L(30) cannot fit.
-    const tiers = deriveDefaultTiers(4751, 4753, CANVAS_BOUNDS, DPI)
+    const { tiers, dropped } = deriveDefaultTiers(4751, 4753, CANVAS_BOUNDS, DPI)
     expect(tiers.map((t) => t.tier)).toEqual(['S', 'M'])
     expect(tiers[0]).toMatchObject({ width_in: 12, height_in: 12, size_label: '12x12' })
     expect(tiers[1]).toMatchObject({ width_in: 20, height_in: 20 })
+    expect(dropped).toEqual([{ tier: 'L', reason: 'exceeds the master resolution' }])
   })
 
-  it('drops a middle tier rather than distort the aspect (3:1 panorama)', () => {
-    // M(20)→6.667 rounds to 6.75 which is 1.23% off-aspect → dropped, not skewed.
-    const tiers = deriveDefaultTiers(9000, 3000, WIDE_BOUNDS, DPI)
-    expect(tiers.map((t) => t.tier)).toEqual(['S', 'L'])
+  it('keeps all three tiers on a 3:1 panorama at the fine 0.05in grid (no needless drop)', () => {
+    // At 0.25in, M(20)→6.67 snapped to 6.75 = 1.23% off → dropped. At 0.05in it
+    // lands on 6.65 (0.25% off) and survives — every tier is offered.
+    const { tiers, dropped } = deriveDefaultTiers(9000, 3000, WIDE_BOUNDS, DPI)
+    expect(tiers.map((t) => t.tier)).toEqual(['S', 'M', 'L'])
+    expect(dropped).toEqual([])
     expect(tiers.find((t) => t.tier === 'S')).toMatchObject({ width_in: 12, height_in: 4 })
+    expect(tiers.find((t) => t.tier === 'M')).toMatchObject({ width_in: 20, height_in: 6.65 })
     expect(tiers.find((t) => t.tier === 'L')).toMatchObject({ width_in: 30, height_in: 10 })
+    // every kept tier still within the 1% rule
+    for (const t of tiers) {
+      expect(Math.abs(t.width_in / t.height_in - 3) / 3).toBeLessThanOrEqual(0.01)
+    }
+  })
+
+  it('a narrow 1:2.14 master now keeps Small (the 0.05in-grid fix)', () => {
+    // 2518×5400 (the "Solo" piece). At 0.25in Small (5.6→5.5) was 1.7% off and
+    // dropped; at 0.05in it lands on 5.6×12 (~0.08% off) and is kept.
+    const { tiers } = deriveDefaultTiers(2518, 5400, CANVAS_BOUNDS, DPI)
+    const small = tiers.find((t) => t.tier === 'S')
+    expect(small).toMatchObject({ width_in: 5.6, height_in: 12 })
+    expect(Math.abs(5.6 / 12 - 2518 / 5400) / (2518 / 5400)).toBeLessThanOrEqual(0.01)
   })
 
   it('picks the true longer pixel side for a near-square portrait master', () => {
     // 9700×10000 is "square" within the 3% band but is genuinely portrait;
     // tiers must put the long edge on HEIGHT (height ≥ width), not be dropped.
-    const tiers = deriveDefaultTiers(9700, 10000, CANVAS_BOUNDS, DPI)
+    const { tiers } = deriveDefaultTiers(9700, 10000, CANVAS_BOUNDS, DPI)
     expect(tiers.length).toBeGreaterThanOrEqual(2)
     for (const t of tiers) expect(t.height_in).toBeGreaterThanOrEqual(t.width_in)
   })
 
   it('labels: machine size_label is parseable; display carries units', () => {
-    const tiers = deriveDefaultTiers(8000, 6000, CANVAS_BOUNDS, DPI)
+    const { tiers } = deriveDefaultTiers(8000, 6000, CANVAS_BOUNDS, DPI)
     const l = tiers.find((t) => t.tier === 'L')!
     expect(l.size_label).toBe('30x22.5')
     expect(sizeDimensions(l.size_label)).toEqual({ width: 30, height: 22.5 })

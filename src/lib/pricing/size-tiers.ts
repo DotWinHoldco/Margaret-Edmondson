@@ -39,8 +39,14 @@ export type SizeTier = 'S' | 'M' | 'L'
 /** Long-edge inch targets for the S/M/L defaults. Site-setting overridable. */
 export const DEFAULT_TIER_LONG_EDGES: Record<SizeTier, number> = { S: 12, M: 20, L: 30 }
 
-/** LumaPrints sells on a whole/quarter-inch grid; default the size step to 0.25". */
-export const DEFAULT_SIZE_STEP = 0.25
+/**
+ * Size rounding grid. 0.05" (not 0.25") so aspect-locked sizes on narrow/wide
+ * pieces stay within LumaPrints' 1% shape rule and aren't needlessly dropped —
+ * e.g. a 1:2.14 master's Small lands on 5.6×12 (0.08% off) instead of being
+ * snapped to 5.5×12 (1.7% off) and skipped. LumaPrints' /orders accepts
+ * fractional inches; confirm fractional PRICING in the sandbox before go-live.
+ */
+export const DEFAULT_SIZE_STEP = 0.05
 
 /** Aspect tolerance LumaPrints enforces between image and ordered size (1%). */
 export const ASPECT_TOLERANCE = 0.01
@@ -233,13 +239,33 @@ export interface DeriveTiersOptions {
   step?: number
 }
 
+export interface DroppedTier {
+  tier: SizeTier
+  /** Human reason this tier couldn't be created (resolution / bounds / aspect). */
+  reason: string
+}
+
+export interface DeriveTiersResult {
+  tiers: DerivedTier[]
+  dropped: DroppedTier[]
+}
+
+/** Turn a failed validation into the accurate human reason a tier was dropped. */
+function dropReason(check: CustomSizeCheck): string {
+  if (!check.resolutionOk) return 'exceeds the master resolution'
+  if (!check.boundsOk) return 'is outside the medium size limits'
+  if (!check.aspectOk) return `is ${check.aspectDeltaPct.toFixed(1)}% off the artwork shape`
+  return 'cannot fit'
+}
+
 /**
  * S/M/L defaults from the master's shape: each tier's LONG edge targets
  * {S:12, M:20, L:30} inches (overridable), the short edge is the locked partner,
  * and every tier is validated. A tier that can't fit (exceeds the resolution
- * ceiling or the subcategory bounds, or rounds off-aspect) is DROPPED rather than
- * distorted. Duplicate dimensions (small master where S==M) are de-duped. All
- * three tiers share one aspect, so one padded master serves every one.
+ * ceiling or the subcategory bounds, or rounds off-aspect) is DROPPED — and the
+ * accurate reason is reported in `dropped` (so the UI can say WHY). Duplicate
+ * dimensions (small master where S==M) are de-duped. All kept tiers share one
+ * aspect, so one padded master serves every one.
  */
 export function deriveDefaultTiers(
   printWidthPx: number,
@@ -247,7 +273,7 @@ export function deriveDefaultTiers(
   bounds: SizeBounds,
   dpi: number,
   opts: DeriveTiersOptions = {},
-): DerivedTier[] {
+): DeriveTiersResult {
   const longEdges = opts.longEdges ?? DEFAULT_TIER_LONG_EDGES
   const step = opts.step ?? DEFAULT_SIZE_STEP
   const { ratio } = aspectFromMaster(printWidthPx, printHeightPx)
@@ -257,7 +283,8 @@ export function deriveDefaultTiers(
   // would derive a longer partner and needlessly drop a tier at the res ceiling.
   const longAxis: 'width' | 'height' = printHeightPx >= printWidthPx ? 'height' : 'width'
 
-  const out: DerivedTier[] = []
+  const tiers: DerivedTier[] = []
+  const dropped: DroppedTier[] = []
   const seen = new Set<string>()
 
   for (const tier of ['S', 'M', 'L'] as SizeTier[]) {
@@ -273,14 +300,17 @@ export function deriveDefaultTiers(
     }
 
     const check = validateCustomSize({ widthIn, heightIn }, { ratio, bounds, printPx: { width: printWidthPx, height: printHeightPx }, dpi })
-    if (!check.ok) continue // drop, never distort
+    if (!check.ok) {
+      dropped.push({ tier, reason: dropReason(check) }) // drop, never distort
+      continue
+    }
 
     const label = sizeLabel(widthIn, heightIn)
-    if (seen.has(label)) continue
+    if (seen.has(label)) continue // a duplicate of a kept tier — silently skip
     seen.add(label)
     // Store width_in/height_in at the same ≤4-decimal precision as the label so
     // the numeric dims and the size_label can never desync.
-    out.push({
+    tiers.push({
       tier,
       width_in: Number(widthIn.toFixed(4)),
       height_in: Number(heightIn.toFixed(4)),
@@ -289,5 +319,5 @@ export function deriveDefaultTiers(
     })
   }
 
-  return out
+  return { tiers, dropped }
 }
