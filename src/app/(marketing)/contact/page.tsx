@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 const DEFAULT_HEADING = 'Get in Touch'
 const DEFAULT_INTRO =
-  "Questions about artwork, commissions, classes, or anything else? We'd love to hear from you."
+  "Questions about artwork, commissions, classes, or anything else? I'd love to hear from you."
 
 export default async function ContactPage() {
   const supabase = await createClient()
@@ -47,7 +47,7 @@ export default async function ContactPage() {
         </Suspense>
 
         <div className="mt-16 text-center font-body text-sm text-charcoal/50">
-          <p>We typically respond within 24 hours.</p>
+          <p>I typically respond within 24 hours.</p>
         </div>
       </div>
     </div>

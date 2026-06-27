@@ -76,7 +76,7 @@ const DEFAULTS: Record<string, Partial<FunnelFormData>> = {
     transformation_heading: 'Imagine this on your wall.',
     transformation_body: "Picture coming home after a long day. You walk through the door, and there it is — catching the light just right. It changes the entire energy of the room. Guests pause mid-conversation to take it in. It becomes the piece that defines your space, the one that tells people who you are without saying a word.",
     offer_heading: 'Make It Yours',
-    risk_reversal_heading: 'Our Promise to You',
+    risk_reversal_heading: 'My Promise to You',
     final_cta_text: "Don't let this one get away.",
   },
   intimate_journal: {
@@ -87,7 +87,7 @@ const DEFAULTS: Record<string, Partial<FunnelFormData>> = {
     transformation_heading: 'Picture It in Your World',
     transformation_body: "Imagine the morning light catching the colors — the way they shift throughout the day, painting your room in different moods. Imagine a friend stopping mid-sentence because they noticed it for the first time. \"Where did you find that?\" they'll ask.\n\nAnd you'll have a story to tell.",
     offer_heading: 'Bring This Story Home',
-    risk_reversal_heading: 'Our Promise to You',
+    risk_reversal_heading: 'My Promise to You',
     final_cta_text: 'Every piece tells a story. Let this one tell yours.',
   },
   bold_showcase: {
@@ -98,7 +98,7 @@ const DEFAULTS: Record<string, Partial<FunnelFormData>> = {
     transformation_heading: "It's Not Just a Painting. It's a Mood.",
     transformation_body: "It shifts the energy of every room it enters. Visitors notice it before they notice anything else. It becomes the piece people talk about, photograph, and remember.\n\nThis isn't decoration. This is a statement.",
     offer_heading: 'Make It Yours',
-    risk_reversal_heading: 'Our Promise to You',
+    risk_reversal_heading: 'My Promise to You',
     final_cta_text: "Don't sleep on this one.",
   },
 }

@@ -421,7 +421,7 @@ export default function CartPage() {
                   active={!!(needsSurcharge && surcharge != null)}
                 >
                   <p className="font-body text-xs text-charcoal/55">
-                    Shipping is included for the contiguous US. Alaska, Hawaii, and Canada incur a calculated surcharge — quote it here and we will add it at checkout.
+                    Shipping is included for the contiguous US. Alaska, Hawaii, and Canada incur a calculated surcharge — quote it here and I&rsquo;ll add it at checkout.
                   </p>
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     <select
@@ -473,7 +473,7 @@ export default function CartPage() {
                     className="mt-1.5 w-full rounded-sm border border-charcoal/15 bg-white px-3 py-2 font-body text-sm text-charcoal placeholder:text-charcoal/35 focus:border-teal focus:outline-none"
                   />
                   <p className="mt-1.5 font-body text-[11px] text-charcoal/45">
-                    We save your spot so you can return any time. Stripe collects your billing email on the next step regardless.
+                    I save your spot so you can return any time. Stripe collects your billing email on the next step regardless.
                   </p>
                 </div>
               </div>

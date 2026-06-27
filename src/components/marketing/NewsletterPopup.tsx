@@ -178,7 +178,7 @@ export default function NewsletterPopup() {
               <div className="text-center">
                 <p className="font-body text-xs uppercase tracking-[0.18em] text-teal">Studio List Newsletter</p>
                 <h2 className="mt-3 font-display text-3xl font-light text-charcoal">
-                  Join our Studio List Newsletter
+                  Join my Studio List Newsletter
                 </h2>
                 <p className="mt-3 font-body text-sm text-charcoal/70">
                   Enjoy 10% off of your first purchase, plus new work, upcoming shows, and studio notes.

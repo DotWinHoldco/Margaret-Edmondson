@@ -23,8 +23,8 @@ const BG_CLASSES: Record<string, string> = {
 
 export default function CTABannerBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as CTABannerConfig
-  const heading = c.heading || 'Your Story, Our Canvas'
-  const subheading = c.subheading || 'Commission a custom piece of art that tells your unique story. From concept to completion, we bring your vision to life.'
+  const heading = c.heading || 'Your Story, My Canvas'
+  const subheading = c.subheading || 'Commission a custom piece of art that tells your unique story. From concept to completion, I bring your vision to life.'
   const ctaText = c.cta_text || 'Start Your Commission'
   const ctaLink = c.cta_link || '/commissions'
   const bgStyle = c.background_style || 'teal'

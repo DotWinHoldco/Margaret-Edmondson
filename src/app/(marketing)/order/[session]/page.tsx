@@ -122,7 +122,7 @@ export default async function OrderConfirmationPage(props: {
           <h1 className="font-display text-4xl font-light text-charcoal mb-3">Thank you — payment received</h1>
           <div className="mx-auto w-16 h-px bg-gold mb-6" />
           <p className="font-body text-base text-charcoal/75 leading-relaxed">
-            We&rsquo;re finalizing your order now. A confirmation with your full receipt is on its way to your
+            I&rsquo;m finalizing your order now. A confirmation with your full receipt is on its way to your
             inbox — it should only take a moment.
           </p>
           <OrderConfirmationPoll />
@@ -220,7 +220,7 @@ export default async function OrderConfirmationPage(props: {
         ) : null}
 
         <p className="mt-6 text-center font-body text-sm text-charcoal/60 leading-relaxed">
-          Your order is <strong>{order.status === 'processing' ? 'being prepared' : order.status}</strong>. We&rsquo;ll
+          Your order is <strong>{order.status === 'processing' ? 'being prepared' : order.status}</strong>. I&rsquo;ll
           email tracking as soon as it ships. Questions? Just reply to your confirmation email.
         </p>
 

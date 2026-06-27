@@ -73,7 +73,7 @@ export default async function MarketingLayout({
         </h1>
         <div className="mt-4 w-16 h-px bg-gold" />
         <p className="mt-4 max-w-md font-body text-sm text-charcoal/60">
-          We&apos;re making improvements &mdash; back soon.
+          I&apos;m making improvements &mdash; back soon.
         </p>
       </main>
     )

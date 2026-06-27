@@ -72,7 +72,7 @@ export default function ContactFormClient() {
     return (
       <div className="text-center py-16">
         <p className="font-display text-2xl text-charcoal mb-2">Thank you!</p>
-        <p className="font-body text-charcoal/60">We&apos;ll get back to you within 24 hours.</p>
+        <p className="font-body text-charcoal/60">I&apos;ll get back to you within 24 hours.</p>
         {form.joinNewsletter && (
           <p className="mt-3 font-body text-sm text-teal">
             Check your inbox for your Studio List Newsletter welcome and 10% off code.

@@ -413,21 +413,21 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
       <section className="bg-[#F5F0E8] py-24 md:py-32">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <Reveal>
-            <p className="font-hand text-3xl text-charcoal -rotate-1 mb-8">Our Promise to You</p>
+            <p className="font-hand text-3xl text-charcoal -rotate-1 mb-8">My Promise to You</p>
           </Reveal>
           <div className="space-y-8 text-left">
             {[
               {
                 title: 'It arrives perfect.',
-                body: 'Every piece is packed with obsessive care — archival materials, rigid corners, protective wrapping. If anything goes wrong in transit, we replace it. No forms, no hassle.',
+                body: 'Every piece is packed with obsessive care — archival materials, rigid corners, protective wrapping. If anything goes wrong in transit, I replace it. No forms, no hassle.',
               },
               {
                 title: 'Your checkout is secure.',
-                body: 'Bank-level encryption through Stripe protects every transaction. We never see or store your card details.',
+                body: 'Bank-level encryption through Stripe protects every transaction. I never see or store your card details.',
               },
               {
                 title: 'You have to love it.',
-                body: "Art is personal. If this piece doesn't feel right when you hang it, reach out within 14 days. We'll work together to make sure you're happy.",
+                body: "Art is personal. If this piece doesn't feel right when you hang it, reach out within 14 days. I'll work with you to make sure you're happy.",
               },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.1}>

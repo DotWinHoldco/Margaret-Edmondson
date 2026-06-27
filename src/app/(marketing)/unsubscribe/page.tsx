@@ -27,13 +27,13 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
             <div className="mt-3 mx-auto w-16 h-px bg-gold" />
             <p className="mt-4 font-body text-charcoal/60">
               {error === 'missing' && 'No unsubscribe token found in the link.'}
-              {error === 'not_found' && 'We could not find a matching contact.'}
-              {error === 'expired' && 'That unsubscribe link has expired. Please reach out and we will remove you manually.'}
+              {error === 'not_found' && 'I could not find a matching contact.'}
+              {error === 'expired' && 'That unsubscribe link has expired. Please reach out and I’ll remove you manually.'}
               {error === 'bad_signature' && 'That unsubscribe link is invalid.'}
-              {!error && 'Please use the unsubscribe link in any recent ArtByME email, or reply asking us to remove you.'}
+              {!error && 'Please use the unsubscribe link in any recent ArtByME email, or reply asking me to remove you.'}
             </p>
             <p className="mt-3 font-body text-sm text-charcoal/50">
-              Use the <Link href="/contact?subject=unsubscribe" className="text-teal underline-offset-2 hover:underline">contact form</Link> and we will take care of it.
+              Use the <Link href="/contact?subject=unsubscribe" className="text-teal underline-offset-2 hover:underline">contact form</Link> and I will take care of it.
             </p>
           </>
         )}

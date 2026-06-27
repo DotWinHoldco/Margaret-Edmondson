@@ -745,7 +745,7 @@ const classes = [
   {
     title: 'Oil Painting Studio',
     description:
-      'From underpainting to glazing, explore classical and contemporary oil techniques. All levels welcome -- bring your own subject or paint from our still life.',
+      'From underpainting to glazing, explore classical and contemporary oil techniques. All levels welcome -- bring your own subject or paint from my still life.',
     schedule: 'Tuesdays, 6 - 9 PM',
     image: '/Margaret Edmondson/ARTWORK/Beach and SC/Sweet Home Alabama.jpg',
     accent: 'bg-olive',

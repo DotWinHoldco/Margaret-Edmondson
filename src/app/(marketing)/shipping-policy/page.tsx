@@ -5,7 +5,7 @@ import PageBodyShell from '@/components/marketing/PageBodyShell'
 
 export const metadata: Metadata = {
   title: 'Shipping Policy',
-  description: 'ArtByME shipping policy — how we ship original artwork and canvas prints.',
+  description: 'ArtByME shipping policy — how I ship original artwork and canvas prints.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -48,11 +48,11 @@ function shippingDefault() {
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Overview</h2>
             <p>
-              ArtByME ships to the United States and Canada. We handle two types of shipments depending on what you order:
+              ArtByME ships to the United States and Canada. I handle two types of shipments depending on what you order:
             </p>
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Original artwork</strong> — shipped directly by the artist</li>
-              <li><strong>Canvas prints &amp; framed prints</strong> — produced and shipped by our professional print partner</li>
+              <li><strong>Canvas prints &amp; framed prints</strong> — produced and shipped by my professional print partner</li>
             </ul>
           </section>
 
@@ -73,7 +73,7 @@ function shippingDefault() {
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Canvas Prints &amp; Framed Prints</h2>
             <p>
-              Canvas prints and framed canvas prints are produced on demand by our professional print fulfillment partner and shipped directly to you.
+              Canvas prints and framed canvas prints are produced on demand by my professional print fulfillment partner and shipped directly to you.
             </p>
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Processing time:</strong> 2–5 business days for production.</li>
@@ -86,21 +86,21 @@ function shippingDefault() {
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Shipping Costs</h2>
             <p>
-              Shipping costs are calculated at checkout based on the size and weight of your order and your delivery address. We strive to keep shipping costs as affordable as possible.
+              Shipping costs are calculated at checkout based on the size and weight of your order and your delivery address. I strive to keep shipping costs as affordable as possible.
             </p>
           </section>
 
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Order Tracking</h2>
             <p>
-              Once your order ships, you will receive an email with tracking information. You can also check your order status by logging into your account on our website.
+              Once your order ships, you will receive an email with tracking information. You can also check your order status by logging into your account on my website.
             </p>
           </section>
 
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">International Shipping (Canada)</h2>
             <p>
-              We ship to Canada. Please note:
+              I ship to Canada. Please note:
             </p>
             <ul className="list-disc pl-6 space-y-1">
               <li>International orders may be subject to customs duties, import taxes, or fees imposed by the destination country. These charges are the responsibility of the buyer.</li>
@@ -111,15 +111,15 @@ function shippingDefault() {
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Damaged or Lost Shipments</h2>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Damaged items:</strong> If your order arrives damaged, please reach out within 7 days of delivery through our <Link href="/contact?subject=order" className="text-gold hover:underline">contact form</Link> with your order number and photos of the damage. We will work with you to arrange a replacement or refund.</li>
-              <li><strong>Lost packages:</strong> If your package has not arrived within the expected timeframe and tracking shows no updates, contact us and we will investigate with the carrier.</li>
-              <li><strong>Original artwork:</strong> Insured shipments — we will file a claim and work to resolve the issue promptly.</li>
-              <li><strong>Prints:</strong> We will reprint and reship at no cost to you.</li>
+              <li><strong>Damaged items:</strong> If your order arrives damaged, please reach out within 7 days of delivery through my <Link href="/contact?subject=order" className="text-gold hover:underline">contact form</Link> with your order number and photos of the damage. I will work with you to arrange a replacement or refund.</li>
+              <li><strong>Lost packages:</strong> If your package has not arrived within the expected timeframe and tracking shows no updates, contact me and I will investigate with the carrier.</li>
+              <li><strong>Original artwork:</strong> Insured shipments — I will file a claim and work to resolve the issue promptly.</li>
+              <li><strong>Prints:</strong> I will reprint and reship at no cost to you.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="font-display text-2xl font-light text-charcoal">Contact Us</h2>
+            <h2 className="font-display text-2xl font-light text-charcoal">Contact Me</h2>
             <p>
               Questions about shipping? Reach out:
             </p>

@@ -304,11 +304,11 @@ export async function sendPostPurchaseEmail(
       body = `
         <h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Thank you, ${greetingName}.</h2>
         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;margin-bottom:16px;">
-          Your order${` #${shortOrder}`} is being prepared with care. We are honored to have a piece of Margaret's work going to your home, and we will be in touch with shipping details soon.
+          Your order${` #${shortOrder}`} is being prepared with care. I'm honored to have a piece of my work going to your home, and I'll be in touch with shipping details soon.
         </p>
         ${ctaButton(`${SITE_URL}/account/orders`, 'View Your Order')}
         <p style="text-align:center;color:#999;font-size:12px;">
-          Questions? Reply to this email and we will help.
+          Questions? Reply to this email and I'll help.
         </p>`
     }
 

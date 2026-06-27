@@ -164,7 +164,7 @@ export default async function ClassesPage() {
           {sessions.length === 0 ? (
             <div className="mt-10 text-center py-16 rounded-sm border border-dashed border-charcoal/15">
               <p className="font-body text-lg text-charcoal/70 max-w-xl mx-auto">
-                No upcoming classes right now. Send a note and we&rsquo;ll add you to the next-session list.
+                No upcoming classes right now. Send a note and I&rsquo;ll add you to the next-session list.
               </p>
               <Link
                 href="/contact?subject=class"

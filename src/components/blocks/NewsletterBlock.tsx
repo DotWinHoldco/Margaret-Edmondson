@@ -13,7 +13,7 @@ interface NewsletterConfig {
 
 export default function NewsletterBlock({ config }: { config: Record<string, unknown>; variant?: string }) {
   const c = config as unknown as NewsletterConfig
-  const heading = c.heading || 'Join our Studio List Newsletter'
+  const heading = c.heading || 'Join my Studio List Newsletter'
   const incentiveText = c.incentive_text || 'Enjoy 10% off of your first purchase, plus new work, exhibits, and class news.'
   const buttonText = c.button_text || 'Subscribe'
 

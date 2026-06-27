@@ -143,7 +143,7 @@ export default function ClassSignupForm({ slug, priceCents }: Props) {
         {submitting ? 'Sending you to checkout…' : `Pay ${priceLabel} & reserve my spot`}
       </button>
       <p className="text-center font-body text-xs text-charcoal/50">
-        Secure checkout via Stripe. We&apos;ll confirm by email and remind you to send the pet photo two weeks ahead.
+        Secure checkout via Stripe. I&apos;ll confirm by email and remind you to send the pet photo two weeks ahead.
       </p>
     </form>
   )

@@ -402,7 +402,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
         <div className="max-w-5xl mx-auto px-6">
           <FadeUp>
             <h2 className="font-editorial text-3xl md:text-4xl text-cream text-center mb-16">
-              {funnel.risk_reversal_heading || 'Our Promise to You'}
+              {funnel.risk_reversal_heading || 'My Promise to You'}
             </h2>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-8">
@@ -414,7 +414,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
                   </svg>
                 ),
                 title: 'Arrives Perfect',
-                body: 'Every piece is professionally packaged with museum-grade materials. If anything arrives damaged, we replace it immediately — no questions asked.',
+                body: 'Every piece is professionally packaged with museum-grade materials. If anything arrives damaged, I replace it immediately — no questions asked.',
               },
               {
                 icon: (
@@ -423,7 +423,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
                   </svg>
                 ),
                 title: 'Secure Checkout',
-                body: 'Your payment is processed through Stripe with bank-level encryption. Your financial information is never stored on our servers.',
+                body: 'Your payment is processed through Stripe with bank-level encryption. Your financial information is never stored on my site.',
               },
               {
                 icon: (
@@ -432,7 +432,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
                   </svg>
                 ),
                 title: 'Satisfaction Promise',
-                body: "We want you to love your art. If it doesn't feel right in your space, reach out within 14 days and we'll make it right.",
+                body: "I want you to love your art. If it doesn't feel right in your space, reach out within 14 days and I'll make it right.",
               },
             ].map((card, i) => (
               <FadeUp key={card.title} delay={i * 0.1}>

@@ -227,7 +227,7 @@ export default function CheckoutPage() {
           <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed">
             {missingKey
               ? 'On-site payment is not configured yet — you can still pay securely on Stripe.'
-              : errorMsg || 'We could not start the on-site checkout.'}
+              : errorMsg || 'I could not start the on-site checkout.'}
           </p>
           <button
             type="button"
