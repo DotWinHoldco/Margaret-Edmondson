@@ -276,6 +276,40 @@ export async function POST(request: Request) {
 
     const session = await (await getStripe()).checkout.sessions.create(sessionParams)
 
+    // P0-3: lock the validated, server-priced line items into an immutable
+    // snapshot keyed by the Checkout Session id. The webhook builds the order
+    // from THIS, not the mutable carts.items, so a cart changed after the amount
+    // is locked can't alter what ships. Fail-soft: never blocks checkout
+    // (reconciliation in the webhook still backstops).
+    try {
+      const svc = await createServiceClient()
+      let snapshotDiscountCents = 0
+      if (appliedCoupon?.amount_off) {
+        snapshotDiscountCents = appliedCoupon.amount_off
+      } else if (appliedCoupon?.percent_off) {
+        snapshotDiscountCents = Math.round(Math.round(cartSubtotal * 100) * (appliedCoupon.percent_off / 100))
+      }
+      await svc.from('checkout_snapshots').insert({
+        payment_ref: session.id,
+        cart_id: cartId || null,
+        items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
+          productId: i.productId,
+          variantId: i.variantId ?? null,
+          variantType: i.variantType ?? null,
+          fulfillmentType: i.fulfillmentType,
+          quantity: i.quantity,
+          price: i.price,
+          title: i.title,
+        })),
+        subtotal_cents: Math.round(cartSubtotal * 100),
+        discount_cents: snapshotDiscountCents,
+        surcharge_cents: surchargeCents,
+        email: email ? String(email).toLowerCase().trim() : null,
+      })
+    } catch (err) {
+      console.error('checkout snapshot write failed (non-blocking):', err)
+    }
+
     // Best-effort Meta CAPI InitiateCheckout — never fails the
     // checkout if Meta misbehaves.
     try {

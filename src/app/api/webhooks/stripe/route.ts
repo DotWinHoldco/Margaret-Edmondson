@@ -109,6 +109,31 @@ async function resolveProfileId(supabase: SupabaseClient, email: string | null |
   }
 }
 
+// P0-3: read the immutable purchase-time line-item snapshot for a Stripe payment
+// reference (PaymentIntent id or Checkout Session id). Fail-soft: returns null
+// when there is no snapshot (orders placed before snapshots existed) or the
+// table is unavailable, so the caller falls back to the legacy carts.items read.
+async function loadSnapshotItems(
+  supabase: SupabaseClient,
+  paymentRef: string,
+): Promise<Array<{ productId: string; variantId?: string | null; quantity: number }> | null> {
+  try {
+    const { data } = await supabase
+      .from('checkout_snapshots')
+      .select('items')
+      .eq('payment_ref', paymentRef)
+      .maybeSingle()
+    if (data && Array.isArray(data.items)) {
+      return (data.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
+        (i) => i && i.productId && i.quantity,
+      )
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // Batched, authoritative lookups for the order_items rows + the print snapshot.
 async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem[]): Promise<OrderItemData> {
   const productIds = [...new Set(cartItems.map((i) => i.productId))]
@@ -522,9 +547,12 @@ async function handleCheckoutCompleted(
     .eq('stripe_checkout_session_id', session.id)
     .maybeSingle()
 
-  // B-5: line items come from the cart row, not Stripe metadata (500-char cap).
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
-  if (session.metadata.cart_id) {
+  // P0-3: prefer the immutable purchase-time snapshot (keyed by the session id);
+  // fall back to the mutable carts.items only for orders placed before snapshots
+  // existed. B-5: items never come from Stripe metadata (500-char cap).
+  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> =
+    (await loadSnapshotItems(supabase, session.id)) ?? []
+  if (cartItems.length === 0 && session.metadata.cart_id) {
     const { data: cart } = await supabase
       .from('carts')
       .select('items')
@@ -834,9 +862,12 @@ async function handleElementsPaymentSucceeded(
     .eq('stripe_payment_intent_id', pi.id)
     .maybeSingle()
 
-  // B-5: line items come from the cart row, not Stripe metadata.
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> = []
-  if (md.cart_id) {
+  // P0-3: prefer the immutable purchase-time snapshot (keyed by the PaymentIntent
+  // id); fall back to the mutable carts.items only for orders placed before
+  // snapshots existed. B-5: items never come from Stripe metadata.
+  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> =
+    (await loadSnapshotItems(supabase, pi.id)) ?? []
+  if (cartItems.length === 0 && md.cart_id) {
     const { data: cart } = await supabase
       .from('carts')
       .select('items')

@@ -207,6 +207,36 @@ export async function POST(request: Request) {
       },
     })
 
+    // P0-3: lock the validated, server-priced line items into an immutable
+    // snapshot keyed by the PaymentIntent id. The webhook builds the order from
+    // THIS, not the mutable carts.items, so a cart changed after the amount is
+    // locked can't alter what ships — and items are captured even when cartId is
+    // null (the empty-order case). Fail-soft: a snapshot failure never blocks
+    // the charge (reconciliation in the webhook still backstops).
+    try {
+      const svc = await createServiceClient()
+      await svc.from('checkout_snapshots').insert({
+        payment_ref: intent.id,
+        cart_id: cartId || null,
+        items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
+          productId: i.productId,
+          variantId: i.variantId ?? null,
+          variantType: i.variantType ?? null,
+          fulfillmentType: i.fulfillmentType,
+          quantity: i.quantity,
+          price: i.price,
+          title: i.title,
+        })),
+        subtotal_cents: subtotalCents,
+        discount_cents: discountCents,
+        surcharge_cents: surchargeCents,
+        tax_cents: taxCents,
+        email: normalizedEmail || null,
+      })
+    } catch (err) {
+      console.error('checkout snapshot write failed (non-blocking):', err)
+    }
+
     // Base URL for CAPI event_source_url — same normalization as /api/checkout.
     let siteUrl: string
     try {
