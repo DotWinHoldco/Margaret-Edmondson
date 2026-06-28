@@ -105,6 +105,10 @@ export async function sendOrderConfirmation(
       </table>
     </div>
     ${orderUrl ? ctaButton(orderUrl, 'View your order') : ''}
+    ${orderUrl ? `<p style="text-align: center; color: #888; font-size: 12px; line-height: 1.6; margin-top: 4px;">
+      We created an account for you with this email so you can track your orders and check out faster next time.
+      <a href="${(process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio').replace(/\/$/, '')}/forgot-password" style="color: #3A7D7B;">Set a password</a> to view your order history.
+    </p>` : ''}
     <p style="text-align: center; color: #666; font-size: 13px; line-height: 1.6;">
       Questions about your order? Reply to this email or reach out at
       <a href="mailto:hello@artbyme.studio" style="color: #3A7D7B;">hello@artbyme.studio</a>
