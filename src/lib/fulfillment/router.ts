@@ -100,6 +100,42 @@ interface FulfillmentResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Alert the studio owner when a PAID order's items fail at fulfillment SUBMIT
+// time — a LumaPrints 406 (aspect/DPI) rejection, a missing LUMAPRINTS_STORE_ID,
+// an incomplete shipping address, a signed-URL mint failure, or a 5xx after
+// retries. Without this, those failures are only a webhook_logs row, invisible
+// until the customer complains. No-throw — never affects fulfillment control flow.
+async function notifyFulfillmentFailures(
+  orderId: string,
+  failures: Array<{ itemId: string; error?: string }>,
+): Promise<void> {
+  if (failures.length === 0) return
+  try {
+    const { sendEmail } = await import('@/lib/email/send')
+    const { brandedShell, ctaButton } = await import('@/lib/email/shell')
+    const { escapeHtml } = await import('@/lib/email/escape')
+    const { getOrderNotificationEmail } = await import('@/lib/settings/accessor')
+    const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
+    const rows = failures
+      .map((f) => `<li>Item ${escapeHtml(f.itemId.slice(0, 8))}: ${escapeHtml(f.error || 'submission failed')}</li>`)
+      .join('')
+    const html = brandedShell(
+      `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">An order didn’t reach the print lab</h2>
+       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+         Order <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> was paid, but ${failures.length} item${failures.length === 1 ? '' : 's'} could not be submitted to fulfillment:
+       </p>
+       <ul style="color:#666;font-size:14px;line-height:1.7;">${rows}</ul>
+       <p style="text-align:center;color:#666;font-size:13px;line-height:1.6;">Fix the cause (e.g. re-crop the master, set the print config), then refire the order from the admin.</p>
+       ${ctaButton(`${site}/admin/orders/${orderId}`, 'Open the order')}`,
+      { hideUnsubscribe: true, preheader: 'A paid order failed to submit to fulfillment.' },
+    )
+    await sendEmail({ to, subject: 'Action needed: an order failed to submit to fulfillment', html })
+  } catch (e) {
+    console.error('notifyFulfillmentFailures failed:', e)
+  }
+}
+
 function resolveImageUrl(url: string): string {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -590,6 +626,13 @@ export async function routeOrderToFulfillment(
       }
     }
   }
+
+  // P0-5: surface any submit-time failures to the studio owner instead of
+  // leaving them as a silent webhook_logs row.
+  await notifyFulfillmentFailures(
+    orderId,
+    results.filter((r) => !r.success).map((r) => ({ itemId: r.itemId, error: r.error })),
+  )
 
   return results
 }

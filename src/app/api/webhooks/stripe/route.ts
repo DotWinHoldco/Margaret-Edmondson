@@ -96,7 +96,13 @@ interface OrderItemData {
 async function resolveProfileId(supabase: SupabaseClient, email: string | null | undefined): Promise<string | null> {
   if (!email) return null
   try {
-    const { data } = await supabase.from('profiles').select('id').ilike('email', email).limit(1)
+    // P0-1: case-insensitive EXACT match. The buyer email must be treated as a
+    // literal, not a LIKE pattern — emails legally contain '_' and '%', which
+    // ilike would treat as wildcards and could match a DIFFERENT account
+    // (stamping a stranger's profile_id onto the order = PII leak). Escape the
+    // LIKE metacharacters (default backslash escape) so ilike matches exactly.
+    const literal = email.replace(/([\\%_])/g, '\\$1')
+    const { data } = await supabase.from('profiles').select('id').ilike('email', literal).limit(1)
     return (data?.[0]?.id as string) ?? null
   } catch {
     return null
@@ -644,13 +650,49 @@ async function handleCheckoutCompleted(
     if (attention.size > 0) await notifyOrderNeedsAttention(orderId as string, [...attention])
   }
 
-  // Route to fulfillment (idempotent — only processes pending items, and FIN-2
-  // pre-claims each item to 'submitting' before the provider call so a retry
-  // cannot double-submit). Runs on every delivery; it is safe to repeat.
-  try {
-    await routeOrderToFulfillment(orderId as string)
-  } catch (err) {
-    console.error('Fulfillment routing failed (will retry):', err)
+  // P0-4: reconcile the persisted line items against the merchandise subtotal
+  // that was priced into the charge. A mismatch means what we'd ship does NOT
+  // match what the customer paid for: an empty/unreadable cart (P0-2), a cart
+  // mutated after the amount was locked, or a catalog price edited between
+  // checkout and this webhook. order_items.unit_price and the intent's
+  // subtotal_cents are both the pre-discount catalog sum, so they must be equal.
+  // Never auto-fulfill a divergent order — flag it and alert the owner instead.
+  const { data: persistedItems } = await supabase
+    .from('order_items')
+    .select('quantity, unit_price')
+    .eq('order_id', orderId as string)
+  const lineSumCents = Math.round(
+    (persistedItems || []).reduce(
+      (s: number, r: { quantity: number; unit_price: number }) => s + Number(r.unit_price) * Number(r.quantity),
+      0,
+    ) * 100,
+  )
+  const hasItems = (persistedItems?.length ?? 0) > 0
+  const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
+
+  if (reconciled) {
+    // Route to fulfillment (idempotent — only processes pending items, and FIN-2
+    // pre-claims each item to 'submitting' before the provider call so a retry
+    // cannot double-submit). Runs on every delivery; it is safe to repeat.
+    try {
+      await routeOrderToFulfillment(orderId as string)
+    } catch (err) {
+      console.error('Fulfillment routing failed (will retry):', err)
+    }
+  } else {
+    // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
+    // owner with the specifics so it can be resolved manually before shipping.
+    const reason = !hasItems
+      ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(subtotalCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+    await notifyOrderNeedsAttention(orderId as string, [reason])
+    await logEvent(supabase, event, {
+      alert: 'reconciliation_failed',
+      order_id: orderId,
+      line_sum_cents: lineSumCents,
+      subtotal_cents: subtotalCents,
+      has_items: hasItems,
+    })
   }
 
   // FIN-1: the one-shot side effects below (CRM revenue, Meta Purchase,
@@ -927,13 +969,49 @@ async function handleElementsPaymentSucceeded(
     if (attention.size > 0) await notifyOrderNeedsAttention(orderId as string, [...attention])
   }
 
-  // Route to fulfillment (idempotent — only processes pending items, and FIN-2
-  // pre-claims each item to 'submitting' before the provider call so a retry
-  // cannot double-submit). Runs on every delivery; it is safe to repeat.
-  try {
-    await routeOrderToFulfillment(orderId as string)
-  } catch (err) {
-    console.error('Fulfillment routing failed (will retry):', err)
+  // P0-4: reconcile the persisted line items against the merchandise subtotal
+  // that was priced into the charge. A mismatch means what we'd ship does NOT
+  // match what the customer paid for: an empty/unreadable cart (P0-2), a cart
+  // mutated after the amount was locked, or a catalog price edited between
+  // checkout and this webhook. order_items.unit_price and the intent's
+  // subtotal_cents are both the pre-discount catalog sum, so they must be equal.
+  // Never auto-fulfill a divergent order — flag it and alert the owner instead.
+  const { data: persistedItems } = await supabase
+    .from('order_items')
+    .select('quantity, unit_price')
+    .eq('order_id', orderId as string)
+  const lineSumCents = Math.round(
+    (persistedItems || []).reduce(
+      (s: number, r: { quantity: number; unit_price: number }) => s + Number(r.unit_price) * Number(r.quantity),
+      0,
+    ) * 100,
+  )
+  const hasItems = (persistedItems?.length ?? 0) > 0
+  const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
+
+  if (reconciled) {
+    // Route to fulfillment (idempotent — only processes pending items, and FIN-2
+    // pre-claims each item to 'submitting' before the provider call so a retry
+    // cannot double-submit). Runs on every delivery; it is safe to repeat.
+    try {
+      await routeOrderToFulfillment(orderId as string)
+    } catch (err) {
+      console.error('Fulfillment routing failed (will retry):', err)
+    }
+  } else {
+    // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
+    // owner with the specifics so it can be resolved manually before shipping.
+    const reason = !hasItems
+      ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(subtotalCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+    await notifyOrderNeedsAttention(orderId as string, [reason])
+    await logEvent(supabase, event, {
+      alert: 'reconciliation_failed',
+      order_id: orderId,
+      line_sum_cents: lineSumCents,
+      subtotal_cents: subtotalCents,
+      has_items: hasItems,
+    })
   }
 
   // FIN-1: run the one-shot side effects (CRM revenue, Meta Purchase,
