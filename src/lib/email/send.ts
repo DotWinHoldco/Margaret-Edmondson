@@ -65,7 +65,8 @@ export async function sendOrderConfirmation(
   email: string,
   orderId: string,
   items: OrderItem[],
-  total: number
+  total: number,
+  orderUrl?: string,
 ) {
   const itemRows = items
     .map(
@@ -103,6 +104,7 @@ export async function sendOrderConfirmation(
         </tfoot>
       </table>
     </div>
+    ${orderUrl ? ctaButton(orderUrl, 'View your order') : ''}
     <p style="text-align: center; color: #666; font-size: 13px; line-height: 1.6;">
       Questions about your order? Reply to this email or reach out at
       <a href="mailto:hello@artbyme.studio" style="color: #3A7D7B;">hello@artbyme.studio</a>

@@ -109,6 +109,35 @@ async function resolveProfileId(supabase: SupabaseClient, email: string | null |
   }
 }
 
+// P1-1: link an order to a customer account, creating one if needed. If a
+// profile already exists for the email, use it; otherwise auto-provision a
+// passwordless, email-confirmed account so the buyer can sign in (via magic link
+// / password reset) to track the order and keep shopping. The handle_new_user
+// trigger creates the matching profiles row and back-links prior guest orders.
+// Best-effort + null-safe — never blocks order creation; a failure just leaves
+// the order with profile_id NULL (recoverable later on self-signup via P1-2).
+async function ensureCustomerAccount(supabase: SupabaseClient, email: string | null | undefined): Promise<string | null> {
+  if (!email) return null
+  const norm = email.toLowerCase().trim()
+  if (!norm || norm === 'unknown@artbyme.studio' || !norm.includes('@')) return null
+  const existing = await resolveProfileId(supabase, norm)
+  if (existing) return existing
+  try {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: norm,
+      email_confirm: true,
+      user_metadata: { source: 'purchase' },
+    })
+    if (data?.user?.id) return data.user.id
+    if (error) console.error('ensureCustomerAccount createUser failed:', error.message)
+  } catch (e) {
+    console.error('ensureCustomerAccount threw:', e)
+  }
+  // Race / pre-existing auth user without a profile: re-resolve (the trigger may
+  // have just created the profiles row).
+  return await resolveProfileId(supabase, norm)
+}
+
 // P0-3: read the immutable purchase-time line-item snapshot for a Stripe payment
 // reference (PaymentIntent id or Checkout Session id). Fail-soft: returns null
 // when there is no snapshot (orders placed before snapshots existed) or the
@@ -599,7 +628,7 @@ async function handleCheckoutCompleted(
       .insert({
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id: session.payment_intent as string,
-        profile_id: await resolveProfileId(supabase, buyerEmail),
+        profile_id: await ensureCustomerAccount(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
         subtotal: subtotalCents / 100,
@@ -791,7 +820,10 @@ async function handleCheckoutCompleted(
           variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
         }))
 
-        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+        // P1-3: the public order page works for guests (keyed by the Stripe id),
+        // so it is a real "track your order" link, not a login wall.
+        const orderUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${session.id}`
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl)
       } catch (err) {
         console.error('Order confirmation email failed:', err)
       }
@@ -801,6 +833,7 @@ async function handleCheckoutCompleted(
       await sendPostPurchaseEmail(buyerEmail, orderId as string, {
         total: orderTotal,
         contactId: session.metadata.contact_id || null,
+        orderUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${session.id}`,
       })
     }
 
@@ -903,12 +936,13 @@ async function handleElementsPaymentSucceeded(
   const taxCents = Number(md.tax_cents) || 0
   const totalCents = pi.amount_received || pi.amount || 0
 
-  // orders.email is NOT NULL — confirmPayment sets receipt_email, the intent
-  // route mirrors it into metadata; a placeholder is the absolute last resort.
-  let buyerEmail = pi.receipt_email || md.email || ''
+  // P1-5: keep orders.email truthful. confirmPayment sets receipt_email and the
+  // intent route mirrors it into metadata; if BOTH are somehow empty we store an
+  // empty string (NOT a fake address that bounces) and alert the owner in the
+  // side-effects block rather than emailing a placeholder.
+  const buyerEmail = (pi.receipt_email || md.email || '').toLowerCase().trim()
   if (!buyerEmail) {
-    console.error(`Elements order for ${pi.id} has no buyer email — storing placeholder`)
-    buyerEmail = 'unknown@artbyme.studio'
+    console.error(`Elements order for ${pi.id} has no buyer email`)
   }
 
   // Same JSON shape the session branch stores — address + the ship-to name
@@ -927,7 +961,7 @@ async function handleElementsPaymentSucceeded(
       .from('orders')
       .insert({
         stripe_payment_intent_id: pi.id,
-        profile_id: await resolveProfileId(supabase, buyerEmail),
+        profile_id: await ensureCustomerAccount(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
         subtotal: subtotalCents / 100,
@@ -1111,7 +1145,10 @@ async function handleElementsPaymentSucceeded(
           variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
         }))
 
-        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal)
+        // P1-3: the public order page works for guests (keyed by the PaymentIntent
+        // id), so it is a real "track your order" link, not a login wall.
+        const orderUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${pi.id}`
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl)
       } catch (err) {
         console.error('Order confirmation email failed:', err)
       }
@@ -1120,7 +1157,14 @@ async function handleElementsPaymentSucceeded(
       await sendPostPurchaseEmail(buyerEmail, orderId as string, {
         total: orderTotal,
         contactId: md.contact_id || null,
+        orderUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${pi.id}`,
       })
+    } else {
+      // P1-5: a paid order with no buyer email — no confirmation can be sent.
+      // Alert the owner so they can reach the customer via Stripe.
+      await notifyOrderNeedsAttention(orderId as string, [
+        'This paid order has no buyer email, so no confirmation or tracking email can be sent. Contact the customer through the Stripe dashboard.',
+      ])
     }
 
     // Order notification to the studio owner (best-effort).

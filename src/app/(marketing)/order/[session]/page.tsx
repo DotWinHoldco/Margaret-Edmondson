@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
 import OrderConfirmationPoll from './OrderConfirmationPoll'
+import ClearCartOnConfirm from './ClearCartOnConfirm'
 
 export const dynamic = 'force-dynamic'
 
@@ -126,6 +127,7 @@ export default async function OrderConfirmationPage(props: {
             inbox — it should only take a moment.
           </p>
           <OrderConfirmationPoll />
+          <ClearCartOnConfirm />
           <CtaRow />
         </div>
       </div>
@@ -141,6 +143,7 @@ export default async function OrderConfirmationPage(props: {
 
   return (
     <div className="bg-cream pt-24 pb-32 min-h-screen">
+      <ClearCartOnConfirm />
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <div className="text-center">
           <CheckCircle />

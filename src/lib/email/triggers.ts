@@ -253,10 +253,13 @@ export async function sendWelcomeEmail(
 export async function sendPostPurchaseEmail(
   email: string,
   orderId: string,
-  options?: { name?: string | null; total?: number; contactId?: string | null }
+  options?: { name?: string | null; total?: number; contactId?: string | null; orderUrl?: string | null }
 ): Promise<void> {
   const normalizedEmail = (email || '').toLowerCase().trim()
   if (!normalizedEmail || !normalizedEmail.includes('@') || !orderId) return
+  // P1-3: prefer the public order page (works for guests) over /account/orders,
+  // which bounces unauthenticated buyers to a login wall.
+  const orderCtaUrl = options?.orderUrl || `${SITE_URL}/account/orders`
 
   try {
     const supabase = await createServiceClient()
@@ -297,7 +300,7 @@ export async function sendPostPurchaseEmail(
       body = `${loaded.step.content_html
         .replace(/\{\{\s*first_name_or_friend\s*\}\}/g, greetingName)
         .replace(/\{\{\s*order_number\s*\}\}/g, shortOrder)}
-        ${ctaButton(`${SITE_URL}/account/orders`, 'View Your Order')}`
+        ${ctaButton(orderCtaUrl, 'View Your Order')}`
     } else {
       subject = 'Thank you for your order — ArtByME'
       preheader = 'A note from the studio.'
@@ -306,7 +309,7 @@ export async function sendPostPurchaseEmail(
         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;margin-bottom:16px;">
           Your order${` #${shortOrder}`} is being prepared with care. I'm honored to have a piece of my work going to your home, and I'll be in touch with shipping details soon.
         </p>
-        ${ctaButton(`${SITE_URL}/account/orders`, 'View Your Order')}
+        ${ctaButton(orderCtaUrl, 'View Your Order')}
         <p style="text-align:center;color:#999;font-size:12px;">
           Questions? Reply to this email and I'll help.
         </p>`
