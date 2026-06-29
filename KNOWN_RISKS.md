@@ -324,6 +324,52 @@ Required fix (Phase 5 sandbox): reconcile bounds + requiredDPI against a live su
 confirm fractional pricing returns a non-zero cost (P3-7 blocks a 0-cost Live variant regardless).
 Related tag: #payment-e2e-phase3, #payment-e2e-phase5
 
+### Checkout accepts CA addresses but print fulfillment defaults to a US store
+
+Severity: P3 (money; CA print orders only)
+Module: checkout / fulfillment (`checkout/page.tsx`, `lib/fulfillment/router.ts`, `lumaprints.ts`)
+Description: The checkout country selector allows Canada, but the LumaPrints store + subcategory
+config target the US store; a CA print order may 406 at submit AFTER the card is charged. The
+Phase 2 reconciliation + needs-attention alert catch it (the owner is notified and can refund), but
+the customer is charged first. Self-ship originals are unaffected.
+Current status: ACCEPTED pending verification. Not changed unilaterally (selling to Canada is a
+business decision).
+Required fix (Phase 5): verify the US store + the enabled subcategories fulfill to CA in the
+LumaPrints sandbox; if not, restrict the checkout country selector (and the shipping quote) to US,
+or stand up a CA store. Until verified, treat any CA print order as manual-review.
+Related tag: #payment-e2e-phase4, #payment-e2e-phase5
+
+### AK/HI/CA shipping surcharge under-collected on the embedded (Elements) checkout
+
+Severity: P3 (margin; AK/HI/CA via Elements only)
+Module: checkout (`cart/page.tsx`, `checkout/intent/route.ts`)
+Description: The embedded Payment Elements flow locks the shipping surcharge into the PaymentIntent
+amount at intent creation, BEFORE the AddressElement collects the shipping address, so an AK/HI/CA
+buyer who does not manually re-quote is charged without the address-based surcharge (the studio
+absorbs the extra shipping). The hosted Stripe Checkout flow collects the address first and is not
+affected. Not a correctness bug (nothing is mis-shipped); a margin leak. The P0-4 reconciliation
+compares line items to the merchandise subtotal only, so it does not flag an under-collected
+surcharge.
+Current status: ACCEPTED (deferred). Fixing it means re-quoting + updating the PaymentIntent amount
+when the AddressElement reports the address: a money-path client+server change that needs careful
+test coverage, not safe to land blind in this batch.
+Required fix: on AddressElement change, call a re-quote endpoint and update the PI amount before
+confirm; add a regression test for the AK/HI/CA surcharge round-trip.
+Related tag: #payment-e2e-phase4
+
+### Rate limiting is per-lambda in-memory (not shared across instances)
+
+Severity: low (accepted)
+Module: API rate limiting (`src/lib/api/rate-limit.ts`)
+Description: The token-bucket limiter is per Vercel lambda instance, so the effective limit scales
+with the number of warm instances and resets on cold start. Good enough to deter scripted abuse of
+the public POST endpoints; not a strict global limit.
+Current status: ACCEPTED at current scale (already documented in the file header); no current abuse
+signal.
+Required fix (if abuse becomes real): move the counter to a shared store (Upstash/Redis or a DB
+counter) keyed the same way, behind the same `rateLimit()` interface.
+Related tag: #payment-e2e-phase4, #az-3
+
 ## Format
 
 ### Risk

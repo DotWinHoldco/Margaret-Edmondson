@@ -1,86 +1,46 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { createHmac, timingSafeEqual } from 'crypto'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { timingSafeEqual } from 'crypto'
 import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
 import { notifyShipped } from '@/lib/email/triggers'
+import { carrierTrackingUrl } from '@/lib/fulfillment/tracking'
 
-// Resolve our canonical orders.id + buyer email from a LumaPrints order
-// reference. The reference is our order_items.external_order_id (the LumaPrints
-// order number); fall back to treating it as our orders.id directly.
-async function resolveOrderForReference(
-  supabase: SupabaseClient,
-  orderReference: string,
-): Promise<{ orderId: string; email: string | null }> {
-  const { data: oi } = await supabase
-    .from('order_items')
-    .select('order_id')
-    .eq('external_order_id', String(orderReference))
-    .eq('fulfillment_type', 'lumaprints')
-    .limit(1)
-    .maybeSingle()
-  const orderId = (oi?.order_id as string) ?? orderReference
-  const { data: order } = await supabase.from('orders').select('id, email').eq('id', orderId).maybeSingle()
-  return { orderId: (order?.id as string) ?? orderId, email: (order?.email as string | null) ?? null }
-}
+export const runtime = 'nodejs'
 
-// ---------------------------------------------------------------------------
-// Signature verification
-// ---------------------------------------------------------------------------
-
-function verifyLumaprintsSignature(
-  body: string,
-  signature: string | null,
-): boolean {
-  if (!signature) return false
-  const secret = process.env.LUMAPRINTS_WEBHOOK_SECRET
-  if (!secret) {
-    console.error('LUMAPRINTS_WEBHOOK_SECRET is not configured')
-    return false
+// P4-1: optional HTTP Basic auth, fail-closed. LumaPrints' subscribe call accepts a
+// username/password and then sends them on each inbound POST; it does NOT sign the
+// body (the previous x-lumaprints-signature HMAC scheme was invented and never
+// matched anything). We require a matching Basic credential here. When
+// LUMAPRINTS_WEBHOOK_USER/PASS are unset the endpoint refuses (503): it simply is
+// not wired yet, and the lumaprints-status cron is the backstop for tracking.
+function authorizeInbound(request: Request): { ok: true } | { ok: false; response: Response } {
+  const user = process.env.LUMAPRINTS_WEBHOOK_USER
+  const pass = process.env.LUMAPRINTS_WEBHOOK_PASS
+  if (!user || !pass) {
+    console.error('LUMAPRINTS_WEBHOOK_USER/PASS not configured — refusing inbound webhook (fail closed; status cron is the backstop)')
+    return { ok: false, response: Response.json({ error: 'Webhook not configured' }, { status: 503 }) }
   }
-  const expected = createHmac('sha256', secret).update(body).digest('hex')
-  const provided = Buffer.from(signature)
-  const computed = Buffer.from(expected)
-  return provided.length === computed.length && timingSafeEqual(provided, computed)
+  const provided = Buffer.from(request.headers.get('authorization') || '')
+  const expected = Buffer.from(`Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`)
+  const ok = provided.length === expected.length && timingSafeEqual(provided, expected)
+  return ok ? { ok: true } : { ok: false, response: Response.json({ error: 'Unauthorized' }, { status: 401 }) }
 }
 
-// ---------------------------------------------------------------------------
-// Handler
-// ---------------------------------------------------------------------------
-
+// POST /api/webhooks/lumaprints — inbound LumaPrints `shipping` event (the only
+// inbound event LumaPrints sends): mark the order's items shipped + tracking, email
+// the buyer a clickable tracking link, and roll up orders.status. Optional Basic
+// auth; idempotent (only advances in-flight items; notifyShipped dedupes per order;
+// the status cron is the backstop). Always 200 on a handled event so LumaPrints
+// does not retry-storm. Inbound shape per docs/lumaprints-api-reference.md.
 export async function POST(request: Request) {
+  const auth = authorizeInbound(request)
+  if (!auth.ok) return auth.response
+
   const body = await request.text()
-  const signature = request.headers.get('x-lumaprints-signature')
-
-  // Verify signature
-  try {
-    if (!verifyLumaprintsSignature(body, signature)) {
-      return Response.json({ error: 'Invalid signature' }, { status: 400 })
-    }
-  } catch (err) {
-    console.error('Lumaprints signature verification error:', err)
-    return Response.json({ error: 'Signature verification failed' }, { status: 400 })
-  }
-
   let payload: {
-    event?: string
-    orderNumber?: string
-    reference?: string
-    tracking?: {
-      number?: string
-      url?: string
-      trackingNumber?: string
-      trackingUrl?: string
-      carrier?: string
-    }
-    shipments?: Array<{
-      number?: string
-      url?: string
-      trackingNumber?: string
-      trackingUrl?: string
-      carrier?: string
-    }>
+    orderNumber?: string | number
+    externalId?: string
+    shipments?: Array<{ carrier?: string; trackingNumber?: string; shipmentDate?: string }>
   }
-
   try {
     payload = JSON.parse(body)
   } catch {
@@ -88,106 +48,54 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createServiceClient()
-
-  // Log webhook
   await supabase.from('webhook_logs').insert({
     source: 'lumaprints',
-    event_type: payload.event || 'unknown',
+    event_type: 'shipping',
     payload: payload as unknown as Record<string, unknown>,
   })
 
-  const eventType = payload.event
-  const orderReference = payload.reference || payload.orderNumber
-
-  if (!orderReference) {
-    console.error('Lumaprints webhook: missing order reference')
+  // The inbound shape has no `event` field; the only inbound event is shipment. We
+  // stored the LumaPrints orderNumber as order_items.external_order_id at submit, so
+  // match on that.
+  const orderNumber = payload.orderNumber != null ? String(payload.orderNumber) : ''
+  if (!orderNumber) {
+    console.error('Lumaprints inbound webhook: missing orderNumber')
     return Response.json({ received: true })
   }
 
-  switch (eventType) {
-    case 'order.shipped':
-    case 'shipment.created': {
-      // Extract tracking information
-      const tracking = payload.tracking || payload.shipments?.[0]
-      const trackingNumber =
-        tracking?.number || tracking?.trackingNumber || null
-      const trackingUrl =
-        tracking?.url || tracking?.trackingUrl || null
-      const carrier =
-        tracking?.carrier || null
+  const shipment = payload.shipments?.[0]
+  const trackingNumber = shipment?.trackingNumber || null
+  const carrier = shipment?.carrier || null
+  const trackingUrl = carrierTrackingUrl(carrier, trackingNumber)
 
-      // The reference field is the order ID we passed when creating the order
-      // Update all order_items that belong to this Lumaprints order
-      const { error: updateError } = await supabase
-        .from('order_items')
-        .update({
-          fulfillment_status: 'shipped',
-          tracking_number: trackingNumber,
-          tracking_url: trackingUrl,
-          carrier,
-          shipped_at: new Date().toISOString(),
-        })
-        .eq('external_order_id', String(orderReference))
-        .eq('fulfillment_type', 'lumaprints')
+  // Only advance still-in-flight items, so a redelivered webhook is a no-op.
+  const { error: updateError } = await supabase
+    .from('order_items')
+    .update({
+      fulfillment_status: 'shipped',
+      tracking_number: trackingNumber,
+      tracking_url: trackingUrl,
+      carrier,
+      shipped_at: new Date().toISOString(),
+    })
+    .eq('external_order_id', orderNumber)
+    .eq('fulfillment_type', 'lumaprints')
+    .in('fulfillment_status', ['submitting', 'submitted', 'in_production'])
+  if (updateError) console.error('Lumaprints inbound: order_items update failed:', updateError.message)
 
-      if (updateError) {
-        console.error('Failed to update Lumaprints order items:', updateError)
-
-        // Also try matching by order_id (reference is our order ID)
-        await supabase
-          .from('order_items')
-          .update({
-            fulfillment_status: 'shipped',
-            tracking_number: trackingNumber,
-            tracking_url: trackingUrl,
-            carrier,
-            shipped_at: new Date().toISOString(),
-          })
-          .eq('order_id', orderReference)
-          .eq('fulfillment_type', 'lumaprints')
-      }
-
-      console.log(
-        `Lumaprints order ${orderReference} shipped — tracking: ${trackingNumber}`,
-      )
-
-      // Notify the buyer (replay-safe) + roll up orders.status. Both are
-      // exception-safe so the webhook still returns 200.
-      const { orderId, email } = await resolveOrderForReference(supabase, orderReference)
-      if (email) await notifyShipped(supabase, { orderId, email, trackingUrl: trackingUrl ?? undefined })
-      await recomputeOrderStatus(supabase, orderId)
-      break
-    }
-
-    case 'order.delivered': {
-      await supabase
-        .from('order_items')
-        .update({
-          fulfillment_status: 'delivered',
-          delivered_at: new Date().toISOString(),
-        })
-        .eq('external_order_id', String(orderReference))
-        .eq('fulfillment_type', 'lumaprints')
-
-      const { orderId } = await resolveOrderForReference(supabase, orderReference)
-      await recomputeOrderStatus(supabase, orderId)
-      break
-    }
-
-    case 'order.cancelled':
-    case 'order.failed': {
-      await supabase
-        .from('order_items')
-        .update({ fulfillment_status: 'pending' })
-        .eq('external_order_id', String(orderReference))
-        .eq('fulfillment_type', 'lumaprints')
-
-      console.error(`Lumaprints order ${orderReference} failed/cancelled`)
-      break
-    }
-
-    default:
-      console.log(`Lumaprints webhook: unhandled event type "${eventType}"`)
+  // Resolve our order + buyer, notify (replay-safe), roll up status.
+  const { data: oi } = await supabase
+    .from('order_items')
+    .select('order_id')
+    .eq('external_order_id', orderNumber)
+    .eq('fulfillment_type', 'lumaprints')
+    .limit(1)
+    .maybeSingle()
+  const orderId = (oi?.order_id as string) || ''
+  if (orderId) {
+    const { data: order } = await supabase.from('orders').select('email').eq('id', orderId).maybeSingle()
+    if (order?.email) await notifyShipped(supabase, { orderId, email: order.email as string, trackingUrl })
+    await recomputeOrderStatus(supabase, orderId)
   }
 
   return Response.json({ received: true })

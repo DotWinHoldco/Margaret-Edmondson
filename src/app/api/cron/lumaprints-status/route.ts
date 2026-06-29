@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getOrder, getShipments, lumaprintsConfigured } from '@/lib/integrations/lumaprints'
 import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
 import { notifyShipped } from '@/lib/email/triggers'
+import { carrierTrackingUrl } from '@/lib/fulfillment/tracking'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -105,7 +106,14 @@ export async function GET(request: Request) {
           shipped++
           if (orderId) {
             const { data: ord } = await supabase.from('orders').select('email').eq('id', orderId).maybeSingle()
-            if (ord?.email) await notifyShipped(supabase, { orderId, email: ord.email as string, trackingUrl: null })
+            // P4-2: send a clickable carrier tracking link, not just a number.
+            if (ord?.email) {
+              await notifyShipped(supabase, {
+                orderId,
+                email: ord.email as string,
+                trackingUrl: carrierTrackingUrl(carrier, trackingNumber),
+              })
+            }
           }
         } else {
           delivered++
@@ -125,12 +133,39 @@ export async function GET(request: Request) {
     }
   }
 
+  // P4-4: a silent ceiling at higher volume. When more distinct LumaPrints orders
+  // are in-flight than one run can poll, surface the backlog (durable webhook_logs
+  // alert + owner email) so the per-run cap can be raised before tracking lags.
+  const deferred = capped ? orderNumbers.length - batch.length : 0
+  if (deferred > 0) {
+    console.warn(`lumaprints-status: ${deferred} order(s) deferred past the per-run cap of ${MAX_ORDERS_PER_RUN}`)
+    await supabase.from('webhook_logs').insert({
+      source: 'cron_lumaprints_status',
+      event_type: 'status_backlog',
+      payload: { alert: 'status_backlog', deferred, total: orderNumbers.length, cap: MAX_ORDERS_PER_RUN } as unknown as Record<string, unknown>,
+    })
+    try {
+      const { getOrderNotificationEmail } = await import('@/lib/settings/accessor')
+      const { sendEmail } = await import('@/lib/email/send')
+      const { brandedShell } = await import('@/lib/email/shell')
+      const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
+      const html = brandedShell(
+        `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Shipping updates are backing up</h2>
+         <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">${deferred} order(s) could not be checked this run (per-run cap ${MAX_ORDERS_PER_RUN}). Tracking emails may lag until the backlog clears. If this persists, raise the per-run cap.</p>`,
+        { hideUnsubscribe: true, preheader: 'LumaPrints status backlog' },
+      )
+      await sendEmail({ to, subject: 'Heads up: shipping status backlog', html })
+    } catch (e) {
+      console.error('status backlog alert email failed:', e)
+    }
+  }
+
   return Response.json({
     checked: batch.length,
     shipped,
     delivered,
     inProduction,
-    deferred: capped ? orderNumbers.length - batch.length : 0,
+    deferred,
     errors,
   })
 }
