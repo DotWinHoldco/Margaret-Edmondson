@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   submitOrder as lumaprintsSubmitOrder,
+  checkImageConfig,
   LumaprintsApiError,
   type LumaprintsRecipient,
 } from '@/lib/integrations/lumaprints'
@@ -117,9 +118,13 @@ function resolveImageUrl(url: string): string {
   return `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
-// Mint a 1-hour signed URL for an object in the private print-masters bucket.
+// Mint a signed URL for an object in the private print-masters bucket.
 // Returns '' when storage isn't configured or the path is empty; callers treat
 // that as a validation failure rather than firing with a low-res web image.
+// P3-4: a generous 6h TTL so the URL is still valid when a queued/retried
+// fulfillment job submits well after the order was placed; the submit also passes
+// file.saveImage so LumaPrints persists the master and need not re-fetch later.
+const SIGNED_URL_TTL_SECONDS = 6 * 60 * 60
 async function mintSignedUrl(path: string): Promise<string> {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -131,7 +136,7 @@ async function mintSignedUrl(path: string): Promise<string> {
         Authorization: `Bearer ${serviceKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ expiresIn: 3600 }),
+      body: JSON.stringify({ expiresIn: SIGNED_URL_TTL_SECONDS }),
     })
     if (!res.ok) return ''
     const { signedURL } = (await res.json()) as { signedURL: string }
@@ -212,6 +217,31 @@ async function validateLumaprintsItem(
   const imageUrl = await mintSignedUrl(path)
   if (!imageUrl) {
     return { ok: false, reason: 'could not mint signed URL for print master' }
+  }
+
+  // P3-1: pre-submit aspect/DPI safety net. LumaPrints' checkImageConfig validates
+  // the master's resolution + aspect against the ordered size BEFORE the order is
+  // created, so a mismatch is caught here (item marked failed_validation + alerted)
+  // instead of partially submitting and relying solely on the submit-time 406. A
+  // 406/400 from the check is a real sizing/URL problem -> fail validation. Any
+  // other error (the check endpoint itself unreachable) must NOT block fulfillment:
+  // the submit re-validates aspect/DPI, so the check is a net, not a hard gate.
+  try {
+    await checkImageConfig({
+      subcategoryId,
+      printWidth: Number(width),
+      printHeight: Number(height),
+      imageUrl,
+      orderItemOptions: optionIds.map(String),
+    })
+  } catch (e) {
+    if (e instanceof LumaprintsApiError && (e.status === 406 || e.status === 400)) {
+      return { ok: false, reason: `image check failed (${e.status}): ${e.body.slice(0, 200)}` }
+    }
+    console.warn(
+      `checkImageConfig unavailable for item ${item.id} (proceeding to submit):`,
+      e instanceof Error ? e.message : e,
+    )
   }
 
   return {
@@ -314,7 +344,9 @@ async function submitToLumaprints(
     quantity: validated.quantity,
     width: validated.width,
     height: validated.height,
-    file: { imageUrl: validated.imageUrl },
+    // P3-4: saveImage so LumaPrints persists the master at submit instead of
+    // lazily re-fetching the (expiring) signed URL later.
+    file: { imageUrl: validated.imageUrl, saveImage: true },
     orderItemOptions: validated.optionIds,
   }))
 

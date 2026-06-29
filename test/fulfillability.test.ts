@@ -46,4 +46,43 @@ describe('checkFulfillable', () => {
     expect(checkFulfillable({ ...framed, mediumOptionIds: [] }).ok).toBe(false)
     expect(checkFulfillable({ ...framed, mediumOptionIds: [] }).reason).toMatch(/frame-style option/i)
   })
+
+  // P3-7: never sell a variant we could not price.
+  it('blocks an unpriced (0-cost) variant, passes a priced one, skips when unknown', () => {
+    expect(checkFulfillable({ ...OK_CANVAS, lumaprintsCostCents: 0 }).ok).toBe(false)
+    expect(checkFulfillable({ ...OK_CANVAS, lumaprintsCostCents: 0 }).reason).toMatch(/unpriced/i)
+    expect(checkFulfillable({ ...OK_CANVAS, lumaprintsCostCents: 2595 })).toEqual({ ok: true })
+    expect(checkFulfillable({ ...OK_CANVAS, lumaprintsCostCents: null })).toEqual({ ok: true })
+  })
+
+  // P3-2: aspect drift between the variant size and the cropped master.
+  it('passes a variant whose aspect matches the cropped master within 1%', () => {
+    // 18x24 (0.750) vs master 1810x2400 (0.754) → ~0.56% drift.
+    expect(
+      checkFulfillable({
+        ...OK_CANVAS,
+        variantWidthIn: 18,
+        variantHeightIn: 24,
+        masterPrintWidthPx: 1810,
+        masterPrintHeightPx: 2400,
+      }),
+    ).toEqual({ ok: true })
+  })
+
+  it('blocks a variant whose aspect drifts over 1% from the cropped master', () => {
+    // 18x24 (0.750) vs master 2000x2400 (0.833) → ~10% drift.
+    const r = checkFulfillable({
+      ...OK_CANVAS,
+      variantWidthIn: 18,
+      variantHeightIn: 24,
+      masterPrintWidthPx: 2000,
+      masterPrintHeightPx: 2400,
+    })
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/aspect/i)
+  })
+
+  it('skips the aspect check when any of the four dimensions is missing', () => {
+    expect(checkFulfillable({ ...OK_CANVAS, variantWidthIn: 18, variantHeightIn: 24 })).toEqual({ ok: true })
+  })
 })

@@ -46,14 +46,21 @@ export async function loadBuilderContext(
 
   const { data: master } = await supabase
     .from('master_artworks')
-    .select('print_width_px, print_height_px, width_px, height_px')
+    .select('print_status, print_width_px, print_height_px, width_px, height_px')
     .eq('id', product.master_artwork_id)
     .maybeSingle()
   if (!master) return { ok: false, status: 400, code: 'NO_MASTER', message: 'Master artwork not found.' }
 
-  const hasPrintMaster = Boolean(master.print_width_px && master.print_height_px)
-  const printW = master.print_width_px ?? master.width_px
-  const printH = master.print_height_px ?? master.height_px
+  // P3-3: only trust the cropped print dimensions when the master is print-READY.
+  // A re-crop sets print_status='pending'/'processing' but can leave the OLD
+  // print_width/height_px in place, so deriving sizes from them would build
+  // variants at a stale aspect. When not ready, fall back to the raw scan (pre-crop
+  // affordance); such variants still cannot go Live until the aspect-gated Live
+  // check (P3-2) passes against the finished crop.
+  const ready = master.print_status === 'ready'
+  const hasPrintMaster = ready && Boolean(master.print_width_px && master.print_height_px)
+  const printW = hasPrintMaster ? master.print_width_px : master.width_px
+  const printH = hasPrintMaster ? master.print_height_px : master.height_px
   if (!printW || !printH) {
     return {
       ok: false,

@@ -118,8 +118,13 @@ async function processOne(m) {
       heightPx: m.height_px,
     })
 
-    // 5. Upload to print/<id>.tif (resumable for large output).
-    const objectName = `print/${m.id}.tif`
+    // 5. Upload to a VERSIONED print path (P3-6). A re-crop must NOT overwrite
+    // print/<id>.tif in place: an order snapshot freezes print_storage_path at
+    // purchase, so overwriting would make a later refire mint NEW bytes against the
+    // OLD priced inches. A unique per-crop path keeps every snapshot resolvable to
+    // the exact bytes it priced; superseded versions are harmless to leave behind.
+    const rev = Date.now()
+    const objectName = `print/${m.id}-${rev}.tif`
     const via = await uploadOutput(outBuf, objectName, 'image/tiff')
 
     await sb

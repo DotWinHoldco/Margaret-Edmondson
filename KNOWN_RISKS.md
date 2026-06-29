@@ -255,24 +255,33 @@ admin upload/delete path preserved via authenticated-admin + service-role client
 Required check: `npm run check:rls`, `npm run build-check`; advisor public_bucket_allows_listing clears.
 Related tag: #storage-authz-2026-06-25, #print-masters-ip
 
-### Duplicate LumaPrints order on manual retry of a `failed` print item
+### Duplicate LumaPrints order if a print item is resubmitted after a lost-response create
 
-Severity: P2 (money; manual-trigger only)
-Module: fulfillment (`src/lib/fulfillment/router.ts` retryFulfillmentForItem / submitToLumaprints)
-Description: If `submitOrder` throws AFTER LumaPrints actually created the order (lost response,
-DB write failure stamping `submitted`+`external_order_id`), the item is marked `failed` with a
-null `external_order_id`. A later **manual** admin retry re-claims the `failed` item and resubmits
-with the same top-level `externalId=orderId`. LumaPrints does not dedupe on `externalId` (only
-`externalItemId` is documented unique), so a second physical print+ship can result (double cost).
-Current status: ACCEPTED for now — pre-existing; the FIN-2 `submitting` pre-claim already makes the
-happy path exactly-once, and the only resubmit path today is a human-initiated retry (the new
-`lumaprints-status` cron polls status only, never resubmits). No auto-sweep resubmits `failed`
-items.
-Required fix (go-live): before resubmitting a `failed` (vs never-submitted `pending`) LumaPrints
-item, look up an existing order for `externalId` (list-by-store+date) and adopt its `orderNumber`,
-or gate auto-resubmission to `pending` only. **Human caution:** verify in the LumaPrints dashboard
-before manually retrying a failed print item.
-Related tag: #order-path-verify-2026-06-25
+Severity: P2 (money) — gated on LumaPrints `externalItemId` dedup, to verify in Phase 5
+Module: fulfillment (`src/lib/fulfillment/router.ts`, `/api/cron/fulfillment-worker`)
+Description: If `submitOrder` throws AFTER LumaPrints actually created the order (the 2xx response
+is lost in transit), the item is marked `failed` with a null `external_order_id`. A later resubmit
+of that item could create a second physical print+ship (double cost).
+Two of the three sub-cases are now closed by Phase 2 (branch `fix/payment-p2`):
+- The DB-write-failure sub-case (provider order created, the `submitted`+`external_order_id` write
+  fails) is handled by P2-3: `persistSubmitted` retries the write, then HOLDS the item in
+  `submitting` (a non-claimable state) and alerts for reconciliation, so neither the worker nor a
+  manual refire re-submits it.
+- The order-level `externalId` is no longer the reused `orderId` (P2-5): a single-item submission
+  uses `order_items.id`, so the LumaPrints order carries a stable per-item external reference.
+The residual case is a genuine lost-response throw that marks the item `failed`. The fulfillment
+worker auto-retries `failed` items, so this resubmit is now automatic, not manual-only. Safety
+rests on LumaPrints rejecting a duplicate `externalItemId` (documented unique). The submit always
+sends `externalItemId = order_items.id`, so a resubmit of the same item carries the same id.
+Current status: ACCEPTED pending verification. Bounded (requires a lost 2xx exactly after create)
+and mitigated by the stable `externalItemId`; the FIN-2 `submitting` pre-claim still makes the
+happy path exactly-once.
+Required fix (Phase 5 sandbox): confirm LumaPrints dedupes a repeat `externalItemId` (submit the
+same item twice, assert one physical order). If it does NOT, gate the worker's auto-retry to
+`pending` only and require a list-by-store+date lookup before resubmitting a `failed` item.
+**Human caution:** until verified, check the LumaPrints dashboard before manually refiring a failed
+print item.
+Related tag: #order-path-verify-2026-06-25, #payment-e2e-phase2, #payment-e2e-phase5
 
 ### Transient routing throw can strand paid order items at zero fulfillment submissions
 
@@ -284,10 +293,36 @@ the provider loop (transient order/items fetch error) leaves items `pending` wit
 `external_order_id`. Stripe won't redeliver (already 200'd); a redelivery short-circuits on
 `fullyProcessed`; and the Phase 7 status cron keys on `external_order_id`, so it can't see a
 `pending` item. Net: rare transient → items stranded until manual `/api/fulfillment/submit`.
-Current status: ACCEPTED — pre-existing; near-zero frequency.
-Required fix: a periodic sweep that re-routes paid orders whose items are still `pending` past a
-grace window (claiming `pending` only, to avoid the duplicate-retry risk above).
-Related tag: #order-path-verify-2026-06-25
+Current status: RESOLVED 2026-06-29 (payment E2E remediation Phase 2, branch `fix/payment-p2`).
+Fulfillment submission is now decoupled from the webhook into the durable `fulfillment_jobs` queue
+drained by `/api/cron/fulfillment-worker`, which (a) re-claims jobs whose `running` row is stale
+(crashed worker) and (b) sweeps orders with `pending`/`failed` items lacking a job and enqueues
+them (claiming `pending`/`failed` only, never `failed_validation`, to avoid the duplicate-retry
+risk below). The webhook short-circuit also requires `side_effects_completed_at` (P2-1), so a
+mid-flight crash no longer permanently skips the confirmation email/CRM/Meta either.
+Required fix: none (verify end-to-end in Phase 5 sandbox).
+Related tag: #order-path-verify-2026-06-25, #payment-e2e-phase2
+
+### G4 print bounds / DPI / fractional pricing are provisional until a sandbox probe
+
+Severity: P3
+Module: pricing / fulfillment (`subcategory-bounds.ts`, `size-tiers.ts`, `lib/fulfillment/router.ts`)
+Description: Phase 3 (branch `fix/payment-p3`) added the aspect/DPI correctness rails: the dead
+`checkImageConfig` is now called pre-submit (P3-1) as a real aspect/DPI net that marks a mismatched
+item `failed_validation` and alerts; `loadVariantFulfillability` re-validates variant aspect vs the
+cropped master at Live-flip + order time and blocks an unpriced (0-cost) variant (P3-2/P3-7); the
+builder only trusts print dims when the master is `ready` (P3-3); the custom-create route creates
+as Draft and gates the Live flip on fulfillability (P3-2); the crop master path is versioned so a
+re-crop can't overwrite the bytes an order snapshot froze (P3-6). What remains provisional and needs
+a live LumaPrints probe (human-gated, Phase 5): the per-subcategory size bounds + `requiredDPI`
+(=200) in `subcategory-bounds.ts` are seeded from docs, not a live `GET subcategories` probe; and
+fractional (0.05in) custom sizes price through the live cost API but the fractional behavior is not
+sandbox-confirmed. `checkImageConfig` + the live products-cost API are the authoritative backstops
+meanwhile.
+Current status: ACCEPTED; code rails landed, exact bounds/DPI/fractional pricing to confirm in Phase 5.
+Required fix (Phase 5 sandbox): reconcile bounds + requiredDPI against a live subcategory probe;
+confirm fractional pricing returns a non-zero cost (P3-7 blocks a 0-cost Live variant regardless).
+Related tag: #payment-e2e-phase3, #payment-e2e-phase5
 
 ## Format
 

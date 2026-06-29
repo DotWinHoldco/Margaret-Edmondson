@@ -214,6 +214,10 @@ export async function GET(request: Request) {
         .update({ status: 'done', attempts: attempt, completed_at: now, last_error: lastError, updated_at: now })
         .eq('id', job.id)
       summary.done++
+      // P3-1: a job can complete with items in failed_validation (e.g. a pre-submit
+      // checkImageConfig 406). Those need a human re-crop + manual refire, so surface
+      // them once even though the auto-job itself is done.
+      if (failures.length) await notifyFulfillmentFailures(job.order_id, failures)
     }
   }
 

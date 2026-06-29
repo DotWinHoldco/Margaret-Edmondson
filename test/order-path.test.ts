@@ -172,3 +172,62 @@ describe('submitOrder payload shape', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// checkImageConfig — P3-1 pre-submit aspect/DPI safety net
+// ---------------------------------------------------------------------------
+describe('checkImageConfig request shape', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.stubEnv('LUMAPRINTS_API_KEY', 'k')
+    vi.stubEnv('LUMAPRINTS_API_SECRET', 's')
+    vi.stubEnv('LUMAPRINTS_BASE_URL', 'https://us.api-sandbox.lumaprints.com')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('POSTs the documented checkImageConfig body and returns parsed JSON on 200', async () => {
+    let captured: { url: string; body: Record<string, unknown> } | null = null
+    const fetchMock = vi.fn(async (url: string, opts: { body: string }) => {
+      captured = { url, body: JSON.parse(opts.body) }
+      return { ok: true, status: 200, json: async () => ({ valid: true }), text: async () => '' } as unknown as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { checkImageConfig } = await import('@/lib/integrations/lumaprints')
+    const res = await checkImageConfig({
+      subcategoryId: 101002,
+      printWidth: 18,
+      printHeight: 24,
+      imageUrl: 'https://x/print/1.tif',
+      orderItemOptions: [],
+    })
+
+    expect(captured).not.toBeNull()
+    expect(captured!.url).toContain('/api/v1/images/checkImageConfig')
+    expect(captured!.body).toMatchObject({
+      subcategoryId: 101002,
+      printWidth: 18,
+      printHeight: 24,
+      imageUrl: 'https://x/print/1.tif',
+      orderItemOptions: [],
+    })
+    expect(res).toEqual({ valid: true })
+  })
+
+  it('throws LumaprintsApiError(406) when the image is sized incorrectly', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 406,
+      text: async () => 'expected 3600x4800, got 1800x2400',
+    } as unknown as Response))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { checkImageConfig, LumaprintsApiError } = await import('@/lib/integrations/lumaprints')
+    await expect(
+      checkImageConfig({ subcategoryId: 101002, printWidth: 18, printHeight: 24, imageUrl: 'https://x/y', orderItemOptions: [] }),
+    ).rejects.toBeInstanceOf(LumaprintsApiError)
+  })
+})

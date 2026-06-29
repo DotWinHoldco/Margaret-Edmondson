@@ -103,6 +103,11 @@ export async function buildPricedVariantRow(
   const legacyType = LEGACY_VARIANT_TYPE[medium] || null
   const now = new Date().toISOString()
 
+  // P3-7: never publish a Live variant we could not price. cost_cents falls back to
+  // 0 when the LumaPrints price fetch fails or the size is unpriceable; selling that
+  // Live would risk a $0 / under-priced print. Force Draft so the admin re-prices.
+  const liveSafe = is_active && cost_cents > 0
+
   return {
     product_id,
     medium,
@@ -116,7 +121,7 @@ export async function buildPricedVariantRow(
     shipping_cost_cents: shipping_cents,
     margin_override_pct,
     manual_price_override_cents,
-    is_active,
+    is_active: liveSafe,
     is_lumaprints_available: true,
     last_priced_at: now,
     // Mirror to legacy columns so the existing shop renderer keeps working.
