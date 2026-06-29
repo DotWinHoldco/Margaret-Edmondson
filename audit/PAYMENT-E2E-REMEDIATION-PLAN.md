@@ -12,13 +12,68 @@ Goal mapping (what the owner asked to be true end to end):
 - **G3** a LumaPrints fulfillment order is created appropriately (correct payload, idempotent, gated, alerted).
 - **G4** the print master is handed to LumaPrints with the correct dimensions / aspect ratio.
 
-Current verdict: **NO-GO for live selling.** The Stripe charge completes, but G2 is
+Original verdict (2026-06-27): **NO-GO for live selling.** The Stripe charge completes, but G2 was
 structurally broken for guest checkout, the LumaPrints legs cannot be exercised in prod today
 (0 print variants, 0 print-ready masters, Stripe in LIVE mode), and several money-correctness /
-silent-failure defects exist in the paths that do run.
+silent-failure defects existed in the paths that do run.
 
 Every phase ends green only when `npm run build-check` passes (never hand-set status).
 Branch per phase off `main`; stage files explicitly (never `git add -A`).
+
+---
+
+## STATUS (updated 2026-06-28)
+
+| Phase | State | Detail |
+|-------|-------|--------|
+| **Phase 0 — money correctness + privacy** | ✅ **DONE + DEPLOYED** | merged to `main`, Vercel READY on artbyme.studio. |
+| **Phase 1 — G2 customer accounts** | ✅ **DONE + DEPLOYED** | merged to `main`, Vercel READY on artbyme.studio. |
+| **Phase 2 — fulfillment reliability** | ⬜ not started | highest-risk seam; see below. |
+| **Phase 3 — G4 print correctness** | ⬜ not started | |
+| **Phase 4 — tracking + webhook hardening** | ⬜ not started | cron backstops, lower urgency. |
+| **Phase 5 — live-test harness** | ⬜ not started | human-gated prereqs (test mode, cropped master, print variant, sandbox creds). |
+
+Prod is at `32f34d0` (main). Migrations `2026062800` (checkout_snapshots) and `2026062801`
+(g2_account_linkage) are applied + verified in prod. Both phase branches (`fix/payment-p0`,
+`fix/payment-p1-g2-accounts`) are merged and can be deleted.
+
+### RESUME / HANDOFF FOR COWORK — start here
+
+The remaining work is **Phases 2 → 5, in order**. Each is its own branch off `main`, green only
+when `npm run build-check` prints GREEN, merged + deployed, then verified READY on Vercel.
+
+Operating facts for this repo:
+- Supabase prod ref `klwkajukicsoiwpsgftt`; apply migrations via the Supabase MCP `apply_migration`
+  AND commit the matching `supabase/migrations/<ts>_*.sql` file (keep them in sync).
+- Vercel project `prj_ntGVQ8P3ptujQICjhQMZbyPpmC0j`, team `team_m2LgJy4E3OF5MMzl4zqP7cFY`.
+- `build-check`'s `build` step occasionally crashes transiently (Turbopack worker right after the
+  test gate, tail "at ignore-listed frames"); `npm run build` alone exits 0 — just re-run build-check.
+- `database.types.ts` regeneration is a non-blocking advisory; the money-path code uses the
+  untyped service client, so new tables don't break typecheck. Regen is optional cleanup.
+- Owner alert emails go to `getOrderNotificationEmail()` → fallback `margaret117art@gmail.com`.
+- Reuse the existing alert helpers: `notifyOrderNeedsAttention` / `notifyFulfillmentFailures`.
+
+What changed vs. the plan as written (so you don't redo it):
+- **P0-2 + P0-4** shipped together as one reconciliation block in both webhook handlers (compares
+  persisted `order_items` sum to the locked `subtotal_cents`; on mismatch it skips fulfillment,
+  alerts the owner, logs `alert: reconciliation_failed`). `hasItems`/`reconciled` are computed there.
+- **P0-3** = `checkout_snapshots` table; both checkout routes write it (fail-soft), the webhook reads
+  it via `loadSnapshotItems` and falls back to `carts.items` for legacy orders.
+- **P1-1** auto-provisions a *passwordless, email_confirmed* account (`ensureCustomerAccount`);
+  **P1-2** back-link lives in the `handle_new_user` trigger; **P1-3** emails link to the public
+  `/order/{ref}` page + `/forgot-password`; **P1-6** needed no change (RLS already owner-scoped).
+- The empty-confirmation-email gating idea from P1-5 was handled by storing `''` (not a placeholder)
+  and alerting the owner; the buyer email still sends only when an email exists.
+
+**Phase 2 is the priority and the highest-risk seam.** Today the Stripe webhook does order insert +
+per-item LumaPrints submit + CRM + Meta + up to 5 emails synchronously under `maxDuration=60`. Two
+joined defects: (a) the resume short-circuit returns on `order_items` row-existence *before* the
+side-effects claim, so a mid-flight timeout permanently skips the confirmation email/CRM/Meta; and
+(b) the only LumaPrints cron polls `submitted`/`in_production`, so stranded `pending`/`submitting`
+items have no automated recovery. The clean fix (P2-1..P2-6 in the plan) is to (1) include
+`side_effects_completed_at IS NULL` in the short-circuit, and (2) move LumaPrints submission out of
+the webhook into a durable `fulfillment_jobs` queue + cron worker, with post-submit write-error
+guards and `recomputeOrderStatus` correctness. See the Phase 2 table below for the file refs.
 
 ---
 

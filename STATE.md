@@ -1,10 +1,19 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-25 (Product Builder + Variant System + LumaPrints ordering REBUILD — all 9 phases shipped + pushed to main)
+Last updated: 2026-06-28 (Payment E2E remediation — Phases 0 + 1 shipped + deployed; Phases 2–5 pending)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
+
+> **Current truth (2026-06-28) — payment remediation in flight:** a full E2E audit of the
+> checkout → account → LumaPrints → master path produced a phased fix plan in
+> `audit/PAYMENT-E2E-REMEDIATION-PLAN.md`. **Phase 0** (money correctness + privacy) and
+> **Phase 1** (G2 customer accounts) are DONE and DEPLOYED to prod (`main` @ `32f34d0`; migrations
+> 2026062800 + 2026062801 applied). **Phases 2–5 remain** (fulfillment-reliability queue, G4
+> aspect/DPI safety, tracking/webhook hardening, live-test harness) — see the
+> `## STATUS` + `### RESUME / HANDOFF FOR COWORK` section at the top of that plan doc. This work is
+> being handed to Cowork for completion.
 
 > **Current truth (2026-06-25):** the print variant system + admin product builder + storefront
 > + LumaPrints ordering pipeline are rebuilt for true-to-aspect custom print sizing. Migrations
