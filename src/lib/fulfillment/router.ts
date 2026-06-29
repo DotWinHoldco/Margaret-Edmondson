@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   submitOrder as lumaprintsSubmitOrder,
@@ -5,6 +6,8 @@ import {
   type LumaprintsRecipient,
 } from '@/lib/integrations/lumaprints'
 import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
+import { createHash } from 'node:crypto'
+import { notifyFulfillmentFailures, notifyOrderNeedsAttention } from '@/lib/fulfillment/alerts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,41 +103,9 @@ interface FulfillmentResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// Alert the studio owner when a PAID order's items fail at fulfillment SUBMIT
-// time — a LumaPrints 406 (aspect/DPI) rejection, a missing LUMAPRINTS_STORE_ID,
-// an incomplete shipping address, a signed-URL mint failure, or a 5xx after
-// retries. Without this, those failures are only a webhook_logs row, invisible
-// until the customer complains. No-throw — never affects fulfillment control flow.
-async function notifyFulfillmentFailures(
-  orderId: string,
-  failures: Array<{ itemId: string; error?: string }>,
-): Promise<void> {
-  if (failures.length === 0) return
-  try {
-    const { sendEmail } = await import('@/lib/email/send')
-    const { brandedShell, ctaButton } = await import('@/lib/email/shell')
-    const { escapeHtml } = await import('@/lib/email/escape')
-    const { getOrderNotificationEmail } = await import('@/lib/settings/accessor')
-    const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
-    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
-    const rows = failures
-      .map((f) => `<li>Item ${escapeHtml(f.itemId.slice(0, 8))}: ${escapeHtml(f.error || 'submission failed')}</li>`)
-      .join('')
-    const html = brandedShell(
-      `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">An order didn’t reach the print lab</h2>
-       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-         Order <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> was paid, but ${failures.length} item${failures.length === 1 ? '' : 's'} could not be submitted to fulfillment:
-       </p>
-       <ul style="color:#666;font-size:14px;line-height:1.7;">${rows}</ul>
-       <p style="text-align:center;color:#666;font-size:13px;line-height:1.6;">Fix the cause (e.g. re-crop the master, set the print config), then refire the order from the admin.</p>
-       ${ctaButton(`${site}/admin/orders/${orderId}`, 'Open the order')}`,
-      { hideUnsubscribe: true, preheader: 'A paid order failed to submit to fulfillment.' },
-    )
-    await sendEmail({ to, subject: 'Action needed: an order failed to submit to fulfillment', html })
-  } catch (e) {
-    console.error('notifyFulfillmentFailures failed:', e)
-  }
-}
+// notifyFulfillmentFailures + notifyOrderNeedsAttention now live in
+// '@/lib/fulfillment/alerts' so the Stripe webhook, this router, and the
+// fulfillment worker raise the same owner-facing notices.
 
 function resolveImageUrl(url: string): string {
   if (!url) return ''
@@ -291,6 +262,40 @@ function parseRecipient(addr: ShippingAddress): LumaprintsRecipient {
 // Per-provider submission
 // ---------------------------------------------------------------------------
 
+// P2-3: persist a successful provider submission (status + external order id),
+// retrying a transient DB write. supabase-js .update() returns an error rather than
+// throwing, so the caller MUST inspect it: a lost write here would orphan an item
+// in 'submitting' while the provider order already exists, and a later refire would
+// create a SECOND physical order. Returns false when the write cannot be persisted.
+async function persistSubmitted(
+  supabase: SupabaseClient,
+  itemId: string,
+  externalOrderId: string | undefined,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ fulfillment_status: 'submitted', external_order_id: externalOrderId || null })
+      .eq('id', itemId)
+    if (!error) return true
+    console.error(`post-submit write failed for item ${itemId} (attempt ${attempt + 1}):`, error.message)
+  }
+  return false
+}
+
+// P2-5: a stable, per-submission external id for the LumaPrints order. Using the
+// bare orderId reused it across partial / retry submits, which LumaPrints can
+// reject (duplicate externalId) or merge wrongly. A single-item submission uses the
+// order_items.id; a multi-item submission uses the orderId plus a deterministic
+// hash of the sorted item ids, so the SAME item set maps to the SAME external id
+// (LumaPrints can dedupe a true retry) while a DIFFERENT set never collides.
+function lumaprintsExternalId(orderId: string, itemIds: string[]): string {
+  const ids = [...itemIds].sort()
+  if (ids.length === 1) return ids[0]
+  const hash = createHash('sha256').update(ids.join(',')).digest('hex').slice(0, 16)
+  return `${orderId}-${hash}`
+}
+
 async function submitToLumaprints(
   orderId: string,
   validatedItems: Array<{
@@ -313,7 +318,8 @@ async function submitToLumaprints(
     orderItemOptions: validated.optionIds,
   }))
 
-  const response = await lumaprintsSubmitOrder({ externalId: orderId, recipient, orderItems })
+  const submissionExternalId = lumaprintsExternalId(orderId, validatedItems.map((v) => v.item.id))
+  const response = await lumaprintsSubmitOrder({ externalId: submissionExternalId, recipient, orderItems })
 
   // Lumaprints returns a single order — map its number to every item.
   const externalId = response?.orderNumber ?? ''
@@ -395,8 +401,19 @@ function submitSelfShip(
 
 export async function routeOrderToFulfillment(
   orderId: string,
+  opts: { includeValidationFailures?: boolean; suppressFailureAlert?: boolean } = {},
 ): Promise<FulfillmentResult[]> {
+  const { includeValidationFailures = true, suppressFailureAlert = false } = opts
   const supabase = await createServiceClient()
+
+  // P2-2: which item states this pass may (re)claim. The automatic caller (the
+  // fulfillment worker) passes includeValidationFailures:false so a LumaPrints 406
+  // is NOT retried in a loop — it waits for a human re-crop + manual refire. The
+  // admin/cron refire (POST /api/fulfillment/submit) keeps the default true so a
+  // re-cropped master can be resubmitted.
+  const CLAIMABLE = includeValidationFailures
+    ? ['pending', 'failed', 'failed_validation']
+    : ['pending', 'failed']
 
   // Fetch order
   const { data: order, error: orderError } = await supabase
@@ -436,7 +453,7 @@ export async function routeOrderToFulfillment(
       )
     `)
     .eq('order_id', orderId)
-    .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
+    .in('fulfillment_status', CLAIMABLE)
 
   if (itemsError) {
     throw new Error(`Failed to fetch order items: ${itemsError.message}`)
@@ -469,7 +486,7 @@ export async function routeOrderToFulfillment(
       .from('order_items')
       .update({ fulfillment_status: 'submitting' })
       .in('id', groupItems.map((i) => i.id))
-      .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
+      .in('fulfillment_status', CLAIMABLE)
       .select('id')
     const claimedIds = new Set((claimedRows || []).map((r) => r.id))
     const items = groupItems.filter((it) => claimedIds.has(it.id))
@@ -559,18 +576,37 @@ export async function routeOrderToFulfillment(
           }))
       }
 
-      // Update each item in the database
+      // Update each item in the database. P2-3: the provider order was already
+      // created, so a FAILED status write here would silently orphan the item in
+      // 'submitting'. persistSubmitted retries; if it still cannot save, record the
+      // external order id to webhook_logs and alert for reconciliation rather than
+      // losing it. The item is deliberately LEFT in 'submitting' (a non-claimable
+      // state) so a refire can never create a SECOND physical provider order.
+      const writeFailures: Array<{ itemId: string; externalOrderId?: string }> = []
       for (const result of providerResults) {
         if (result.success) {
-          await supabase
-            .from('order_items')
-            .update({
-              fulfillment_status: 'submitted',
-              external_order_id: result.externalOrderId || null,
+          const saved = await persistSubmitted(supabase, result.itemId, result.externalOrderId)
+          if (!saved) {
+            writeFailures.push({ itemId: result.itemId, externalOrderId: result.externalOrderId })
+            await supabase.from('webhook_logs').insert({
+              source: `fulfillment_${provider}`,
+              event_type: 'post_submit_write_failed',
+              payload: {
+                order_id: orderId,
+                item_id: result.itemId,
+                external_order_id: result.externalOrderId ?? null,
+                provider,
+              } as unknown as Record<string, unknown>,
             })
-            .eq('id', result.itemId)
+          }
         }
         results.push(result)
+      }
+      if (writeFailures.length > 0) {
+        const ext = writeFailures.map((w) => w.externalOrderId).filter(Boolean).join(', ') || 'created'
+        await notifyOrderNeedsAttention(orderId, [
+          `${writeFailures.length} item(s) were submitted to ${provider} (order ${ext}) but their status could not be saved. They are held in "submitting" to avoid a duplicate order. Reconcile against ${provider} before refiring.`,
+        ])
       }
 
       // Log successful submission
@@ -627,12 +663,17 @@ export async function routeOrderToFulfillment(
     }
   }
 
-  // P0-5: surface any submit-time failures to the studio owner instead of
-  // leaving them as a silent webhook_logs row.
-  await notifyFulfillmentFailures(
-    orderId,
-    results.filter((r) => !r.success).map((r) => ({ itemId: r.itemId, error: r.error })),
-  )
+  // P0-5: surface any submit-time failures to the studio owner instead of leaving
+  // them as a silent webhook_logs row. The fulfillment worker passes
+  // suppressFailureAlert (P2-2) because it owns the alert lifecycle across retries —
+  // it alerts once on the first failed pass and once when retries are exhausted, so
+  // a persistent transient failure is not 6 emails.
+  if (!suppressFailureAlert) {
+    await notifyFulfillmentFailures(
+      orderId,
+      results.filter((r) => !r.success).map((r) => ({ itemId: r.itemId, error: r.error })),
+    )
+  }
 
   return results
 }
@@ -774,13 +815,25 @@ export async function retryFulfillmentForItem(
 
     const result = providerResults[0]
     if (result.success) {
-      await supabase
-        .from('order_items')
-        .update({
-          fulfillment_status: 'submitted',
-          external_order_id: result.externalOrderId || null,
+      // P2-3: guard the post-submit write — the provider order exists, so a lost
+      // write here would orphan the item in 'submitting'. Hold it there (no refire
+      // can double-submit) and alert for reconciliation if it cannot be saved.
+      const saved = await persistSubmitted(supabase, itemId, result.externalOrderId)
+      if (!saved) {
+        await supabase.from('webhook_logs').insert({
+          source: `fulfillment_${provider}`,
+          event_type: 'post_submit_write_failed',
+          payload: {
+            order_id: order.id,
+            item_id: itemId,
+            external_order_id: result.externalOrderId ?? null,
+            provider,
+          } as unknown as Record<string, unknown>,
         })
-        .eq('id', itemId)
+        await notifyOrderNeedsAttention(order.id, [
+          `Item ${itemId.slice(0, 8)} was submitted to ${provider} (order ${result.externalOrderId ?? 'created'}) but its status could not be saved. It is held in "submitting" to avoid a duplicate. Reconcile against ${provider} before refiring.`,
+        ])
+      }
     }
 
     await supabase.from('webhook_logs').insert({

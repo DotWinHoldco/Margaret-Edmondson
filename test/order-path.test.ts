@@ -88,6 +88,26 @@ describe('recomputeOrderStatus transitions', () => {
     await recomputeOrderStatus(client as any, 'o1')
     expect(updates).toEqual([])
   })
+
+  // P2-6: an in-flight or stranded item must NOT let the order roll up to shipped.
+  it('P2-6: a stranded submitting item caps the order at partially_fulfilled', async () => {
+    const { client, updates } = mockSupabase({ status: 'processing' }, ['shipped', 'submitting'])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await recomputeOrderStatus(client as any, 'o1')
+    expect(updates).toEqual([{ status: 'partially_fulfilled' }])
+  })
+  it('P2-6: a failed item prevents a shipped rollup', async () => {
+    const { client, updates } = mockSupabase({ status: 'processing' }, ['shipped', 'failed'])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await recomputeOrderStatus(client as any, 'o1')
+    expect(updates).toEqual([{ status: 'partially_fulfilled' }])
+  })
+  it('P2-6: all delivered but one still in_production → not delivered', async () => {
+    const { client, updates } = mockSupabase({ status: 'processing' }, ['delivered', 'in_production'])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await recomputeOrderStatus(client as any, 'o1')
+    expect(updates).toEqual([{ status: 'partially_fulfilled' }])
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -139,4 +139,18 @@ describe.skipIf(!run)('order + fulfillment DB invariants', () => {
     expect((first.data ?? []).length).toBe(1)
     expect((second.data ?? []).length).toBe(0) // already 'submitting' -> not re-claimable
   })
+
+  it('P2-2: a second ACTIVE fulfillment_jobs row for one order is rejected', async () => {
+    const orderId = await makeOrder(`pi_${tag}_e`)
+    const first = await db.from('fulfillment_jobs').insert({ order_id: orderId })
+    expect(first.error).toBeNull()
+    // The partial unique index (status in queued|running) blocks a 2nd active job,
+    // so a redelivered webhook / concurrent claim never double-queues an order.
+    const second = await db.from('fulfillment_jobs').insert({ order_id: orderId })
+    expect((second.error as { code?: string } | null)?.code).toBe('23505')
+    // Once the first job is terminal, a fresh job (e.g. a manual refire) may enqueue.
+    await db.from('fulfillment_jobs').update({ status: 'done' }).eq('order_id', orderId)
+    const third = await db.from('fulfillment_jobs').insert({ order_id: orderId })
+    expect(third.error).toBeNull()
+  })
 })

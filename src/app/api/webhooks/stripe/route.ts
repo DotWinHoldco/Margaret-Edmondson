@@ -1,7 +1,8 @@
 import { getStripe, webhookSecretFor } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
-import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
+import { enqueueFulfillmentJob } from '@/lib/fulfillment/queue'
+import { notifyOrderNeedsAttention } from '@/lib/fulfillment/alerts'
 import { sendOrderConfirmation } from '@/lib/email/send'
 import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { escapeHtml } from '@/lib/email/escape'
@@ -262,30 +263,8 @@ function printItemFulfillability(
   })
 }
 
-// Email Margaret when a PAID order has a print item that can't auto-submit, so
-// nothing fails silently. No-throw — never breaks the webhook.
-async function notifyOrderNeedsAttention(orderId: string, reasons: string[]): Promise<void> {
-  if (reasons.length === 0) return
-  try {
-    const { sendEmail } = await import('@/lib/email/send')
-    const { brandedShell, ctaButton } = await import('@/lib/email/shell')
-    const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
-    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
-    const html = brandedShell(
-      `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">An order needs a quick fix to fulfill</h2>
-       <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
-         Order <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> was paid, but a print item can't be sent to Lumaprints yet:
-       </p>
-       <ul style="color:#666;font-size:14px;line-height:1.7;">${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
-       <p style="text-align:center;color:#666;font-size:13px;line-height:1.6;">Fix the item (e.g. crop the master), then refire the order from the admin.</p>
-       ${ctaButton(`${site}/admin/orders/${orderId}`, 'Open the order')}`,
-      { hideUnsubscribe: true, preheader: 'A paid order needs attention to fulfill.' },
-    )
-    await sendEmail({ to, subject: 'Action needed: an order can’t auto-fulfill', html })
-  } catch (e) {
-    console.error('notifyOrderNeedsAttention failed:', e)
-  }
-}
+// notifyOrderNeedsAttention now lives in '@/lib/fulfillment/alerts' (shared with
+// the fulfillment router + worker).
 
 // POST /api/webhooks/stripe — handle Stripe events (orders, enrollments, class bookings, refunds, disputes); webhook, signature-verified.
 export async function POST(request: Request) {
@@ -572,7 +551,7 @@ async function handleCheckoutCompleted(
   // already-inserted rows a no-op, so nothing is duplicated or double-charged.
   const { data: existingOrder } = await supabase
     .from('orders')
-    .select('id, total, order_items(id)')
+    .select('id, total, side_effects_completed_at, order_items(id)')
     .eq('stripe_checkout_session_id', session.id)
     .maybeSingle()
 
@@ -603,12 +582,19 @@ async function handleCheckoutCompleted(
   // Short-circuit ONLY when every expected row is already persisted. With no
   // readable cart (expectedItemCount 0) fall back to the prior "has any items"
   // guard so behaviour is unchanged for that case.
-  const fullyProcessed =
+  const itemsComplete =
     expectedItemCount > 0
       ? existingItems.length >= expectedItemCount
       : existingItems.length > 0
-  if (existingOrder && fullyProcessed) {
-    return // already fully processed
+  // P2-1: only short-circuit when the one-shot side effects (confirmation email /
+  // CRM / Meta) were ALSO claimed. An order whose items were persisted by a
+  // delivery that then crashed BEFORE the side-effect claim must fall through so
+  // those side effects run on redelivery. The upsert loop, reconciliation, enqueue,
+  // and the side_effects_completed_at claim below are all idempotent, so re-running
+  // is safe and nothing is duplicated.
+  const sideEffectsDone = existingOrder?.side_effects_completed_at != null
+  if (existingOrder && itemsComplete && sideEffectsDone) {
+    return // already fully processed (items + side effects)
   }
 
   const discountCents = session.total_details?.amount_discount ?? 0
@@ -679,10 +665,17 @@ async function handleCheckoutCompleted(
     // FIN-1: idempotent on webhook replay/resume. A duplicate
     // (order_id, product_id, variant_id) is ignored rather than inserting a
     // second item row (which would double-submit to fulfillment + skew totals).
-    await supabase.from('order_items').upsert(
+    // P2-4: inspect the upsert error. ignoreDuplicates makes a replay a no-op, so a
+    // returned error is a REAL write failure — throw (→ 500, Stripe redelivers)
+    // rather than reconciling / enqueueing fulfillment / running side effects on a
+    // partial item set. The resume path re-runs this loop idempotently.
+    const { error: itemUpsertErr } = await supabase.from('order_items').upsert(
       buildOrderItemRow(orderId, ci, p, v, mediumMap),
       { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
     )
+    if (itemUpsertErr) {
+      throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
+    }
   }
 
   // Mark cart converted.
@@ -728,14 +721,13 @@ async function handleCheckoutCompleted(
   const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
 
   if (reconciled) {
-    // Route to fulfillment (idempotent — only processes pending items, and FIN-2
-    // pre-claims each item to 'submitting' before the provider call so a retry
-    // cannot double-submit). Runs on every delivery; it is safe to repeat.
-    try {
-      await routeOrderToFulfillment(orderId as string)
-    } catch (err) {
-      console.error('Fulfillment routing failed (will retry):', err)
-    }
+    // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
+    // under maxDuration=60; a synchronous LumaPrints / Printful submit here could
+    // time out mid-flight and strand un-submitted prints with no recovery. The
+    // fulfillment-worker cron drains the durable queue off the request path, with
+    // bounded retries + a stranded-item sweep. enqueue is idempotent (one active job
+    // per order via the partial unique index) and no-throw.
+    await enqueueFulfillmentJob(supabase, orderId as string)
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.
@@ -891,7 +883,7 @@ async function handleElementsPaymentSucceeded(
   // already-inserted rows a no-op, so nothing is duplicated or double-charged.
   const { data: existingOrder } = await supabase
     .from('orders')
-    .select('id, total, order_items(id)')
+    .select('id, total, side_effects_completed_at, order_items(id)')
     .eq('stripe_payment_intent_id', pi.id)
     .maybeSingle()
 
@@ -922,12 +914,19 @@ async function handleElementsPaymentSucceeded(
   // Short-circuit ONLY when every expected row is already persisted. With no
   // readable cart (expectedItemCount 0) fall back to the prior "has any items"
   // guard so behaviour is unchanged for that case.
-  const fullyProcessed =
+  const itemsComplete =
     expectedItemCount > 0
       ? existingItems.length >= expectedItemCount
       : existingItems.length > 0
-  if (existingOrder && fullyProcessed) {
-    return // already fully processed
+  // P2-1: only short-circuit when the one-shot side effects (confirmation email /
+  // CRM / Meta) were ALSO claimed. An order whose items were persisted by a
+  // delivery that then crashed BEFORE the side-effect claim must fall through so
+  // those side effects run on redelivery. The upsert loop, reconciliation, enqueue,
+  // and the side_effects_completed_at claim below are all idempotent, so re-running
+  // is safe and nothing is duplicated.
+  const sideEffectsDone = existingOrder?.side_effects_completed_at != null
+  if (existingOrder && itemsComplete && sideEffectsDone) {
+    return // already fully processed (items + side effects)
   }
 
   const subtotalCents = Number(md.subtotal_cents) || 0
@@ -1006,10 +1005,17 @@ async function handleElementsPaymentSucceeded(
     // FIN-1: idempotent on webhook replay/resume. A duplicate
     // (order_id, product_id, variant_id) is ignored rather than inserting a
     // second item row (which would double-submit to fulfillment + skew totals).
-    await supabase.from('order_items').upsert(
+    // P2-4: inspect the upsert error. ignoreDuplicates makes a replay a no-op, so a
+    // returned error is a REAL write failure — throw (→ 500, Stripe redelivers)
+    // rather than reconciling / enqueueing fulfillment / running side effects on a
+    // partial item set. The resume path re-runs this loop idempotently.
+    const { error: itemUpsertErr } = await supabase.from('order_items').upsert(
       buildOrderItemRow(orderId, ci, p, v, mediumMap),
       { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
     )
+    if (itemUpsertErr) {
+      throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
+    }
   }
 
   // Mark cart converted.
@@ -1055,14 +1061,13 @@ async function handleElementsPaymentSucceeded(
   const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
 
   if (reconciled) {
-    // Route to fulfillment (idempotent — only processes pending items, and FIN-2
-    // pre-claims each item to 'submitting' before the provider call so a retry
-    // cannot double-submit). Runs on every delivery; it is safe to repeat.
-    try {
-      await routeOrderToFulfillment(orderId as string)
-    } catch (err) {
-      console.error('Fulfillment routing failed (will retry):', err)
-    }
+    // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
+    // under maxDuration=60; a synchronous LumaPrints / Printful submit here could
+    // time out mid-flight and strand un-submitted prints with no recovery. The
+    // fulfillment-worker cron drains the durable queue off the request path, with
+    // bounded retries + a stranded-item sweep. enqueue is idempotent (one active job
+    // per order via the partial unique index) and no-throw.
+    await enqueueFulfillmentJob(supabase, orderId as string)
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.

@@ -13,6 +13,11 @@ const SHIPPED_OR_BEYOND = new Set(['shipped', 'delivered'])
  * Reads ALL items for the order (a single LumaPrints order may cover only a
  * subset of an order). Exception-safe and never touches a cancelled/refunded
  * order — it must never break the webhook or cron that calls it.
+ *
+ * P2-6: 'shipped'/'delivered' require EVERY item to be in that terminal state, so
+ * the order never rolls up to shipped while an item is still in flight
+ * (pending/submitting/submitted/in_production) or stranded (failed/failed_validation)
+ * — any such item keeps the order at most 'partially_fulfilled'.
  */
 export async function recomputeOrderStatus(supabase: SupabaseClient, orderId: string): Promise<void> {
   try {
