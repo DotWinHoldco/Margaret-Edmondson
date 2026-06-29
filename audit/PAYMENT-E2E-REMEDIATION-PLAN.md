@@ -28,10 +28,17 @@ Branch per phase off `main`; stage files explicitly (never `git add -A`).
 |-------|-------|--------|
 | **Phase 0 — money correctness + privacy** | ✅ **DONE + DEPLOYED** | merged to `main`, Vercel READY on artbyme.studio. |
 | **Phase 1 — G2 customer accounts** | ✅ **DONE + DEPLOYED** | merged to `main`, Vercel READY on artbyme.studio. |
-| **Phase 2 — fulfillment reliability** | ⬜ not started | highest-risk seam; see below. |
-| **Phase 3 — G4 print correctness** | ⬜ not started | |
-| **Phase 4 — tracking + webhook hardening** | ⬜ not started | cron backstops, lower urgency. |
-| **Phase 5 — live-test harness** | ⬜ not started | human-gated prereqs (test mode, cropped master, print variant, sandbox creds). |
+| **Phase 2 — fulfillment reliability** | 🟦 **DONE on branch `fix/payment-p2`** (committed, not pushed) | Durable `fulfillment_jobs` queue + worker; migration `2026062900` applied to prod. |
+| **Phase 3 — G4 print correctness** | 🟦 **DONE on branch `fix/payment-p3`** (stacked) | `checkImageConfig` wired; aspect/cost/print-ready gates; versioned crop path. |
+| **Phase 4 — tracking + webhook hardening** | 🟦 **DONE on branch `fix/payment-p4`** (stacked) | Inbound webhook fixed to documented shape; tracking URLs; backlog alert. |
+| **Phase 5 — live-test harness** | 🟦 **DONE on branch `fix/payment-p5`** (stacked) | Dry-run dedup probe; `ops-monitor` cron; `audit/PHASE-5-GO-LIVE-RUNBOOK.md`. |
+
+> **2026-06-29 (Cowork):** Phases 2–5 implemented + committed on stacked branches `fix/payment-p2..p5`
+> (off `main` @ `4ec2999`), each verified in-sandbox (tsc + lint + all DotWin JS gates; queue +
+> aspect + tracking logic unit-checked). The Cowork sandbox cannot run `vitest`/`next build` (macOS
+> `node_modules`) or push to GitHub, so the authoritative `build-check` GREEN runs in CI on push/PR,
+> and the human pushes + merges + deploys. **Start at `audit/PHASE-5-GO-LIVE-RUNBOOK.md`** for the
+> deploy sequence (section 6), the human prerequisites, and the live-test plan.
 
 Prod is at `32f34d0` (main). Migrations `2026062800` (checkout_snapshots) and `2026062801`
 (g2_account_linkage) are applied + verified in prod. Both phase branches (`fix/payment-p0`,

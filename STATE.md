@@ -6,14 +6,16 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-06-28) — payment remediation in flight:** a full E2E audit of the
-> checkout → account → LumaPrints → master path produced a phased fix plan in
-> `audit/PAYMENT-E2E-REMEDIATION-PLAN.md`. **Phase 0** (money correctness + privacy) and
-> **Phase 1** (G2 customer accounts) are DONE and DEPLOYED to prod (`main` @ `32f34d0`; migrations
-> 2026062800 + 2026062801 applied). **Phases 2–5 remain** (fulfillment-reliability queue, G4
-> aspect/DPI safety, tracking/webhook hardening, live-test harness) — see the
-> `## STATUS` + `### RESUME / HANDOFF FOR COWORK` section at the top of that plan doc. This work is
-> being handed to Cowork for completion.
+> **Current truth (2026-06-29) — payment remediation Phases 0–5 implemented:** the full E2E fix plan
+> is `audit/PAYMENT-E2E-REMEDIATION-PLAN.md`. **Phases 0–1** (money correctness + privacy, G2
+> accounts) are DEPLOYED to prod (`main` @ `32f34d0`; migrations 2026062800 + 2026062801). **Phases
+> 2–5** (fulfillment-reliability queue, G4 aspect/DPI safety, tracking/webhook hardening, live-test
+> harness) are now IMPLEMENTED + COMMITTED on stacked branches `fix/payment-p2..p5` (off `4ec2999`),
+> verified in-sandbox (tsc + lint + DotWin JS gates + unit logic). Migration `2026062900_fulfillment_jobs`
+> is already applied to prod. NOT yet pushed/merged/deployed: the Cowork sandbox cannot push to GitHub
+> or run `vitest`/`next build`, so CI is the authoritative GREEN and the human pushes + merges + deploys
+> in branch order. **Next step: `audit/PHASE-5-GO-LIVE-RUNBOOK.md`** (deploy sequence + human prereqs +
+> live test).
 
 > **Current truth (2026-06-25):** the print variant system + admin product builder + storefront
 > + LumaPrints ordering pipeline are rebuilt for true-to-aspect custom print sizing. Migrations

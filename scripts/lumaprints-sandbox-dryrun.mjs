@@ -106,7 +106,7 @@ log.submit = await api('/api/v1/orders', {
     shippingMethod: 'default',
     productionTime: 'regular',
     recipient: { firstName: 'Sandbox', lastName: 'Test', addressLine1: '1 Test St', city: 'Austin', state: 'TX', zipCode: '78701', country: 'US' },
-    orderItems: [{ externalItemId: `${externalId}-1`, subcategoryId, quantity: 1, width, height, file: { imageUrl }, orderItemOptions: [] }],
+    orderItems: [{ externalItemId: `${externalId}-1`, subcategoryId, quantity: 1, width, height, file: { imageUrl, saveImage: true }, orderItemOptions: [] }],
   }),
 })
 console.log('submit:', log.submit.status, JSON.stringify(log.submit.body))
@@ -119,7 +119,31 @@ if (orderNumber) {
   console.log('getOrder:', log.getOrder.status, JSON.stringify(log.getOrder.body))
 }
 
+// 5. Dedup probe. Resubmit the SAME externalId + externalItemId and record whether
+// LumaPrints creates a SECOND distinct order (no dedup) or rejects / returns the
+// same order (dedup). This answers the residual duplicate-order question for the
+// fulfillment worker's auto-retry of a `failed` item (see KNOWN_RISKS, "Duplicate
+// LumaPrints order ..."). Sandbox-only, harmless to repeat.
+log.dedupProbe = await api('/api/v1/orders', {
+  method: 'POST',
+  body: JSON.stringify({
+    externalId,
+    storeId: STORE,
+    shippingMethod: 'default',
+    productionTime: 'regular',
+    recipient: { firstName: 'Sandbox', lastName: 'Test', addressLine1: '1 Test St', city: 'Austin', state: 'TX', zipCode: '78701', country: 'US' },
+    orderItems: [{ externalItemId: `${externalId}-1`, subcategoryId, quantity: 1, width, height, file: { imageUrl, saveImage: true }, orderItemOptions: [] }],
+  }),
+})
+const dedupOrder = log.dedupProbe.body?.orderNumber
+console.log('dedupProbe:', log.dedupProbe.status, JSON.stringify(log.dedupProbe.body))
+console.log(
+  dedupOrder && String(dedupOrder) !== String(orderNumber)
+    ? `  NO DEDUP: a SECOND order (${dedupOrder}) was created for the same externalItemId. Gate the worker auto-retry of a failed item to pending-only before high-volume live use (see KNOWN_RISKS).`
+    : `  DEDUP OK: the repeated externalItemId did not create a distinct second order.`,
+)
+
 const outFile = path.join(diagDir, `sandbox-dryrun-${stamp}.json`)
 fs.writeFileSync(outFile, JSON.stringify(log, null, 2))
-console.log(`\nSaved → ${outFile}`)
-console.log('Confirm: getOrder echoes width/height and the submit was 201. NEVER run this against production.')
+console.log(`\nSaved -> ${outFile}`)
+console.log('Confirm: getOrder echoes width/height, the submit was 201, and review the dedup probe. NEVER run this against production.')
