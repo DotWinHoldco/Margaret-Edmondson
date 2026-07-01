@@ -48,8 +48,11 @@ export default function OrderStatusControl({
       )
       // Money correctness: setting "refunded" can succeed at the DB level while
       // no Stripe refund was issued. Surface that loudly so the admin never
-      // believes money moved when it did not.
-      if (status === 'refunded' && result?.refund_issued === false) {
+      // believes money moved when it did not. Only warn on a genuine transition
+      // INTO refunded — re-saving an already-refunded order does not attempt a
+      // refund, so a false "no refund issued" warning there could prompt a
+      // manual double-refund.
+      if (status === 'refunded' && currentStatus !== 'refunded' && result?.refund_issued === false) {
         const note =
           result.refund_note ||
           'Status updated, but no refund was issued. Please issue the refund manually.'

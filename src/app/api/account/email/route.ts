@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiFail, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const Body = z.object({
@@ -42,12 +42,10 @@ export async function POST(request: Request) {
 
   const { error: updateError } = await supabase.auth.updateUser({ email: new_email })
   if (updateError) {
-    return apiFail(updateError, {
-      status: 400,
-      code: 'UPDATE_FAILED',
-      publicMessage: 'We could not start the email change. Please try again.',
-      context: 'account/email update',
-    })
+    // Supabase auth messages here are curated, user-safe, and actionable
+    // (e.g. "already registered"), so surface them rather than a generic string.
+    console.error('account/email update:', updateError.message)
+    return apiError(updateError.message, 400, 'UPDATE_FAILED')
   }
 
   return apiOk({

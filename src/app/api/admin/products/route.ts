@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiFail, dbFail, apiOk } from '@/lib/api/respond'
+import { escapeHtml } from '@/lib/email/escape'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/products — list active products with primary images; admin only.
@@ -66,8 +67,10 @@ export async function POST(request: NextRequest) {
         slug: finalSlug,
         category_id: body.category_id || null,
         // `products` stores rich text in description_html — there is no plain
-        // `description` column; the create form sends plain text, so map it here.
-        description_html: body.description || null,
+        // `description` column. The create form sends PLAIN text, so escape it
+        // before storing (description_html is rendered as HTML on the storefront);
+        // otherwise a '<', '>' or '&' would break rendering or inject markup.
+        description_html: body.description ? escapeHtml(body.description) : null,
         medium: body.medium || null,
         dimensions: body.dimensions || null,
         base_price: parseFloat(body.base_price) || 0,

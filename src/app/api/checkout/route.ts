@@ -11,6 +11,24 @@ function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
 }
 
+// Map a discount-validation reason code to friendly copy so a raw enum
+// ("usage_exhausted") never reaches the checkout screen. The reason enum is
+// still returned as `code`. Mirrors checkout/intent + the cart page.
+function promoReasonMessage(reason?: string): string {
+  switch (reason) {
+    case 'not_found': return 'That code is not recognized.'
+    case 'expired': return 'That code has expired.'
+    case 'not_yet_valid': return 'That code is not active yet.'
+    case 'inactive': return 'That code is no longer active.'
+    case 'usage_exhausted': return 'That code has been fully redeemed.'
+    case 'min_order_not_met': return 'Your cart does not meet the minimum order amount for that code.'
+    case 'wrong_contact': return 'That code was sent to a different email. Return to your cart to re-apply it.'
+    case 'wrong_cart': return 'That code is reserved for a different cart.'
+    case 'already_redeemed': return 'You have already used that code.'
+    default: return 'That code could not be applied. Return to your cart to try another.'
+  }
+}
+
 // POST /api/checkout — re-price the cart from DB and create a hosted Stripe Checkout session; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
@@ -153,7 +171,7 @@ export async function POST(request: Request) {
         { contactId, email, cartId, cartSubtotal }
       )
       if (!validation.ok) {
-        return jsonError(`Promo code: ${validation.reason}`, 400, validation.reason)
+        return jsonError(promoReasonMessage(validation.reason), 400, validation.reason)
       }
 
       const stripe = await getStripe()
@@ -332,8 +350,13 @@ export async function POST(request: Request) {
 
     return Response.json({ url: session.url })
   } catch (err) {
+    // Log the real detail server-side; never show the raw exception to the
+    // shopper on the checkout screen.
     console.error('Checkout failed', err)
-    const message = err instanceof Error ? err.message : 'Checkout failed'
-    return jsonError(message, 500, 'checkout_failed')
+    return jsonError(
+      'We could not start your checkout just now. Please try again in a moment.',
+      500,
+      'checkout_failed',
+    )
   }
 }

@@ -736,8 +736,10 @@ function useDebouncedSave(toast: ReturnType<typeof useToast>) {
     if (timeouts.has(id)) clearTimeout(timeouts.get(id))
     const t = setTimeout(async () => {
       try {
+        // Silent on success: this fires per debounced field edit, so a toast per
+        // keystroke would pile up when adjusting margins/prices across sizes.
+        // Failures still surface (the value would otherwise be silently lost).
         await apiSend(`/api/admin/variants/${id}`, 'PATCH', patch)
-        toast.success('Saved.')
       } catch (err) {
         toast.error(errorMessage(err))
       }
