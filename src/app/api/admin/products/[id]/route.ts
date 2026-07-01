@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { logChanges } from '@/lib/api/audit-log'
 import { recomputeProductVariantPrices } from '@/lib/pricing/margin'
 
@@ -101,7 +101,8 @@ export async function GET(
     .single()
 
   if (error) {
-    return apiError(error.message, error.code === 'PGRST116' ? 404 : 500, 'DB_ERROR')
+    if (error.code === 'PGRST116') return apiError('That product could not be found.', 404, 'NOT_FOUND')
+    return dbFail(error, 'admin/products [id] GET')
   }
   return apiOk(data)
 }
@@ -143,7 +144,7 @@ export async function PATCH(
       .from('products')
       .update({ ...productFields, updated_at: new Date().toISOString() })
       .eq('id', id)
-    if (updateError) return apiError(updateError.message, 500, 'DB_ERROR')
+    if (updateError) return dbFail(updateError, 'admin/products [id] PATCH update')
   }
 
   if (Array.isArray(variants)) {
@@ -222,7 +223,7 @@ export async function PATCH(
     .eq('id', id)
     .single()
 
-  if (fetchError) return apiError(fetchError.message, 500, 'DB_ERROR')
+  if (fetchError) return dbFail(fetchError, 'admin/products [id] DELETE fetch')
   return apiOk(product)
 }
 
@@ -248,7 +249,7 @@ export async function DELETE(
     .update({ status: 'archived', updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/products [id]')
 
   await logChanges(supabase, {
     tableName: 'products',

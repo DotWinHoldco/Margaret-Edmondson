@@ -60,7 +60,7 @@ export default async function Footer() {
             <Link href="/" className="inline-block">
               <Image
                 src="/logo.png"
-                alt="ArtByMe"
+                alt="ArtByME"
                 width={40}
                 height={48}
                 className="h-10 w-auto invert"
@@ -117,7 +117,7 @@ export default async function Footer() {
 
         <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs font-body text-white/40">
-            &copy; {new Date().getFullYear()} ArtByMe. All rights reserved.
+            &copy; {new Date().getFullYear()} ArtByME. All rights reserved.
           </p>
           <p className="text-xs font-hand text-white/30">
             made with love &amp; paint

@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { signUp, signInWithGoogle } from '@/lib/supabase/auth'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 export default function SignupPage() {
+  const toast = useToast()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,9 +21,12 @@ export default function SignupPage() {
     setError('')
     const { error } = await signUp(email, password, fullName)
     if (error) {
-      setError(error.message)
+      const friendly = resolveErrorMessage(error)
+      setError(friendly)
+      toast.error(friendly)
     } else {
       setMessage('Check your email to confirm your account!')
+      toast.success('Account created. Check your email to confirm.')
     }
     setLoading(false)
   }
@@ -35,7 +41,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-light text-charcoal">Create Your Account</h1>
           <p className="mt-2 font-body text-sm text-charcoal/60">
-            Join ArtByMe to track orders, enroll in classes, and more
+            Join ArtByME to track orders, enroll in classes, and more
           </p>
         </div>
 

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { MEDIUMS, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
@@ -81,6 +81,6 @@ export async function POST(request: NextRequest) {
     .insert(rows)
     .select('id, medium, size_label')
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ created: data, skipped })
 }

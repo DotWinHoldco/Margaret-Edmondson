@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/lib/cart/context'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 export interface WishlistEntry {
   id: string
@@ -23,6 +25,7 @@ function formatPrice(n: number) {
 
 export default function WishlistGrid({ items }: { items: WishlistEntry[] }) {
   const { dispatch } = useCart()
+  const toast = useToast()
   const [list, setList] = useState(items)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,13 +33,17 @@ export default function WishlistGrid({ items }: { items: WishlistEntry[] }) {
   async function remove(id: string) {
     setError(null)
     setBusy(id)
-    const res = await fetch(`/api/account/wishlist/${id}`, { method: 'DELETE' })
-    setBusy(null)
-    if (!res.ok) {
-      setError('Could not remove that item. Please try again.')
-      return
+    try {
+      await apiSend(`/api/account/wishlist/${id}`, 'DELETE')
+      setList((prev) => prev.filter((i) => i.id !== id))
+      toast.success('Removed from your wishlist.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
+    } finally {
+      setBusy(null)
     }
-    setList((prev) => prev.filter((i) => i.id !== id))
   }
 
   function addToCart(entry: WishlistEntry) {
@@ -51,6 +58,7 @@ export default function WishlistGrid({ items }: { items: WishlistEntry[] }) {
         fulfillmentType: entry.fulfillmentType,
       },
     })
+    toast.success('Added to cart.')
   }
 
   if (list.length === 0) {

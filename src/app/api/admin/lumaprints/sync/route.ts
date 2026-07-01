@@ -259,7 +259,8 @@ export async function POST(request: NextRequest) {
           { onConflict: 'medium' },
         )
       if (error) {
-        summary.push({ medium, status: 'error', reason: error.message })
+        console.error('[api] admin/lumaprints sync upsert:', error.message)
+        summary.push({ medium, status: 'error', reason: 'Could not save this medium. Please try again.' })
         continue
       }
       // Evict cached prices for this medium so the next read re-derives cost

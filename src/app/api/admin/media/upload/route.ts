@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiError, apiFail, apiOk, dbFail } from '@/lib/api/respond'
 import { MEDIA_CATEGORIES, type MediaCategory } from '@/lib/media/categories'
 
 const LIBRARY_BUCKET = 'library'
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   const { error: upErr } = await auth.supabase.storage
     .from(bucket)
     .upload(path, buf, { contentType: file.type, upsert: false })
-  if (upErr) return apiError(upErr.message, 500, 'UPLOAD_FAILED')
+  if (upErr) return apiFail(upErr, { code: 'UPLOAD_FAILED', publicMessage: 'We could not upload that file. Please try again.', context: 'admin/media upload' })
 
   const url = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
 
@@ -63,6 +63,6 @@ export async function POST(request: NextRequest) {
     .select('id, url')
     .single()
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk(data)
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 export interface Address {
   id: string
@@ -53,16 +55,8 @@ function toForm(a: Address): FormState {
   }
 }
 
-async function readError(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = await res.json()
-    return body?.error || fallback
-  } catch {
-    return fallback
-  }
-}
-
 export default function AddressBook({ initial }: { initial: Address[] }) {
+  const toast = useToast()
   const [list, setList] = useState<Address[]>(initial)
   const [editingId, setEditingId] = useState<string | null>(null) // null = not editing; '' = new
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -93,10 +87,11 @@ export default function AddressBook({ initial }: { initial: Address[] }) {
   }
 
   async function refetch() {
-    const res = await fetch('/api/account/addresses')
-    if (res.ok) {
-      const body = await res.json()
-      setList(body.data as Address[])
+    try {
+      const data = await apiFetch<Address[]>('/api/account/addresses')
+      setList(data)
+    } catch {
+      // Non-fatal: the mutation already succeeded; leave the current list in place.
     }
   }
 
@@ -107,10 +102,8 @@ export default function AddressBook({ initial }: { initial: Address[] }) {
     const isNew = editingId === ''
     const url = isNew ? '/api/account/addresses' : `/api/account/addresses/${editingId}`
     const method = isNew ? 'POST' : 'PATCH'
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await apiSend(url, method, {
         label: form.label,
         line1: form.line1,
         line2: form.line2,
@@ -119,43 +112,49 @@ export default function AddressBook({ initial }: { initial: Address[] }) {
         postal_code: form.postal_code,
         country: form.country.toUpperCase(),
         is_default: form.is_default,
-      }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      setError(await readError(res, 'Could not save the address.'))
-      return
+      })
+      await refetch()
+      closeForm()
+      toast.success(isNew ? 'Address added.' : 'Address updated.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
+    } finally {
+      setSaving(false)
     }
-    await refetch()
-    closeForm()
   }
 
   async function remove(id: string) {
     setError(null)
     setBusyId(id)
-    const res = await fetch(`/api/account/addresses/${id}`, { method: 'DELETE' })
-    setBusyId(null)
-    if (!res.ok) {
-      setError('Could not delete the address.')
-      return
+    try {
+      await apiSend(`/api/account/addresses/${id}`, 'DELETE')
+      setList((prev) => prev.filter((a) => a.id !== id))
+      toast.success('Address removed.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
+    } finally {
+      setBusyId(null)
     }
-    setList((prev) => prev.filter((a) => a.id !== id))
   }
 
   async function makeDefault(id: string) {
     setError(null)
     setBusyId(id)
-    const res = await fetch(`/api/account/addresses/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_default: true }),
-    })
-    setBusyId(null)
-    if (!res.ok) {
-      setError(await readError(res, 'Could not set the default address.'))
-      return
+    try {
+      await apiSend(`/api/account/addresses/${id}`, 'PATCH', { is_default: true })
+      await refetch()
+      toast.success('Default address updated.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
+    } finally {
+      setBusyId(null)
     }
-    await refetch()
   }
 
   return (

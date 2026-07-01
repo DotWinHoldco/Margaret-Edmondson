@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 type Status = { kind: 'idle' } | { kind: 'ok'; message: string } | { kind: 'error'; message: string }
 
@@ -27,15 +30,6 @@ function Banner({ status }: { status: Status }) {
   )
 }
 
-async function readError(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = await res.json()
-    return body?.error || fallback
-  } catch {
-    return fallback
-  }
-}
-
 export default function SettingsForms({
   email,
   fullName,
@@ -46,6 +40,7 @@ export default function SettingsForms({
   phone: string
 }) {
   const router = useRouter()
+  const toast = useToast()
 
   // Profile name/phone (writes via the browser client; profiles UPDATE-own RLS).
   const [name, setName] = useState(fullName)
@@ -85,10 +80,14 @@ export default function SettingsForms({
       .eq('id', user.id)
     setProfileSaving(false)
     if (error) {
-      setProfileStatus({ kind: 'error', message: error.message })
+      console.error('[account] profile save failed:', error.message)
+      const friendly = resolveErrorMessage(error)
+      setProfileStatus({ kind: 'error', message: friendly })
+      toast.error(friendly)
       return
     }
     setProfileStatus({ kind: 'ok', message: 'Profile updated.' })
+    toast.success('Profile updated.')
     router.refresh()
   }
 
@@ -104,42 +103,48 @@ export default function SettingsForms({
       return
     }
     setPwSaving(true)
-    const res = await fetch('/api/account/password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
-    })
-    setPwSaving(false)
-    if (!res.ok) {
-      setPwStatus({ kind: 'error', message: await readError(res, 'Could not change password.') })
-      return
+    try {
+      await apiSend('/api/account/password', 'POST', {
+        current_password: currentPw,
+        new_password: newPw,
+      })
+      setCurrentPw('')
+      setNewPw('')
+      setConfirmPw('')
+      setPwStatus({ kind: 'ok', message: 'Password updated.' })
+      toast.success('Password updated.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setPwStatus({ kind: 'error', message: friendly })
+      toast.error(friendly)
+    } finally {
+      setPwSaving(false)
     }
-    setCurrentPw('')
-    setNewPw('')
-    setConfirmPw('')
-    setPwStatus({ kind: 'ok', message: 'Password updated.' })
   }
 
   async function changeEmail(e: React.FormEvent) {
     e.preventDefault()
     setEmailStatus({ kind: 'idle' })
     setEmailSaving(true)
-    const res = await fetch('/api/account/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ new_email: newEmail, current_password: emailPw }),
-    })
-    setEmailSaving(false)
-    if (!res.ok) {
-      setEmailStatus({ kind: 'error', message: await readError(res, 'Could not change email.') })
-      return
+    try {
+      await apiSend('/api/account/email', 'POST', {
+        new_email: newEmail,
+        current_password: emailPw,
+      })
+      setNewEmail('')
+      setEmailPw('')
+      setEmailStatus({
+        kind: 'ok',
+        message: 'Confirmation sent. Check your new inbox to finish the change.',
+      })
+      toast.success('Confirmation sent. Check your new inbox to finish the change.')
+    } catch (err) {
+      const friendly = errorMessage(err)
+      setEmailStatus({ kind: 'error', message: friendly })
+      toast.error(friendly)
+    } finally {
+      setEmailSaving(false)
     }
-    setNewEmail('')
-    setEmailPw('')
-    setEmailStatus({
-      kind: 'ok',
-      message: 'Confirmation sent. Check your new inbox to finish the change.',
-    })
   }
 
   return (

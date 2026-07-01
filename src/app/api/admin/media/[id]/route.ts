@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { MEDIA_CATEGORIES, type MediaCategory } from '@/lib/media/categories'
 
 const Patch = z.object({
@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('media_library')
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ id })
 }
 
@@ -36,7 +36,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     .select('storage_bucket, storage_path')
     .eq('id', id)
     .single()
-  if (readErr) return apiError(readErr.message, 500, 'DB_ERROR')
+  if (readErr) return dbFail(readErr)
 
   // Best-effort storage delete — keep the library row delete authoritative
   // (an orphaned storage object is less harmful than a broken UI reference
@@ -44,6 +44,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   await auth.supabase.storage.from(row.storage_bucket).remove([row.storage_path])
 
   const { error } = await auth.supabase.from('media_library').delete().eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ success: true })
 }

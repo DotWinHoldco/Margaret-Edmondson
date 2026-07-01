@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,6 +44,7 @@ const TIMELINES = [
 type Step = 1 | 2 | 3
 
 export default function CommissionRequestPage() {
+  const toast = useToast()
   const [step, setStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -95,7 +98,10 @@ export default function CommissionRequestPage() {
       const { error: upErr } = await supabase.storage
         .from('commission-references')
         .upload(path, file, { contentType: file.type, upsert: false })
-      if (upErr) throw new Error(`${file.name}: ${upErr.message}`)
+      if (upErr) {
+        console.error('[commissions] reference upload failed:', upErr.message)
+        throw new Error(`We couldn't upload ${file.name}. Please try a different file and submit again.`)
+      }
       // Store the bucket-relative path — commission-references is a private
       // bucket; the admin view mints signed URLs from these paths.
       urls.push(path)
@@ -121,20 +127,14 @@ export default function CommissionRequestPage() {
       // Upload reference photos first so the URLs can be saved alongside the commission.
       const reference_images = await uploadReferences()
 
-      const res = await fetch('/api/commissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, reference_images }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Something went wrong')
-      }
+      await apiSend('/api/commissions', 'POST', { ...form, reference_images })
 
       setSubmitted(true)
+      toast.success('Your commission request is on its way to Margaret.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const friendly = errorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
     } finally {
       setLoading(false)
     }

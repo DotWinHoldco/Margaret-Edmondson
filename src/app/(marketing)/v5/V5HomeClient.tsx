@@ -1,6 +1,8 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -591,6 +593,28 @@ function Commissions() {
    ───────────────────────────────────────────── */
 function ClosingManifesto() {
   const { ref, inView } = useSection()
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const toast = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await apiSend('/api/newsletter/subscribe', 'POST', {
+        email: email.trim(),
+        source: 'v5',
+      })
+      setSubmitted(true)
+      toast.success('You are on the list. Check your inbox for a welcome note.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <section
@@ -623,23 +647,33 @@ function ClosingManifesto() {
           <p className="font-serif-body text-base md:text-lg text-charcoal/70 mb-8">
             Join the mailing list for studio updates, new releases, and exhibition announcements.
           </p>
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto"
-          >
-            <input
-              type="email"
-              placeholder="your@email.com"
-              aria-label="Email address"
-              className="w-full sm:flex-1 px-5 py-3.5 bg-transparent border border-charcoal/25 font-body text-sm tracking-wide placeholder:text-charcoal/30 focus:outline-none focus:border-gold transition-colors"
-            />
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-8 py-3.5 bg-charcoal text-cream font-body text-sm uppercase tracking-[0.2em] hover:bg-gold transition-colors duration-500"
+          {submitted ? (
+            <p className="font-serif-body text-base md:text-lg text-charcoal max-w-md mx-auto">
+              You are on the list. Check your inbox for a welcome note.
+            </p>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto"
             >
-              Subscribe
-            </button>
-          </form>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                aria-label="Email address"
+                className="w-full sm:flex-1 px-5 py-3.5 bg-transparent border border-charcoal/25 font-body text-sm tracking-wide placeholder:text-charcoal/30 focus:outline-none focus:border-gold transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full sm:w-auto px-8 py-3.5 bg-charcoal text-cream font-body text-sm uppercase tracking-[0.2em] hover:bg-gold transition-colors duration-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Joining...' : 'Subscribe'}
+              </button>
+            </form>
+          )}
         </motion.div>
       </motion.div>
     </section>

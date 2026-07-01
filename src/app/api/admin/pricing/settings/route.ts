@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { recomputeAllVariantPrices } from '@/lib/pricing/margin'
+import { apiError, dbFail } from '@/lib/api/respond'
 // GET /api/admin/pricing/settings — read site default margin and shipping quote zips; admin only.
 export async function GET() {
   const auth = await requireAdmin()
@@ -12,7 +13,7 @@ export async function GET() {
     .eq('id', true)
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/pricing settings GET')
   return Response.json({ data })
 }
 
@@ -31,7 +32,7 @@ export async function PATCH(request: NextRequest) {
   if (typeof body.default_margin_pct === 'number') {
     // Markup percent (cost-plus): 0..1000. 100 = 100% markup = 2× cost.
     if (body.default_margin_pct < 0 || body.default_margin_pct > 1000) {
-      return Response.json({ error: 'default_margin_pct must be a percent between 0 and 1000' }, { status: 400 })
+      return apiError('The default markup must be a percentage between 0 and 1000.', 400, 'VALIDATION_FAILED')
     }
     updates.default_margin_pct = body.default_margin_pct
     marginChanged = true
@@ -47,7 +48,7 @@ export async function PATCH(request: NextRequest) {
     .select('default_margin_pct, shipping_quote_zips, updated_at')
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/pricing settings PATCH')
 
   // Cascade: the site default is the lowest-priority margin — changing it
   // re-prices every variant that inherits it (no category/product/variant override).

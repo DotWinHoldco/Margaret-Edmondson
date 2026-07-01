@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { refreshCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   else return apiError('Provide variant_id or product_id', 400, 'NO_TARGET')
 
   const { data: variants, error: readErr } = await query
-  if (readErr) return apiError(readErr.message, 500, 'DB_ERROR')
+  if (readErr) return dbFail(readErr, 'admin/variants refresh read')
 
   const diffs: RefreshDiff[] = []
   const productMargin = new Map<string, number>()

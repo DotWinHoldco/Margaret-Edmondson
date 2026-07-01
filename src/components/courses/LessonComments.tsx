@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 interface CommentProfile {
   id: string
@@ -72,6 +74,7 @@ export default function LessonComments({
   const [replyBody, setReplyBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   const load = useCallback(async () => {
     try {
@@ -98,15 +101,18 @@ export default function LessonComments({
         body: JSON.stringify({ content, parent_id: parentId }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Could not post your comment.')
+      if (!res.ok) throw new Error(resolveErrorMessage({ code: data?.code, message: data?.error }))
       if (data.comment) {
         setComments((prev) => [...prev, data.comment as CommentRow])
       } else {
         await load()
       }
+      toast.success(parentId ? 'Reply posted.' : 'Comment posted.')
       return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      const friendly = resolveErrorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
       return false
     } finally {
       setSubmitting(false)
@@ -175,7 +181,7 @@ export default function LessonComments({
           </div>
         </div>
       </form>
-      {error && <p className="mt-2 font-body text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 font-body text-sm text-coral">{error}</p>}
 
       {/* LIST */}
       <div className="mt-8 space-y-6">

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiOk, dbFail } from '@/lib/api/respond'
 
 // Lightweight reload for the variants panel — returns the product's print
 // variants (medium set) so VariantsTab can refresh itself after a mutation
@@ -16,6 +16,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     )
     .eq('product_id', id)
     .not('medium', 'is', null)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ variants: data })
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiOk, apiError, parseBody } from '@/lib/api/respond'
+import { apiOk, apiError, parseBody, dbFail } from '@/lib/api/respond'
 
 const CropBody = z.object({
   crop_box: z.object({
@@ -46,7 +46,7 @@ export async function POST(
     .select('id, storage_path')
     .eq('id', id)
     .maybeSingle()
-  if (loadErr) return apiError(loadErr.message, 500, 'DB_ERROR')
+  if (loadErr) return dbFail(loadErr)
   if (!master) return apiError('Master artwork not found', 404, 'NOT_FOUND')
 
   const { data, error } = await auth.supabase
@@ -64,7 +64,7 @@ export async function POST(
     .select('id, print_status, print_requested_at, border_mode, border_color, crop_box')
     .single()
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
 
   // Job queued. The worker is run out-of-band (operator/queue) — do NOT process
   // the source file here. The editor polls GET …/master-artworks/[id] for status.

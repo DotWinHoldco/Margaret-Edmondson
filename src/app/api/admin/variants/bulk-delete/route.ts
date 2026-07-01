@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, parseBody, dbFail } from '@/lib/api/respond'
 
 const Body = z.object({ ids: z.array(z.string().uuid()).min(1).max(500) })
 
@@ -16,6 +16,6 @@ export async function POST(request: NextRequest) {
     .from('product_variants')
     .delete({ count: 'exact' })
     .in('id', parsed.data.ids)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ deleted: count ?? parsed.data.ids.length })
 }

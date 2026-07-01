@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export default function ClassSignupForm({ slug, priceCents }: Props) {
+  const toast = useToast()
   const priceLabel = `$${(priceCents / 100).toFixed(0)}`
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -53,7 +56,10 @@ export default function ClassSignupForm({ slug, priceCents }: Props) {
       const { error: upErr } = await supabase.storage
         .from('class-pet-photos')
         .upload(path, f, { contentType: f.type, upsert: false })
-      if (upErr) throw new Error(`${f.name}: ${upErr.message}`)
+      if (upErr) {
+        console.error('Class pet-photo upload failed:', f.name, upErr)
+        throw new Error(`We could not upload ${f.name}. Please try a different photo or remove it and continue.`)
+      }
       // Store the bucket-relative path — class-pet-photos is a private bucket;
       // the admin view mints signed URLs from these paths.
       urls.push(path)
@@ -69,17 +75,18 @@ export default function ClassSignupForm({ slug, priceCents }: Props) {
     setError(null)
     try {
       const pet_photo_urls = await upload()
-      const res = await fetch(`/api/classes/${slug}/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, special_notes: notes, pet_photo_urls }),
-      })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error || 'Checkout failed')
+      const { url } = await apiSend<{ url: string; booking_id: string }>(
+        `/api/classes/${slug}/checkout`,
+        'POST',
+        { name, email, phone, special_notes: notes, pet_photo_urls },
+      )
       // Stripe Checkout will redirect back to /classes/[slug]/thank-you on success.
-      window.location.href = body.data.url
+      toast.success('Spot reserved. Taking you to secure checkout.')
+      window.location.href = url
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout failed')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
       setSubmitting(false)
     }
   }

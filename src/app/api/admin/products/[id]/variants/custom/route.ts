@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { MEDIUMS, type Medium } from '@/lib/pricing/mediums'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { buildPricedVariantRow } from '@/lib/pricing/variant-insert'
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .insert(row)
     .select('id, medium, size_label, name, is_active')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/products variants/custom POST insert')
 
   // P3-2: a custom variant may only go Live through the same fulfillability gate
   // the PATCH route enforces (print-ready master + enabled medium + framed option +

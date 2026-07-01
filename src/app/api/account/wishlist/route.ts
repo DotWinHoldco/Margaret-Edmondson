@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const PostBody = z.object({
@@ -24,7 +24,7 @@ export async function GET() {
     .eq('profile_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'account/wishlist GET')
   return apiOk(data ?? [])
 }
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     .select('id')
     .eq('id', product_id)
     .maybeSingle()
-  if (productError) return apiError(productError.message, 500, 'DB_ERROR')
+  if (productError) return dbFail(productError, 'account/wishlist POST product lookup')
   if (!product) return apiError('Product not found', 404, 'NOT_FOUND')
 
   // Already on the list? Return it rather than erroring.
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     .insert({ profile_id: user.id, product_id })
     .select('id')
     .single()
-  if (insertError) return apiError(insertError.message, 500, 'DB_ERROR')
+  if (insertError) return dbFail(insertError, 'account/wishlist POST insert')
 
   return apiOk({ id: inserted.id, already: false }, 201)
 }

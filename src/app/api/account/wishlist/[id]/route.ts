@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 // DELETE /api/account/wishlist/[id] — remove a wishlist item. RLS restricts the
@@ -27,7 +27,7 @@ export async function DELETE(
     .eq('profile_id', user.id)
     .select('id')
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'account/wishlist DELETE')
   if (!data || data.length === 0) {
     return apiError('Wishlist item not found', 404, 'NOT_FOUND')
   }

@@ -4,6 +4,8 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle, signInWithMagicLink } from '@/lib/supabase/auth'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 export default function LoginPage() {
   return (
@@ -21,6 +23,7 @@ function LoginForm() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
+  const toast = useToast()
   const searchParams = useSearchParams()
   // Default to /account — admins/artists are bounced on to /admin from there.
   const redirectTo = searchParams.get('redirect') || '/account'
@@ -32,7 +35,7 @@ function LoginForm() {
     setError('')
     const { error } = await signIn(email, password)
     if (error) {
-      setError(error.message)
+      setError(resolveErrorMessage(error))
       setLoading(false)
     } else {
       // Force cookie sync before navigating so middleware sees the session
@@ -51,9 +54,12 @@ function LoginForm() {
     setError('')
     const { error } = await signInWithMagicLink(email)
     if (error) {
-      setError(error.message)
+      const friendly = resolveErrorMessage(error)
+      setError(friendly)
+      toast.error(friendly)
     } else {
       setMessage('Check your email for a login link!')
+      toast.success('Magic link sent. Check your email to sign in.')
     }
     setLoading(false)
   }

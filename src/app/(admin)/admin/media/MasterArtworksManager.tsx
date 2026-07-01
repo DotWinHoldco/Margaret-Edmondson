@@ -5,6 +5,8 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import MasterArtworkUpload, {
   type UploadedArtwork,
 } from '@/components/admin/MasterArtworkUpload'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 export interface MasterArtworkItem {
   id: string
@@ -67,17 +69,21 @@ export default function MasterArtworksManager() {
   const [selected, setSelected] = useState<MasterArtworkItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<MasterArtworkItem | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const toast = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
-    const params = new URLSearchParams()
-    params.set('filter', filter)
-    if (search) params.set('q', search)
-    const res = await fetch(`/api/admin/master-artworks?${params.toString()}`)
-    if (res.ok) {
-      const body = await res.json()
-      setItems(body.data.items)
-      setTotal(body.data.total)
+    try {
+      const params = new URLSearchParams()
+      params.set('filter', filter)
+      if (search) params.set('q', search)
+      const body = await apiFetch<{ items: MasterArtworkItem[]; total: number }>(
+        `/api/admin/master-artworks?${params.toString()}`,
+      )
+      setItems(body.items)
+      setTotal(body.total)
+    } catch {
+      /* leave the current list in place on a transient load failure */
     }
     setLoading(false)
   }, [filter, search])
@@ -94,20 +100,22 @@ export default function MasterArtworksManager() {
 
   async function handleDelete(item: MasterArtworkItem) {
     setDeleteError(null)
-    const res = await fetch(`/api/admin/master-artworks/${item.id}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/master-artworks/${item.id}`, 'DELETE')
       setItems((prev) => prev.filter((i) => i.id !== item.id))
       setTotal((t) => Math.max(0, t - 1))
       setSelected(null)
       setConfirmDelete(null)
-    } else {
-      const body = await res.json().catch(() => ({}))
-      setDeleteError(body.error || 'Delete failed')
+      toast.success('Master artwork deleted.')
+    } catch (err) {
+      setDeleteError(errorMessage(err))
+      toast.error(errorMessage(err))
     }
   }
 
   function handleUploaded(artwork: UploadedArtwork) {
     setShowUpload(false)
+    toast.success('Master artwork uploaded.')
     load()
     setSelected({
       id: artwork.id,
@@ -300,16 +308,16 @@ function DetailDrawer({
 }) {
   const [title, setTitle] = useState(item.title)
   const [description, setDescription] = useState(item.description || '')
-  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [usage, setUsage] = useState<{ id: string; title: string; slug: string }[] | null>(null)
+  const toast = useToast()
 
   useEffect(() => {
     let cancel = false
-    fetch(`/api/admin/master-artworks/${item.id}`)
-      .then((r) => r.json())
-      .then((j) => {
+    apiFetch<{ used_by?: { id: string; title: string; slug: string }[] }>(`/api/admin/master-artworks/${item.id}`)
+      .then((data) => {
         if (cancel) return
-        if (j.data?.used_by) setUsage(j.data.used_by)
+        if (data?.used_by) setUsage(data.used_by)
       })
       .catch(() => {})
     return () => {
@@ -318,16 +326,20 @@ function DetailDrawer({
   }, [item.id])
 
   async function handleSave() {
-    setSaving(true)
-    const res = await fetch(`/api/admin/master-artworks/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description: description || null }),
-    })
-    setSaving(false)
-    if (res.ok) {
-      const json = await res.json()
-      onChange({ ...item, title: json.data.title, description: json.data.description })
+    setStatus('saving')
+    try {
+      const saved = await apiSend<{ title: string; description: string | null }>(
+        `/api/admin/master-artworks/${item.id}`,
+        'PATCH',
+        { title, description: description || null },
+      )
+      onChange({ ...item, title: saved.title, description: saved.description })
+      setStatus('saved')
+      toast.success('Saved.')
+      setTimeout(() => setStatus('idle'), 1500)
+    } catch (err) {
+      setStatus('idle')
+      toast.error(errorMessage(err))
     }
   }
 
@@ -412,10 +424,10 @@ function DetailDrawer({
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={status === 'saving'}
               className="rounded-md bg-teal px-4 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
             >
-              {saving ? 'Saving…' : 'Save'}
+              {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : 'Save'}
             </button>
           </div>
         </div>

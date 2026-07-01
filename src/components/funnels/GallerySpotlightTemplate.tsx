@@ -28,7 +28,7 @@ function FadeUp({ children, className = '', delay = 0 }: { children: React.React
   )
 }
 
-export default function GallerySpotlightTemplate({ funnel, product, images, variants }: FunnelTemplateProps) {
+export default function GallerySpotlightTemplate({ funnel, product, images, variants, masterReady }: FunnelTemplateProps) {
   const { dispatch } = useCart()
   const [selectedPrintVariant, setSelectedPrintVariant] = useState('')
   const heroRef = useRef<HTMLDivElement>(null)
@@ -39,7 +39,17 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
   const heroImage = images[0]
   const detailImage = images[1] || images[0]
   const originalVariant = variants.find((v) => v.variant_type === 'original')
-  const printVariants = variants.filter((v) => v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print')
+  // Print gate mirrors the storefront ProductDetail: only offer prints when the
+  // master file is print-ready and the variant is live (is_active +
+  // is_lumaprints_available). Otherwise a print order would fail at LumaPrints.
+  const printVariants = masterReady
+    ? variants.filter(
+        (v) =>
+          (v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print') &&
+          v.is_active !== false &&
+          v.is_lumaprints_available !== false,
+      )
+    : []
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
   const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)

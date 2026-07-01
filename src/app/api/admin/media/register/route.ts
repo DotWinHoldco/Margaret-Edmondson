@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { MEDIA_CATEGORIES, type MediaCategory } from '@/lib/media/categories'
 
 const Body = z.object({
@@ -38,6 +38,6 @@ export async function POST(request: NextRequest) {
     .select('id, url')
     .single()
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk(data)
 }

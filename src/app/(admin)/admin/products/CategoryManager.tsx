@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Cat {
   id: string
@@ -13,6 +15,7 @@ interface Cat {
 
 export default function CategoryManager() {
   const router = useRouter()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [cats, setCats] = useState<Cat[]>([])
   const [loading, setLoading] = useState(false)
@@ -23,9 +26,12 @@ export default function CategoryManager() {
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/admin/categories', { cache: 'no-store' })
-    const body = await res.json()
-    setCats(body.data?.categories || [])
+    try {
+      const data = await apiFetch<{ categories?: Cat[] }>('/api/admin/categories', { cache: 'no-store' })
+      setCats(data?.categories || [])
+    } catch {
+      /* leave the current list in place on a transient load failure */
+    }
     setLoading(false)
   }
   function openModal() { setErr(''); setOpen(true); load() }
@@ -33,23 +39,40 @@ export default function CategoryManager() {
   async function create() {
     if (!newName.trim()) return
     setBusy(true); setErr('')
-    const res = await fetch('/api/admin/categories', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: newName.trim(), default_margin_pct: newMargin.trim() === '' ? null : Number(newMargin) }),
-    })
-    setBusy(false)
-    if (!res.ok) { const b = await res.json().catch(() => ({})); setErr(b.error || 'Create failed (name/slug may already exist)'); return }
-    setNewName(''); setNewMargin(''); await load(); router.refresh()
+    try {
+      await apiSend('/api/admin/categories', 'POST', {
+        name: newName.trim(),
+        default_margin_pct: newMargin.trim() === '' ? null : Number(newMargin),
+      })
+      setNewName(''); setNewMargin('')
+      toast.success('Category added.')
+      await load(); router.refresh()
+    } catch (e) {
+      const message = errorMessage(e)
+      setErr(message)
+      toast.error(message)
+    } finally {
+      setBusy(false)
+    }
   }
   async function saveRow(id: string, patch: { name?: string; default_margin_pct?: number | null }) {
-    await fetch(`/api/admin/categories/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
-    await load(); router.refresh()
+    try {
+      await apiSend(`/api/admin/categories/${id}`, 'PATCH', patch)
+      toast.success('Category saved.')
+      await load(); router.refresh()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
   }
   async function del(id: string, name: string, count: number) {
     if (!window.confirm(`Delete "${name}"?${count > 0 ? ` Its ${count} product(s) will become uncategorized and inherit the site-wide margin.` : ''}`)) return
-    await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' })
-    await load(); router.refresh()
+    try {
+      await apiSend(`/api/admin/categories/${id}`, 'DELETE')
+      toast.success('Category deleted.')
+      await load(); router.refresh()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
   }
 
   return (

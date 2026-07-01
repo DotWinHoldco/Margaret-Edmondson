@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Admin | ArtByMe',
-    template: '%s | ArtByMe Admin',
+    default: 'Admin | ArtByME',
+    template: '%s | ArtByME Admin',
   },
   robots: {
     index: false,

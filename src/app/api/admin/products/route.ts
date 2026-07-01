@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail, apiOk } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/products — list active products with primary images; admin only.
@@ -14,12 +15,11 @@ export async function GET() {
       .order('title', { ascending: true })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/products GET')
     }
-    return Response.json({ data: data || [] })
+    return apiOk(data || [])
   } catch (err) {
-    console.error('GET /api/admin/products error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/products GET' })
   }
 }
 
@@ -37,17 +37,11 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
-      return Response.json(
-        { error: 'Title is required' },
-        { status: 400 }
-      )
+      return apiError('Please add a title before saving.', 400, 'VALIDATION_FAILED')
     }
 
     if (body.base_price === undefined || body.base_price === null) {
-      return Response.json(
-        { error: 'Base price is required' },
-        { status: 400 }
-      )
+      return apiError('Please set a base price before saving.', 400, 'VALIDATION_FAILED')
     }
 
     const auth = await requireAdmin()
@@ -71,7 +65,9 @@ export async function POST(request: NextRequest) {
         title: body.title.trim(),
         slug: finalSlug,
         category_id: body.category_id || null,
-        description: body.description || null,
+        // `products` stores rich text in description_html — there is no plain
+        // `description` column; the create form sends plain text, so map it here.
+        description_html: body.description || null,
         medium: body.medium || null,
         dimensions: body.dimensions || null,
         base_price: parseFloat(body.base_price) || 0,
@@ -90,10 +86,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (productError) {
-      return Response.json(
-        { error: productError.message },
-        { status: 500 }
-      )
+      if (productError.code === '23505') {
+        return apiError('A product with that slug already exists. Try a different title or slug.', 409, 'CONFLICT')
+      }
+      return dbFail(productError, 'admin/products POST insert')
     }
 
     // Insert variants if provided
@@ -118,12 +114,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return Response.json({ data: product }, { status: 201 })
+    return apiOk(product, 201)
   } catch (err) {
-    console.error('POST /api/admin/products error:', err)
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiFail(err, { context: 'admin/products POST' })
   }
 }

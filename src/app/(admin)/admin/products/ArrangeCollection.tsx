@@ -20,6 +20,8 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Cat { id: string; name: string; slug: string }
 interface Prod {
@@ -47,6 +49,7 @@ export default function ArrangeCollection({
   variant?: 'button' | 'link'
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [cats, setCats] = useState<Cat[]>([])
   const [categoryId, setCategoryId] = useState(initialCategoryId || '')
@@ -65,23 +68,30 @@ export default function ArrangeCollection({
     if (!catId) { setProducts([]); return }
     setLoading(true)
     setMsg('')
-    const res = await fetch(`/api/admin/categories/${catId}/order`, { cache: 'no-store' })
-    const body = await res.json().catch(() => ({}))
-    setProducts(body.data?.products || [])
+    try {
+      const data = await apiFetch<{ products?: Prod[] }>(`/api/admin/categories/${catId}/order`, { cache: 'no-store' })
+      setProducts(data?.products || [])
+    } catch (e) {
+      toast.error(errorMessage(e))
+      setProducts([])
+    }
     setDirty(false)
     setLoading(false)
-  }, [])
+  }, [toast])
 
   async function openModal() {
     setOpen(true)
     setMsg('')
-    const res = await fetch('/api/admin/categories', { cache: 'no-store' })
-    const body = await res.json().catch(() => ({}))
-    const list: Cat[] = body.data?.categories || []
-    setCats(list)
-    const cid = initialCategoryId || categoryId || list[0]?.id || ''
-    setCategoryId(cid)
-    loadProducts(cid)
+    try {
+      const data = await apiFetch<{ categories?: Cat[] }>('/api/admin/categories', { cache: 'no-store' })
+      const list: Cat[] = data?.categories || []
+      setCats(list)
+      const cid = initialCategoryId || categoryId || list[0]?.id || ''
+      setCategoryId(cid)
+      loadProducts(cid)
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
   }
 
   function close() {
@@ -111,19 +121,20 @@ export default function ArrangeCollection({
   async function save() {
     if (!categoryId || products.length === 0) return
     setSaving(true)
-    const res = await fetch(`/api/admin/categories/${categoryId}/order`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ orderedProductIds: products.map((p) => p.id) }),
-    })
-    setSaving(false)
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/categories/${categoryId}/order`, 'PUT', {
+        orderedProductIds: products.map((p) => p.id),
+      })
       setDirty(false)
       setMsg('Order saved — refresh the collection page to see the new order.')
+      toast.success('Order saved.')
       router.refresh()
-    } else {
-      const b = await res.json().catch(() => ({}))
-      setMsg(b.error || 'Save failed')
+    } catch (e) {
+      const message = errorMessage(e)
+      setMsg(message)
+      toast.error(message)
+    } finally {
+      setSaving(false)
     }
   }
 

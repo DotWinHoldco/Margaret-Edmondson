@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiFail, apiOk, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const Body = z.object({
@@ -42,7 +42,12 @@ export async function POST(request: Request) {
 
   const { error: updateError } = await supabase.auth.updateUser({ email: new_email })
   if (updateError) {
-    return apiError(updateError.message, 400, 'UPDATE_FAILED')
+    return apiFail(updateError, {
+      status: 400,
+      code: 'UPDATE_FAILED',
+      publicMessage: 'We could not start the email change. Please try again.',
+      context: 'account/email update',
+    })
   }
 
   return apiOk({

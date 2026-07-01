@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 // PATCH /api/lessons/[id]/progress — update the caller's completion/position for a lesson they are enrolled in; authenticated users.
 export async function PATCH(
@@ -14,7 +15,7 @@ export async function PATCH(
     // Authenticate user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return Response.json({ error: 'Authentication required' }, { status: 401 })
+      return apiError('Authentication required', 401, 'UNAUTHORIZED')
     }
 
     // Per-user throttle so a single valid account can't hammer progress writes.
@@ -32,12 +33,12 @@ export async function PATCH(
       .single()
 
     if (lessonError || !lesson) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
 
     const courseModule = lesson.course_modules as unknown as { course_id: string } | null
     if (!courseModule?.course_id) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
     const courseId = courseModule.course_id
 
@@ -54,7 +55,7 @@ export async function PATCH(
       .maybeSingle()
 
     if (!enrollment) {
-      return Response.json({ error: 'Not enrolled in this course' }, { status: 403 })
+      return apiError('You are not enrolled in this course.', 403, 'FORBIDDEN')
     }
 
     // Build upsert data
@@ -85,12 +86,11 @@ export async function PATCH(
       .single()
 
     if (progressError) {
-      return Response.json({ error: progressError.message }, { status: 500 })
+      return dbFail(progressError, 'lesson progress upsert')
     }
 
     return Response.json({ progress })
   } catch (err) {
-    console.error('Progress update error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'lesson progress PATCH' })
   }
 }

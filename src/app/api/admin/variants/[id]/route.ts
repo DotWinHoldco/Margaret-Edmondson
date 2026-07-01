@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability'
@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .select('id, product_id, lumaprints_cost_cents, shipping_cost_cents, margin_override_pct, manual_price_override_cents, is_active, is_lumaprints_available')
     .eq('id', id)
     .single()
-  if (readErr) return apiError(readErr.message, 500, 'DB_ERROR')
+  if (readErr) return dbFail(readErr)
 
   // Effective default = product → category → site → 100.
   const defaultMargin = await getEffectiveProductMargin(auth.supabase, existing.product_id)
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     updated_at: new Date().toISOString(),
   }
   const { error } = await auth.supabase.from('product_variants').update(update).eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ id, price_cents: newPriceCents })
 }
 
@@ -67,6 +67,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!auth.ok) return auth.response
   const { id } = await params
   const { error } = await auth.supabase.from('product_variants').delete().eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ success: true })
 }

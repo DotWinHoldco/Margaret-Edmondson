@@ -77,7 +77,7 @@ export async function GET() {
 
     return Response.json({
       integrations,
-      siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'ArtByMe',
+      siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'ArtByME',
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
       globalSettings: globalContent || null,
       settings,

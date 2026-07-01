@@ -7,6 +7,7 @@
 // once the human confirms the intended margin model.
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail } from '@/lib/api/respond'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
 import { computeCustomerPrice, resolveMargin } from '@/lib/pricing/compute'
 import { quoteWorstCaseCONUS } from '@/lib/pricing/shipping-quote'
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     .eq('id', true)
     .single()
 
-  if (!settings) return Response.json({ error: 'site_settings missing' }, { status: 500 })
+  if (!settings) return apiError('Pricing settings are not configured yet. Please set the site defaults first.', 500, 'CONFIG_MISSING')
 
   const siteDefaultMargin = Number(settings.default_margin_pct)
   const quoteZips: string[] = settings.shipping_quote_zips || []
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
   else query = query.in('variant_type', ['canvas_print', 'framed_canvas_print'])
 
   const { data: variants, error: fetchErr } = await query
-  if (fetchErr) return Response.json({ error: fetchErr.message }, { status: 500 })
+  if (fetchErr) return dbFail(fetchErr, 'admin/pricing refresh fetch')
   if (!variants || variants.length === 0) return Response.json({ updated: 0, skipped: [] })
 
   const productIds = Array.from(new Set(variants.map((v: VariantRow) => v.product_id)))
@@ -124,8 +125,10 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', v.id)
 
-    if (updateErr) skipped.push({ id: v.id, reason: updateErr.message })
-    else updated += 1
+    if (updateErr) {
+      console.error('[api] admin/pricing refresh update:', updateErr.message)
+      skipped.push({ id: v.id, reason: 'could not update price' })
+    } else updated += 1
   }
 
   return Response.json({ updated, skipped, source: useDefaults ? 'defaults' : 'lumaprints' })

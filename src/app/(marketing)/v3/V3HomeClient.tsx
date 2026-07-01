@@ -11,6 +11,8 @@ import {
   useSpring,
   useInView,
 } from 'framer-motion'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 /* ─── animation helpers ─── */
 import type { Easing } from 'framer-motion'
@@ -958,10 +960,25 @@ function TestimonialsSection() {
 function NewsletterSection() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const toast = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email) setSubmitted(true)
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await apiSend('/api/newsletter/subscribe', 'POST', {
+        email: email.trim(),
+        source: 'v3',
+      })
+      setSubmitted(true)
+      toast.success('You are on the list. Check your inbox for a welcome note.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -1036,13 +1053,14 @@ function NewsletterSection() {
                 />
                 <button
                   type="submit"
-                  className="px-8 py-3 bg-deep-teal text-white font-serif-display text-base tracking-wide hover:bg-teal transition-colors duration-300 shadow-md"
+                  disabled={loading}
+                  className="px-8 py-3 bg-deep-teal text-white font-serif-display text-base tracking-wide hover:bg-teal transition-colors duration-300 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
                     clipPath:
                       'polygon(2% 0%, 98% 2%, 100% 97%, 97% 100%, 3% 98%, 0% 3%)',
                   }}
                 >
-                  Subscribe
+                  {loading ? 'Joining...' : 'Subscribe'}
                 </button>
               </motion.form>
             )}

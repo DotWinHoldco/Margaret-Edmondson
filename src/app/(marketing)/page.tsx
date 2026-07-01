@@ -3,7 +3,7 @@ import BlockRenderer from '@/components/blocks/BlockRenderer'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'ArtByMe — Mixed Media & Fine Art by Margaret Edmondson',
+  title: 'ArtByME — Mixed Media & Fine Art by Margaret Edmondson',
   description:
     'Original mixed-media collage art, oil paintings, fine art prints, and art classes by Margaret Edmondson. Commission custom artwork or shop the gallery.',
 }

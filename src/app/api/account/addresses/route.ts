@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const AddressBody = z.object({
@@ -29,7 +29,7 @@ export async function GET() {
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'account/addresses GET')
   return apiOk(data ?? [])
 }
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       .update({ is_default: false })
       .eq('profile_id', user.id)
       .eq('is_default', true)
-    if (clearError) return apiError(clearError.message, 500, 'DB_ERROR')
+    if (clearError) return dbFail(clearError, 'account/addresses POST clear default')
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -76,6 +76,6 @@ export async function POST(request: Request) {
     .select('id, profile_id, label, line1, line2, city, state, postal_code, country, is_default, created_at')
     .single()
 
-  if (insertError) return apiError(insertError.message, 500, 'DB_ERROR')
+  if (insertError) return dbFail(insertError, 'account/addresses POST insert')
   return apiOk(inserted, 201)
 }

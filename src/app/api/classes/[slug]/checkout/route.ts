@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const Body = z.object({
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_notes: body.special_notes || null,
     p_photos: body.pet_photo_urls || [],
   })
-  if (bookErr) return apiError(bookErr.message, 500, 'DB_ERROR')
+  if (bookErr) return dbFail(bookErr, 'class checkout book_class_session')
   if (bookResult === 'SOLD_OUT') return apiError('This class is fully booked', 409, 'SOLD_OUT')
   if (bookResult !== 'OK') return apiError('Class not found', 404, 'NOT_FOUND')
 

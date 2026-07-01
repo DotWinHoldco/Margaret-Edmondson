@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail } from '@/lib/api/respond'
 
 // Restore a product photo to its pre-crop original. The original object was
 // never deleted, so this just points the row back at it and clears the snapshot.
@@ -36,7 +36,7 @@ export async function POST(
     .eq('id', id)
     .select('id, url, width, height, original_url')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
 
   const { data: prod } = await sb.from('products').select('slug').eq('id', img.product_id).single()
   if (prod?.slug) revalidatePath(`/shop/art/${prod.slug}`)

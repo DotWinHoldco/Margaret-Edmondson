@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiFail, apiOk, parseBody } from '@/lib/api/respond'
+import { friendlyMessage } from '@/lib/errors/friendly'
 import { MEDIUMS, type Medium } from '@/lib/pricing/mediums'
 import { loadBuilderContext } from '@/lib/pricing/builder-context'
 import { validateCustomSize } from '@/lib/pricing/size-tiers'
@@ -59,8 +60,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   } catch (err) {
     const code = pricingErrorCode(err)
     if (code) {
-      return apiOk({ ...base, error_code: code, error: err instanceof Error ? err.message : 'Pricing unavailable' })
+      // Known pricing condition (e.g. medium not enabled / no live cost). Return
+      // the typed code plus friendly copy the modal renders inline — never the
+      // raw exception text.
+      return apiOk({ ...base, error_code: code, error: friendlyMessage(code) })
     }
-    return apiError(err instanceof Error ? err.message : 'Pricing failed', 500, 'PRICE_PREVIEW_FAILED')
+    return apiFail(err, { context: 'admin/products price-preview', code: 'PRICE_PREVIEW_FAILED', publicMessage: 'We could not price that size right now. Please try again.' })
   }
 }

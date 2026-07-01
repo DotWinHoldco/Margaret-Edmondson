@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -9,6 +9,8 @@ import {
   useTransform,
   useInView,
 } from 'framer-motion'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 /* ─── animation config ─── */
 import type { Easing } from 'framer-motion'
@@ -491,6 +493,29 @@ function ClassesPreview() {
    7  FOOTER CTA / NEWSLETTER
    ════════════════════════════════════════════════════════════ */
 function Newsletter() {
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const toast = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await apiSend('/api/newsletter/subscribe', 'POST', {
+        email: email.trim(),
+        source: 'v4',
+      })
+      setSubmitted(true)
+      toast.success('You are on the list. Check your inbox for a welcome note.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Section className="bg-charcoal py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-gold/10">
       <div className="mx-auto max-w-3xl text-center">
@@ -510,24 +535,38 @@ function Newsletter() {
           New work, class announcements, and studio updates — straight to your inbox.
         </motion.p>
 
-        <motion.form
-          className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-12"
-          variants={fadeUp}
-          custom={2}
-          onSubmit={(e) => e.preventDefault()}
-        >
-          <input
-            type="email"
-            placeholder="Your email address"
-            className="flex-1 bg-transparent border border-gold/40 rounded-sm px-5 py-3 font-body text-sm text-cream placeholder:text-white/30 focus:outline-none focus:border-gold transition-colors duration-300"
-          />
-          <button
-            type="submit"
-            className="font-body text-sm tracking-widest uppercase px-8 py-3 border border-gold text-gold hover:bg-gold/10 transition-all duration-300 rounded-sm"
+        {submitted ? (
+          <motion.p
+            className="font-body text-base text-gold max-w-lg mx-auto mb-12"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            Subscribe
-          </button>
-        </motion.form>
+            You are on the list. Check your inbox for a welcome note.
+          </motion.p>
+        ) : (
+          <motion.form
+            className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-12"
+            variants={fadeUp}
+            custom={2}
+            onSubmit={handleSubmit}
+          >
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email address"
+              className="flex-1 bg-transparent border border-gold/40 rounded-sm px-5 py-3 font-body text-sm text-cream placeholder:text-white/30 focus:outline-none focus:border-gold transition-colors duration-300"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="font-body text-sm tracking-widest uppercase px-8 py-3 border border-gold text-gold hover:bg-gold/10 transition-all duration-300 rounded-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Joining...' : 'Subscribe'}
+            </button>
+          </motion.form>
+        )}
 
         <GoldRule className="mx-auto max-w-20 mb-8" />
 

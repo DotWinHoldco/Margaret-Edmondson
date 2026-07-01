@@ -1,6 +1,7 @@
 // dotwin-allow:public-write — public funnel analytics event (input validated + rate-limited). Authored by DotWin.
 import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { apiError, apiOk, dbFail } from '@/lib/api/respond'
 
 // Public endpoint that the funnel landing page calls to increment the
 // view / add_to_cart / purchase counters on artwork_funnels. The RLS
@@ -17,17 +18,17 @@ export async function POST(
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { id } = await params
-  if (!id) return Response.json({ error: 'id required' }, { status: 400 })
+  if (!id) return apiError('A funnel id is required.', 400, 'VALIDATION_FAILED')
 
   let body: { metric?: string }
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    return apiError('Invalid JSON body', 400, 'INVALID_JSON')
   }
 
   if (!body.metric || !['views', 'add_to_cart', 'purchase'].includes(body.metric)) {
-    return Response.json({ error: 'metric must be views|add_to_cart|purchase' }, { status: 400 })
+    return apiError('That metric is not supported.', 400, 'VALIDATION_FAILED')
   }
 
   const svc = await createServiceClient()
@@ -36,8 +37,7 @@ export async function POST(
     p_metric: body.metric,
   })
   if (error) {
-    console.error('Funnel metric RPC error:', error)
-    return Response.json({ error: 'Failed to track' }, { status: 500 })
+    return dbFail(error, 'funnels/[id]/track POST')
   }
-  return Response.json({ ok: true })
+  return apiOk({ ok: true })
 }

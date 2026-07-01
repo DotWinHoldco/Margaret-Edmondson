@@ -6,7 +6,7 @@ import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
   title: 'Blog',
-  description: 'Studio updates, art process insights, and creative inspiration from ArtByMe.',
+  description: 'Studio updates, art process insights, and creative inspiration from ArtByME.',
 }
 
 export default async function BlogPage() {

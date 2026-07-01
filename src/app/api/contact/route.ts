@@ -3,6 +3,7 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
 import { escapeHtml } from '@/lib/email/escape'
+import { apiError, apiFail, apiOk } from '@/lib/api/respond'
 
 // POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
   }
 
   if (!name || !email || !message) {
-    return Response.json({ error: 'Missing required fields' }, { status: 400 })
+    return apiError('Please add your name, email, and a message so I can reply.', 400, 'VALIDATION_FAILED')
   }
 
   // Log every inbound contact to the CRM and tag with the contact-form list
@@ -58,12 +59,20 @@ export async function POST(request: Request) {
     { hideUnsubscribe: true, preheader: `New contact from ${name}` }
   )
 
-  await sendEmail({
-    to: 'hello@artbyme.studio',
-    subject: `[ArtByME Contact] ${rawSubject}: from ${name}`,
-    html,
-    replyTo: email,
-  })
+  try {
+    await sendEmail({
+      to: 'hello@artbyme.studio',
+      subject: `[ArtByME Contact] ${rawSubject}: from ${name}`,
+      html,
+      replyTo: email,
+    })
+  } catch (err) {
+    return apiFail(err, {
+      context: 'contact form sendEmail',
+      code: 'EMAIL_FAILED',
+      publicMessage: 'We could not send your message right now. Please try again in a moment.',
+    })
+  }
 
-  return Response.json({ success: true })
+  return apiOk({ success: true })
 }

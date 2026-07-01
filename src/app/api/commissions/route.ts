@@ -6,6 +6,7 @@ import { upsertContact } from '@/lib/crm/contacts'
 import { signBucketUrls } from '@/lib/storage/signed'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail } from '@/lib/api/respond'
 
 const COMMISSION_STATUSES = [
   'inquiry',
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   } = body
 
   if (!client_name || !client_email || !description) {
-    return Response.json({ error: 'Name, email, and description are required' }, { status: 400 })
+    return apiError('Name, email, and description are required.', 400, 'MISSING_FIELDS')
   }
 
   const refs = Array.isArray(reference_images)
@@ -67,8 +68,7 @@ export async function POST(request: Request) {
     })
 
   if (error) {
-    console.error('Commission insert error:', error)
-    return Response.json({ error: error.message || 'Failed to submit commission' }, { status: 500 })
+    return dbFail(error, 'commissions POST insert')
   }
 
   // Mirror lead into CRM.
@@ -134,15 +134,15 @@ export async function PATCH(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return apiError('Invalid JSON body', 400, 'INVALID_JSON')
   }
 
   const { id, status } = body
   if (!id || !status) {
-    return Response.json({ error: 'id and status are required' }, { status: 400 })
+    return apiError('id and status are required.', 400, 'MISSING_FIELDS')
   }
   if (!COMMISSION_STATUSES.includes(status as (typeof COMMISSION_STATUSES)[number])) {
-    return Response.json({ error: 'Invalid status' }, { status: 400 })
+    return apiError('Invalid status.', 400, 'INVALID_STATUS')
   }
 
   const { data, error } = await auth.supabase
@@ -153,8 +153,7 @@ export async function PATCH(request: Request) {
     .single()
 
   if (error) {
-    console.error('Commission status update error:', error)
-    return Response.json({ error: error.message || 'Failed to update status' }, { status: 500 })
+    return dbFail(error, 'commissions PATCH status update')
   }
 
   return Response.json({ success: true, commission: data })

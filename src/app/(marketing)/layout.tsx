@@ -63,7 +63,7 @@ export default async function MarketingLayout({
       <main className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
         <Image
           src="/logo.png"
-          alt="ArtByMe"
+          alt="ArtByME"
           width={56}
           height={67}
           className="h-14 w-auto"

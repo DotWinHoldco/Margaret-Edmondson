@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 import { MEDIUMS, mediumLabel, type Medium } from '@/lib/pricing/mediums'
 import { customerPriceCents, grossMarginPct } from '@/lib/pricing/variant-pricing'
 import {
@@ -81,6 +83,7 @@ export default function VariantsTab({
   onEditCrop,
 }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const catalogByMedium = useMemo(() => {
     const out: Record<string, MediumCatalogEntry> = {}
     for (const c of mediumCatalog) out[c.medium] = c
@@ -144,7 +147,7 @@ export default function VariantsTab({
   const updateVariantField = (id: string, patch: Partial<Variant>) =>
     setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)))
 
-  const debouncedSave = useDebouncedSave()
+  const debouncedSave = useDebouncedSave(toast)
 
   const onMarginChange = (id: string, value: number | null) => {
     updateVariantField(id, { margin_override_pct: value })
@@ -194,9 +197,11 @@ export default function VariantsTab({
             : `${changes.length} updated — ${changes.slice(0, 3).map((d) => `${d.medium} ${d.size_label}: ${fmtCents(d.cost_before)} → ${fmtCents(d.cost_after)}`).join(', ')}${changes.length > 3 ? `, +${changes.length - 3} more` : ''}`,
         )
         setRefreshStatus('done')
+        toast.success('Prices refreshed.')
         await reload()
       } else {
         setRefreshStatus('error')
+        toast.error('Could not refresh prices. Please try again.')
       }
     })
   }
@@ -227,10 +232,16 @@ export default function VariantsTab({
   }
 
   const deleteVariant = async (id: string) => {
-    await fetch(`/api/admin/variants/${id}`, { method: 'DELETE' })
-    setVariants((prev) => prev.filter((v) => v.id !== id))
-    setConfirmDelete(null)
-    await reload()
+    try {
+      await apiSend(`/api/admin/variants/${id}`, 'DELETE')
+      setVariants((prev) => prev.filter((v) => v.id !== id))
+      setConfirmDelete(null)
+      toast.success('Size deleted.')
+      await reload()
+    } catch (err) {
+      setConfirmDelete(null)
+      toast.error(errorMessage(err))
+    }
   }
 
   // Configured mediums = those Lumaprints has priced (subcategory + sizes).
@@ -525,6 +536,7 @@ function CustomSizeModal({
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
 
   // Aspect-locked auto-fill — editing one dimension drives the other.
   const setHeight = (h: number) => { setHeightIn(h); setWidthIn(partnerDimension(h, 'height', ratio)) }
@@ -589,23 +601,38 @@ function CustomSizeModal({
     if (!check.ok) { setError(blockingReason || 'Fix the size before saving.'); return }
     setSaving(true)
     setError(null)
-    const res = await fetch(`/api/admin/products/${productId}/variants/custom`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        medium,
-        name: name.trim(),
-        width_in: widthIn,
-        height_in: heightIn,
-        margin_override_pct: marginPct === '' ? null : Number(marginPct),
-        manual_price_override_cents: useManual && manualOverride !== '' ? Math.round(Number(manualOverride) * 100) : null,
-        is_active: publish,
-      }),
-    })
-    const body = await res.json().catch(() => ({}))
-    setSaving(false)
-    if (res.ok) onCreated()
-    else setError(body.error || 'Could not save the size.')
+    try {
+      const result = await apiSend<{ live_blocked?: boolean; reason?: string }>(
+        `/api/admin/products/${productId}/variants/custom`,
+        'POST',
+        {
+          medium,
+          name: name.trim(),
+          width_in: widthIn,
+          height_in: heightIn,
+          margin_override_pct: marginPct === '' ? null : Number(marginPct),
+          manual_price_override_cents: useManual && manualOverride !== '' ? Math.round(Number(manualOverride) * 100) : null,
+          is_active: publish,
+        },
+      )
+      // A publish request can succeed at the DB layer but still fail the
+      // fulfillability gate — the size is saved as a Draft, not Live. Surface
+      // the reason loudly instead of silently closing as if it published.
+      if (result?.live_blocked) {
+        toast.error(`Saved as a draft — it can't go live yet. ${result.reason ?? ''}`.trim())
+      } else if (publish) {
+        toast.success('Size published and live on the site.')
+      } else {
+        toast.success('Size saved as a draft.')
+      }
+      onCreated()
+    } catch (err) {
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const Checkline = ({ ok, text }: { ok: boolean; text: string }) => (
@@ -703,16 +730,17 @@ function CustomSizeModal({
   )
 }
 
-function useDebouncedSave() {
+function useDebouncedSave(toast: ReturnType<typeof useToast>) {
   const [timeouts] = useState(() => new Map<string, ReturnType<typeof setTimeout>>())
   return (id: string, patch: Partial<Variant>) => {
     if (timeouts.has(id)) clearTimeout(timeouts.get(id))
     const t = setTimeout(async () => {
-      await fetch(`/api/admin/variants/${id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(patch),
-      })
+      try {
+        await apiSend(`/api/admin/variants/${id}`, 'PATCH', patch)
+        toast.success('Saved.')
+      } catch (err) {
+        toast.error(errorMessage(err))
+      }
     }, 500)
     timeouts.set(id, t)
   }

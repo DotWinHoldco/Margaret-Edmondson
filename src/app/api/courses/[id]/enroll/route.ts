@@ -1,6 +1,7 @@
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 // POST /api/courses/[id]/enroll — enroll in a free course or start Stripe Checkout for a paid one; authenticated users.
 export async function POST(
@@ -29,7 +30,7 @@ export async function POST(
     }
 
     if (!user) {
-      return Response.json({ error: 'Authentication required' }, { status: 401 })
+      return apiError('Authentication required', 401, 'UNAUTHORIZED')
     }
 
     // Per-user throttle so a single valid account can't hammer enrollment.
@@ -44,11 +45,11 @@ export async function POST(
       .single()
 
     if (courseError || !course) {
-      return Response.json({ error: 'Course not found' }, { status: 404 })
+      return apiError('Course not found', 404, 'NOT_FOUND')
     }
 
     if (course.status !== 'published') {
-      return Response.json({ error: 'Course is not available' }, { status: 400 })
+      return apiError('Course is not available', 400, 'NOT_AVAILABLE')
     }
 
     // profiles.id IS auth.uid() — there is no auth_user_id column.
@@ -63,7 +64,7 @@ export async function POST(
       .maybeSingle()
 
     if (existingEnrollment) {
-      return Response.json({ error: 'Already enrolled in this course' }, { status: 409 })
+      return apiError('You are already enrolled in this course.', 409, 'CONFLICT')
     }
 
     // Free course: enroll directly. Use the service client for the INSERT —
@@ -81,7 +82,7 @@ export async function POST(
         .single()
 
       if (enrollError) {
-        return Response.json({ error: enrollError.message }, { status: 500 })
+        return dbFail(enrollError, 'courses enroll insert')
       }
 
       return Response.json({ enrolled: true, enrollment })
@@ -125,7 +126,6 @@ export async function POST(
 
     return Response.json({ url: session.url })
   } catch (err) {
-    console.error('Enrollment error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'courses enroll' })
   }
 }

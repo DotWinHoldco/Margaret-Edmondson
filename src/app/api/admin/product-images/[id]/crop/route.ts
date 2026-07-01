@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, apiFail } from '@/lib/api/respond'
 
 // Save a crop of a product photo. The client sends the already-cropped webp
 // (canvas output) plus its dimensions. We upload it to a SEPARATE crops/<id>.webp
@@ -41,7 +41,7 @@ export async function POST(
     contentType: 'image/webp',
     upsert: true,
   })
-  if (up.error) return apiError(up.error.message, 500, 'STORAGE_ERROR')
+  if (up.error) return apiFail(up.error, { code: 'STORAGE_ERROR', publicMessage: 'We could not save that image. Please try again.' })
 
   const patch: Record<string, unknown> = {
     url: `${PUB}${key}?v=${Date.now()}`,
@@ -61,7 +61,7 @@ export async function POST(
     .eq('id', id)
     .select('id, url, width, height, original_url')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
 
   const { data: prod } = await sb.from('products').select('slug').eq('id', img.product_id).single()
   if (prod?.slug) revalidatePath(`/shop/art/${prod.slug}`)

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 export default function ProductRowActions({
   productId,
@@ -13,25 +15,18 @@ export default function ProductRowActions({
   status: string
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [pending, setPending] = useState<'status' | 'delete' | null>(null)
   const isArchived = status === 'archived'
 
   async function handleSetStatus(next: 'archived' | 'active') {
     setPending('status')
     try {
-      const res = await fetch(`/api/admin/products/${productId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: next }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        alert(data.error || 'Failed to update product status')
-        return
-      }
+      await apiSend(`/api/admin/products/${productId}`, 'PATCH', { status: next })
+      toast.success(next === 'archived' ? 'Product archived.' : 'Product restored.')
       router.refresh()
-    } catch {
-      alert('Failed to update product status')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setPending(null)
     }
@@ -47,17 +42,11 @@ export default function ProductRowActions({
     }
     setPending('delete')
     try {
-      const res = await fetch(`/api/admin/products/${productId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        alert(data.error || 'Failed to delete product')
-        return
-      }
+      await apiSend(`/api/admin/products/${productId}`, 'DELETE')
+      toast.success('Product deleted.')
       router.refresh()
-    } catch {
-      alert('Failed to delete product')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setPending(null)
     }

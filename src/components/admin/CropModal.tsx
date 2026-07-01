@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { apiFetch, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Item {
   id: string
@@ -37,6 +39,7 @@ export default function CropModal({
   const [crop, setCrop] = useState<Rect | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const toast = useToast()
 
   // Force a fresh, CORS-enabled fetch so canvas export isn't blocked by a
   // previously-cached non-CORS copy of the same URL.
@@ -116,12 +119,16 @@ export default function CropModal({
       fd.append('file', blob, 'crop.webp')
       fd.append('width', String(sw))
       fd.append('height', String(sh))
-      const r = await fetch(`/api/admin/product-images/${item.id}/crop`, { method: 'POST', body: fd })
-      const body = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(body.error || 'Save failed')
-      onSaved({ url: body.data.url, width: body.data.width, height: body.data.height })
+      const data = await apiFetch<{ url: string; width: number; height: number }>(
+        `/api/admin/product-images/${item.id}/crop`,
+        { method: 'POST', body: fd },
+      )
+      toast.success('Photo cropped and saved.')
+      onSaved({ url: data.url, width: data.width, height: data.height })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Crop failed (the image may block cross-origin canvas export).')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }

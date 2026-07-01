@@ -43,6 +43,12 @@ export interface VariantData {
   price: number
   variant_type: string
   inventory_count: number
+  // Print-availability gates — mirror the storefront ProductDetail so a funnel
+  // never offers a print that would fail at LumaPrints. Draft variants are
+  // is_active false; is_lumaprints_available false means the size is disabled.
+  is_active?: boolean
+  is_lumaprints_available?: boolean
+  medium?: string | null
 }
 
 export interface FunnelTemplateProps {
@@ -50,4 +56,7 @@ export interface FunnelTemplateProps {
   product: ProductData
   images: ImageData[]
   variants: VariantData[]
+  // True only when the product's print master is 'ready' with a stored file.
+  // Print variants are suppressed unless this is true (LumaPrints belt-and-suspenders).
+  masterReady: boolean
 }

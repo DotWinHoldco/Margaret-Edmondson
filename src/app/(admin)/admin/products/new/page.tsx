@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Variant {
   id: string
@@ -27,6 +29,7 @@ function generateSlug(title: string): string {
 
 export default function NewProductPage() {
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -122,23 +125,17 @@ export default function NewProductPage() {
           })),
       }
 
-      const res = await fetch('/api/admin/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      const product = await apiSend<{ id?: string }>('/api/admin/products', 'POST', body)
 
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to create product')
-      }
-
+      toast.success('Product created.')
       // Land on the new item's edit page so the Saved banner + full form
       // editing experience flow naturally from "create" to "refine".
-      const newId = json.data?.id
+      const newId = product?.id
       router.push(newId ? `/admin/products/${newId}/edit` : '/admin/products')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }

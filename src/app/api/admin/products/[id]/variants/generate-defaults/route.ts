@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { MEDIUMS, type Medium } from '@/lib/pricing/mediums'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { buildPricedVariantRow } from '@/lib/pricing/variant-insert'
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from('product_variants')
       .insert(rows)
       .select('id, medium, size_label')
-    if (error) return apiError(error.message, 500, 'DB_ERROR')
+    if (error) return dbFail(error)
     created = data as typeof created
   }
 

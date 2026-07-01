@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 type Rect = { x: number; y: number; w: number; h: number }
 type Mode = 'move' | 'nw' | 'ne' | 'sw' | 'se'
@@ -47,6 +49,7 @@ export default function MasterCropModal({
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(master.print_status ?? null)
   const [error, setError] = useState('')
+  const toast = useToast()
 
   const onLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -127,18 +130,19 @@ export default function MasterCropModal({
         w: round4(crop.w / disp.w),
         h: round4(crop.h / disp.h),
       }
-      const r = await fetch(`/api/admin/master-artworks/${master.id}/crop`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ crop_box, border_mode: borderMode, border_color: borderColor }),
-      })
-      const body = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(body.error || 'Could not queue the crop')
-      const next = body.data?.print_status || 'pending'
+      const data = await apiSend<{ print_status?: string }>(
+        `/api/admin/master-artworks/${master.id}/crop`,
+        'POST',
+        { crop_box, border_mode: borderMode, border_color: borderColor },
+      )
+      const next = data?.print_status || 'pending'
       setStatus(next)
+      toast.success('Print master queued for processing.')
       onSaved({ print_status: next, border_mode: borderMode, border_color: borderColor })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Crop failed')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }

@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import * as tus from 'tus-js-client'
 import { createClient } from '@/lib/supabase/client'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/tiff', 'application/pdf']
 const MAX_BYTES = 500 * 1024 * 1024 // 500MB — matches bucket limit
@@ -92,6 +94,7 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const toast = useToast()
 
   function pickFile(f: File | null) {
     setError(null)
@@ -148,10 +151,9 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
       setStatus('creating')
       const dims = await readDimensions(file)
 
-      const res = await fetch('/api/admin/master-artworks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let created: UploadedArtwork
+      try {
+        created = await apiSend<UploadedArtwork>('/api/admin/master-artworks', 'POST', {
           title: title.trim(),
           description: description.trim() || null,
           storage_path: path,
@@ -160,23 +162,23 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
           mime_type: file.type,
           width_px: dims.width,
           height_px: dims.height,
-        }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
+        })
+      } catch (registerErr) {
         // Clean up the uploaded blob since the row failed.
         await supabase.storage.from('print-masters').remove([path]).catch(() => {})
-        throw new Error(json.error || 'Failed to register artwork')
+        throw registerErr
       }
 
-      onUploaded(json.data as UploadedArtwork)
+      onUploaded(created)
       setFile(null)
       setTitle('')
       setDescription('')
       setStatus('idle')
       if (inputRef.current) inputRef.current.value = ''
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
+      const message = errorMessage(e)
+      setError(message)
+      toast.error(message)
       setStatus('idle')
       setProgress(null)
     }

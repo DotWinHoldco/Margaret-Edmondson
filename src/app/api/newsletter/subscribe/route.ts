@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { sendWelcomeEmail } from '@/lib/email/triggers'
+import { apiError } from '@/lib/api/respond'
 
 interface SubscribeRow {
   contact_id: string
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   if (!email || !email.includes('@')) {
-    return Response.json({ error: 'Valid email required' }, { status: 400 })
+    return apiError('Enter a valid email address.', 400, 'INVALID_EMAIL')
   }
 
   const normalizedEmail = email.toLowerCase().trim()
@@ -56,13 +57,13 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error('subscribe_to_newsletter RPC failed:', error)
-    return Response.json({ error: 'Failed to record subscription' }, { status: 500 })
+    return apiError('We could not record your subscription. Please try again.', 500, 'SUBSCRIBE_FAILED')
   }
 
   // Postgres returns an array (the function declared RETURNS TABLE).
   const row = (Array.isArray(data) ? data[0] : data) as SubscribeRow | null
   if (!row) {
-    return Response.json({ error: 'Failed to record subscription' }, { status: 500 })
+    return apiError('We could not record your subscription. Please try again.', 500, 'SUBSCRIBE_FAILED')
   }
 
   if (row.status !== 'active') {

@@ -59,7 +59,7 @@ const dancingScript = Dancing_Script({
   display: "swap",
 });
 
-const FALLBACK_TITLE = "ArtByMe — Mixed Media & Fine Art by Margaret Edmondson";
+const FALLBACK_TITLE = "ArtByME — Mixed Media & Fine Art by Margaret Edmondson";
 const FALLBACK_DESCRIPTION =
   "Original mixed-media collage art, oil paintings, fine art prints, and art classes by Margaret Edmondson. Commission custom artwork or shop the gallery.";
 const FALLBACK_OG_IMAGE = "/ME-Share-Image.jpg";
@@ -86,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: {
       default: title,
-      template: "%s | ArtByMe",
+      template: "%s | ArtByME",
     },
     description,
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://artbyme.studio"),

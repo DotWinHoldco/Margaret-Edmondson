@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createClient } from '@/lib/supabase/server'
+import { apiError, dbFail, apiOk } from '@/lib/api/respond'
 
 // GET /api/admin/master-artworks/[id] — fetch a master artwork and the products using it; admin only.
 export async function GET(
@@ -24,10 +25,10 @@ export async function GET(
     .eq('id', id)
     .maybeSingle()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  if (!data) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (error) return dbFail(error, 'admin/master-artworks GET')
+  if (!data) return apiError('That master artwork could not be found.', 404, 'NOT_FOUND')
 
-  return Response.json({ data })
+  return apiOk(data)
 }
 
 // PATCH /api/admin/master-artworks/[id] — update a master artwork's metadata; admin only.
@@ -47,7 +48,7 @@ export async function PATCH(
     dpi?: number | null
   } | null
 
-  if (!body) return Response.json({ error: 'Body required' }, { status: 400 })
+  if (!body) return apiError('Invalid request body.', 400, 'INVALID_JSON')
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (typeof body.title === 'string' && body.title.trim()) updates.title = body.title.trim()
@@ -63,8 +64,8 @@ export async function PATCH(
     .select('id, title, description, storage_path, file_name, file_size_bytes, mime_type, width_px, height_px, dpi, uploaded_by, created_at, updated_at')
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ data })
+  if (error) return dbFail(error, 'admin/master-artworks PATCH')
+  return apiOk(data)
 }
 
 // DELETE /api/admin/master-artworks/[id] — delete a master artwork (blocked if products reference it) and remove its storage object; admin only.
@@ -83,11 +84,10 @@ export async function DELETE(
     .eq('master_artwork_id', id)
 
   if ((usageCount ?? 0) > 0) {
-    return Response.json(
-      {
-        error: `Cannot delete: ${usageCount} product(s) still reference this artwork. Detach them first.`,
-      },
-      { status: 409 },
+    return apiError(
+      `This artwork is still used by ${usageCount} product${usageCount === 1 ? '' : 's'}. Detach it from them before deleting.`,
+      409,
+      'CONFLICT',
     )
   }
 
@@ -98,7 +98,7 @@ export async function DELETE(
     .maybeSingle()
 
   const { error } = await auth.supabase.from('master_artworks').delete().eq('id', id)
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/master-artworks DELETE')
 
   // Best-effort storage removal; not fatal if it fails.
   if (row?.storage_path) {
@@ -106,5 +106,5 @@ export async function DELETE(
     await sb.storage.from('print-masters').remove([row.storage_path]).catch(() => {})
   }
 
-  return Response.json({ data: { id } })
+  return apiOk({ id })
 }

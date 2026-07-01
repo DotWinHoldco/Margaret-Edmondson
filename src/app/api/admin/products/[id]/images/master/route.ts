@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail, apiOk } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // Record a print-master storage key against a product_images row.
@@ -17,7 +18,7 @@ export async function PATCH(
     imageId?: string
     printMasterPath?: string | null
   }
-  if (!imageId) return Response.json({ error: 'imageId required' }, { status: 400 })
+  if (!imageId) return apiError('Could not tell which image to update. Please refresh and try again.', 400, 'VALIDATION_FAILED')
 
   const { data, error } = await supabase
     .from('product_images')
@@ -27,6 +28,6 @@ export async function PATCH(
     .select('id, print_master_path')
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ data })
+  if (error) return dbFail(error, 'admin/products images/master PATCH')
+  return apiOk(data)
 }

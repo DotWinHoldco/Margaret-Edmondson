@@ -13,6 +13,8 @@ import ArrangeCollection from '../../ArrangeCollection'
 import CropModal from '@/components/admin/CropModal'
 import MasterCropModal from '@/components/admin/MasterCropModal'
 import type { Medium } from '@/lib/pricing/mediums'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface MasterApiRow {
   id: string
@@ -63,6 +65,7 @@ function MasterFooter({
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const toast = useToast()
   const supabase = createClient()
 
   async function handleFile(file: File) {
@@ -75,16 +78,16 @@ function MasterFooter({
         .from('print-masters')
         .upload(path, file, { contentType: file.type, upsert: true })
       if (upErr) throw upErr
-      const res = await fetch(`/api/admin/products/${productId}/images/master`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageId: image.id, printMasterPath: path }),
+      await apiSend(`/api/admin/products/${productId}/images/master`, 'PATCH', {
+        imageId: image.id,
+        printMasterPath: path,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to save path')
       onChange(path)
+      toast.success('Print master linked.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''
@@ -93,15 +96,21 @@ function MasterFooter({
 
   async function handleClear() {
     if (!confirm('Remove the linked print master?')) return
-    if (image.print_master_path) {
-      await supabase.storage.from('print-masters').remove([image.print_master_path]).catch(() => {})
+    try {
+      if (image.print_master_path) {
+        await supabase.storage.from('print-masters').remove([image.print_master_path]).catch(() => {})
+      }
+      await apiSend(`/api/admin/products/${productId}/images/master`, 'PATCH', {
+        imageId: image.id,
+        printMasterPath: null,
+      })
+      onChange(null)
+      toast.success('Print master removed.')
+    } catch (err) {
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     }
-    await fetch(`/api/admin/products/${productId}/images/master`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageId: image.id, printMasterPath: null }),
-    })
-    onChange(null)
   }
 
   return (
@@ -170,6 +179,28 @@ interface ProductImage {
   print_master_path?: string | null
 }
 
+// The saved product record returned by PATCH /api/admin/products/[id], used to
+// re-hydrate the form after a save.
+interface FreshProduct {
+  title?: string | null
+  slug?: string | null
+  category_id?: string | null
+  product_categories?: Array<{ category_id: string; is_primary?: boolean }>
+  description_html?: string | null
+  medium?: string | null
+  dimensions?: string | null
+  base_price?: number | null
+  compare_at_price?: number | null
+  margin_pct?: number | null
+  fulfillment_type?: string | null
+  status?: string | null
+  is_original?: boolean | null
+  is_featured?: boolean | null
+  funnel_eligible?: boolean | null
+  tags?: string[] | null
+  product_variants?: Array<{ id: string; name: string; price: number; sku: string; medium?: string | null }>
+}
+
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -183,6 +214,7 @@ export default function EditProductPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -381,23 +413,21 @@ export default function EditProductPage({
     setRefreshMsg(null)
     try {
       // Persist the product margin override (null = inherit) before refreshing.
-      await fetch(`/api/admin/products/${id}/margin`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ default_margin_pct: _ownMargin }),
-      })
-      const r = await fetch('/api/admin/variants/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: id }),
-      })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error || 'Refresh failed')
-      const diffs = (d.data?.diffs || []) as Array<{ cost_before: number; cost_after: number }>
+      await apiSend(`/api/admin/products/${id}/margin`, 'PATCH', { default_margin_pct: _ownMargin })
+      const d = await apiSend<{ diffs?: Array<{ cost_before: number; cost_after: number }>; refreshed?: number }>(
+        '/api/admin/variants/refresh',
+        'POST',
+        { product_id: id },
+      )
+      const diffs = d?.diffs || []
       const changes = diffs.filter((x) => x.cost_before !== x.cost_after).length
-      setRefreshMsg(`Refreshed ${d.data?.refreshed ?? 0} variant${d.data?.refreshed === 1 ? '' : 's'} — ${changes} price change${changes === 1 ? '' : 's'}.`)
+      const message = `Refreshed ${d?.refreshed ?? 0} variant${d?.refreshed === 1 ? '' : 's'} — ${changes} price change${changes === 1 ? '' : 's'}.`
+      setRefreshMsg(message)
+      toast.success(message)
     } catch (err) {
-      setRefreshMsg(err instanceof Error ? err.message : 'Refresh failed')
+      const message = errorMessage(err)
+      setRefreshMsg(message)
+      toast.error(message)
     } finally {
       setRefreshing(false)
     }
@@ -445,20 +475,11 @@ export default function EditProductPage({
           })),
       }
 
-      const res = await fetch(`/api/admin/products/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to update product')
-      }
+      const fresh = await apiSend<FreshProduct | null>(`/api/admin/products/${id}`, 'PATCH', body)
+      toast.success('Product saved.')
 
       // Re-hydrate the form with the saved record so any server-side
       // normalization (auto-slug, default flags, etc.) is reflected.
-      const fresh = json.data
       if (fresh) {
         setTitle(fresh.title || '')
         setSlug(fresh.slug || '')
@@ -502,7 +523,9 @@ export default function EditProductPage({
       setIsDirty(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -946,18 +969,20 @@ export default function EditProductPage({
                         <button
                           type="button"
                           onClick={async () => {
-                            const res = await fetch(`/api/admin/products/${id}/images`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ imageId: image.id, is_primary: true }),
-                            })
-                            if (res.ok) {
+                            try {
+                              await apiSend(`/api/admin/products/${id}/images`, 'PATCH', {
+                                imageId: image.id,
+                                is_primary: true,
+                              })
                               setImages((prev) =>
                                 prev.map((img) => ({
                                   ...img,
                                   is_primary: img.id === image.id,
                                 }))
                               )
+                              toast.success('Primary image updated.')
+                            } catch (err) {
+                              toast.error(errorMessage(err))
                             }
                           }}
                           className="rounded-md bg-white/90 px-2.5 py-1 font-body text-[11px] font-medium text-charcoal hover:bg-white transition-colors"
@@ -971,13 +996,14 @@ export default function EditProductPage({
                           title: 'Delete this image?',
                           message: 'This will remove it from the product gallery.',
                           action: async () => {
-                            const res = await fetch(`/api/admin/products/${id}/images`, {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ imageId: image.id }),
-                            })
-                            if (res.ok) {
+                            try {
+                              await apiSend(`/api/admin/products/${id}/images`, 'DELETE', {
+                                imageId: image.id,
+                              })
                               setImages((prev) => prev.filter((img) => img.id !== image.id))
+                              toast.success('Image removed.')
+                            } catch (err) {
+                              toast.error(errorMessage(err))
                             }
                             setConfirm(null)
                           },
@@ -1020,20 +1046,26 @@ export default function EditProductPage({
                 onChange={async (e) => {
                   const files = e.target.files
                   if (!files?.length) return
+                  const total = files.length
                   setUploading(true)
                   try {
                     const formData = new FormData()
                     Array.from(files).forEach((f) => formData.append('files', f))
-                    const res = await fetch(`/api/admin/products/${id}/images`, {
-                      method: 'POST',
-                      body: formData,
-                    })
-                    const json = await res.json()
-                    if (json.data) {
-                      setImages((prev) => [...prev, ...json.data])
+                    const result = await apiFetch<{ images: ProductImage[]; failed: number }>(
+                      `/api/admin/products/${id}/images`,
+                      { method: 'POST', body: formData },
+                    )
+                    const added = result.images ?? []
+                    setImages((prev) => [...prev, ...added])
+                    if (result.failed > 0) {
+                      toast.error(
+                        `Added ${added.length} of ${total} image${total === 1 ? '' : 's'}. ${result.failed} could not be uploaded.`,
+                      )
+                    } else {
+                      toast.success(`Added ${added.length} image${added.length === 1 ? '' : 's'}.`)
                     }
                   } catch (err) {
-                    console.error('Upload failed:', err)
+                    toast.error(errorMessage(err))
                   } finally {
                     setUploading(false)
                     e.target.value = ''
@@ -1246,14 +1278,16 @@ export default function EditProductPage({
         uploadBucket="product-images"
         title="Add image from library"
         onPick={async (picked) => {
-          const res = await fetch(`/api/admin/products/${id}/images/from-library`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ url: picked.url, alt_text: picked.alt_text, media_id: picked.id }),
-          })
-          if (res.ok) {
-            const body = await res.json()
-            setImages((prev) => [...prev, body.data])
+          try {
+            const added = await apiSend<ProductImage>(
+              `/api/admin/products/${id}/images/from-library`,
+              'POST',
+              { url: picked.url, alt_text: picked.alt_text, media_id: picked.id },
+            )
+            setImages((prev) => [...prev, added])
+            toast.success('Image added from library.')
+          } catch (err) {
+            toast.error(errorMessage(err))
           }
         }}
       />

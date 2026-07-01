@@ -9,6 +9,8 @@ import {
   useTransform,
   AnimatePresence,
 } from 'framer-motion'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 /* ─────────────────────────────────────────────
    METADATA (re-exported from a parallel file
@@ -21,7 +23,7 @@ import {
    ───────────────────────────────────────────── */
 
 const META = {
-  title: 'ArtByMe — Studio Energy',
+  title: 'ArtByME — Studio Energy',
   description:
     'Bold, editorial art — original mixed-media collage, oil paintings, and custom commissions by Margaret Edmondson.',
 }
@@ -968,6 +970,29 @@ function TestimonialsSection() {
    7. NEWSLETTER SIGNUP
    ═══════════════════════════════════════════════ */
 function NewsletterSection() {
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const toast = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await apiSend('/api/newsletter/subscribe', 'POST', {
+        email: email.trim(),
+        source: 'v2',
+      })
+      setSubmitted(true)
+      toast.success('You are on the list. Check your inbox for a welcome note.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <section className="relative overflow-hidden bg-[#F5F0EB] py-24 lg:py-32">
       {/* decorative top torn edge */}
@@ -1036,25 +1061,38 @@ function NewsletterSection() {
             <DecorativeLine className="mx-auto w-12" />
           </motion.div>
 
-          <motion.form
-            variants={fadeUp}
-            custom={4}
-            className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <input
-              type="email"
-              placeholder="your@email.com"
-              required
-              className="font-friendly flex-1 rounded-sm border border-[#1A1A1A]/15 bg-white px-5 py-3.5 text-sm text-[#1A1A1A] placeholder:text-[#1A1A1A]/30 transition-all duration-300 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
-            />
-            <button
-              type="submit"
-              className="font-friendly rounded-sm bg-coral px-8 py-3.5 text-sm font-bold uppercase tracking-widest text-white transition-all duration-300 hover:bg-coral/90 hover:shadow-lg hover:shadow-coral/20"
+          {submitted ? (
+            <motion.p
+              variants={fadeUp}
+              custom={4}
+              className="font-friendly mx-auto mt-10 max-w-md text-base text-coral"
             >
-              Subscribe
-            </button>
-          </motion.form>
+              You are on the list. Check your inbox for a welcome note.
+            </motion.p>
+          ) : (
+            <motion.form
+              variants={fadeUp}
+              custom={4}
+              className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
+              onSubmit={handleSubmit}
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="font-friendly flex-1 rounded-sm border border-[#1A1A1A]/15 bg-white px-5 py-3.5 text-sm text-[#1A1A1A] placeholder:text-[#1A1A1A]/30 transition-all duration-300 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="font-friendly rounded-sm bg-coral px-8 py-3.5 text-sm font-bold uppercase tracking-widest text-white transition-all duration-300 hover:bg-coral/90 hover:shadow-lg hover:shadow-coral/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Joining...' : 'Subscribe'}
+              </button>
+            </motion.form>
+          )}
 
           <motion.p
             variants={fadeUp}

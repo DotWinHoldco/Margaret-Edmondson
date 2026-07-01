@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail, apiOk } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // POST /api/admin/products/[id]/images — upload images to storage and register them on a product; admin only.
@@ -16,7 +17,7 @@ export async function POST(
     const files = formData.getAll('files') as File[]
 
     if (!files.length) {
-      return Response.json({ error: 'No files provided' }, { status: 400 })
+      return apiError('Please choose at least one image to upload.', 400, 'VALIDATION_FAILED')
     }
 
     // Get current image count for sort order
@@ -27,6 +28,7 @@ export async function POST(
 
     const startOrder = existingImages?.length || 0
     const uploaded: Array<{ id: string; url: string; alt_text: string; is_primary: boolean; sort_order: number }> = []
+    let failed = 0
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -42,7 +44,8 @@ export async function POST(
         })
 
       if (uploadError) {
-        console.error('Upload error:', uploadError)
+        console.error('[api] admin/products images POST upload:', uploadError.message)
+        failed++
         continue
       }
 
@@ -65,6 +68,10 @@ export async function POST(
         .select()
         .single()
 
+      if (insertError || !imageRow) {
+        if (insertError) console.error('[api] admin/products images POST insert:', insertError.message)
+        failed++
+      }
       if (!insertError && imageRow) {
         uploaded.push(imageRow)
         // Register in central media library so the image shows up in
@@ -89,10 +96,13 @@ export async function POST(
       }
     }
 
-    return Response.json({ data: uploaded }, { status: 201 })
+    // If every file failed, surface a real error rather than a silent empty 201.
+    if (uploaded.length === 0) {
+      return apiError('None of the images could be uploaded. Please check the files and try again.', 502, 'UPLOAD_FAILED')
+    }
+    return apiOk({ images: uploaded, failed, total: files.length }, 201)
   } catch (err) {
-    console.error('POST /api/admin/products/[id]/images error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/products images POST' })
   }
 }
 
@@ -109,7 +119,7 @@ export async function DELETE(
 
     const { imageId } = await request.json()
     if (!imageId) {
-      return Response.json({ error: 'Image ID required' }, { status: 400 })
+      return apiError('Could not tell which image to remove. Please refresh and try again.', 400, 'VALIDATION_FAILED')
     }
 
     // Get the image record to find the storage path
@@ -134,13 +144,12 @@ export async function DELETE(
       .eq('id', imageId)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/products images DELETE')
     }
 
-    return Response.json({ success: true })
+    return apiOk({ success: true })
   } catch (err) {
-    console.error('DELETE /api/admin/products/[id]/images error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/products images DELETE' })
   }
 }
 
@@ -177,12 +186,11 @@ export async function PATCH(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/products images PATCH')
     }
 
-    return Response.json({ data })
+    return apiOk(data)
   } catch (err) {
-    console.error('PATCH /api/admin/products/[id]/images error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/products images PATCH' })
   }
 }

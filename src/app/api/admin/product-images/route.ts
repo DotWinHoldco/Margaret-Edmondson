@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiOk, dbFail } from '@/lib/api/respond'
 
 // Lists every product photo (joined to its product) for the media manager's
 // Product Photos / crop view. Admin-gated, service client so drafts show too.
@@ -12,7 +12,7 @@ export async function GET() {
   const { data, error } = await sb
     .from('product_images')
     .select('id, url, width, height, is_primary, sort_order, original_url, product_id, products(title, slug, status)')
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
 
   const items = (data || []).map((r) => {
     const p = (Array.isArray(r.products) ? r.products[0] : r.products) as

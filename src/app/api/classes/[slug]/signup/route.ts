@@ -8,7 +8,7 @@ import { escapeHtml } from '@/lib/email/escape'
 import { upsertContact } from '@/lib/crm/contacts'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { signBucketUrls } from '@/lib/storage/signed'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const SignupBody = z.object({
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .eq('slug', slug)
     .maybeSingle()
 
-  if (sessionErr) return apiError(sessionErr.message, 500, 'DB_ERROR')
+  if (sessionErr) return dbFail(sessionErr, 'class signup session lookup')
   if (!session) return apiError('Class not found', 404, 'NOT_FOUND')
   if (!['published', 'sold_out'].includes(session.status)) {
     return apiError('Class is not currently accepting signups', 409, 'NOT_OPEN')
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_notes: body.special_notes || null,
     p_photos: body.pet_photo_urls || [],
   })
-  if (bookErr) return apiError(bookErr.message, 500, 'DB_ERROR')
+  if (bookErr) return dbFail(bookErr, 'class signup book_class_session')
   if (bookResult === 'SOLD_OUT') return apiError('This class is fully booked', 409, 'SOLD_OUT')
   if (bookResult !== 'OK') return apiError('Class not found', 404, 'NOT_FOUND')
 

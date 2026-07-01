@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Cat { id: string; name: string }
 
@@ -17,19 +19,24 @@ export default function CategoryCell({
   categories: Cat[]
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [value, setValue] = useState(currentCategoryId || '')
   const [saving, setSaving] = useState(false)
 
   async function onChange(next: string) {
+    const prev = value
     setValue(next)
     setSaving(true)
-    await fetch(`/api/admin/products/${productId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ category_id: next || null }),
-    })
-    setSaving(false)
-    router.refresh()
+    try {
+      await apiSend(`/api/admin/products/${productId}`, 'PATCH', { category_id: next || null })
+      toast.success('Category updated.')
+      router.refresh()
+    } catch (err) {
+      setValue(prev)
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

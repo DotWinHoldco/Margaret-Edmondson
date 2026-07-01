@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiOk, dbFail } from '@/lib/api/respond'
 import { MEDIA_CATEGORIES, type MediaCategory } from '@/lib/media/categories'
 
 const PAGE_SIZE = 60
@@ -29,6 +29,6 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error, count } = await q
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ items: data || [], total: count ?? 0, page, pageSize: PAGE_SIZE })
 }

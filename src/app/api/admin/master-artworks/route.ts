@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail, apiOk } from '@/lib/api/respond'
 
 const PAGE_SIZE = 60
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error, count } = await query
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/master-artworks list GET')
 
   const rows = (data || []).map((row) => {
     const usageCount = Array.isArray(row.used_by) ? row.used_by.length : 0
@@ -57,9 +58,7 @@ export async function GET(request: NextRequest) {
     return true
   })
 
-  return Response.json({
-    data: { items: filtered, total: count ?? filtered.length, pageSize: PAGE_SIZE },
-  })
+  return apiOk({ items: filtered, total: count ?? filtered.length, pageSize: PAGE_SIZE })
 }
 
 // POST /api/admin/master-artworks — register a master artwork record from an uploaded file; admin only.
@@ -80,10 +79,7 @@ export async function POST(request: NextRequest) {
   } | null
 
   if (!body || !body.title || !body.storage_path || !body.file_name || !body.mime_type) {
-    return Response.json(
-      { error: 'title, storage_path, file_name, and mime_type are required' },
-      { status: 400 },
-    )
+    return apiError('Please provide a title and a valid file before saving.', 400, 'VALIDATION_FAILED')
   }
 
   const { data, error } = await auth.supabase
@@ -104,7 +100,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 })
+    return dbFail(error, 'admin/master-artworks POST')
   }
-  return Response.json({ data })
+  return apiOk(data)
 }

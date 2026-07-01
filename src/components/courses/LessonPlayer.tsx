@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 import LessonComments from './LessonComments'
 
 export interface LessonResource {
@@ -77,6 +79,7 @@ export default function LessonPlayer(props: LessonPlayerProps) {
   } = props
 
   const router = useRouter()
+  const toast = useToast()
   const [completed, setCompleted] = useState(initialCompleted)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -109,13 +112,16 @@ export default function LessonPlayer(props: LessonPlayerProps) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Could not save your progress.')
+        throw new Error(resolveErrorMessage({ code: data?.code, message: data?.error }))
       }
       setCompleted(next)
+      toast.success(next ? 'Lesson marked complete.' : 'Lesson marked as not complete.')
       // Refresh so the sidebar progress bar + curriculum reflect the change.
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      const friendly = resolveErrorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
     } finally {
       setSaving(false)
     }
@@ -172,7 +178,7 @@ export default function LessonPlayer(props: LessonPlayerProps) {
           {completed ? '✓ Completed' : saving ? 'Saving…' : 'Mark complete'}
         </button>
       </div>
-      {error && <p className="mt-2 font-body text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 font-body text-sm text-coral">{error}</p>}
 
       {/* CONTENT */}
       {safeHtml && (

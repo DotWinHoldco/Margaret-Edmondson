@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { resetPassword } from '@/lib/supabase/auth'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 export default function ForgotPasswordPage() {
+  const toast = useToast()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -18,9 +21,12 @@ export default function ForgotPasswordPage() {
     const { error } = await resetPassword(email)
 
     if (error) {
-      setError(error.message)
+      const friendly = resolveErrorMessage(error)
+      setError(friendly)
+      toast.error(friendly)
     } else {
       setSent(true)
+      toast.success('Reset link sent. Check your email.')
     }
 
     setLoading(false)

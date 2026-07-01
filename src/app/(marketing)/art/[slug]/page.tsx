@@ -21,7 +21,8 @@ async function getFunnelBySlug(slug: string) {
         id, title, slug, description_html, story_html,
         medium, dimensions, base_price, is_original, prints_enabled, status,
         product_images ( id, url, alt_text, sort_order ),
-        product_variants ( id, name, price, variant_type, inventory_count, sort_order )
+        product_variants ( id, name, price, variant_type, inventory_count, sort_order, is_active, is_lumaprints_available, medium ),
+        master_artwork:master_artworks ( print_status, print_storage_path )
       )
     `)
     .eq('slug', slug)
@@ -69,6 +70,16 @@ export default async function ArtFunnelPage(props: Props) {
   const variants = ((product.product_variants as Array<Record<string, unknown>>) || [])
     .sort((a, b) => ((a.sort_order as number) || 0) - ((b.sort_order as number) || 0))
 
+  // Mirror the storefront ProductDetail print gate: only offer prints when the
+  // product's master file is print-ready, otherwise a print order would 406 at
+  // LumaPrints. The join returns a row or an array depending on cardinality.
+  const masterRaw = product.master_artwork as
+    | { print_status: string | null; print_storage_path: string | null }
+    | { print_status: string | null; print_storage_path: string | null }[]
+    | null
+  const master = Array.isArray(masterRaw) ? masterRaw[0] : masterRaw
+  const masterReady = master?.print_status === 'ready' && !!master?.print_storage_path
+
   const templateData = {
     funnel: {
       id: funnel.id as string,
@@ -112,7 +123,11 @@ export default async function ArtFunnelPage(props: Props) {
       price: v.price as number,
       variant_type: v.variant_type as string,
       inventory_count: v.inventory_count as number,
+      is_active: v.is_active as boolean | undefined,
+      is_lumaprints_available: v.is_lumaprints_available as boolean | undefined,
+      medium: v.medium as string | null | undefined,
     })),
+    masterReady,
   }
 
   const TemplateComponent =

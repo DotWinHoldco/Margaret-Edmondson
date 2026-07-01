@@ -1,5 +1,6 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 // GET /api/lessons/[id]/comments — list a lesson's comments with author names/avatars; enrolled students only.
 export async function GET(
@@ -14,7 +15,7 @@ export async function GET(
     // Authenticate user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return Response.json({ error: 'Authentication required' }, { status: 401 })
+      return apiError('Authentication required', 401, 'UNAUTHORIZED')
     }
 
     // Get the lesson and its course
@@ -25,12 +26,12 @@ export async function GET(
       .single()
 
     if (lessonError || !lesson) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
 
     const courseModule = lesson.course_modules as unknown as { course_id: string } | null
     if (!courseModule?.course_id) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
     const courseId = courseModule.course_id
 
@@ -47,7 +48,7 @@ export async function GET(
       .maybeSingle()
 
     if (!enrollment) {
-      return Response.json({ error: 'Not enrolled in this course' }, { status: 403 })
+      return apiError('You are not enrolled in this course.', 403, 'FORBIDDEN')
     }
 
     // Authorized: read with the service client so the profiles join resolves
@@ -62,13 +63,12 @@ export async function GET(
       .order('created_at', { ascending: true })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'lesson comments GET')
     }
 
     return Response.json({ comments: comments || [] })
   } catch (err) {
-    console.error('Comments fetch error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'lesson comments GET' })
   }
 }
 
@@ -85,7 +85,7 @@ export async function POST(
     // Authenticate user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return Response.json({ error: 'Authentication required' }, { status: 401 })
+      return apiError('Authentication required', 401, 'UNAUTHORIZED')
     }
 
     // Per-user throttle so a single valid account can't spam comments.
@@ -96,7 +96,7 @@ export async function POST(
     const { content, parent_id } = body
 
     if (!content?.trim()) {
-      return Response.json({ error: 'Content is required' }, { status: 400 })
+      return apiError('Content is required', 400, 'MISSING_FIELDS')
     }
 
     // Get the lesson and its course
@@ -107,12 +107,12 @@ export async function POST(
       .single()
 
     if (lessonError || !lesson) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
 
     const courseModule = lesson.course_modules as unknown as { course_id: string } | null
     if (!courseModule?.course_id) {
-      return Response.json({ error: 'Lesson not found' }, { status: 404 })
+      return apiError('Lesson not found', 404, 'NOT_FOUND')
     }
     const courseId = courseModule.course_id
 
@@ -129,7 +129,7 @@ export async function POST(
       .maybeSingle()
 
     if (!enrollment) {
-      return Response.json({ error: 'Not enrolled in this course' }, { status: 403 })
+      return apiError('You are not enrolled in this course.', 403, 'FORBIDDEN')
     }
 
     // Create comment
@@ -150,12 +150,11 @@ export async function POST(
       .single()
 
     if (commentError) {
-      return Response.json({ error: commentError.message }, { status: 500 })
+      return dbFail(commentError, 'lesson comments POST insert')
     }
 
     return Response.json({ comment }, { status: 201 })
   } catch (err) {
-    console.error('Comment creation error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'lesson comments POST' })
   }
 }

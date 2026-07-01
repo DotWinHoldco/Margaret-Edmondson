@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { resolveErrorMessage } from '@/lib/errors/friendly'
 
 export default function EnrollButton({
   courseId,
@@ -14,6 +16,7 @@ export default function EnrollButton({
   isAuthed: boolean
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,7 +51,7 @@ export default function EnrollButton({
           router.refresh()
           return
         }
-        throw new Error(data?.error || 'Could not enroll. Please try again.')
+        throw new Error(resolveErrorMessage({ code: data?.code, message: data?.error }))
       }
 
       if (data?.url) {
@@ -58,9 +61,12 @@ export default function EnrollButton({
       }
 
       // Free course enrolled directly.
+      toast.success('You are enrolled. Enjoy the course.')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      const friendly = resolveErrorMessage(err)
+      setError(friendly)
+      toast.error(friendly)
     } finally {
       setLoading(false)
     }
@@ -80,7 +86,7 @@ export default function EnrollButton({
             ? 'Enroll for free'
             : 'Enroll now'}
       </button>
-      {error && <p className="mt-2 font-body text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 font-body text-sm text-coral">{error}</p>}
     </div>
   )
 }

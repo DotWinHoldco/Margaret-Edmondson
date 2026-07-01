@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { recomputeProductVariantPrices } from '@/lib/pricing/margin'
 
 // null = inherit the category → site default.
@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('products')
     .update({ default_margin_pct: parsed.data.default_margin_pct, updated_at: new Date().toISOString() })
     .eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   const repriced = await recomputeProductVariantPrices(id)
   return apiOk({ id, default_margin_pct: parsed.data.default_margin_pct, repriced })
 }

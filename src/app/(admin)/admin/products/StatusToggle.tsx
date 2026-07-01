@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 const BADGE: Record<string, string> = {
   active: 'bg-teal/15 text-teal',
@@ -13,6 +15,7 @@ const BADGE: Record<string, string> = {
 // Inline publish/unpublish (draft ↔ active) toggle on the products list.
 export default function StatusToggle({ productId, status: initial }: { productId: string; status: string }) {
   const router = useRouter()
+  const toast = useToast()
   const [status, setStatus] = useState(initial)
   const [saving, setSaving] = useState(false)
 
@@ -20,14 +23,16 @@ export default function StatusToggle({ productId, status: initial }: { productId
     const prev = status
     setStatus(next)
     setSaving(true)
-    const res = await fetch(`/api/admin/products/${productId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ status: next }),
-    })
-    setSaving(false)
-    if (!res.ok) { setStatus(prev); return }
-    router.refresh()
+    try {
+      await apiSend(`/api/admin/products/${productId}`, 'PATCH', { status: next })
+      toast.success(next === 'active' ? 'Product is now live.' : `Product moved to ${next}.`)
+      router.refresh()
+    } catch (err) {
+      setStatus(prev)
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   // Archived/sold are a different lifecycle axis — show the badge plus a quick

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 
 const PatchBody = z.object({
@@ -43,7 +43,7 @@ export async function PATCH(
     .eq('id', id)
     .eq('profile_id', user.id)
     .maybeSingle()
-  if (ownErr) return apiError(ownErr.message, 500, 'DB_ERROR')
+  if (ownErr) return dbFail(ownErr, 'account/addresses PATCH ownership')
   if (!owned) return apiError('Address not found', 404, 'NOT_FOUND')
 
   const updates: Record<string, unknown> = {}
@@ -67,7 +67,7 @@ export async function PATCH(
       .eq('profile_id', user.id)
       .eq('is_default', true)
       .neq('id', id)
-    if (clearError) return apiError(clearError.message, 500, 'DB_ERROR')
+    if (clearError) return dbFail(clearError, 'account/addresses PATCH clear default')
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -78,7 +78,7 @@ export async function PATCH(
     .select('id, profile_id, label, line1, line2, city, state, postal_code, country, is_default, created_at')
     .single()
 
-  if (updateError) return apiError(updateError.message, 500, 'DB_ERROR')
+  if (updateError) return dbFail(updateError, 'account/addresses PATCH update')
   return apiOk(updated)
 }
 
@@ -105,7 +105,7 @@ export async function DELETE(
     .eq('profile_id', user.id)
     .select('id')
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'account/addresses DELETE')
   if (!data || data.length === 0) {
     return apiError('Address not found', 404, 'NOT_FOUND')
   }

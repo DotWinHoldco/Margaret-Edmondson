@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import CropModal from '@/components/admin/CropModal'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface PhotoItem {
   id: string
@@ -22,17 +24,20 @@ export default function ProductPhotosManager() {
   const [search, setSearch] = useState('')
   const [cropping, setCropping] = useState<PhotoItem | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const toast = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/product-images', { cache: 'no-store' })
-    const body = await res.json().catch(() => ({}))
-    setItems(body.data?.items || [])
+    try {
+      const data = await apiFetch<{ items: PhotoItem[] }>('/api/admin/product-images', { cache: 'no-store' })
+      setItems(data?.items || [])
+    } catch {
+      /* keep any existing list on a transient load failure */
+    }
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 
@@ -49,13 +54,17 @@ export default function ProductPhotosManager() {
 
   async function revert(it: PhotoItem) {
     setBusy(it.id)
-    const res = await fetch(`/api/admin/product-images/${it.id}/revert`, { method: 'POST' })
-    const body = await res.json().catch(() => ({}))
-    setBusy(null)
-    if (res.ok) {
-      setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, url: body.data.url, width: body.data.width, height: body.data.height, is_cropped: false } : p)))
-    } else {
-      alert(body.error || 'Revert failed')
+    try {
+      const data = await apiSend<{ url: string; width: number | null; height: number | null }>(
+        `/api/admin/product-images/${it.id}/revert`,
+        'POST',
+      )
+      setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, url: data.url, width: data.width, height: data.height, is_cropped: false } : p)))
+      toast.success('Photo reverted to the original.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusy(null)
     }
   }
 

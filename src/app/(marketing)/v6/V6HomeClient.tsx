@@ -12,6 +12,8 @@ import {
   useInView,
 } from 'framer-motion'
 import type { Easing } from 'framer-motion'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 const ease: Easing = [0.22, 1, 0.36, 1]
 
@@ -687,6 +689,27 @@ function ClassesSection() {
    ════════════════════════════════════════════════════════════ */
 function NewsletterSection() {
   const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const toast = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await apiSend('/api/newsletter/subscribe', 'POST', {
+        email: email.trim(),
+        source: 'v6',
+      })
+      setSubmitted(true)
+      toast.success('You are on the list. Check your inbox for a welcome note.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Section className="py-20 md:py-28 px-6 bg-cream">
@@ -724,18 +747,29 @@ function NewsletterSection() {
 
           {/* postcard address lines / email input */}
           <motion.div className="max-w-md" variants={fadeUp} custom={3}>
-            <div className="flex gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="flex-1 border-b-2 border-charcoal/20 bg-transparent font-body text-charcoal placeholder:text-charcoal/30 py-3 px-1 focus:border-coral focus:outline-none transition-colors"
-              />
-              <button className="bg-coral text-white font-body font-semibold px-6 py-3 rounded-full hover:scale-105 hover:shadow-lg transition-all duration-300 whitespace-nowrap">
-                Subscribe
-              </button>
-            </div>
+            {submitted ? (
+              <p className="font-body text-charcoal py-3">
+                You are on the list. Check your inbox for a welcome note.
+              </p>
+            ) : (
+              <form className="flex gap-3" onSubmit={handleSubmit}>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 border-b-2 border-charcoal/20 bg-transparent font-body text-charcoal placeholder:text-charcoal/30 py-3 px-1 focus:border-coral focus:outline-none transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-coral text-white font-body font-semibold px-6 py-3 rounded-full hover:scale-105 hover:shadow-lg transition-all duration-300 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {loading ? 'Joining...' : 'Subscribe'}
+                </button>
+              </form>
+            )}
             {/* decorative address lines */}
             <div className="mt-4 space-y-3">
               <div className="border-b border-charcoal/10 w-full" />

@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiOk, dbFail } from '@/lib/api/respond'
 
 interface Row {
   medium: string
@@ -20,6 +20,6 @@ export async function GET() {
     .from('lumaprints_mediums')
     .select('medium, category_id, subcategory_id, name, option_ids, sizes, enabled, last_synced_at')
     .order('medium', { ascending: true })
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
   return apiOk({ items: (data || []) as Row[] })
 }

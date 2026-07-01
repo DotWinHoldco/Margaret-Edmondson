@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, parseBody, dbFail } from '@/lib/api/respond'
 
 const Body = z.object({
   url: z.string().url(),
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
     .select()
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error)
 
   // Tag the media_library row with this product so it appears under the
   // product source in the manager.

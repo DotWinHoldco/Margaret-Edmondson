@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { MEDIA_CATEGORIES, MEDIA_CATEGORY_LABEL, type MediaCategory } from '@/lib/media/categories'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 export interface MediaItem {
   id: string
@@ -40,18 +42,20 @@ export default function MediaManager() {
   const [showUpload, setShowUpload] = useState(false)
   const [selected, setSelected] = useState<MediaItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<MediaItem | null>(null)
+  const toast = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
-    const params = new URLSearchParams()
-    if (filter !== 'all') params.set('category', filter)
-    if (search) params.set('q', search)
-    if (page) params.set('page', String(page))
-    const res = await fetch(`/api/admin/media?${params.toString()}`)
-    if (res.ok) {
-      const body = await res.json()
-      setItems(body.data.items)
-      setTotal(body.data.total)
+    try {
+      const params = new URLSearchParams()
+      if (filter !== 'all') params.set('category', filter)
+      if (search) params.set('q', search)
+      if (page) params.set('page', String(page))
+      const data = await apiFetch<{ items: MediaItem[]; total: number }>(`/api/admin/media?${params.toString()}`)
+      setItems(data.items)
+      setTotal(data.total)
+    } catch {
+      /* keep any existing list on a transient load failure */
     }
     setLoading(false)
   }, [filter, search, page])
@@ -68,11 +72,14 @@ export default function MediaManager() {
   }
 
   const handleDelete = async (item: MediaItem) => {
-    const res = await fetch(`/api/admin/media/${item.id}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/media/${item.id}`, 'DELETE')
       setItems((prev) => prev.filter((i) => i.id !== item.id))
       setTotal((t) => Math.max(0, t - 1))
       setSelected(null)
+      toast.success('Image deleted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
     setConfirmDelete(null)
   }
@@ -218,6 +225,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [alt, setAlt] = useState('')
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(0)
+  const toast = useToast()
 
   const toggleCategory = (c: MediaCategory) => {
     setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
@@ -227,15 +235,27 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (files.length === 0 || categories.length === 0) return
     setUploading(true)
     setDone(0)
+    let ok = 0
+    let failed = 0
     for (const file of files) {
       const fd = new FormData()
       fd.append('file', file)
       fd.append('categories', categories.join(','))
       if (alt) fd.append('alt_text', alt)
-      const res = await fetch('/api/admin/media/upload', { method: 'POST', body: fd })
-      if (res.ok) setDone((d) => d + 1)
+      try {
+        await apiFetch('/api/admin/media/upload', { method: 'POST', body: fd })
+        ok += 1
+        setDone((d) => d + 1)
+      } catch {
+        failed += 1
+      }
     }
     setUploading(false)
+    if (failed > 0) {
+      toast.error(`Uploaded ${ok} of ${files.length} image${files.length === 1 ? '' : 's'}. ${failed} could not be uploaded.`)
+    } else {
+      toast.success(`Uploaded ${ok} image${ok === 1 ? '' : 's'}.`)
+    }
     onDone()
   }
 
@@ -325,6 +345,7 @@ function DetailDrawer({
   const [alt, setAlt] = useState(item.alt_text || '')
   const [categories, setCategories] = useState<MediaCategory[]>(item.categories)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const toast = useToast()
 
   const toggle = (c: MediaCategory) => {
     setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
@@ -332,15 +353,15 @@ function DetailDrawer({
 
   const save = async () => {
     setStatus('saving')
-    const res = await fetch(`/api/admin/media/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ alt_text: alt || null, categories }),
-    })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/media/${item.id}`, 'PATCH', { alt_text: alt || null, categories })
       setStatus('saved')
+      toast.success('Saved.')
       onChange({ ...item, alt_text: alt || null, categories })
       setTimeout(() => setStatus('idle'), 1500)
+    } catch (err) {
+      setStatus('idle')
+      toast.error(errorMessage(err))
     }
   }
 
