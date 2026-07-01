@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiFail, dbFail } from '@/lib/api/respond'
 // GET /api/admin/subscribers — list newsletter subscribers; admin only.
 export async function GET() {
   try {
@@ -8,18 +9,15 @@ export async function GET() {
     const { data, error } = await supabase
       .from('newsletter_subscribers')
       .select('id, email, first_name, source, subscribed_at, unsubscribed_at')
-      .order('created_at', { ascending: false })
+      .order('subscribed_at', { ascending: false, nullsFirst: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/subscribers GET')
     }
 
     return Response.json({ subscribers: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/subscribers GET' })
   }
 }
 
@@ -30,7 +28,7 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id')
 
     if (!id) {
-      return Response.json({ error: 'ID is required.' }, { status: 400 })
+      return Response.json({ error: 'ID is required.', code: 'MISSING_ID' }, { status: 400 })
     }
 
     const auth = await requireAdmin()
@@ -42,14 +40,11 @@ export async function DELETE(request: Request) {
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/subscribers DELETE')
     }
 
     return Response.json({ success: true })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/subscribers DELETE' })
   }
 }

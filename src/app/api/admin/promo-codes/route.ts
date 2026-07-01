@@ -1,5 +1,10 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
+
+// A duplicate promo code trips the unique index on promo_codes.code.
+const DUPLICATE_CODE_MESSAGE =
+  'That promo code already exists. Please use a different code.'
 
 // GET /api/admin/promo-codes — list all promo codes; admin only.
 export async function GET() {
@@ -13,15 +18,12 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/promo-codes GET')
     }
 
     return Response.json({ promoCodes: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/promo-codes GET' })
   }
 }
 
@@ -66,15 +68,15 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError(DUPLICATE_CODE_MESSAGE, 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/promo-codes POST')
     }
 
     return Response.json({ promoCode: data }, { status: 201 })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/promo-codes POST' })
   }
 }
 
@@ -99,15 +101,15 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError(DUPLICATE_CODE_MESSAGE, 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/promo-codes PATCH')
     }
 
     return Response.json({ promoCode: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/promo-codes PATCH' })
   }
 }
 
@@ -130,14 +132,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/promo-codes DELETE')
     }
 
     return Response.json({ success: true })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/promo-codes DELETE' })
   }
 }

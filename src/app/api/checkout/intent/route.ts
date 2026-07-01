@@ -21,6 +21,25 @@ function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
 }
 
+// Map a promo validator reason code to friendly, shopper-safe copy so a raw
+// enum ("usage_exhausted") never reaches the checkout screen. Mirrors the
+// cart page's promoErrorMessage; the reason enum is still returned as `code`
+// for client branching.
+function promoReasonMessage(reason?: string): string {
+  switch (reason) {
+    case 'not_found': return 'That code is not recognized.'
+    case 'expired': return 'That code has expired.'
+    case 'not_yet_valid': return 'That code is not active yet.'
+    case 'inactive': return 'That code is no longer active.'
+    case 'usage_exhausted': return 'That code has been fully redeemed.'
+    case 'min_order_not_met': return 'Your cart does not meet the minimum order amount for that code.'
+    case 'wrong_contact': return 'That code was sent to a different email. Return to your cart to re-apply it.'
+    case 'wrong_cart': return 'That code is reserved for a different cart.'
+    case 'already_redeemed': return 'You have already used that code.'
+    default: return 'That code could not be applied. Return to your cart to try another.'
+  }
+}
+
 // POST /api/checkout/intent — re-price the cart from DB and create a Stripe PaymentIntent for on-site checkout; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout-intent' })
@@ -151,7 +170,7 @@ export async function POST(request: Request) {
         { contactId, email, cartId, cartSubtotal }
       )
       if (!validation.ok) {
-        return jsonError(`Promo code: ${validation.reason}`, 400, validation.reason)
+        return jsonError(promoReasonMessage(validation.reason), 400, validation.reason)
       }
       discountCents = Math.min(validation.amountOffCents, subtotalCents)
       appliedCodeId = validation.code.id || null
@@ -279,8 +298,14 @@ export async function POST(request: Request) {
       },
     })
   } catch (err) {
+    // Log the real detail server-side; the shopper on the money path only ever
+    // sees friendly copy, never Stripe/Postgres jargon. Keep the machine code
+    // for client branching + the express-checkout fallback.
     console.error('Checkout intent failed', err)
-    const message = err instanceof Error ? err.message : 'Checkout failed'
-    return jsonError(message, 500, 'checkout_failed')
+    return jsonError(
+      'We could not start your checkout just now. Please try again in a moment, or use express checkout below.',
+      500,
+      'checkout_failed',
+    )
   }
 }

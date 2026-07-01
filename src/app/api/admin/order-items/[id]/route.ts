@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail } from '@/lib/api/respond'
 
 // B-25: let admins record shipping/tracking for self-ship (original artwork)
 // items and mark them shipped/delivered from the order detail page.
@@ -21,7 +22,7 @@ export async function PATCH(
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return apiError('Please provide a valid request.', 400, 'INVALID_BODY')
   }
 
   const updates: Record<string, unknown> = {}
@@ -38,7 +39,7 @@ export async function PATCH(
   }
 
   if (Object.keys(updates).length === 0) {
-    return Response.json({ error: 'No fields to update' }, { status: 400 })
+    return apiError('Please provide at least one field to update.', 400, 'VALIDATION_FAILED')
   }
 
   const { data, error } = await auth.supabase
@@ -49,8 +50,7 @@ export async function PATCH(
     .single()
 
   if (error) {
-    console.error('order-item tracking update failed:', error)
-    return Response.json({ error: error.message }, { status: 500 })
+    return dbFail(error, 'admin/order-items PATCH')
   }
 
   return Response.json({ success: true, item: data })

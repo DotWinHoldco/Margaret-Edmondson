@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Lesson {
   id: string
@@ -40,6 +42,7 @@ export default function ModuleLessonManager({
   enrollmentStats: EnrollmentStats
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [modules, setModules] = useState<Module[]>(initialModules)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     new Set()
@@ -77,24 +80,18 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/classes/${courseId}/modules`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newModuleTitle.trim() }),
+      const data = await apiSend<Module>(`/api/admin/classes/${courseId}/modules`, 'POST', {
+        title: newModuleTitle.trim(),
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create module')
-      }
-
-      const { data } = await res.json()
       setModules((prev) => [...prev, { ...data, lessons: [] }])
       setNewModuleTitle('')
       setAddingModule(false)
       setExpandedModules((prev) => new Set([...prev, data.id]))
+      toast.success('Module added.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSavingModule(false)
     }
@@ -106,27 +103,20 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(
+      const data = await apiSend<Module>(
         `/api/admin/classes/${courseId}/modules/${moduleId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: editModuleTitle.trim() }),
-        }
+        'PATCH',
+        { title: editModuleTitle.trim() }
       )
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to update module')
-      }
-
-      const { data } = await res.json()
       setModules((prev) =>
         prev.map((m) => (m.id === moduleId ? { ...m, ...data } : m))
       )
       setEditingModule(null)
+      toast.success('Module updated.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -139,19 +129,13 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(
-        `/api/admin/classes/${courseId}/modules/${moduleId}`,
-        { method: 'DELETE' }
-      )
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to delete module')
-      }
-
+      await apiSend(`/api/admin/classes/${courseId}/modules/${moduleId}`, 'DELETE')
       setModules((prev) => prev.filter((m) => m.id !== moduleId))
+      toast.success('Module deleted.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -176,36 +160,29 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(
+      const data = await apiSend<Lesson>(
         `/api/admin/classes/${courseId}/modules/${moduleId}/lessons`,
+        'POST',
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: lessonForm.title.trim(),
-            video_url: lessonForm.video_url || null,
-            video_duration_minutes: lessonForm.video_duration_minutes
-              ? parseFloat(lessonForm.video_duration_minutes)
-              : null,
-            is_preview: lessonForm.is_preview,
-          }),
+          title: lessonForm.title.trim(),
+          video_url: lessonForm.video_url || null,
+          video_duration_minutes: lessonForm.video_duration_minutes
+            ? parseFloat(lessonForm.video_duration_minutes)
+            : null,
+          is_preview: lessonForm.is_preview,
         }
       )
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create lesson')
-      }
-
-      const { data } = await res.json()
       setModules((prev) =>
         prev.map((m) =>
           m.id === moduleId ? { ...m, lessons: [...m.lessons, data] } : m
         )
       )
       setAddingLessonFor(null)
+      toast.success('Lesson added.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -229,28 +206,18 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(
+      const data = await apiSend<Lesson>(
         `/api/admin/classes/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
+        'PATCH',
         {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: lessonForm.title.trim(),
-            video_url: lessonForm.video_url || null,
-            video_duration_minutes: lessonForm.video_duration_minutes
-              ? parseFloat(lessonForm.video_duration_minutes)
-              : null,
-            is_preview: lessonForm.is_preview,
-          }),
+          title: lessonForm.title.trim(),
+          video_url: lessonForm.video_url || null,
+          video_duration_minutes: lessonForm.video_duration_minutes
+            ? parseFloat(lessonForm.video_duration_minutes)
+            : null,
+          is_preview: lessonForm.is_preview,
         }
       )
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to update lesson')
-      }
-
-      const { data } = await res.json()
       setModules((prev) =>
         prev.map((m) =>
           m.id === moduleId
@@ -264,8 +231,11 @@ export default function ModuleLessonManager({
         )
       )
       setEditingLesson(null)
+      toast.success('Lesson updated.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -277,16 +247,10 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(
+      await apiSend(
         `/api/admin/classes/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
-        { method: 'DELETE' }
+        'DELETE'
       )
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to delete lesson')
-      }
-
       setModules((prev) =>
         prev.map((m) =>
           m.id === moduleId
@@ -294,8 +258,11 @@ export default function ModuleLessonManager({
             : m
         )
       )
+      toast.success('Lesson deleted.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -312,18 +279,13 @@ export default function ModuleLessonManager({
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/classes/${courseId}`, {
-        method: 'DELETE',
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to delete course')
-      }
-
+      await apiSend(`/api/admin/classes/${courseId}`, 'DELETE')
+      toast.success('Course deleted.')
       router.push('/admin/courses')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
       setBusy(false)
     }
   }

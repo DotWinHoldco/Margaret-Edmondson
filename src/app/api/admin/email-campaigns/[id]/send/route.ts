@@ -4,7 +4,7 @@
 // batches so we never block this request.
 
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // POST /api/admin/email-campaigns/[id]/send — send the campaign to its audience now; admin only.
@@ -34,7 +34,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     .select('contact:crm_contacts!inner(id, email, first_name, status)')
     .eq('list_id', campaign.audience_list_id)
 
-  if (mErr) return apiError(mErr.message, 500, 'DB_ERROR')
+  if (mErr) return dbFail(mErr, 'admin/email-campaigns/[id]/send members')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (members || []).map((row: any) => {
@@ -57,7 +57,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   const { error: insertErr } = await auth.supabase
     .from('email_campaign_recipients')
     .upsert(recipientInserts, { onConflict: 'campaign_id,email_snapshot', ignoreDuplicates: true })
-  if (insertErr) return apiError(insertErr.message, 500, 'DB_ERROR')
+  if (insertErr) return dbFail(insertErr, 'admin/email-campaigns/[id]/send recipients')
 
   const { data: updated, error: updateErr } = await auth.supabase
     .from('email_campaigns')
@@ -69,7 +69,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
     .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .maybeSingle()
-  if (updateErr) return apiError(updateErr.message, 500, 'DB_ERROR')
+  if (updateErr) return dbFail(updateErr, 'admin/email-campaigns/[id]/send update')
 
   return apiOk({ campaign: updated, queued: recipientInserts.length })
 }

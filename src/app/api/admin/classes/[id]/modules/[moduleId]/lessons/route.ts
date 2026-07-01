@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -21,7 +22,7 @@ export async function POST(
     const supabase = auth.supabase
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
-      return Response.json({ error: 'Title is required' }, { status: 400 })
+      return apiError('Please enter a lesson title.', 400, 'INVALID_INPUT')
     }
 
     // Get max sort_order for this module
@@ -59,12 +60,13 @@ export async function POST(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505')
+        return apiError('A lesson with that link already exists. Please use a different title or slug.', 409, 'CONFLICT')
+      return dbFail(error, 'admin/classes/[id]/modules/[moduleId]/lessons POST')
     }
 
     return Response.json({ data: lesson }, { status: 201 })
   } catch (err) {
-    console.error('POST lessons error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id]/modules/[moduleId]/lessons POST' })
   }
 }

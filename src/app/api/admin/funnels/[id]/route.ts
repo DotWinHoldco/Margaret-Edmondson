@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { createServiceClient } from '@/lib/supabase/server'
 // GET /api/admin/funnels/[id] — fetch a funnel with its product, images, and variants; admin only.
 export async function GET(
@@ -26,16 +27,16 @@ export async function GET(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/funnels/[id] GET')
     }
 
     if (!funnel) {
-      return Response.json({ error: 'Funnel not found.' }, { status: 404 })
+      return apiError('That funnel could not be found.', 404, 'NOT_FOUND')
     }
 
     return Response.json({ funnel })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/funnels/[id] GET' })
   }
 }
 
@@ -92,7 +93,7 @@ export async function PATCH(
     }
 
     if (Object.keys(updateData).length === 0) {
-      return Response.json({ error: 'No fields to update.' }, { status: 400 })
+      return apiError('No fields to update.', 400, 'BAD_REQUEST')
     }
 
     updateData.updated_at = new Date().toISOString()
@@ -105,12 +106,15 @@ export async function PATCH(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/funnels/[id] PATCH')
     }
 
     return Response.json({ funnel })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/funnels/[id] PATCH' })
   }
 }
 
@@ -131,11 +135,11 @@ export async function DELETE(
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/funnels/[id] DELETE')
     }
 
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/funnels/[id] DELETE' })
   }
 }

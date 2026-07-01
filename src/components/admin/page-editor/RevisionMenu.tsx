@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { errorMessage } from '@/lib/api/client'
 
 interface Revision {
   id: string
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export default function RevisionMenu({ slug, sectionKey, cacheToken, onReverted }: Props) {
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [revisions, setRevisions] = useState<Revision[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -60,10 +63,11 @@ export default function RevisionMenu({ slug, sectionKey, cacheToken, onReverted 
       })
       if (res.ok) {
         setOpen(false)
+        toast.success('Reverted.')
         onReverted()
       } else {
         const data = await res.json().catch(() => ({}))
-        alert(data?.error || 'Revert failed')
+        toast.error(errorMessage({ code: data?.code, message: data?.error }))
       }
     } finally {
       setReverting(null)

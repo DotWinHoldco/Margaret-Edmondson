@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 /**
  * DELETE /api/admin/carts
@@ -16,12 +17,10 @@ export async function DELETE() {
   if (!auth.ok) return auth.response
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return Response.json(
-      {
-        error:
-          'Cart clearing requires SUPABASE_SERVICE_ROLE_KEY to be configured.',
-      },
-      { status: 503 }
+    return apiError(
+      'Cart clearing requires SUPABASE_SERVICE_ROLE_KEY to be configured.',
+      503,
+      'NOT_CONFIGURED'
     )
   }
 
@@ -36,11 +35,11 @@ export async function DELETE() {
       .select('id')
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/carts DELETE')
     }
 
     return Response.json({ success: true, clearedCount: data?.length ?? 0 })
-  } catch {
-    return Response.json({ error: 'Failed to clear carts.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/carts DELETE' })
   }
 }

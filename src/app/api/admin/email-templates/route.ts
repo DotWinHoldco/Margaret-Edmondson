@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { z } from 'zod'
 
 const Create = z.object({
@@ -34,7 +34,7 @@ export async function GET() {
     .select('id, name, subject, content_json, content_html, template_type, category, variables, is_active, created_at, updated_at')
     .order('name', { ascending: true })
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/email-templates GET')
   return Response.json({ templates: data || [] })
 }
 
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     .insert(insert)
     .select('id, name, subject, content_json, content_html, template_type, category, variables, is_active, created_at, updated_at')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/email-templates POST')
   return apiOk({ template: data }, 201)
 }
 
@@ -82,6 +82,6 @@ export async function PATCH(request: Request) {
     .eq('id', id)
     .select()
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/email-templates PATCH')
   return Response.json({ template: data })
 }

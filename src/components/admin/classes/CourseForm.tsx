@@ -3,6 +3,8 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface CourseData {
   id?: string
@@ -35,8 +37,10 @@ export default function CourseForm({
   mode: 'create' | 'edit'
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
 
   const [title, setTitle] = useState(course?.title || '')
   const [slug, setSlug] = useState(course?.slug || '')
@@ -99,31 +103,22 @@ export default function CourseForm({
         status,
       }
 
-      const url =
-        mode === 'edit'
-          ? `/api/admin/classes/${course?.id}`
-          : '/api/admin/classes'
-      const method = mode === 'edit' ? 'PATCH' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to save course')
-      }
-
       if (mode === 'create') {
-        const data = await res.json()
-        router.push(`/admin/courses/${data.data.id}`)
+        const created = await apiSend<{ id: string }>('/api/admin/classes', 'POST', body)
+        toast.success('Course created.')
+        router.push(`/admin/courses/${created.id}`)
       } else {
+        const saved = await apiSend<{ slug?: string }>(`/api/admin/classes/${course?.id}`, 'PATCH', body)
+        // The slug may have been deduped server-side; reflect the saved value.
+        if (saved?.slug) setSlug(saved.slug)
+        setSavedAt(new Date())
+        toast.success('Changes saved.')
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -140,6 +135,14 @@ export default function CourseForm({
       {error && (
         <div className="rounded-lg border border-coral/30 bg-coral/10 p-4">
           <p className="font-body text-sm text-coral">{error}</p>
+        </div>
+      )}
+
+      {savedAt && !error && (
+        <div className="rounded-lg border border-teal/30 bg-teal/10 p-4">
+          <p className="font-body text-sm text-teal">
+            Saved {savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.
+          </p>
         </div>
       )}
 

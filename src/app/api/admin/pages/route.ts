@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -20,15 +21,12 @@ export async function GET() {
       .order('updated_at', { ascending: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/pages GET')
     }
 
     return Response.json({ pages: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/pages GET' })
   }
 }
 
@@ -39,10 +37,7 @@ export async function POST(request: NextRequest) {
     const { title, content_json, content_html, seo_title, seo_description } = body
 
     if (!title || typeof title !== 'string' || !title.trim()) {
-      return Response.json(
-        { error: 'Title is required.' },
-        { status: 400 }
-      )
+      return apiError('Title is required.', 400, 'BAD_REQUEST')
     }
 
     const auth = await requireAdmin()
@@ -74,14 +69,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/pages POST')
     }
 
     return Response.json({ page: data }, { status: 201 })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/pages POST' })
   }
 }

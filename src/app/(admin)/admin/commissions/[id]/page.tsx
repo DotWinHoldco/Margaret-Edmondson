@@ -94,14 +94,17 @@ export default async function AdminCommissionDetailPage(
   const referenceImages = (commission.reference_images as string[]) || []
   // commission-references is a private bucket — mint signed URLs for the admin view.
   const signedReferenceImages = await signBucketUrls(supabase, 'commission-references', referenceImages)
-  // NOTE (DotWin): `messages` is not a column on `commissions`; this access was
-  // always undefined under the prior select('*') and resolved to []. Behavior is
-  // preserved here. A real commission-messages source is a tracked follow-up.
-  const messages = (commission as { messages?: Array<{
-    sender: string
-    text: string
-    date: string
-  }> }).messages || []
+  // Correspondence lives in the commission_messages table, keyed by commission_id.
+  const { data: messageRows } = await supabase
+    .from('commission_messages')
+    .select('id, sender_type, message, created_at')
+    .eq('commission_id', commission.id)
+    .order('created_at', { ascending: true })
+  const messages = (messageRows || []).map((m) => ({
+    sender: m.sender_type || 'client',
+    text: m.message || '',
+    date: m.created_at,
+  }))
 
   // Determine timeline progress
   const currentTimelineIndex = STATUS_TIMELINE.indexOf(status)

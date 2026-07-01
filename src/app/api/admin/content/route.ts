@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 // PATCH /api/admin/content — update a site content value by id; admin only.
 export async function PATCH(request: Request) {
   try {
@@ -6,7 +7,7 @@ export async function PATCH(request: Request) {
     const { id, content_value } = body
 
     if (!id) {
-      return Response.json({ error: 'ID is required.' }, { status: 400 })
+      return apiError('ID is required.', 400, 'BAD_REQUEST')
     }
 
     const auth = await requireAdmin()
@@ -20,14 +21,11 @@ export async function PATCH(request: Request) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/content PATCH')
     }
 
     return Response.json({ content: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/content PATCH' })
   }
 }

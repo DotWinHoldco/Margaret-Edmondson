@@ -7,6 +7,8 @@ import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import SharedFilesModal, { type SharedEntity } from '@/components/admin/SharedFilesModal'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface AuditEntry {
@@ -627,6 +629,7 @@ export default function ProjectHubClient({
   const feedbackRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
+  const toast = useToast()
 
   // Welcome gate + tutorial
   const [tutorialStep, setTutorialStep] = useState<number | null>(null)
@@ -664,15 +667,13 @@ export default function ProjectHubClient({
             ? `/api/admin/work-requests/${id}/comments`
             : `/api/admin/notes/${id}/comments`
 
-      const res = await fetch(endpoint)
-      const json = await res.json()
-      const data = json.data || []
+      const data = (await apiFetch<Comment[]>(endpoint)) || []
 
       if (type === 'feedback') setFeedbackComments((p) => ({ ...p, [id]: data }))
       else if (type === 'work-requests') setWorkComments((p) => ({ ...p, [id]: data }))
       else setNoteComments((p) => ({ ...p, [id]: data }))
-    } catch {
-      /* silently fail */
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setLoadingComments((p) => ({ ...p, [key]: false }))
     }
@@ -695,25 +696,18 @@ export default function ProjectHubClient({
           : `/api/admin/notes/${id}/comments`
 
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      })
-      const json = await res.json()
-
-      if (json.data) {
-        if (type === 'feedback') {
-          setFeedbackComments((p) => ({ ...p, [id]: [...(p[id] || []), json.data] }))
-        } else if (type === 'work-requests') {
-          setWorkComments((p) => ({ ...p, [id]: [...(p[id] || []), json.data] }))
-        } else {
-          setNoteComments((p) => ({ ...p, [id]: [...(p[id] || []), json.data] }))
-        }
-        clearFn()
+      const created = await apiSend<Comment>(endpoint, 'POST', { message })
+      if (type === 'feedback') {
+        setFeedbackComments((p) => ({ ...p, [id]: [...(p[id] || []), created] }))
+      } else if (type === 'work-requests') {
+        setWorkComments((p) => ({ ...p, [id]: [...(p[id] || []), created] }))
+      } else {
+        setNoteComments((p) => ({ ...p, [id]: [...(p[id] || []), created] }))
       }
-    } catch {
-      /* silently fail */
+      clearFn()
+      toast.success('Reply sent.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 
@@ -724,30 +718,23 @@ export default function ProjectHubClient({
     setFbSubmitting(true)
 
     try {
-      const res = await fetch('/api/admin/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: fbCategory,
-          page_or_feature: fbPage || null,
-          title: fbTitle,
-          description: fbDescription,
-          priority: fbPriority,
-        }),
+      const created = await apiSend<FeedbackItem>('/api/admin/feedback', 'POST', {
+        category: fbCategory,
+        page_or_feature: fbPage || null,
+        title: fbTitle,
+        description: fbDescription,
+        priority: fbPriority,
       })
-      const json = await res.json()
-
-      if (json.data) {
-        setFeedbackItems((p) => [{ ...json.data, comment_count: 0, audit_log: [] }, ...p])
-        setFbTitle('')
-        setFbDescription('')
-        setFbCategory('general')
-        setFbPage('')
-        setFbPriority('medium')
-        setFbCurrentPage(1)
-      }
-    } catch {
-      /* silently fail */
+      setFeedbackItems((p) => [{ ...created, comment_count: 0, audit_log: [] }, ...p])
+      setFbTitle('')
+      setFbDescription('')
+      setFbCategory('general')
+      setFbPage('')
+      setFbPriority('medium')
+      setFbCurrentPage(1)
+      toast.success('Feedback submitted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setFbSubmitting(false)
     }
@@ -755,64 +742,56 @@ export default function ProjectHubClient({
 
   async function updateFeedbackStatus(id: string, status: string) {
     try {
-      const res = await fetch('/api/admin/feedback', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
-      })
-      const json = await res.json()
-      if (json.data) {
-        setFeedbackItems((p) => p.map((item) => item.id === id ? { ...item, ...json.data, comment_count: item.comment_count, audit_log: item.audit_log } : item))
-        // Refresh to get updated audit log
-        refreshFeedback()
-      }
-    } catch { /* silently fail */ }
+      const updated = await apiSend<FeedbackItem>('/api/admin/feedback', 'PATCH', { id, status })
+      setFeedbackItems((p) => p.map((item) => item.id === id ? { ...item, ...updated, comment_count: item.comment_count, audit_log: item.audit_log } : item))
+      // Refresh to get updated audit log
+      refreshFeedback()
+      toast.success('Status updated.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function saveFeedbackEdit(id: string) {
     if (editFbSubmitting) return
     setEditFbSubmitting(true)
     try {
-      const res = await fetch('/api/admin/feedback', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          title: editFbTitle,
-          description: editFbDescription,
-          category: editFbCategory,
-          priority: editFbPriority,
-          page_or_feature: editFbPage,
-        }),
+      await apiSend('/api/admin/feedback', 'PATCH', {
+        id,
+        title: editFbTitle,
+        description: editFbDescription,
+        category: editFbCategory,
+        priority: editFbPriority,
+        page_or_feature: editFbPage,
       })
-      const json = await res.json()
-      if (json.data) {
-        setEditingFeedback(null)
-        refreshFeedback()
-      }
-    } catch { /* silently fail */ }
+      setEditingFeedback(null)
+      refreshFeedback()
+      toast.success('Saved.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
     finally { setEditFbSubmitting(false) }
   }
 
   async function deleteFeedback(id: string) {
     if (!confirm('Delete this feedback permanently?')) return
     try {
-      await fetch('/api/admin/feedback', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
+      await apiSend('/api/admin/feedback', 'DELETE', { id })
       setFeedbackItems((p) => p.filter((item) => item.id !== id))
       if (expandedFeedback === id) setExpandedFeedback(null)
-    } catch { /* silently fail */ }
+      toast.success('Deleted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function refreshFeedback() {
     try {
-      const res = await fetch('/api/admin/feedback')
-      const json = await res.json()
-      if (json.data) setFeedbackItems(json.data)
-    } catch { /* silently fail */ }
+      const items = await apiFetch<FeedbackItem[]>('/api/admin/feedback')
+      if (items) setFeedbackItems(items)
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   // ── Submit work request ─────────────────────────────────────────────
@@ -822,30 +801,23 @@ export default function ProjectHubClient({
     setWrSubmitting(true)
 
     try {
-      const res = await fetch('/api/admin/work-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: wrTitle,
-          category: wrCategory,
-          description: wrDescription,
-          priority: wrPriority,
-          due_date: wrDueDate || null,
-        }),
+      const created = await apiSend<WorkRequest>('/api/admin/work-requests', 'POST', {
+        title: wrTitle,
+        category: wrCategory,
+        description: wrDescription,
+        priority: wrPriority,
+        due_date: wrDueDate || null,
       })
-      const json = await res.json()
-
-      if (json.data) {
-        setWorkRequests((p) => [{ ...json.data, comment_count: 0, audit_log: [] }, ...p])
-        setWrTitle('')
-        setWrDescription('')
-        setWrCategory('feature')
-        setWrPriority('medium')
-        setWrDueDate('')
-        setWrCurrentPage(1)
-      }
-    } catch {
-      /* silently fail */
+      setWorkRequests((p) => [{ ...created, comment_count: 0, audit_log: [] }, ...p])
+      setWrTitle('')
+      setWrDescription('')
+      setWrCategory('feature')
+      setWrPriority('medium')
+      setWrDueDate('')
+      setWrCurrentPage(1)
+      toast.success('Work request submitted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setWrSubmitting(false)
     }
@@ -853,57 +825,54 @@ export default function ProjectHubClient({
 
   async function updateWrStatus(id: string, status: string) {
     try {
-      const res = await fetch('/api/admin/work-requests', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
-      })
-      const json = await res.json()
-      if (json.data) refreshWorkRequests()
-    } catch { /* silently fail */ }
+      await apiSend('/api/admin/work-requests', 'PATCH', { id, status })
+      refreshWorkRequests()
+      toast.success('Status updated.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function saveWrEdit(id: string) {
     if (editWrSubmitting) return
     setEditWrSubmitting(true)
     try {
-      const res = await fetch('/api/admin/work-requests', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          title: editWrTitle,
-          description: editWrDescription,
-          category: editWrCategory,
-          priority: editWrPriority,
-          due_date: editWrDueDate || null,
-        }),
+      await apiSend('/api/admin/work-requests', 'PATCH', {
+        id,
+        title: editWrTitle,
+        description: editWrDescription,
+        category: editWrCategory,
+        priority: editWrPriority,
+        due_date: editWrDueDate || null,
       })
-      const json = await res.json()
-      if (json.data) { setEditingWr(null); refreshWorkRequests() }
-    } catch { /* silently fail */ }
+      setEditingWr(null)
+      refreshWorkRequests()
+      toast.success('Saved.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
     finally { setEditWrSubmitting(false) }
   }
 
   async function deleteWorkRequest(id: string) {
     if (!confirm('Delete this work request permanently?')) return
     try {
-      await fetch('/api/admin/work-requests', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
+      await apiSend('/api/admin/work-requests', 'DELETE', { id })
       setWorkRequests((p) => p.filter((item) => item.id !== id))
       if (expandedWork === id) setExpandedWork(null)
-    } catch { /* silently fail */ }
+      toast.success('Deleted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function refreshWorkRequests() {
     try {
-      const res = await fetch('/api/admin/work-requests')
-      const json = await res.json()
-      if (json.data) setWorkRequests(json.data)
-    } catch { /* silently fail */ }
+      const items = await apiFetch<WorkRequest[]>('/api/admin/work-requests')
+      if (items) setWorkRequests(items)
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   // ── Submit note ─────────────────────────────────────────────────────
@@ -913,24 +882,17 @@ export default function ProjectHubClient({
     setNoteSubmitting(true)
 
     try {
-      const res = await fetch('/api/admin/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: noteTitle,
-          content: noteContent,
-        }),
+      const created = await apiSend<ProjectNote>('/api/admin/notes', 'POST', {
+        title: noteTitle,
+        content: noteContent,
       })
-      const json = await res.json()
-
-      if (json.data) {
-        setNotes((p) => [{ ...json.data, comment_count: 0 }, ...p])
-        setNoteTitle('')
-        setNoteContent('')
-        setShowNoteForm(false)
-      }
-    } catch {
-      /* silently fail */
+      setNotes((p) => [{ ...created, comment_count: 0 }, ...p])
+      setNoteTitle('')
+      setNoteContent('')
+      setShowNoteForm(false)
+      toast.success('Note saved.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setNoteSubmitting(false)
     }
@@ -939,24 +901,17 @@ export default function ProjectHubClient({
   // ── Toggle pin ──────────────────────────────────────────────────────
   async function togglePin(noteId: string, currentPinned: boolean) {
     try {
-      const res = await fetch('/api/admin/notes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: noteId, is_pinned: !currentPinned }),
-      })
-      const json = await res.json()
-
-      if (json.data) {
-        setNotes((p) => {
-          const updated = p.map((n) => (n.id === noteId ? { ...n, is_pinned: !currentPinned } : n))
-          return updated.sort((a, b) => {
-            if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          })
+      await apiSend('/api/admin/notes', 'PATCH', { id: noteId, is_pinned: !currentPinned })
+      setNotes((p) => {
+        const updated = p.map((n) => (n.id === noteId ? { ...n, is_pinned: !currentPinned } : n))
+        return updated.sort((a, b) => {
+          if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         })
-      }
-    } catch {
-      /* silently fail */
+      })
+      toast.success(currentPinned ? 'Note unpinned.' : 'Note pinned.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 
@@ -966,30 +921,24 @@ export default function ProjectHubClient({
     if (!editingNote || editNoteSubmitting) return
     setEditNoteSubmitting(true)
 
+    const edited = editingNote
     try {
-      const res = await fetch('/api/admin/notes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingNote.id,
-          title: editingNote.title,
-          content: editingNote.content,
-        }),
+      await apiSend('/api/admin/notes', 'PATCH', {
+        id: edited.id,
+        title: edited.title,
+        content: edited.content,
       })
-      const json = await res.json()
-
-      if (json.data) {
-        setNotes((p) =>
-          p.map((n) =>
-            n.id === editingNote.id
-              ? { ...n, title: editingNote.title, content: editingNote.content }
-              : n
-          )
+      setNotes((p) =>
+        p.map((n) =>
+          n.id === edited.id
+            ? { ...n, title: edited.title, content: edited.content }
+            : n
         )
-        setEditingNote(null)
-      }
-    } catch {
-      /* silently fail */
+      )
+      setEditingNote(null)
+      toast.success('Saved.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setEditNoteSubmitting(false)
     }
@@ -1000,19 +949,12 @@ export default function ProjectHubClient({
     if (!confirm('Delete this note? This cannot be undone.')) return
 
     try {
-      const res = await fetch('/api/admin/notes', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: noteId }),
-      })
-      const json = await res.json()
-
-      if (json.success) {
-        setNotes((p) => p.filter((n) => n.id !== noteId))
-        if (expandedNote === noteId) setExpandedNote(null)
-      }
-    } catch {
-      /* silently fail */
+      await apiSend('/api/admin/notes', 'DELETE', { id: noteId })
+      setNotes((p) => p.filter((n) => n.id !== noteId))
+      if (expandedNote === noteId) setExpandedNote(null)
+      toast.success('Deleted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 

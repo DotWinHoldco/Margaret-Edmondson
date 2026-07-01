@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 interface ContactList {
   id: string
@@ -12,6 +14,7 @@ interface ContactList {
 }
 
 export default function ListsPage() {
+  const toast = useToast()
   const [lists, setLists] = useState<ContactList[]>([])
   const [loading, setLoading] = useState(true)
   const [newSlug, setNewSlug] = useState('')
@@ -22,13 +25,14 @@ export default function ListsPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/contact-lists')
-      const data = await res.json()
-      setLists(data?.data?.lists || [])
+      const data = await apiFetch<{ lists?: ContactList[] }>('/api/admin/contact-lists')
+      setLists(data?.lists || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount
@@ -40,18 +44,15 @@ export default function ListsPage() {
     setError(null)
     setCreating(true)
     try {
-      const res = await fetch('/api/admin/contact-lists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: newSlug.trim(), name: newName.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Create failed')
+      await apiSend('/api/admin/contact-lists', 'POST', { slug: newSlug.trim(), name: newName.trim() })
+      toast.success('List added.')
       setNewSlug('')
       setNewName('')
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed')
+      const msg = errorMessage(err)
+      setError(msg)
+      toast.error(msg)
     } finally {
       setCreating(false)
     }
@@ -60,8 +61,13 @@ export default function ListsPage() {
   async function deleteList(id: string, isSystem: boolean) {
     if (isSystem) return
     if (!confirm('Delete this list? Members are kept but removed from the list.')) return
-    await fetch(`/api/admin/contact-lists/${id}`, { method: 'DELETE' })
-    load()
+    try {
+      await apiSend(`/api/admin/contact-lists/${id}`, 'DELETE')
+      toast.success('List deleted.')
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   return (

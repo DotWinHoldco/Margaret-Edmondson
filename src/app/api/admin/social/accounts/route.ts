@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const PROVIDERS = ['instagram', 'facebook', 'twitter', 'tiktok', 'pinterest', 'linkedin'] as const
 type Provider = (typeof PROVIDERS)[number]
@@ -20,10 +21,10 @@ export async function GET() {
       .select(SAFE_COLUMNS)
       .order('created_at', { ascending: true })
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/accounts GET')
     return Response.json({ accounts: data || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/accounts GET' })
   }
 }
 
@@ -35,10 +36,10 @@ export async function POST(request: Request) {
     const handle = typeof body.handle === 'string' ? body.handle.trim() : ''
 
     if (!provider || !PROVIDERS.includes(provider)) {
-      return Response.json({ error: 'A valid provider is required.' }, { status: 400 })
+      return apiError('A valid provider is required.', 400, 'VALIDATION_FAILED')
     }
     if (!handle) {
-      return Response.json({ error: 'Handle is required.' }, { status: 400 })
+      return apiError('Handle is required.', 400, 'VALIDATION_FAILED')
     }
 
     const auth = await requireAdmin()
@@ -65,9 +66,9 @@ export async function POST(request: Request) {
       .select(SAFE_COLUMNS)
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/accounts POST')
     return Response.json({ account: data }, { status: 201 })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/accounts POST' })
   }
 }

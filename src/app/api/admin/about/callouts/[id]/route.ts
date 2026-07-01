@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const Patch = z.object({
   kind: z.enum(['motto', 'quote', 'list']).optional(),
@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/about/callouts PATCH')
   return apiOk({ id })
 }
 
@@ -34,6 +34,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!auth.ok) return auth.response
   const { id } = await params
   const { error } = await auth.supabase.from('bio_callouts').delete().eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/about/callouts DELETE')
   return apiOk({ success: true })
 }

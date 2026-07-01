@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, dbFail } from '@/lib/api/respond'
 import {
   clearStripeModeCache,
   isStripeKeyConfigured,
@@ -32,7 +33,7 @@ export async function GET() {
     .select('stripe_test_mode')
     .eq('id', true)
     .maybeSingle()
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/settings/stripe-mode GET')
   const testMode = data?.stripe_test_mode !== false
   return Response.json(payload(testMode))
 }
@@ -43,22 +44,20 @@ export async function PATCH(request: NextRequest) {
   if (!auth.ok) return auth.response
   const body = (await request.json().catch(() => ({}))) as { testMode?: boolean }
   if (typeof body.testMode !== 'boolean') {
-    return Response.json({ error: 'testMode must be a boolean' }, { status: 400 })
+    return apiError('testMode must be a boolean.', 400, 'VALIDATION_FAILED')
   }
   if (body.testMode === false && !isStripeKeyConfigured('live')) {
-    return Response.json(
-      {
-        error:
-          'Cannot switch to live mode: STRIPE_SECRET_KEY is not set in Vercel. Add the live key first.',
-      },
-      { status: 400 },
+    return apiError(
+      'Cannot switch to live mode: STRIPE_SECRET_KEY is not set in Vercel. Add the live key first.',
+      400,
+      'NOT_CONFIGURED',
     )
   }
   const { error } = await auth.supabase
     .from('site_settings')
     .update({ stripe_test_mode: body.testMode, updated_at: new Date().toISOString() })
     .eq('id', true)
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'admin/settings/stripe-mode PATCH')
   clearStripeModeCache()
   return Response.json(payload(body.testMode))
 }

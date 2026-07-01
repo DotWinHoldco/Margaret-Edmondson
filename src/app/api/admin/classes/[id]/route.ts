@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/classes/[id] — get a course with modules, lessons, and enrollment stats; admin only.
@@ -27,10 +28,9 @@ export async function GET(
     ])
 
     if (courseResult.error) {
-      return Response.json(
-        { error: courseResult.error.message },
-        { status: courseResult.error.code === 'PGRST116' ? 404 : 500 }
-      )
+      if (courseResult.error.code === 'PGRST116')
+        return apiError('We could not find that course.', 404, 'NOT_FOUND')
+      return dbFail(courseResult.error, 'admin/classes/[id] GET')
     }
 
     // Sort lessons within each module
@@ -60,8 +60,7 @@ export async function GET(
       },
     })
   } catch (err) {
-    console.error('GET /api/admin/classes/[id] error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id] GET' })
   }
 }
 
@@ -101,7 +100,20 @@ export async function PATCH(
     }
 
     if (Object.keys(updateFields).length === 0) {
-      return Response.json({ error: 'No fields to update' }, { status: 400 })
+      return apiError('There are no changes to save.', 400, 'INVALID_INPUT')
+    }
+
+    // courses.slug is UNIQUE. Auto-dedupe a slug that already belongs to another
+    // course so the save succeeds instead of leaking the constraint error.
+    if (updateFields.slug !== undefined) {
+      const base = String(updateFields.slug)
+      const { data: clash } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('slug', base)
+        .neq('id', id)
+        .maybeSingle()
+      if (clash) updateFields.slug = `${base}-${Date.now()}`
     }
 
     updateFields.updated_at = new Date().toISOString()
@@ -124,7 +136,9 @@ export async function PATCH(
       .eq('id', id)
 
     if (updateError) {
-      return Response.json({ error: updateError.message }, { status: 500 })
+      if (updateError.code === '23505')
+        return apiError('That slug is already in use. Please choose a different one.', 409, 'CONFLICT')
+      return dbFail(updateError, 'admin/classes/[id] PATCH')
     }
 
     const { data: course, error: fetchError } = await supabase
@@ -134,13 +148,12 @@ export async function PATCH(
       .single()
 
     if (fetchError) {
-      return Response.json({ error: fetchError.message }, { status: 500 })
+      return dbFail(fetchError, 'admin/classes/[id] PATCH refetch')
     }
 
     return Response.json({ data: course })
   } catch (err) {
-    console.error('PATCH /api/admin/classes/[id] error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id] PATCH' })
   }
 }
 
@@ -176,12 +189,11 @@ export async function DELETE(
     const { error } = await supabase.from('courses').delete().eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/classes/[id] DELETE')
     }
 
     return Response.json({ success: true })
   } catch (err) {
-    console.error('DELETE /api/admin/classes/[id] error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id] DELETE' })
   }
 }

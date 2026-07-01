@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 import mammoth from 'mammoth'
 import JSZip from 'jszip'
@@ -216,10 +217,10 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const { id } = await request.json()
-    if (!id) return Response.json({ error: 'id required' }, { status: 400 })
+    if (!id) return apiError('File ID is required.', 400, 'VALIDATION_FAILED')
 
     const { data: file, error: fileErr } = await supabase
       .from('shared_files')
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
       .eq('id', id)
       .single()
     if (fileErr || !file)
-      return Response.json({ error: fileErr?.message || 'Not found' }, { status: 404 })
+      return apiError('That file could not be found.', 404, 'NOT_FOUND')
 
     const fileBuf = await downloadSharedFile(supabase, file.file_path)
     const lowerName = String(file.file_name || '').toLowerCase()
@@ -239,9 +240,10 @@ export async function POST(request: NextRequest) {
     const isPdf = mime === 'application/pdf' || lowerName.endsWith('.pdf')
 
     if (!isDocx && !isPdf) {
-      return Response.json(
-        { error: 'Only .docx or .pdf files are supported for AI extraction' },
-        { status: 400 },
+      return apiError(
+        'Only .docx or .pdf files are supported for AI extraction.',
+        400,
+        'VALIDATION_FAILED',
       )
     }
 
@@ -308,7 +310,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insErr) {
-      return Response.json({ error: insErr.message }, { status: 500 })
+      return dbFail(insErr, 'admin/shared-files/process-ai insert')
     }
 
     if (imageStoragePath && imagePublicUrl) {
@@ -352,8 +354,6 @@ export async function POST(request: NextRequest) {
       usage,
     })
   } catch (err) {
-    console.error('process-ai error', err)
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return Response.json({ error: message }, { status: 500 })
+    return apiFail(err, { context: 'admin/shared-files/process-ai POST' })
   }
 }

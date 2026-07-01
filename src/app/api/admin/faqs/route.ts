@@ -1,4 +1,7 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
+import { sanitizeHtml } from '@/lib/sanitize'
+
 // GET /api/admin/faqs — list FAQs ordered by sort order; admin only.
 export async function GET() {
   try {
@@ -10,16 +13,11 @@ export async function GET() {
       .select('id, question, answer_json, answer_html, category, sort_order, is_published')
       .order('sort_order', { ascending: true })
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
+    if (error) return dbFail(error, 'admin/faqs GET')
 
     return Response.json({ faqs: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/faqs GET' })
   }
 }
 
@@ -30,10 +28,7 @@ export async function POST(request: Request) {
     const { question, answer, category, is_published, sort_order } = body
 
     if (!question || !answer) {
-      return Response.json(
-        { error: 'Question and answer are required.' },
-        { status: 400 }
-      )
+      return apiError('Question and answer are required.', 400, 'VALIDATION_FAILED')
     }
 
     const auth = await requireAdmin()
@@ -43,7 +38,8 @@ export async function POST(request: Request) {
       .from('faqs')
       .insert({
         question,
-        answer,
+        answer_html: sanitizeHtml(answer),
+        answer_json: {},
         category: category || 'general',
         is_published: is_published ?? true,
         sort_order: sort_order ?? 0,
@@ -51,16 +47,11 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
+    if (error) return dbFail(error, 'admin/faqs POST')
 
     return Response.json({ faq: data }, { status: 201 })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/faqs POST' })
   }
 }
 
@@ -68,11 +59,14 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { id, ...updates } = body
+    const { id, answer, ...rest } = body
 
-    if (!id) {
-      return Response.json({ error: 'ID is required.' }, { status: 400 })
-    }
+    if (!id) return apiError('ID is required.', 400, 'VALIDATION_FAILED')
+
+    // Map the editor's `answer` field onto the real sanitized `answer_html`
+    // column; the raw `answer` key does not exist on the table.
+    const updates: Record<string, unknown> = { ...rest }
+    if (answer !== undefined) updates.answer_html = sanitizeHtml(answer)
 
     const auth = await requireAdmin()
     if (!auth.ok) return auth.response
@@ -84,15 +78,30 @@ export async function PATCH(request: Request) {
       .select()
       .single()
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
+    if (error) return dbFail(error, 'admin/faqs PATCH')
 
     return Response.json({ faq: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/faqs PATCH' })
+  }
+}
+
+// DELETE /api/admin/faqs?id= — permanently delete an FAQ by id; admin only.
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return apiError('ID is required.', 400, 'VALIDATION_FAILED')
+
+    const auth = await requireAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabase
+    const { error } = await supabase.from('faqs').delete().eq('id', id)
+
+    if (error) return dbFail(error, 'admin/faqs DELETE')
+
+    return Response.json({ success: true })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/faqs DELETE' })
   }
 }

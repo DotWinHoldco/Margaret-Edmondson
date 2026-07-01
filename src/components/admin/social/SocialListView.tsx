@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import StatusBadge, { type SocialStatus } from './StatusBadge'
 import { channelLabel, channelGlyph, CHANNELS } from './ChannelPreview'
 
@@ -47,6 +49,7 @@ interface Props {
 
 export default function SocialListView({ initialPosts, view }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const [posts, setPosts] = useState<ListPost[]>(initialPosts)
   const [statusFilter, setStatusFilter] = useState<SocialStatus | 'all'>('all')
   const [channelFilter, setChannelFilter] = useState<string>('all')
@@ -56,35 +59,45 @@ export default function SocialListView({ initialPosts, view }: Props) {
     const params = new URLSearchParams()
     if (statusFilter !== 'all') params.set('status', statusFilter)
     if (channelFilter !== 'all') params.set('channel', channelFilter)
-    const res = await fetch(`/api/admin/social/posts?${params.toString()}`)
-    if (res.ok) {
-      const body = await res.json()
+    try {
+      const body = await apiFetch<{ posts: ListPost[] }>(
+        `/api/admin/social/posts?${params.toString()}`,
+      )
       setPosts(body.posts || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
-  }, [statusFilter, channelFilter])
+  }, [statusFilter, channelFilter, toast])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload()
   }, [reload])
 
   async function transition(id: string, status: SocialStatus) {
     setBusyId(id)
-    const res = await fetch(`/api/admin/social/posts/${id}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    setBusyId(null)
-    if (res.ok) reload()
+    try {
+      await apiSend(`/api/admin/social/posts/${id}/status`, 'POST', { status })
+      toast.success(status === 'published' ? 'Marked posted.' : 'Updated.')
+      await reload()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   async function remove(id: string) {
     if (!confirm('Delete this post? This cannot be undone.')) return
     setBusyId(id)
-    const res = await fetch(`/api/admin/social/posts/${id}`, { method: 'DELETE' })
-    setBusyId(null)
-    if (res.ok) reload()
+    try {
+      await apiSend(`/api/admin/social/posts/${id}`, 'DELETE')
+      toast.success('Deleted.')
+      await reload()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   return (

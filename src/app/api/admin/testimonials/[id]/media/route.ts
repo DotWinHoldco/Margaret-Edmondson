@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 function mediaTypeFor(mime: string): 'image' | 'video' | 'document' {
@@ -25,13 +26,13 @@ export async function POST(
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const form = await request.formData()
     const files = form.getAll('files') as File[]
     const caption = (form.get('caption') as string | null) ?? null
     if (!files.length)
-      return Response.json({ error: 'No files provided' }, { status: 400 })
+      return apiError('Please choose at least one file to upload.', 400, 'VALIDATION_FAILED')
 
     const { data: existing } = await supabase
       .from('testimonial_media')
@@ -79,10 +80,21 @@ export async function POST(
       if (!insErr && row) uploaded.push(row)
     }
 
-    return Response.json({ media: uploaded }, { status: 201 })
+    // Every file failed to upload — surface it rather than a silent success.
+    if (uploaded.length === 0) {
+      return apiError(
+        "Those files couldn't be uploaded. Please check the file type and size, then try again.",
+        502,
+        'UPLOAD_FAILED',
+      )
+    }
+
+    return Response.json(
+      { media: uploaded, uploaded: uploaded.length, requested: files.length },
+      { status: 201 },
+    )
   } catch (err) {
-    console.error('POST testimonial media error', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/testimonials media POST' })
   }
 }
 
@@ -99,7 +111,7 @@ export async function PATCH(
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const body = await request.json()
     const { mediaId, caption, sort_order } = body as {
@@ -108,7 +120,7 @@ export async function PATCH(
       sort_order?: number
     }
     if (!mediaId)
-      return Response.json({ error: 'mediaId required' }, { status: 400 })
+      return apiError('A media id is required.', 400, 'VALIDATION_FAILED')
 
     const updates: Record<string, unknown> = {}
     if (caption !== undefined) updates.caption = caption
@@ -121,10 +133,10 @@ export async function PATCH(
       .select()
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/testimonials media PATCH')
     return Response.json({ media: data })
-  } catch {
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials media PATCH' })
   }
 }
 
@@ -141,12 +153,12 @@ export async function DELETE(
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const { searchParams } = new URL(request.url)
     const mediaId = searchParams.get('mediaId')
     if (!mediaId)
-      return Response.json({ error: 'mediaId required' }, { status: 400 })
+      return apiError('A media id is required.', 400, 'VALIDATION_FAILED')
 
     const { data: row } = await supabase
       .from('testimonial_media')
@@ -162,9 +174,9 @@ export async function DELETE(
       .from('testimonial_media')
       .delete()
       .eq('id', mediaId)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/testimonials media DELETE')
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials media DELETE' })
   }
 }

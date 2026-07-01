@@ -2,6 +2,7 @@ import { retryFulfillmentForItem } from '@/lib/fulfillment/router'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { timingSafeEqualStr } from '@/lib/auth/timing-safe'
 import { headers } from 'next/headers'
+import { apiError, apiFail } from '@/lib/api/respond'
 
 // POST /api/fulfillment/retry/[itemId] — retry fulfillment for a failed order item; cron-only (CRON_SECRET) or admin only.
 export async function POST(
@@ -16,7 +17,7 @@ export async function POST(
   // Fail closed: a missing/empty secret must never authenticate a request.
   if (!cronSecret || cronSecret.length === 0) {
     console.error('CRON_SECRET is not set — refusing request (fail closed)')
-    return Response.json({ error: 'Cron not configured' }, { status: 503 })
+    return apiError('This service is temporarily unavailable. Please try again later.', 503, 'UNAVAILABLE')
   }
 
   const headersList = await headers()
@@ -27,7 +28,7 @@ export async function POST(
   }
 
   if (!itemId) {
-    return Response.json({ error: 'itemId is required' }, { status: 400 })
+    return apiError('An item is required to retry fulfillment.', 400, 'VALIDATION_FAILED')
   }
 
   try {
@@ -40,8 +41,6 @@ export async function POST(
       error: result.error || null,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Fulfillment retry error:', message)
-    return Response.json({ error: message }, { status: 500 })
+    return apiFail(err, { context: 'fulfillment/retry POST' })
   }
 }

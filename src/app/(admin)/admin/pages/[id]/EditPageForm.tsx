@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Page {
   id: string
@@ -14,6 +16,7 @@ interface Page {
 
 export default function EditPageForm({ page }: { page: Page }) {
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,40 +39,35 @@ export default function EditPageForm({ page }: { page: Page }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/pages/by-id/${page.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await apiSend<{ page?: Record<string, string | null> }>(
+        `/api/admin/pages/by-id/${page.id}`,
+        'PATCH',
+        {
           title: form.title.trim(),
           slug: form.slug,
           seo_title: form.seo_title,
           seo_description: form.seo_description,
           content_html: form.content_html,
-        }),
-      })
+        }
+      )
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to update page.')
-        setSaving(false)
-        return
-      }
-
-      if (data.data) {
+      if (data.page) {
         setForm({
-          title: data.data.title || '',
-          slug: data.data.slug || '',
-          seo_title: data.data.seo_title || '',
-          seo_description: data.data.seo_description || '',
-          content_html: data.data.content_html || '',
+          title: data.page.title || '',
+          slug: data.page.slug || '',
+          seo_title: data.page.seo_title || '',
+          seo_description: data.page.seo_description || '',
+          content_html: data.page.content_html || '',
         })
       }
       setSavedAt(new Date())
+      toast.success('Changes saved.')
       setSaving(false)
+      router.refresh()
       window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch {
-      setError('An unexpected error occurred.')
+    } catch (err) {
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
       setSaving(false)
     }
   }
@@ -83,20 +81,14 @@ export default function EditPageForm({ page }: { page: Page }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/pages/by-id/${page.id}`, {
-        method: 'DELETE',
-      })
+      await apiSend(`/api/admin/pages/by-id/${page.id}`, 'DELETE')
 
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.error || 'Failed to delete page.')
-        setDeleting(false)
-        return
-      }
-
+      toast.success('Page deleted.')
       router.push('/admin/pages')
-    } catch {
-      setError('An unexpected error occurred.')
+      router.refresh()
+    } catch (err) {
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
       setDeleting(false)
     }
   }

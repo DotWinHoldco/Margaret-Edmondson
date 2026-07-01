@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiFail, dbFail } from '@/lib/api/respond'
 
 // GET /api/admin/social/calendar?from=ISO&to=ISO
 // Calendar feed: returns scheduled/published posts in the window plus undated
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     if (to) query = query.lte('scheduled_at', to)
 
     const { data, error } = await query
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/calendar GET')
 
     // Undated drafts (no scheduled_at) for the unscheduled tray.
     const { data: undated } = await supabase
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
 
     return Response.json({ posts: data || [], unscheduled: undated || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/calendar GET' })
   }
 }

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SharedFilesModal from '@/components/admin/SharedFilesModal'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 type MediaType = 'image' | 'video' | 'document'
 
@@ -63,6 +65,7 @@ function formatBytes(b: number | null) {
 }
 
 export default function TestimonialsClient() {
+  const toast = useToast()
   const [items, setItems] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'approved' | 'pending' | 'archived' | 'featured'>(
@@ -75,14 +78,17 @@ export default function TestimonialsClient() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/testimonials')
-    const data = await res.json()
-    setItems((data.testimonials as Testimonial[]) || [])
-    setLoading(false)
-  }, [])
+    try {
+      const data = await apiFetch<{ testimonials: Testimonial[] }>('/api/admin/testimonials')
+      setItems(data.testimonials || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 
@@ -115,18 +121,27 @@ export default function TestimonialsClient() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this testimonial and all its media? This cannot be undone.')) return
-    await fetch(`/api/admin/testimonials?id=${id}`, { method: 'DELETE' })
-    setEditing(null)
-    fetchItems()
+    try {
+      await apiSend(`/api/admin/testimonials?id=${id}`, 'DELETE')
+      toast.success('Deleted.')
+      setEditing(null)
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function handleToggleFeatured(t: Testimonial) {
-    await fetch('/api/admin/testimonials', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: t.id, is_featured: !t.is_featured }),
-    })
-    fetchItems()
+    try {
+      await apiSend('/api/admin/testimonials', 'PATCH', {
+        id: t.id,
+        is_featured: !t.is_featured,
+      })
+      toast.success(t.is_featured ? 'Unfeatured.' : 'Featured.')
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   return (
@@ -405,6 +420,7 @@ function TestimonialEditor({
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [media, setMedia] = useState<Media[]>(initial?.media || [])
+  const toast = useToast()
 
   async function handleSave() {
     setErr(null)
@@ -429,21 +445,21 @@ function TestimonialEditor({
       avatar_url: form.avatar_url || null,
       image_url: form.image_url || null,
     }
-    const res = await fetch('/api/admin/testimonials', {
-      method: initial ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(initial ? { id: initial.id, ...payload } : payload),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      setErr(j.error || 'Save failed.')
-      return
+    try {
+      const { testimonial } = await apiSend<{ testimonial: Testimonial }>(
+        '/api/admin/testimonials',
+        initial ? 'PATCH' : 'POST',
+        initial ? { id: initial.id, ...payload } : payload,
+      )
+      setMedia(testimonial.media || [])
+      toast.success(initial ? 'Saved.' : 'Testimonial added.')
+      onSaved(testimonial)
+    } catch (e) {
+      setErr(errorMessage(e))
+      toast.error(errorMessage(e))
+    } finally {
+      setSaving(false)
     }
-    const j = await res.json()
-    const t = j.testimonial as Testimonial
-    setMedia(t.media || [])
-    onSaved(t)
   }
 
   return (
@@ -704,7 +720,9 @@ function MediaManager({
   media: Media[]
   onChange: (m: Media[]) => void
 }) {
+  const toast = useToast()
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -712,40 +730,60 @@ function MediaManager({
     const arr = Array.from(files)
     if (!arr.length) return
     setUploading(true)
+    setUploadError(null)
     const fd = new FormData()
     arr.forEach((f) => fd.append('files', f))
-    const res = await fetch(`/api/admin/testimonials/${testimonialId}/media`, {
-      method: 'POST',
-      body: fd,
-    })
-    setUploading(false)
-    if (!res.ok) {
-      alert('Upload failed.')
-      return
+    try {
+      const result = await apiFetch<{ uploaded?: number; requested?: number }>(
+        `/api/admin/testimonials/${testimonialId}/media`,
+        { method: 'POST', body: fd },
+      )
+      // Refetch the full testimonial list happens at parent; we just refresh media here.
+      const fresh = await apiFetch<{ testimonials: Testimonial[] }>('/api/admin/testimonials')
+      const t = fresh.testimonials.find((x) => x.id === testimonialId)
+      if (t) onChange(t.media || [])
+      const uploaded = result.uploaded ?? arr.length
+      const requested = result.requested ?? arr.length
+      if (uploaded < requested) {
+        const msg = `Uploaded ${uploaded} of ${requested}. Some files were skipped — check the file type and size.`
+        setUploadError(msg)
+        toast.error(msg)
+      } else {
+        toast.success(uploaded === 1 ? 'File uploaded.' : `${uploaded} files uploaded.`)
+      }
+    } catch (err) {
+      const msg = errorMessage(err)
+      setUploadError(msg)
+      toast.error(msg)
+    } finally {
+      setUploading(false)
     }
-    // Refetch the full testimonial list happens at parent; we just refetch media here
-    const fresh = await fetch('/api/admin/testimonials').then((r) => r.json())
-    const t = (fresh.testimonials as Testimonial[]).find((x) => x.id === testimonialId)
-    if (t) onChange(t.media || [])
   }
 
   async function handleDelete(mediaId: string) {
     if (!confirm('Delete this attachment?')) return
-    await fetch(
-      `/api/admin/testimonials/${testimonialId}/media?mediaId=${mediaId}`,
-      { method: 'DELETE' },
-    )
-    onChange(media.filter((m) => m.id !== mediaId))
+    try {
+      await apiSend(
+        `/api/admin/testimonials/${testimonialId}/media?mediaId=${mediaId}`,
+        'DELETE',
+      )
+      onChange(media.filter((m) => m.id !== mediaId))
+      toast.success('Attachment removed.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function updateCaption(m: Media, caption: string) {
-    const res = await fetch(`/api/admin/testimonials/${testimonialId}/media`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mediaId: m.id, caption }),
-    })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/testimonials/${testimonialId}/media`, 'PATCH', {
+        mediaId: m.id,
+        caption,
+      })
       onChange(media.map((x) => (x.id === m.id ? { ...x, caption } : x)))
+      toast.success('Caption saved.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 
@@ -757,6 +795,12 @@ function MediaManager({
           <span className="font-normal text-charcoal/40">({media.length})</span>
         </h4>
       </div>
+
+      {uploadError && (
+        <div className="rounded-sm bg-coral/10 px-3 py-2 font-body text-xs text-coral">
+          {uploadError}
+        </div>
+      )}
 
       <div
         onDragOver={(e) => {

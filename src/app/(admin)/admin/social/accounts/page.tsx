@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { CHANNELS } from '@/components/admin/social/ChannelPreview'
 
 interface Account {
@@ -19,6 +21,7 @@ const PROVIDER_LABEL: Record<string, string> = Object.fromEntries(
 )
 
 export default function SocialAccountsPage() {
+  const toast = useToast()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -34,16 +37,17 @@ export default function SocialAccountsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/social/accounts')
-    if (res.ok) {
-      const body = await res.json()
+    try {
+      const body = await apiFetch<{ accounts: Account[] }>('/api/admin/social/accounts')
       setAccounts(body.accounts || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [])
+  }, [toast])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 
@@ -54,38 +58,47 @@ export default function SocialAccountsPage() {
       return
     }
     setBusy(true)
-    const res = await fetch('/api/admin/social/accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    setBusy(false)
-    if (res.ok) {
+    try {
+      await apiSend('/api/admin/social/accounts', 'POST', form)
       setForm({ provider: 'instagram', handle: '', display_name: '', page_id: '', connected: false })
+      toast.success('Account added.')
       load()
-    } else {
-      const j = await res.json().catch(() => ({}))
-      setError(j.error || 'Failed to add account.')
+    } catch (err) {
+      const msg = errorMessage(err)
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setBusy(false)
     }
   }
 
   async function toggleConnected(account: Account) {
     setBusy(true)
-    await fetch(`/api/admin/social/accounts/${account.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connected: !account.connected }),
-    })
-    setBusy(false)
-    load()
+    try {
+      await apiSend(`/api/admin/social/accounts/${account.id}`, 'PATCH', {
+        connected: !account.connected,
+      })
+      toast.success(account.connected ? 'Disconnected.' : 'Connected.')
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function remove(account: Account) {
     if (!confirm(`Remove @${account.handle}?`)) return
     setBusy(true)
-    await fetch(`/api/admin/social/accounts/${account.id}`, { method: 'DELETE' })
-    setBusy(false)
-    load()
+    try {
+      await apiSend(`/api/admin/social/accounts/${account.id}`, 'DELETE')
+      toast.success('Account removed.')
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (

@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk } from '@/lib/api/respond'
+import { apiOk, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/contact-lists/[id]/members — list members of a contact list (paginated); admin only.
@@ -19,6 +19,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .order('joined_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/contact-lists/[id]/members GET')
   return apiOk({ members: data || [], total: count ?? 0 })
 }

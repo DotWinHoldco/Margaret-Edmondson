@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import SharedFilesModal from '@/components/admin/SharedFilesModal'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 type Tab = 'faqs' | 'testimonials'
 
@@ -64,6 +66,7 @@ export default function FaqTestimonialsClient() {
 /* ─── FAQs Tab ─── */
 
 function FaqsTab() {
+  const toast = useToast()
   const [items, setItems] = useState<FAQ[]>([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState<string | null>(null)
@@ -71,34 +74,42 @@ function FaqsTab() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/faqs')
-    const data = await res.json()
-    setItems(data.faqs || [])
-    setLoading(false)
-  }, [])
+    try {
+      const data = await apiFetch<{ faqs: FAQ[] }>('/api/admin/faqs')
+      setItems(data.faqs || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 
   async function handleTogglePublished(item: FAQ) {
-    await fetch('/api/admin/faqs', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, is_published: !item.is_published }),
-    })
-    fetchItems()
+    try {
+      await apiSend('/api/admin/faqs', 'PATCH', {
+        id: item.id,
+        is_published: !item.is_published,
+      })
+      toast.success(item.is_published ? 'Unpublished.' : 'Published.')
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this FAQ?')) return
-    await fetch('/api/admin/faqs', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, is_published: false }),
-    })
-    fetchItems()
+    if (!confirm('Delete this FAQ? This cannot be undone.')) return
+    try {
+      await apiSend(`/api/admin/faqs?id=${id}`, 'DELETE')
+      toast.success('Deleted.')
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   if (loading) {
@@ -228,17 +239,24 @@ function FaqForm({
     sort_order: initial?.sort_order ?? 0,
   })
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
 
   async function handleSave() {
     if (!form.question || !form.answer) return
     setSaving(true)
-    await fetch('/api/admin/faqs', {
-      method: initial ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(initial ? { id: initial.id, ...form } : form),
-    })
-    setSaving(false)
-    onSaved()
+    try {
+      await apiSend(
+        '/api/admin/faqs',
+        initial ? 'PATCH' : 'POST',
+        initial ? { id: initial.id, ...form } : form,
+      )
+      toast.success(initial ? 'Saved.' : 'Added.')
+      onSaved()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -318,6 +336,7 @@ function FaqForm({
 /* ─── Testimonials Tab ─── */
 
 function TestimonialsTab() {
+  const toast = useToast()
   const [items, setItems] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState<string | null>(null)
@@ -326,30 +345,42 @@ function TestimonialsTab() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/testimonials')
-    const data = await res.json()
-    setItems(data.testimonials || [])
-    setLoading(false)
-  }, [])
+    try {
+      const data = await apiFetch<{ testimonials: Testimonial[] }>('/api/admin/testimonials')
+      setItems(data.testimonials || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
     fetchItems()
   }, [fetchItems])
 
   async function handleToggleFeatured(item: Testimonial) {
-    await fetch('/api/admin/testimonials', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, is_featured: !item.is_featured }),
-    })
-    fetchItems()
+    try {
+      await apiSend('/api/admin/testimonials', 'PATCH', {
+        id: item.id,
+        is_featured: !item.is_featured,
+      })
+      toast.success(item.is_featured ? 'Unfeatured.' : 'Featured.')
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this testimonial?')) return
-    await fetch(`/api/admin/testimonials?id=${id}`, { method: 'DELETE' })
-    fetchItems()
+    if (!confirm('Delete this testimonial? This cannot be undone.')) return
+    try {
+      await apiSend(`/api/admin/testimonials?id=${id}`, 'DELETE')
+      toast.success('Deleted.')
+      fetchItems()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   if (loading) {
@@ -503,21 +534,25 @@ function TestimonialForm({
     is_featured: initial?.is_featured ?? false,
   })
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
 
   async function handleSave() {
     if (!form.name || !form.quote) return
     setSaving(true)
-    await fetch('/api/admin/testimonials', {
-      method: initial ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        initial
-          ? { id: initial.id, ...form, avatar_url: form.avatar_url || null }
-          : { ...form, avatar_url: form.avatar_url || null }
-      ),
-    })
-    setSaving(false)
-    onSaved()
+    try {
+      const payload = { ...form, avatar_url: form.avatar_url || null }
+      await apiSend(
+        '/api/admin/testimonials',
+        initial ? 'PATCH' : 'POST',
+        initial ? { id: initial.id, ...payload } : payload,
+      )
+      toast.success(initial ? 'Saved.' : 'Added.')
+      onSaved()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

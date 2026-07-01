@@ -6,6 +6,8 @@ import SharedFilesModal, {
   type SharedEntity,
   type SharedFileTag,
 } from '@/components/admin/SharedFilesModal'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 const ENTITY_LABELS: Record<SharedEntity, string> = {
   testimonial: 'Testimonial',
@@ -41,22 +43,26 @@ export default function FilesClient() {
   const [err, setErr] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
+  const toast = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
     const qs = new URLSearchParams()
     if (entity !== 'all') qs.set('entity_type', entity)
     if (tagFilter !== 'all') qs.set('tag', tagFilter)
-    const [filesRes, tagsRes] = await Promise.all([
-      fetch(`/api/admin/shared-files?${qs.toString()}`),
-      fetch('/api/admin/shared-file-tags'),
-    ])
-    const filesJson = await filesRes.json()
-    const tagsJson = await tagsRes.json()
-    setFiles((filesJson.data as SharedFile[]) || [])
-    setTags((tagsJson.data as SharedFileTag[]) || [])
-    setLoading(false)
-  }, [entity, tagFilter])
+    try {
+      const [filesData, tagsData] = await Promise.all([
+        apiFetch<SharedFile[]>(`/api/admin/shared-files?${qs.toString()}`),
+        apiFetch<SharedFileTag[]>('/api/admin/shared-file-tags'),
+      ])
+      setFiles(filesData || [])
+      setTags(tagsData || [])
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [entity, tagFilter, toast])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -79,15 +85,23 @@ export default function FilesClient() {
   }
 
   async function download(id: string) {
-    const res = await fetch(`/api/admin/shared-files/signed-url?id=${id}`)
-    const json = await res.json()
-    if (json.url) window.open(json.url, '_blank', 'noopener,noreferrer')
+    try {
+      const json = await apiFetch<{ url?: string }>(`/api/admin/shared-files/signed-url?id=${id}`)
+      if (json?.url) window.open(json.url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
   }
 
   async function remove(id: string) {
     if (!confirm('Delete this file? This cannot be undone.')) return
-    await fetch(`/api/admin/shared-files?id=${id}`, { method: 'DELETE' })
-    load()
+    try {
+      await apiSend(`/api/admin/shared-files?id=${id}`, 'DELETE')
+      toast.success('Deleted.')
+      load()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
   }
 
   async function extractWithAi(id: string, fileName: string) {
@@ -95,19 +109,19 @@ export default function FilesClient() {
     setFlash(null)
     setProcessingId(id)
     try {
-      const res = await fetch('/api/admin/shared-files/process-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Extraction failed')
-      setFlash(
-        `✓ "${fileName}" → draft testimonial created for ${json.extracted?.name || 'the customer'} (pending review).`,
+      const json = await apiSend<{ extracted?: { name?: string } }>(
+        '/api/admin/shared-files/process-ai',
+        'POST',
+        { id },
       )
+      const message = `✓ "${fileName}" → draft testimonial created for ${json?.extracted?.name || 'the customer'} (pending review).`
+      setFlash(message)
+      toast.success('Draft testimonial created.')
       load()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Extraction failed')
+      const message = errorMessage(e)
+      setErr(message)
+      toast.error(message)
     } finally {
       setProcessingId(null)
     }
@@ -127,24 +141,23 @@ export default function FilesClient() {
     if (!editingId) return
     setSaving(true)
     setErr(null)
-    const res = await fetch('/api/admin/shared-files', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await apiSend('/api/admin/shared-files', 'PATCH', {
         id: editingId,
         tag: draft.tag,
         file_name: draft.file_name,
         notes: draft.notes,
-      }),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (!res.ok) {
-      setErr(json.error || 'Save failed')
-      return
+      })
+      setEditingId(null)
+      toast.success('Saved.')
+      load()
+    } catch (e) {
+      const message = errorMessage(e)
+      setErr(message)
+      toast.error(message)
+    } finally {
+      setSaving(false)
     }
-    setEditingId(null)
-    load()
   }
 
   return (

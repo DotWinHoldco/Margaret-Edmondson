@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const SAFE_COLUMNS =
   'id, provider, handle, display_name, avatar_url, connected, page_id, token_expires_at, extra, created_at, updated_at'
@@ -20,11 +21,11 @@ export async function GET(
       .eq('id', id)
       .maybeSingle()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    if (!data) return Response.json({ error: 'Account not found.' }, { status: 404 })
+    if (error) return dbFail(error, 'admin/social/accounts/[id] GET')
+    if (!data) return apiError('Account not found.', 404, 'NOT_FOUND')
     return Response.json({ account: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/accounts/[id] GET' })
   }
 }
 
@@ -58,10 +59,10 @@ export async function PATCH(
       .select(SAFE_COLUMNS)
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/accounts/[id] PATCH')
     return Response.json({ account: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/accounts/[id] PATCH' })
   }
 }
 
@@ -77,9 +78,9 @@ export async function DELETE(
     const { supabase } = auth
 
     const { error } = await supabase.from('social_accounts').delete().eq('id', id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/accounts/[id] DELETE')
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/accounts/[id] DELETE' })
   }
 }

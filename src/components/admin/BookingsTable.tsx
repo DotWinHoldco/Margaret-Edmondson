@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface Booking {
   id: string
@@ -25,18 +27,18 @@ const STATUS_PILL: Record<string, string> = {
 
 export default function BookingsTable({ bookings, capacity }: { bookings: Booking[]; capacity: number }) {
   const router = useRouter()
+  const toast = useToast()
   const [busyId, setBusyId] = useState<string | null>(null)
   const active = bookings.filter((b) => b.status === 'awaiting_payment' || b.status === 'paid').length
 
-  async function patch(id: string, body: Record<string, unknown>) {
+  async function patch(id: string, body: Record<string, unknown>, successMessage: string) {
     setBusyId(id)
     try {
-      await fetch(`/api/admin/class-bookings/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      await apiSend(`/api/admin/class-bookings/${id}`, 'PATCH', body)
+      toast.success(successMessage)
       router.refresh()
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setBusyId(null)
     }
@@ -88,22 +90,22 @@ export default function BookingsTable({ bookings, capacity }: { bookings: Bookin
                 <div className="flex shrink-0 flex-col gap-2">
                   {b.status === 'awaiting_payment' && (
                     <>
-                      <button onClick={() => patch(b.id, { status: 'paid', payment_method: 'venmo' })} disabled={busyId === b.id}
+                      <button onClick={() => patch(b.id, { status: 'paid', payment_method: 'venmo' }, 'Marked paid. Confirmation sent.')} disabled={busyId === b.id}
                         className="rounded bg-teal px-3 py-1.5 font-body text-xs font-semibold text-cream hover:bg-deep-teal transition-colors disabled:opacity-50">
                         Mark paid (Venmo)
                       </button>
-                      <button onClick={() => patch(b.id, { status: 'paid', payment_method: 'zelle' })} disabled={busyId === b.id}
+                      <button onClick={() => patch(b.id, { status: 'paid', payment_method: 'zelle' }, 'Marked paid. Confirmation sent.')} disabled={busyId === b.id}
                         className="rounded bg-teal/80 px-3 py-1.5 font-body text-xs font-semibold text-cream hover:bg-teal transition-colors disabled:opacity-50">
                         Mark paid (Zelle)
                       </button>
-                      <button onClick={() => patch(b.id, { resend: true })} disabled={busyId === b.id}
+                      <button onClick={() => patch(b.id, { resend: true }, 'Instructions resent.')} disabled={busyId === b.id}
                         className="rounded border border-charcoal/15 px-3 py-1.5 font-body text-xs text-charcoal/70 hover:bg-charcoal/5 transition-colors disabled:opacity-50">
                         Resend instructions
                       </button>
                     </>
                   )}
                   {b.status !== 'cancelled' && (
-                    <button onClick={() => patch(b.id, { status: 'cancelled' })} disabled={busyId === b.id}
+                    <button onClick={() => patch(b.id, { status: 'cancelled' }, 'Booking cancelled.')} disabled={busyId === b.id}
                       className="rounded text-coral/70 hover:text-coral px-3 py-1.5 font-body text-xs transition-colors disabled:opacity-50">
                       Cancel
                     </button>

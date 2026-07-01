@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/notes — list project notes with comment counts, pinned first; admin only.
@@ -15,7 +16,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/notes GET')
     }
 
     const items = (data || []).map((item) => ({
@@ -26,8 +27,7 @@ export async function GET() {
 
     return Response.json({ data: items })
   } catch (err) {
-    console.error('GET /api/admin/notes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/notes GET' })
   }
 }
 
@@ -44,11 +44,11 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.title?.trim()) {
-      return Response.json({ error: 'Title is required' }, { status: 400 })
+      return apiError('Title is required.', 400, 'VALIDATION_FAILED')
     }
 
     const { data, error } = await supabase
@@ -63,13 +63,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/notes POST')
     }
 
     return Response.json({ data }, { status: 201 })
   } catch (err) {
-    console.error('POST /api/admin/notes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/notes POST' })
   }
 }
 
@@ -86,11 +85,11 @@ export async function PATCH(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.id) {
-      return Response.json({ error: 'Note ID is required' }, { status: 400 })
+      return apiError('Note ID is required.', 400, 'VALIDATION_FAILED')
     }
 
     const updates: Record<string, unknown> = {}
@@ -106,13 +105,12 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/notes PATCH')
     }
 
     return Response.json({ data })
   } catch (err) {
-    console.error('PATCH /api/admin/notes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/notes PATCH' })
   }
 }
 
@@ -129,11 +127,11 @@ export async function DELETE(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!id) {
-      return Response.json({ error: 'Note ID is required' }, { status: 400 })
+      return apiError('Note ID is required.', 400, 'VALIDATION_FAILED')
     }
 
     // Delete comments first
@@ -145,12 +143,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/notes DELETE')
     }
 
     return Response.json({ success: true })
   } catch (err) {
-    console.error('DELETE /api/admin/notes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/notes DELETE' })
   }
 }

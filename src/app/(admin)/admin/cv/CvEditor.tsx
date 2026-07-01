@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 import { CV_SECTIONS, sectionLabel, type CvEntry, type CvSection } from '@/lib/cv'
 
 interface Settings { intro: string; contact_email: string }
@@ -68,6 +70,7 @@ function SectionTab({
   artworks: ArtworkOption[]
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [rows, setRows] = useState(entries)
   const [status, setStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({})
   const [pending, startTransition] = useTransition()
@@ -82,10 +85,8 @@ function SectionTab({
 
   const save = async (e: CvEntry) => {
     setStatus((p) => ({ ...p, [e.id]: 'saving' }))
-    const res = await fetch(`/api/admin/cv-entries/${e.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await apiSend(`/api/admin/cv-entries/${e.id}`, 'PATCH', {
         section: e.section,
         year: e.year,
         title: e.title,
@@ -98,39 +99,43 @@ function SectionTab({
         linked_artwork_slug: e.linked_artwork_slug,
         display_order: e.display_order,
         is_published: e.is_published,
-      }),
-    })
-    if (res.ok) {
+      })
       setStatus((p) => ({ ...p, [e.id]: 'saved' }))
+      toast.success('Entry saved.')
       setTimeout(() => setStatus((p) => ({ ...p, [e.id]: 'idle' })), 1500)
       router.refresh()
-    } else {
+    } catch (err) {
       setStatus((p) => ({ ...p, [e.id]: 'error' }))
+      toast.error(errorMessage(err))
     }
   }
 
   const addNew = () => {
     startTransition(async () => {
-      const res = await fetch('/api/admin/cv-entries', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
+      try {
+        await apiSend('/api/admin/cv-entries', 'POST', {
           section,
           year: String(new Date().getFullYear()),
           title: 'New entry',
           display_order: rows.length,
           is_published: true,
-        }),
-      })
-      if (res.ok) router.refresh()
+        })
+        toast.success('Entry added.')
+        router.refresh()
+      } catch (err) {
+        toast.error(errorMessage(err))
+      }
     })
   }
 
   const remove = async (id: string) => {
-    const res = await fetch(`/api/admin/cv-entries/${id}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/cv-entries/${id}`, 'DELETE')
       setRows((prev) => prev.filter((r) => r.id !== id))
+      toast.success('Entry deleted.')
       router.refresh()
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
     setConfirmId(null)
   }
@@ -317,22 +322,21 @@ function SectionTab({
 
 function SettingsTab({ settings }: { settings: Settings }) {
   const router = useRouter()
+  const toast = useToast()
   const [s, setS] = useState(settings)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const save = async () => {
     setStatus('saving')
-    const res = await fetch('/api/admin/cv-settings', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(s),
-    })
-    if (res.ok) {
+    try {
+      await apiSend('/api/admin/cv-settings', 'PATCH', s)
       setStatus('saved')
+      toast.success('Saved.')
       setTimeout(() => setStatus('idle'), 1500)
       router.refresh()
-    } else {
+    } catch (err) {
       setStatus('error')
+      toast.error(errorMessage(err))
     }
   }
 

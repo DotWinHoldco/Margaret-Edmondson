@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { getStripe, getStripeMode, isStripeKeyConfigured } from '@/lib/stripe'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const VALID_STATUSES = [
   'pending',
@@ -25,16 +26,13 @@ export async function PATCH(
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return apiError('Please provide a valid request.', 400, 'INVALID_BODY')
   }
 
   const { status } = body
 
   if (!status || !VALID_STATUSES.includes(status as OrderStatus)) {
-    return Response.json(
-      { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
-      { status: 400 }
-    )
+    return apiError('Please choose a valid order status.', 400, 'VALIDATION_FAILED')
   }
 
   const auth = await requireAdmin()
@@ -49,7 +47,7 @@ export async function PATCH(
     .single()
 
   if (fetchError || !existing) {
-    return Response.json({ error: 'Order not found' }, { status: 404 })
+    return apiError('That order could not be found.', 404, 'NOT_FOUND')
   }
 
   // B-14: marking an order "refunded" must actually issue the Stripe refund,
@@ -66,10 +64,14 @@ export async function PATCH(
           await stripe.refunds.create({ payment_intent: existing.stripe_payment_intent_id })
           refundIssued = true
         } catch (err) {
-          const msg = err instanceof Error ? err.message : 'refund failed'
-          console.error('Stripe refund failed:', msg)
           // Do not flip status to refunded if the refund did not go through.
-          return Response.json({ error: `Refund failed: ${msg}` }, { status: 502 })
+          return apiFail(err, {
+            status: 502,
+            code: 'REFUND_FAILED',
+            context: 'admin/orders PATCH refund',
+            publicMessage:
+              'The refund could not be completed. Please try again or issue it manually in Stripe.',
+          })
         }
       } else {
         refundNote = `Stripe ${mode} key not configured — status updated but no refund was issued`
@@ -90,8 +92,7 @@ export async function PATCH(
     .single()
 
   if (updateError) {
-    console.error('Failed to update order status:', updateError)
-    return Response.json({ error: 'Failed to update order status' }, { status: 500 })
+    return dbFail(updateError, 'admin/orders PATCH update')
   }
 
   return Response.json({

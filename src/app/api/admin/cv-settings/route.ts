@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const Patch = z.object({
   intro: z.string().min(1).optional(),
@@ -20,6 +20,6 @@ export async function PATCH(request: NextRequest) {
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', true)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/cv-settings PATCH')
   return apiOk({ success: true })
 }

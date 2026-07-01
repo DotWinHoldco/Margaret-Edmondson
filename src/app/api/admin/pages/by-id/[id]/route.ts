@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/pages/by-id/[id] — read a single page by id; admin only.
@@ -19,18 +20,15 @@ export async function GET(
       .single()
 
     if (error) {
-      return Response.json(
-        { error: error.message },
-        { status: error.code === 'PGRST116' ? 404 : 500 }
-      )
+      if (error.code === 'PGRST116') {
+        return apiError('That page could not be found.', 404, 'NOT_FOUND')
+      }
+      return dbFail(error, 'admin/pages/by-id GET')
     }
 
     return Response.json({ page: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/pages/by-id GET' })
   }
 }
 
@@ -63,10 +61,7 @@ export async function PATCH(
     }
 
     if (Object.keys(updateFields).length === 0) {
-      return Response.json(
-        { error: 'No fields to update.' },
-        { status: 400 }
-      )
+      return apiError('No fields to update.', 400, 'BAD_REQUEST')
     }
 
     updateFields.updated_at = new Date().toISOString()
@@ -79,15 +74,15 @@ export async function PATCH(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/pages/by-id PATCH')
     }
 
     return Response.json({ page: data })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/pages/by-id PATCH' })
   }
 }
 
@@ -108,14 +103,11 @@ export async function DELETE(
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/pages/by-id DELETE')
     }
 
     return Response.json({ success: true })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/pages/by-id DELETE' })
   }
 }

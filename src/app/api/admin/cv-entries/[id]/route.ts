@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { parseSortYear } from '@/lib/cv'
 
 const Patch = z.object({
@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (parsed.data.year !== undefined) update.sort_year_numeric = parseSortYear(parsed.data.year)
 
   const { error } = await auth.supabase.from('cv_entries').update(update).eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/cv-entries PATCH')
   return apiOk({ id })
 }
 
@@ -41,6 +41,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!auth.ok) return auth.response
   const { id } = await params
   const { error } = await auth.supabase.from('cv_entries').delete().eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/cv-entries DELETE')
   return apiOk({ success: true })
 }

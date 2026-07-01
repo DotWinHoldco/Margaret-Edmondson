@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, apiFetch, errorMessage } from '@/lib/api/client'
 import BusinessInfoSection from '@/components/admin/settings/BusinessInfoSection'
 import EmailConfigSection from '@/components/admin/settings/EmailConfigSection'
 import ShippingConfigSection from '@/components/admin/settings/ShippingConfigSection'
@@ -656,6 +658,7 @@ function AccountSection() {
 /* ─── Site Settings ─── */
 
 function SiteSettingsSection() {
+  const toast = useToast()
   const [siteName, setSiteName] = useState('')
   const [siteUrl, setSiteUrl] = useState('')
   const [seoTitle, setSeoTitle] = useState('')
@@ -684,14 +687,19 @@ function SiteSettingsSection() {
   async function handleSave() {
     setSaving(true)
     setSaved(false)
-    await fetch('/api/admin/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seo_title: seoTitle, seo_description: seoDescription }),
-    })
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    try {
+      await apiSend('/api/admin/settings', 'PATCH', {
+        seo_title: seoTitle,
+        seo_description: seoDescription,
+      })
+      setSaved(true)
+      toast.success('SEO settings saved.')
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -876,6 +884,7 @@ function IntegrationStatusSection() {
 /* ─── Promo Codes ─── */
 
 function PromoCodesSection() {
+  const toast = useToast()
   const [codes, setCodes] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -883,11 +892,15 @@ function PromoCodesSection() {
 
   const fetchCodes = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/promo-codes')
-    const data = await res.json()
-    setCodes(data.promoCodes || [])
-    setLoading(false)
-  }, [])
+    try {
+      const data = await apiFetch<{ promoCodes?: PromoCode[] }>('/api/admin/promo-codes')
+      setCodes(data.promoCodes || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
@@ -895,12 +908,16 @@ function PromoCodesSection() {
   }, [fetchCodes])
 
   async function handleToggleActive(code: PromoCode) {
-    await fetch('/api/admin/promo-codes', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: code.id, is_active: !code.is_active }),
-    })
-    fetchCodes()
+    try {
+      await apiSend('/api/admin/promo-codes', 'PATCH', {
+        id: code.id,
+        is_active: !code.is_active,
+      })
+      toast.success(code.is_active ? 'Promo code deactivated.' : 'Promo code activated.')
+      fetchCodes()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   async function handleDelete(code: PromoCode) {
@@ -911,18 +928,14 @@ function PromoCodesSection() {
     ) {
       return
     }
-    const res = await fetch('/api/admin/promo-codes', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: code.id }),
-    })
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      alert(data.error || 'Failed to delete promo code.')
-      return
+    try {
+      await apiSend('/api/admin/promo-codes', 'DELETE', { id: code.id })
+      if (editing?.id === code.id) setEditing(null)
+      toast.success('Promo code deleted.')
+      fetchCodes()
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
-    if (editing?.id === code.id) setEditing(null)
-    fetchCodes()
   }
 
   return (
@@ -1093,6 +1106,7 @@ function PromoCodeForm({
   onCancel: () => void
   onSaved: () => void
 }) {
+  const toast = useToast()
   const [form, setForm] = useState({
     code: initial?.code ?? '',
     discount_type: initial?.discount_type ?? ('percentage' as 'percentage' | 'fixed'),
@@ -1113,39 +1127,32 @@ function PromoCodeForm({
     }
     setError(null)
     setSaving(true)
-    const res = initial
-      ? await fetch('/api/admin/promo-codes', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: initial.id,
-            code: form.code.toUpperCase().trim(),
-            discount_type: form.discount_type,
-            discount_value: parseFloat(form.discount_value),
-            min_order_amount: form.min_order_amount
-              ? parseFloat(form.min_order_amount)
-              : null,
-            usage_limit: form.usage_limit ? parseInt(form.usage_limit) : null,
-            valid_from: form.valid_from || null,
-            valid_until: form.valid_until || null,
-          }),
+    try {
+      if (initial) {
+        await apiSend('/api/admin/promo-codes', 'PATCH', {
+          id: initial.id,
+          code: form.code.toUpperCase().trim(),
+          discount_type: form.discount_type,
+          discount_value: parseFloat(form.discount_value),
+          min_order_amount: form.min_order_amount
+            ? parseFloat(form.min_order_amount)
+            : null,
+          usage_limit: form.usage_limit ? parseInt(form.usage_limit) : null,
+          valid_from: form.valid_from || null,
+          valid_until: form.valid_until || null,
         })
-      : await fetch('/api/admin/promo-codes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(
-        data.error ||
-          (initial ? 'Failed to update promo code.' : 'Failed to create promo code.')
-      )
+      } else {
+        await apiSend('/api/admin/promo-codes', 'POST', form)
+      }
+      toast.success(initial ? 'Promo code updated.' : 'Promo code created.')
+      onSaved()
+    } catch (err) {
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
+    } finally {
       setSaving(false)
-      return
     }
-    setSaving(false)
-    onSaved()
   }
 
   return (
@@ -1295,29 +1302,31 @@ function PromoCodeForm({
 /* ─── Danger Zone ─── */
 
 function DangerZoneSection() {
+  const toast = useToast()
   const [clearingCarts, setClearingCarts] = useState(false)
-  const [cartsCleared, setCartsCleared] = useState(false)
+  const [cartsMsg, setCartsMsg] = useState<string | null>(null)
   const [revalidating, setRevalidating] = useState(false)
 
   async function handleClearCarts() {
     if (
       !confirm(
-        'Are you sure you want to clear ALL active carts? This cannot be undone.'
+        'Clear all shopping carts idle for over 24 hours? Carts touched within the last day are kept so shoppers mid-checkout are not wiped out. This cannot be undone.'
       )
     ) {
       return
     }
 
     setClearingCarts(true)
+    setCartsMsg(null)
     try {
-      const res = await fetch('/api/admin/carts', { method: 'DELETE' })
-      const json = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setCartsCleared(true)
-        setTimeout(() => setCartsCleared(false), 3000)
-      } else {
-        alert(json.error || 'Failed to clear carts')
-      }
+      const res = await apiSend<{ clearedCount?: number }>('/api/admin/carts', 'DELETE')
+      const count = res.clearedCount ?? 0
+      const label = `Cleared ${count} idle cart${count === 1 ? '' : 's'}.`
+      setCartsMsg(label)
+      toast.success(label)
+      setTimeout(() => setCartsMsg(null), 4000)
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setClearingCarts(false)
     }
@@ -1326,8 +1335,10 @@ function DangerZoneSection() {
   async function handleRevalidateCache() {
     setRevalidating(true)
     try {
-      await fetch('/api/admin/revalidate', { method: 'POST' })
-      await new Promise((r) => setTimeout(r, 300))
+      await apiSend('/api/admin/revalidate', 'POST')
+      toast.success('Cache revalidated. Public pages will refresh on next visit.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setRevalidating(false)
     }
@@ -1345,10 +1356,10 @@ function DangerZoneSection() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-sm border border-charcoal/10 p-4">
           <div>
             <p className="font-body text-sm font-medium text-charcoal">
-              Clear All Carts
+              Clear Idle Carts
             </p>
             <p className="font-body text-xs text-charcoal/50">
-              Removes all active shopping carts from the database.
+              Removes shopping carts idle for over 24 hours. Carts touched within the last day are kept.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1357,10 +1368,10 @@ function DangerZoneSection() {
               disabled={clearingCarts}
               className="shrink-0 rounded-sm border border-coral/30 bg-coral/10 px-4 py-2 font-body text-sm font-medium text-coral transition-colors hover:bg-coral/20 disabled:opacity-50"
             >
-              {clearingCarts ? 'Clearing...' : 'Clear All Carts'}
+              {clearingCarts ? 'Clearing...' : 'Clear Idle Carts'}
             </button>
-            {cartsCleared && (
-              <span className="font-body text-xs text-teal">Cleared.</span>
+            {cartsMsg && (
+              <span className="font-body text-xs text-teal">{cartsMsg}</span>
             )}
           </div>
         </div>

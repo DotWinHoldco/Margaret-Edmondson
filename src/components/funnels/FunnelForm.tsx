@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface ProductImage {
   id: string
@@ -117,6 +119,7 @@ interface FunnelFormProps {
 
 export default function FunnelForm({ initialData, mode }: FunnelFormProps) {
   const router = useRouter()
+  const toast = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -233,21 +236,14 @@ export default function FunnelForm({ initialData, mode }: FunnelFormProps) {
         : `/api/admin/funnels/${initialData?.id}`
       const method = mode === 'create' ? 'POST' : 'PATCH'
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
+      await apiSend(url, method, form)
 
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Failed to save.')
-        return
-      }
-
+      toast.success(mode === 'create' ? 'Funnel created.' : 'Changes saved.')
       router.push('/admin/funnels')
-    } catch {
-      setError('Something went wrong.')
+      router.refresh()
+    } catch (err) {
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -304,7 +300,7 @@ export default function FunnelForm({ initialData, mode }: FunnelFormProps) {
       <section className="mb-10">
         <h2 className="font-display text-lg font-semibold text-charcoal mb-4">Image Slots</h2>
         <p className="font-body text-xs text-charcoal/50 mb-4">
-          Preview how product images map to template slots. Hero = main image, Detail = secondary, Story = tertiary. Reorder images on the product edit page to change assignments.
+          Read-only preview of how product images map to template slots. Hero = main image, Detail = secondary, Story = tertiary. To change assignments, reorder images on the product edit page.
         </p>
         {(() => {
           const selectedProduct = products.find((p) => p.id === form.product_id)
@@ -328,14 +324,12 @@ export default function FunnelForm({ initialData, mode }: FunnelFormProps) {
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {imgs.map((img) => (
-                      <button
+                      <div
                         key={img.id}
-                        type="button"
-                        onClick={() => setImageSlots((prev) => ({ ...prev, [slot]: img.url }))}
-                        className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 ${
                           imageSlots[slot] === img.url
                             ? 'border-teal ring-2 ring-teal/30'
-                            : 'border-charcoal/10 hover:border-charcoal/25'
+                            : 'border-charcoal/10 opacity-60'
                         }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -344,7 +338,7 @@ export default function FunnelForm({ initialData, mode }: FunnelFormProps) {
                           alt={img.alt_text || 'Product image'}
                           className="w-full h-full object-cover"
                         />
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>

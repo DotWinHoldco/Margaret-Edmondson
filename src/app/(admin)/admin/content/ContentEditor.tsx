@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface ContentField {
   id: string
@@ -13,6 +15,7 @@ interface ContentField {
 }
 
 export default function ContentEditor({ field }: { field: ContentField }) {
+  const toast = useToast()
   const [value, setValue] = useState(field.content_value)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -24,17 +27,14 @@ export default function ContentEditor({ field }: { field: ContentField }) {
     setSaved(false)
 
     try {
-      const res = await fetch('/api/admin/content', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: field.id, content_value: value }),
-      })
+      await apiSend('/api/admin/content', 'PATCH', { id: field.id, content_value: value })
 
-      if (res.ok) {
-        setSaved(true)
-        field.content_value = value
-        setTimeout(() => setSaved(false), 2000)
-      }
+      setSaved(true)
+      field.content_value = value
+      toast.success('Saved.')
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }

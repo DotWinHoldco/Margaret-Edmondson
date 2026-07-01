@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 
 interface EmailTemplate {
   id: string
@@ -167,6 +169,7 @@ function CampaignsTab() {
 }
 
 function TemplatesTab() {
+  const toast = useToast()
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState<string | null>(null)
@@ -200,13 +203,16 @@ function TemplatesTab() {
     if (!editId) return
     setSaving(true)
     try {
-      await fetch('/api/admin/email-templates', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editId, subject: editSubject, content_html: editHtml }),
+      await apiSend('/api/admin/email-templates', 'PATCH', {
+        id: editId,
+        subject: editSubject,
+        content_html: editHtml,
       })
+      toast.success('Saved.')
       setEditId(null)
       load()
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }

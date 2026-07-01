@@ -10,6 +10,8 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import CalendarCell, { type CalendarPost } from './CalendarCell'
 import { channelGlyph } from './ChannelPreview'
 import { STATUS_DOT } from './StatusBadge'
@@ -33,6 +35,7 @@ interface Props {
 }
 
 export default function SocialCalendar({ initialPosts }: Props) {
+  const toast = useToast()
   const today = useMemo(() => new Date(), [])
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [posts, setPosts] = useState<CalendarPost[]>(initialPosts)
@@ -61,17 +64,16 @@ export default function SocialCalendar({ initialPosts }: Props) {
     to.setHours(23, 59, 59, 999)
     setLoading(true)
     try {
-      const res = await fetch(
-        `/api/admin/social/calendar?from=${from.toISOString()}&to=${to.toISOString()}`
+      const body = await apiFetch<{ posts: CalendarPost[] }>(
+        `/api/admin/social/calendar?from=${from.toISOString()}&to=${to.toISOString()}`,
       )
-      if (res.ok) {
-        const body = await res.json()
-        setPosts(body.posts || [])
-      }
+      setPosts(body.posts || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
     } finally {
       setLoading(false)
     }
-  }, [gridDays])
+  }, [gridDays, toast])
 
   useEffect(() => {
     loadMonth()
@@ -125,16 +127,15 @@ export default function SocialCalendar({ initialPosts }: Props) {
       prev.map((p) => (p.id === post.id ? { ...p, scheduled_at: nextIso } : p))
     )
 
-    const res = await fetch(`/api/admin/social/posts/${post.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduled_at: nextIso }),
-    })
-    if (!res.ok) {
+    try {
+      await apiSend(`/api/admin/social/posts/${post.id}`, 'PATCH', { scheduled_at: nextIso })
+      toast.success('Post rescheduled.')
+    } catch (err) {
       // Roll back on failure.
       setPosts((prev) =>
         prev.map((p) => (p.id === post.id ? { ...p, scheduled_at: post.scheduled_at } : p))
       )
+      toast.error(errorMessage(err))
     }
   }
 

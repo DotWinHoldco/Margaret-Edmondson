@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 // GET /api/admin/funnels — list funnels with summary metrics and product info; admin only.
 export async function GET() {
   try {
@@ -17,12 +18,12 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/funnels GET')
     }
 
     return Response.json({ funnels: funnels || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/funnels GET' })
   }
 }
 
@@ -42,10 +43,10 @@ export async function POST(request: Request) {
     const supabase = auth.supabase
 
     if (!body.product_id) {
-      return Response.json({ error: 'Product is required.' }, { status: 400 })
+      return apiError('Product is required.', 400, 'BAD_REQUEST')
     }
     if (!body.template) {
-      return Response.json({ error: 'Template is required.' }, { status: 400 })
+      return apiError('Template is required.', 400, 'BAD_REQUEST')
     }
 
     // Build slug from product title if not provided
@@ -100,11 +101,14 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/funnels POST')
     }
 
     return Response.json({ funnel }, { status: 201 })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/funnels POST' })
   }
 }

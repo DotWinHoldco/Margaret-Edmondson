@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/feedback/[id]/comments — list comments for a feedback item; admin only.
@@ -19,13 +20,12 @@ export async function GET(
       .order('created_at', { ascending: true })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback/[id]/comments GET')
     }
 
     return Response.json({ data: data || [] })
   } catch (err) {
-    console.error('GET /api/admin/feedback/[id]/comments error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback/[id]/comments GET' })
   }
 }
 
@@ -46,11 +46,11 @@ export async function POST(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.message?.trim()) {
-      return Response.json({ error: 'Message is required' }, { status: 400 })
+      return apiError('Message is required.', 400, 'VALIDATION_FAILED')
     }
 
     // Determine sender role based on email
@@ -69,12 +69,11 @@ export async function POST(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback/[id]/comments POST')
     }
 
     return Response.json({ data }, { status: 201 })
   } catch (err) {
-    console.error('POST /api/admin/feedback/[id]/comments error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback/[id]/comments POST' })
   }
 }

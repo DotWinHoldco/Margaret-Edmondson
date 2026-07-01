@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/feedback — list feedback items with comment counts and audit log, optionally filtered; admin only.
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback GET')
     }
 
     const items = (data || []).map((item: Record<string, unknown>) => ({
@@ -44,8 +45,7 @@ export async function GET(request: NextRequest) {
 
     return Response.json({ data: items })
   } catch (err) {
-    console.error('GET /api/admin/feedback error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback GET' })
   }
 }
 
@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.title?.trim()) {
-      return Response.json({ error: 'Title is required' }, { status: 400 })
+      return apiError('Title is required.', 400, 'VALIDATION_FAILED')
     }
 
     const { data, error } = await supabase
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback POST')
     }
 
     // Log creation in audit trail
@@ -97,8 +97,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ data }, { status: 201 })
   } catch (err) {
-    console.error('POST /api/admin/feedback error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback POST' })
   }
 }
 
@@ -115,11 +114,11 @@ export async function PATCH(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.id) {
-      return Response.json({ error: 'Feedback ID is required' }, { status: 400 })
+      return apiError('Feedback ID is required.', 400, 'VALIDATION_FAILED')
     }
 
     // Get current item for audit trail
@@ -194,7 +193,7 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback PATCH')
     }
 
     // Log audit entries
@@ -210,8 +209,7 @@ export async function PATCH(request: NextRequest) {
 
     return Response.json({ data })
   } catch (err) {
-    console.error('PATCH /api/admin/feedback error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback PATCH' })
   }
 }
 
@@ -228,11 +226,11 @@ export async function DELETE(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
     }
 
     if (!body.id) {
-      return Response.json({ error: 'Feedback ID is required' }, { status: 400 })
+      return apiError('Feedback ID is required.', 400, 'VALIDATION_FAILED')
     }
 
     const { error } = await supabase
@@ -241,12 +239,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', body.id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/feedback DELETE')
     }
 
     return Response.json({ success: true })
   } catch (err) {
-    console.error('DELETE /api/admin/feedback error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/feedback DELETE' })
   }
 }

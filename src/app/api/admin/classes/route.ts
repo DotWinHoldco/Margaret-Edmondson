@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 function generateSlug(title: string): string {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: courses, error } = await query
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/classes GET')
     }
 
     // Flatten the enrollment count from the nested array
@@ -45,8 +46,7 @@ export async function GET(request: NextRequest) {
 
     return Response.json({ data: formatted })
   } catch (err) {
-    console.error('GET /api/admin/classes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes GET' })
   }
 }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
-      return Response.json({ error: 'Title is required' }, { status: 400 })
+      return apiError('Please enter a title.', 400, 'INVALID_INPUT')
     }
 
     const auth = await requireAdmin()
@@ -99,12 +99,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505')
+        return apiError('That slug is already in use. Please choose a different one.', 409, 'CONFLICT')
+      return dbFail(error, 'admin/classes POST')
     }
 
     return Response.json({ data: course }, { status: 201 })
   } catch (err) {
-    console.error('POST /api/admin/classes error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes POST' })
   }
 }

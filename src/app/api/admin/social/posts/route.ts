@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const CHANNELS = ['instagram', 'facebook', 'twitter', 'tiktok', 'pinterest', 'linkedin'] as const
 type Channel = (typeof CHANNELS)[number]
@@ -38,10 +39,10 @@ export async function GET(request: Request) {
     if (to) query = query.lte('scheduled_at', to)
 
     const { data, error } = await query
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/posts GET')
     return Response.json({ posts: data || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts GET' })
   }
 }
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       : []
 
     if (channels.length === 0) {
-      return Response.json({ error: 'Select at least one channel.' }, { status: 400 })
+      return apiError('Select at least one channel.', 400, 'VALIDATION_FAILED')
     }
 
     const requestedStatus: Status = STATUSES.includes(body.status) ? body.status : 'draft'
@@ -67,10 +68,7 @@ export async function POST(request: Request) {
       requestedStatus === 'scheduled' && !scheduledAt ? 'draft' : requestedStatus
 
     if (status === 'scheduled' && !scheduledAt) {
-      return Response.json(
-        { error: 'A scheduled post needs a date and time.' },
-        { status: 400 }
-      )
+      return apiError('A scheduled post needs a date and time.', 400, 'VALIDATION_FAILED')
     }
 
     const auth = await requireAdmin()
@@ -110,7 +108,7 @@ export async function POST(request: Request) {
         .select('id')
         .single()
 
-      if (error) return Response.json({ error: error.message }, { status: 500 })
+      if (error) return dbFail(error, 'admin/social/posts POST')
 
       if (post && mediaInputs.length > 0) {
         const mediaRows = mediaInputs.map((m, i) => ({
@@ -120,14 +118,14 @@ export async function POST(request: Request) {
           sort_order: i,
         }))
         const { error: mediaErr } = await supabase.from('social_post_media').insert(mediaRows)
-        if (mediaErr) return Response.json({ error: mediaErr.message }, { status: 500 })
+        if (mediaErr) return dbFail(mediaErr, 'admin/social/posts POST media')
       }
 
       created.push(post)
     }
 
     return Response.json({ created, count: created.length }, { status: 201 })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts POST' })
   }
 }

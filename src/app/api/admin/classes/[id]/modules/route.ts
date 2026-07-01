@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // GET /api/admin/classes/[id]/modules — list a course's modules with lesson counts; admin only.
@@ -19,13 +20,12 @@ export async function GET(
       .order('sort_order', { ascending: true })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/classes/[id]/modules GET')
     }
 
     return Response.json({ data })
   } catch (err) {
-    console.error('GET /api/admin/classes/[id]/modules error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id]/modules GET' })
   }
 }
 
@@ -42,7 +42,7 @@ export async function POST(
     const supabase = auth.supabase
 
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
-      return Response.json({ error: 'Title is required' }, { status: 400 })
+      return apiError('Please enter a module title.', 400, 'INVALID_INPUT')
     }
 
     // Get max sort_order for this course
@@ -71,12 +71,11 @@ export async function POST(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/classes/[id]/modules POST')
     }
 
     return Response.json({ data: mod }, { status: 201 })
   } catch (err) {
-    console.error('POST /api/admin/classes/[id]/modules error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/classes/[id]/modules POST' })
   }
 }

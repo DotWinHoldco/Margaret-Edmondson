@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
 
@@ -26,6 +26,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .eq('id', id)
     .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/email-campaigns/[id]/schedule POST')
   return apiOk({ campaign: data })
 }

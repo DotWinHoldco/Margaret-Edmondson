@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface SessionData {
   id?: string
@@ -37,6 +39,7 @@ function localInputToIso(local: string): string {
 
 export default function ClassSessionForm({ initial }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const isEdit = !!initial?.id
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,19 +82,21 @@ export default function ClassSessionForm({ initial }: Props) {
     }
 
     try {
-      const url = isEdit ? `/api/admin/class-sessions/${initial!.id}` : '/api/admin/class-sessions'
-      const method = isEdit ? 'PATCH' : 'POST'
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Save failed')
-      if (!isEdit && json.data?.id) {
-        router.push(`/admin/classes/${json.data.id}`)
+      if (!isEdit) {
+        const created = await apiSend<{ id: string }>('/api/admin/class-sessions', 'POST', body)
+        toast.success('Session created.')
+        router.push(`/admin/classes/${created.id}`)
         return
       }
+      await apiSend(`/api/admin/class-sessions/${initial!.id}`, 'PATCH', body)
       setSavedAt(new Date())
+      toast.success('Changes saved.')
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -100,8 +105,13 @@ export default function ClassSessionForm({ initial }: Props) {
   async function handleDelete() {
     if (!isEdit || !initial?.id) return
     if (!window.confirm('Delete this session? Bookings will be removed too.')) return
-    await fetch(`/api/admin/class-sessions/${initial.id}`, { method: 'DELETE' })
-    router.push('/admin/classes')
+    try {
+      await apiSend(`/api/admin/class-sessions/${initial.id}`, 'DELETE')
+      toast.success('Session deleted.')
+      router.push('/admin/classes')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   return (

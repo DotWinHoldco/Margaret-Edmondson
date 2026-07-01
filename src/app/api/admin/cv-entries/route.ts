@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { parseSortYear } from '@/lib/cv'
 
 const Body = z.object({
@@ -34,6 +34,6 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/cv-entries POST')
   return apiOk({ id: data.id })
 }

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiSend, errorMessage } from '@/lib/api/client'
 import MediaPicker from '@/components/admin/MediaPicker'
 import ChannelPreview, {
   CHANNELS,
@@ -58,6 +60,7 @@ function localInputToIso(value: string): string | null {
 
 export default function PostComposer({ postId, accounts, initial, currentStatus }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const isEdit = Boolean(postId)
 
   const [channels, setChannels] = useState<Channel[]>(initial?.channels ?? [])
@@ -144,48 +147,36 @@ export default function PostComposer({ postId, accounts, initial, currentStatus 
     try {
       if (isEdit) {
         // Editing always operates on a single channel post.
-        const res = await fetch(`/api/admin/social/posts/${postId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channel: channels[0],
-            body,
-            hashtags,
-            link_url: linkUrl,
-            media,
-            scheduled_at: scheduledIso,
-            ...(preserveStatus ? {} : { status }),
-            account_id: accountId || null,
-          }),
+        await apiSend(`/api/admin/social/posts/${postId}`, 'PATCH', {
+          channel: channels[0],
+          body,
+          hashtags,
+          link_url: linkUrl,
+          media,
+          scheduled_at: scheduledIso,
+          ...(preserveStatus ? {} : { status }),
+          account_id: accountId || null,
         })
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}))
-          throw new Error(j.error || 'Failed to save post.')
-        }
+        toast.success('Saved.')
       } else {
-        const res = await fetch('/api/admin/social/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channels,
-            body,
-            hashtags,
-            link_url: linkUrl,
-            media,
-            scheduled_at: scheduledIso,
-            status,
-            account_id: accountId || null,
-          }),
+        await apiSend('/api/admin/social/posts', 'POST', {
+          channels,
+          body,
+          hashtags,
+          link_url: linkUrl,
+          media,
+          scheduled_at: scheduledIso,
+          status,
+          account_id: accountId || null,
         })
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}))
-          throw new Error(j.error || 'Failed to create post.')
-        }
+        toast.success(status === 'scheduled' ? 'Post scheduled.' : 'Draft saved.')
       }
       router.push('/admin/social')
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
+      const msg = errorMessage(e)
+      setError(msg)
+      toast.error(msg)
       setSaving(false)
     }
   }

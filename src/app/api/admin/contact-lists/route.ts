@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { z } from 'zod'
 
 const Create = z.object({
@@ -19,7 +19,7 @@ export async function GET() {
     .order('is_system', { ascending: false })
     .order('name', { ascending: true })
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/contact-lists GET')
 
   const enriched = await Promise.all(
     (lists || []).map(async (list) => {
@@ -47,6 +47,11 @@ export async function POST(request: Request) {
     .insert({ slug: parsed.data.slug, name: parsed.data.name, description: parsed.data.description ?? null })
     .select('id, slug, name, description, is_system, created_at, updated_at')
     .single()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) {
+    if (error.code === '23505') {
+      return apiError('That list slug already exists. Please use a different slug.', 409, 'CONFLICT')
+    }
+    return dbFail(error, 'admin/contact-lists POST')
+  }
   return apiOk({ list: data }, 201)
 }

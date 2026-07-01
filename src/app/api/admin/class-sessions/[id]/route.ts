@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const Patch = z.object({
   audience: z.enum(['adult', 'teen', 'kids', 'family']).optional(),
@@ -25,12 +25,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = await parseBody(request, Patch)
   if (!parsed.ok) return parsed.response
 
+  // class_sessions.slug is UNIQUE; a clashing edit surfaces as a friendly conflict.
   const { error } = await auth.supabase
     .from('class_sessions')
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) {
+    if (error.code === '23505')
+      return apiError('A session with that link already exists. Please use a different slug.', 409, 'CONFLICT')
+    return dbFail(error, 'admin/class-sessions/[id] PATCH')
+  }
   return apiOk({ id })
 }
 
@@ -40,6 +45,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!auth.ok) return auth.response
   const { id } = await params
   const { error } = await auth.supabase.from('class_sessions').delete().eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/class-sessions/[id] DELETE')
   return apiOk({ success: true })
 }

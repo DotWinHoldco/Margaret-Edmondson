@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
 
@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
     .select('id, slug, name, description, is_system, created_at, updated_at')
     .maybeSingle()
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/contact-lists/[id] PATCH')
   return apiOk({ list: data })
 }
 
@@ -43,6 +43,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     .from('contact_lists')
     .delete()
     .eq('id', id)
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/contact-lists/[id] DELETE')
   return apiOk({ id })
 }

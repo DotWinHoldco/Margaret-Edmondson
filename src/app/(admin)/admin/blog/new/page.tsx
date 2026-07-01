@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import MediaPicker from '@/components/admin/MediaPicker'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 function slugify(text: string): string {
   return text
@@ -19,6 +21,7 @@ type BlogStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
 export default function NewBlogPostPage() {
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -64,32 +67,31 @@ export default function NewBlogPostPage() {
     setError(null)
 
     try {
-      const res = await fetch('/api/admin/blog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          status: publishStatus,
-          publish_at: publishStatus === 'scheduled' && form.publish_at
-            ? new Date(form.publish_at).toISOString()
-            : null,
-          tags: form.tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean),
-        }),
+      const json = await apiSend<{ post?: { id?: string } }>('/api/admin/blog', 'POST', {
+        ...form,
+        status: publishStatus,
+        publish_at: publishStatus === 'scheduled' && form.publish_at
+          ? new Date(form.publish_at).toISOString()
+          : null,
+        tags: form.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
       })
 
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to save post.')
-      }
-
+      toast.success(
+        publishStatus === 'published'
+          ? 'Post published.'
+          : publishStatus === 'scheduled'
+            ? 'Post scheduled.'
+            : 'Draft saved.'
+      )
       const newId = json.post?.id
       router.push(newId ? `/admin/blog/${newId}` : '/admin/blog')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }

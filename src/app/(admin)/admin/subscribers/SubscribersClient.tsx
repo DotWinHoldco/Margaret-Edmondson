@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 interface Subscriber {
   id: string
@@ -12,6 +14,7 @@ interface Subscriber {
 }
 
 export default function SubscribersClient() {
+  const toast = useToast()
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -19,11 +22,15 @@ export default function SubscribersClient() {
 
   const fetchSubscribers = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/admin/subscribers')
-    const data = await res.json()
-    setSubscribers(data.subscribers || [])
-    setLoading(false)
-  }, [])
+    try {
+      const data = await apiFetch<{ subscribers?: Subscriber[] }>('/api/admin/subscribers')
+      setSubscribers(data.subscribers || [])
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- legacy fetch-on-mount; safe
@@ -32,8 +39,13 @@ export default function SubscribersClient() {
 
   async function handleUnsubscribe(id: string) {
     if (!confirm('Unsubscribe this user?')) return
-    await fetch(`/api/admin/subscribers?id=${id}`, { method: 'DELETE' })
-    fetchSubscribers()
+    try {
+      await apiSend(`/api/admin/subscribers?id=${id}`, 'DELETE')
+      toast.success('Unsubscribed.')
+      fetchSubscribers()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
   }
 
   function csvEscape(value: string | null): string {

@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
 // PATCH /api/admin/classes/[id]/modules/[moduleId]/lessons/[lessonId] — update a lesson; admin only.
@@ -36,7 +37,7 @@ export async function PATCH(
     }
 
     if (Object.keys(updateFields).length === 0) {
-      return Response.json({ error: 'No fields to update' }, { status: 400 })
+      return apiError('There are no changes to save.', 400, 'INVALID_INPUT')
     }
 
     const { data, error } = await supabase
@@ -47,13 +48,14 @@ export async function PATCH(
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505')
+        return apiError('A lesson with that link already exists. Please use a different title or slug.', 409, 'CONFLICT')
+      return dbFail(error, 'admin/.../lessons/[lessonId] PATCH')
     }
 
     return Response.json({ data })
   } catch (err) {
-    console.error('PATCH lesson error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/.../lessons/[lessonId] PATCH' })
   }
 }
 
@@ -76,12 +78,11 @@ export async function DELETE(
       .eq('id', lessonId)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/.../lessons/[lessonId] DELETE')
     }
 
     return Response.json({ success: true })
   } catch (err) {
-    console.error('DELETE lesson error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    return apiFail(err, { context: 'admin/.../lessons/[lessonId] DELETE' })
   }
 }

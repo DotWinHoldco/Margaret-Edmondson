@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const CHANNELS = ['instagram', 'facebook', 'twitter', 'tiktok', 'pinterest', 'linkedin'] as const
 type Channel = (typeof CHANNELS)[number]
@@ -30,8 +31,8 @@ export async function GET(
       .eq('id', id)
       .maybeSingle()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
-    if (!post) return Response.json({ error: 'Post not found.' }, { status: 404 })
+    if (error) return dbFail(error, 'admin/social/posts/[id] GET')
+    if (!post) return apiError('Post not found.', 404, 'NOT_FOUND')
 
     const { data: media } = await supabase
       .from('social_post_media')
@@ -40,8 +41,8 @@ export async function GET(
       .order('sort_order', { ascending: true })
 
     return Response.json({ post, media: media || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts/[id] GET' })
   }
 }
 
@@ -132,10 +133,10 @@ export async function PATCH(
       )
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/posts/[id] PATCH')
     return Response.json({ post: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts/[id] PATCH' })
   }
 }
 
@@ -152,9 +153,9 @@ export async function DELETE(
 
     // social_post_media cascades via FK ON DELETE CASCADE.
     const { error } = await supabase.from('social_posts').delete().eq('id', id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/posts/[id] DELETE')
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts/[id] DELETE' })
   }
 }

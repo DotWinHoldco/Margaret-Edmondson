@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 const MUTABLE_FIELDS = [
   'name',
   'role',
@@ -37,13 +38,11 @@ export async function GET() {
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false })
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
-    }
+    if (error) return dbFail(error, 'admin/testimonials GET')
 
     return Response.json({ testimonials: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials GET' })
   }
 }
 
@@ -56,19 +55,16 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const body = await request.json()
     const fields = pickFields(body)
 
     if (!fields.name) {
-      return Response.json({ error: 'Name is required.' }, { status: 400 })
+      return apiError('Name is required.', 400, 'VALIDATION_FAILED')
     }
     if (!fields.quote && !fields.content) {
-      return Response.json(
-        { error: 'Content or quote is required.' },
-        { status: 400 },
-      )
+      return apiError('Content or quote is required.', 400, 'VALIDATION_FAILED')
     }
 
     const { data, error } = await supabase
@@ -82,10 +78,10 @@ export async function POST(request: Request) {
       .select('*, media:testimonial_media(*)')
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/testimonials POST')
     return Response.json({ testimonial: data }, { status: 201 })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials POST' })
   }
 }
 
@@ -98,11 +94,11 @@ export async function PATCH(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const body = await request.json()
     const { id } = body as { id?: string }
-    if (!id) return Response.json({ error: 'ID is required.' }, { status: 400 })
+    if (!id) return apiError('ID is required.', 400, 'VALIDATION_FAILED')
 
     const updates = pickFields(body)
     updates.updated_at = new Date().toISOString()
@@ -114,10 +110,10 @@ export async function PATCH(request: Request) {
       .select('*, media:testimonial_media(*)')
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/testimonials PATCH')
     return Response.json({ testimonial: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials PATCH' })
   }
 }
 
@@ -130,11 +126,11 @@ export async function DELETE(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return apiError('Please sign in to continue.', 401, 'UNAUTHORIZED')
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    if (!id) return Response.json({ error: 'ID is required.' }, { status: 400 })
+    if (!id) return apiError('ID is required.', 400, 'VALIDATION_FAILED')
 
     // Remove media files from storage
     const { data: media } = await supabase
@@ -150,9 +146,9 @@ export async function DELETE(request: Request) {
     }
 
     const { error } = await supabase.from('testimonials').delete().eq('id', id)
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/testimonials DELETE')
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/testimonials DELETE' })
   }
 }

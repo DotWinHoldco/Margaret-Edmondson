@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 // The collection arranger reads/writes product_categories.sort_order, which is
 // the per-category display order the storefront grid renders by (row-major:
@@ -28,7 +28,10 @@ export async function GET(
     .select('id, name, slug')
     .eq('id', id)
     .single()
-  if (catErr) return apiError(catErr.message, catErr.code === 'PGRST116' ? 404 : 500, 'DB_ERROR')
+  if (catErr) {
+    if (catErr.code === 'PGRST116') return apiError('Category not found.', 404, 'NOT_FOUND')
+    return dbFail(catErr, 'admin/categories/[id]/order GET')
+  }
 
   const { data: links } = await sb
     .from('product_categories')
@@ -99,7 +102,7 @@ export async function PUT(
       .update({ sort_order: i + 1 })
       .eq('category_id', id)
       .eq('product_id', ordered[i])
-    if (error) return apiError(error.message, 500, 'DB_ERROR')
+    if (error) return dbFail(error, 'admin/categories/[id]/order PUT')
   }
 
   // Bust the cached collection page so the new order shows on the next visit.

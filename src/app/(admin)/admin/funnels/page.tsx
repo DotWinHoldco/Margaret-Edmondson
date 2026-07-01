@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 interface FunnelRow {
   id: string
@@ -27,6 +29,7 @@ const templateLabels: Record<string, string> = {
 }
 
 export default function AdminFunnelsPage() {
+  const toast = useToast()
   const [funnels, setFunnels] = useState<FunnelRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -40,9 +43,12 @@ export default function AdminFunnelsPage() {
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete funnel for "${title}"? This cannot be undone.`)) return
-    const res = await fetch(`/api/admin/funnels/${id}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      await apiSend(`/api/admin/funnels/${id}`, 'DELETE')
       setFunnels((prev) => prev.filter((f) => f.id !== id))
+      toast.success('Funnel deleted.')
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 

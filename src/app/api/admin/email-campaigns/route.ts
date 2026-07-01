@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { z } from 'zod'
 
 const CreateCampaign = z.object({
@@ -25,7 +25,7 @@ export async function GET() {
     .select('*, audience_list:contact_lists(id, slug, name), promo_code:promo_codes(id, code, discount_value, discount_type)')
     .order('created_at', { ascending: false })
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/email-campaigns GET')
   return apiOk({ campaigns: data || [] })
 }
 
@@ -47,6 +47,6 @@ export async function POST(request: Request) {
     .select('id, name, status, sent_at, created_at, subject, preheader, from_name, from_email, content_html, content_json, audience_list_id, promo_code_id, scheduled_at, queued_count, sent_count, failed_count, opened_count, clicked_count, unsubscribed_count, created_by, updated_at')
     .single()
 
-  if (error || !data) return apiError(error?.message || 'Insert failed', 500, 'DB_ERROR')
+  if (error || !data) return dbFail(error, 'admin/email-campaigns POST')
   return apiOk({ campaign: data }, 201)
 }

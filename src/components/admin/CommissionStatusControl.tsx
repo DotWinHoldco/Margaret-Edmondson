@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 function formatStatusLabel(status: string) {
   return status
@@ -20,6 +22,7 @@ export default function CommissionStatusControl({
   statuses: readonly string[]
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [status, setStatus] = useState(currentStatus)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,19 +31,13 @@ export default function CommissionStatusControl({
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch('/api/commissions', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: commissionId, status }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setError(data.error || 'Failed to update status')
-        return
-      }
+      await apiSend('/api/commissions', 'PATCH', { id: commissionId, status })
+      toast.success('Status updated.')
       router.refresh()
-    } catch {
-      setError('Failed to update status')
+    } catch (err) {
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }

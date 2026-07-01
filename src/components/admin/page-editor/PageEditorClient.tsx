@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { errorMessage } from '@/lib/api/client'
 import { pageSchemas, getSchema } from '@/lib/page-editor/schemas'
 import type { FieldSchema, PageSchema, SectionSchema } from '@/lib/page-editor/types'
 import FieldRenderer from './FieldRenderer'
@@ -18,6 +20,7 @@ interface SectionState {
 }
 
 export default function PageEditorClient() {
+  const toast = useToast()
   const searchParams = useSearchParams()
   const slugFromUrl = searchParams.get('slug') || 'about'
   const schema = useMemo<PageSchema>(() => getSchema(slugFromUrl) ?? pageSchemas[0]!, [slugFromUrl])
@@ -79,7 +82,7 @@ export default function PageEditorClient() {
         body: JSON.stringify({ value: state.draft }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Save failed')
+      if (!res.ok) throw new Error(errorMessage({ code: data?.code, message: data?.error }))
       const next = data?.data?.value
       setSections((s) => ({
         ...s,
@@ -92,11 +95,14 @@ export default function PageEditorClient() {
           saveToken: s[key]!.saveToken + 1,
         },
       }))
+      toast.success('Section saved.')
     } catch (err) {
+      const message = err instanceof Error ? err.message : errorMessage(err)
       setSections((s) => ({
         ...s,
-        [key]: { ...s[key]!, saving: false, error: err instanceof Error ? err.message : 'Save failed' },
+        [key]: { ...s[key]!, saving: false, error: message },
       }))
+      toast.error(message)
     }
   }
 

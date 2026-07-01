@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const Body = z.object({
   audience: z.enum(['adult', 'teen', 'kids', 'family']),
@@ -40,7 +40,25 @@ export async function POST(request: NextRequest) {
   if (!parsed.ok) return parsed.response
   const body = parsed.data
 
-  const slug = body.slug || slugify(body.title, body.starts_at)
+  // class_sessions.slug is UNIQUE. When the admin did not supply an explicit
+  // slug, the auto slug is date-only, so two sessions on the same day (morning
+  // and afternoon) collide. Dedupe the auto slug before insert; an explicit
+  // slug that still clashes is reported as a friendly conflict below.
+  let slug = body.slug || slugify(body.title, body.starts_at)
+  if (!body.slug) {
+    const { data: existing } = await supabase
+      .from('class_sessions')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+    if (existing) {
+      const start = new Date(body.starts_at)
+      const time = start
+        .toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Chicago' })
+        .replace(/[^0-9]/g, '')
+      slug = `${slug}-${time || Date.now()}`
+    }
+  }
 
   const { data, error } = await supabase
     .from('class_sessions')
@@ -48,6 +66,10 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) {
+    if (error.code === '23505')
+      return apiError('A session with that link already exists. Please use a different slug.', 409, 'CONFLICT')
+    return dbFail(error, 'admin/class-sessions POST')
+  }
   return apiOk({ id: data.id })
 }

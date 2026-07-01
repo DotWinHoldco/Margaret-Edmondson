@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const Degree = z.object({
   year: z.string().min(1),
@@ -43,6 +43,6 @@ export async function PATCH(request: NextRequest) {
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', true)
 
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/about/credentials PATCH')
   return apiOk({ success: true })
 }

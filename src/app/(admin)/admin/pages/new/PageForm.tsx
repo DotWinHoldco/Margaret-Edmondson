@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 function generateSlug(title: string): string {
   return title
@@ -12,6 +14,7 @@ function generateSlug(title: string): string {
 
 export default function PageForm() {
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -46,30 +49,21 @@ export default function PageForm() {
     setError(null)
 
     try {
-      const res = await fetch('/api/admin/pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          slug: form.slug || generateSlug(form.title),
-          seo_title: form.seo_title || form.title.trim(),
-          seo_description: form.seo_description,
-          content_html: form.content_html,
-        }),
+      const data = await apiSend<{ page?: { id?: string } }>('/api/admin/pages', 'POST', {
+        title: form.title.trim(),
+        slug: form.slug || generateSlug(form.title),
+        seo_title: form.seo_title || form.title.trim(),
+        seo_description: form.seo_description,
+        content_html: form.content_html,
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to create page.')
-        setSaving(false)
-        return
-      }
-
+      toast.success('Page created.')
       const newId = data.page?.id
       router.push(newId ? `/admin/pages/${newId}` : '/admin/pages')
-    } catch {
-      setError('An unexpected error occurred.')
+      router.refresh()
+    } catch (err) {
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
       setSaving(false)
     }
   }

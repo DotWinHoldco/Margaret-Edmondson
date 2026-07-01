@@ -43,7 +43,14 @@ export default function CartPage() {
   const [showShipping, setShowShipping] = useState(false)
 
   const needsSurcharge = country !== 'US' || /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
-  const discountUsd = appliedPromo ? appliedPromo.amountOffCents / 100 : 0
+  // Recompute the displayed discount from the CURRENT subtotal so a percentage
+  // code stays correct after a quantity change (checkout re-prices the same
+  // way). A fixed code is only capped by the subtotal.
+  const discountUsd = appliedPromo
+    ? appliedPromo.discountType === 'percentage'
+      ? Math.min(subtotal, Math.round(subtotal * appliedPromo.discountValue) / 100)
+      : Math.min(subtotal, appliedPromo.amountOffCents / 100)
+    : 0
   const shippingUsd = needsSurcharge && surcharge ? surcharge : 0
   const total = Math.max(0, subtotal - discountUsd + shippingUsd)
 

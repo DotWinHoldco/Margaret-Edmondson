@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 type Status = 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'cancelled'
 
@@ -29,7 +30,7 @@ export async function POST(
     const next = body.status as Status | undefined
 
     if (!next || !(next in TRANSITIONS)) {
-      return Response.json({ error: 'A valid target status is required.' }, { status: 400 })
+      return apiError('A valid target status is required.', 400, 'VALIDATION_FAILED')
     }
 
     const auth = await requireAdmin()
@@ -42,26 +43,20 @@ export async function POST(
       .eq('id', id)
       .maybeSingle()
 
-    if (readErr) return Response.json({ error: readErr.message }, { status: 500 })
-    if (!existing) return Response.json({ error: 'Post not found.' }, { status: 404 })
+    if (readErr) return dbFail(readErr, 'admin/social/posts/[id]/status read')
+    if (!existing) return apiError('Post not found.', 404, 'NOT_FOUND')
 
     const current = (existing as { status: Status; scheduled_at: string | null }).status
     const scheduledAt = (existing as { status: Status; scheduled_at: string | null }).scheduled_at
 
     if (current === next) {
-      return Response.json({ error: `Post is already ${next}.` }, { status: 409 })
+      return apiError(`Post is already ${next}.`, 409, 'CONFLICT')
     }
     if (!TRANSITIONS[current].includes(next)) {
-      return Response.json(
-        { error: `Cannot move a post from ${current} to ${next}.` },
-        { status: 409 }
-      )
+      return apiError(`Cannot move a post from ${current} to ${next}.`, 409, 'CONFLICT')
     }
     if (next === 'scheduled' && !scheduledAt) {
-      return Response.json(
-        { error: 'Set a scheduled date before scheduling this post.' },
-        { status: 400 }
-      )
+      return apiError('Set a scheduled date before scheduling this post.', 400, 'VALIDATION_FAILED')
     }
 
     const now = new Date().toISOString()
@@ -99,9 +94,9 @@ export async function POST(
       .select('id, status, scheduled_at, published_at, progress_pct, error_message, provider_post_id')
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) return dbFail(error, 'admin/social/posts/[id]/status POST')
     return Response.json({ post: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/social/posts/[id]/status POST' })
   }
 }

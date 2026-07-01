@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import MediaPicker from '@/components/admin/MediaPicker'
+import { apiSend, errorMessage } from '@/lib/api/client'
+import { useToast } from '@/components/shared/toast/ToastProvider'
 
 type BlogStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
@@ -20,6 +22,7 @@ function slugify(text: string): string {
 export default function EditBlogPostPage(props: { params: Promise<{ id: string }> }) {
   const { id } = use(props.params)
   const router = useRouter()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -111,39 +114,38 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
     setError(null)
 
     try {
-      const res = await fetch('/api/admin/blog', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          ...form,
-          status: publishStatus,
-          tags: form.tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean),
-          published_at:
-            publishStatus === 'published' && form.published_at
-              ? new Date(form.published_at).toISOString()
-              : publishStatus === 'published'
-                ? new Date().toISOString()
-                : null,
-          publish_at:
-            publishStatus === 'scheduled' && form.publish_at
-              ? new Date(form.publish_at).toISOString()
+      await apiSend('/api/admin/blog', 'PATCH', {
+        id,
+        ...form,
+        status: publishStatus,
+        tags: form.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+        published_at:
+          publishStatus === 'published' && form.published_at
+            ? new Date(form.published_at).toISOString()
+            : publishStatus === 'published'
+              ? new Date().toISOString()
               : null,
-        }),
+        publish_at:
+          publishStatus === 'scheduled' && form.publish_at
+            ? new Date(form.publish_at).toISOString()
+            : null,
       })
 
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to save post.')
-      }
-
       setSavedAt(new Date())
+      toast.success(
+        publishStatus === 'published'
+          ? 'Post published.'
+          : publishStatus === 'scheduled'
+            ? 'Post scheduled.'
+            : 'Draft saved.'
+      )
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -154,19 +156,14 @@ export default function EditBlogPostPage(props: { params: Promise<{ id: string }
     setError(null)
 
     try {
-      const res = await fetch(`/api/admin/blog?id=${id}`, {
-        method: 'DELETE',
-      })
+      await apiSend(`/api/admin/blog?id=${id}`, 'DELETE')
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to delete post.')
-      }
-
+      toast.success('Post deleted.')
       router.push('/admin/blog')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      setError(errorMessage(err))
+      toast.error(errorMessage(err))
     } finally {
       setDeleting(false)
       setShowDeleteConfirm(false)

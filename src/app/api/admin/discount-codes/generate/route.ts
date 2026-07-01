@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiFail, apiOk, parseBody } from '@/lib/api/respond'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import { z } from 'zod'
 
@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     )
     return apiOk({ promoCode: created }, 201)
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to create code'
-    return apiError(msg, 500, 'GENERATE_FAILED')
+    return apiFail(err, {
+      context: 'admin/discount-codes/generate POST',
+      code: 'GENERATE_FAILED',
+      publicMessage: 'We could not generate that code. Please check the details and try again.',
+    })
   }
 }

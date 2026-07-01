@@ -1,8 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import RichTextEditor from '@/components/admin/RichTextEditor'
+import { useToast } from '@/components/shared/toast/ToastProvider'
+import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 
 interface ContactList {
   id: string
@@ -55,6 +57,7 @@ const PLACEHOLDERS: { token: string; label: string }[] = [
 
 export default function CampaignComposer({ initial, mode }: CampaignComposerProps) {
   const router = useRouter()
+  const toast = useToast()
 
   const [draft, setDraft] = useState<CampaignDraft>({
     id: initial?.id,
@@ -74,8 +77,6 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
 
   const [lists, setLists] = useState<ContactList[]>([])
   const [saving, setSaving] = useState(false)
-  const [feedback, setFeedback] = useState<string | null>(null)
-  const [feedbackKind, setFeedbackKind] = useState<'ok' | 'error'>('ok')
   const [testTo, setTestTo] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduledAt, setScheduledAt] = useState('')
@@ -83,10 +84,9 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
   const [promoExpires, setPromoExpires] = useState<number | ''>(168)
 
   useEffect(() => {
-    fetch('/api/admin/contact-lists')
-      .then((res) => res.json())
-      .then((data: { data?: { lists?: ContactList[] } }) => {
-        setLists(data?.data?.lists || [])
+    apiFetch<{ lists?: ContactList[] }>('/api/admin/contact-lists')
+      .then((data) => {
+        setLists(data?.lists || [])
       })
       .catch(() => { /* noop */ })
   }, [])
@@ -96,64 +96,47 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
     [draft.status]
   )
 
-  const flash = useCallback((message: string, kind: 'ok' | 'error' = 'ok') => {
-    setFeedback(message)
-    setFeedbackKind(kind)
-    setTimeout(() => setFeedback(null), 4000)
-  }, [])
-
-  async function saveDraft(status: 'draft' = 'draft'): Promise<string | null> {
+  // Persist the current composer state (create or update). On a plain save we
+  // intentionally do NOT send `status`, so the server-side status (for example
+  // a live schedule) is preserved rather than reverted to draft.
+  async function saveDraft(): Promise<string | null> {
     setSaving(true)
-    setFeedback(null)
     try {
       if (draft.id) {
-        const res = await fetch(`/api/admin/email-campaigns/${draft.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: draft.name,
-            subject: draft.subject,
-            preheader: draft.preheader,
-            from_name: draft.from_name,
-            from_email: draft.from_email,
-            content_html: draft.content_html,
-            audience_list_id: draft.audience_list_id,
-            promo_code_id: draft.promo_code_id,
-            status,
-          }),
+        await apiSend(`/api/admin/email-campaigns/${draft.id}`, 'PATCH', {
+          name: draft.name,
+          subject: draft.subject,
+          preheader: draft.preheader,
+          from_name: draft.from_name,
+          from_email: draft.from_email,
+          content_html: draft.content_html,
+          audience_list_id: draft.audience_list_id,
+          promo_code_id: draft.promo_code_id,
         })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Save failed')
-        flash('Saved')
+        toast.success('Saved.')
         return draft.id
       } else {
-        const res = await fetch('/api/admin/email-campaigns', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: draft.name,
-            subject: draft.subject,
-            preheader: draft.preheader,
-            from_name: draft.from_name,
-            from_email: draft.from_email,
-            content_html: draft.content_html,
-            audience_list_id: draft.audience_list_id,
-            promo_code_id: draft.promo_code_id,
-          }),
+        const res = await apiSend<{ campaign?: { id: string } }>('/api/admin/email-campaigns', 'POST', {
+          name: draft.name,
+          subject: draft.subject,
+          preheader: draft.preheader,
+          from_name: draft.from_name,
+          from_email: draft.from_email,
+          content_html: draft.content_html,
+          audience_list_id: draft.audience_list_id,
+          promo_code_id: draft.promo_code_id,
         })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Save failed')
-        const id = data.data?.campaign?.id as string
+        const id = res.campaign?.id
+        if (!id) return null
         setDraft((d) => ({ ...d, id }))
-        flash('Saved')
-        if (mode === 'create' && id) {
+        toast.success('Saved.')
+        if (mode === 'create') {
           router.replace(`/admin/email/campaigns/${id}`)
         }
         return id
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Save failed'
-      flash(msg, 'error')
+      toast.error(errorMessage(err))
       return null
     } finally {
       setSaving(false)
@@ -163,79 +146,63 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
   async function generatePromo() {
     setSaving(true)
     try {
-      const res = await fetch('/api/admin/discount-codes/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'campaign',
-          percentOff: promoPercent,
-          expiresInHours: promoExpires === '' ? null : promoExpires,
-          audienceListId: draft.audience_list_id,
-          prefix: 'CAMP',
-          description: `Campaign code (${draft.name || 'untitled'})`,
-        }),
+      const res = await apiSend<{ promoCode: PromoCode }>('/api/admin/discount-codes/generate', 'POST', {
+        kind: 'campaign',
+        percentOff: promoPercent,
+        expiresInHours: promoExpires === '' ? null : promoExpires,
+        audienceListId: draft.audience_list_id,
+        prefix: 'CAMP',
+        description: `Campaign code (${draft.name || 'untitled'})`,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Code generation failed')
-      const code: PromoCode = data.data?.promoCode
+      const code = res.promoCode
       setDraft((d) => ({ ...d, promo_code_id: code.id, promo_code: code }))
-      flash(`Generated ${code.code}`)
+      toast.success(`Generated ${code.code}`)
     } catch (err) {
-      flash(err instanceof Error ? err.message : 'Code generation failed', 'error')
+      toast.error(errorMessage(err))
     } finally {
       setSaving(false)
     }
   }
 
   async function sendTest() {
-    const id = draft.id || (await saveDraft())
+    const id = await saveDraft()
     if (!id) return
     try {
-      const res = await fetch(`/api/admin/email-campaigns/${id}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toEmail: testTo || undefined }),
+      const res = await apiSend<{ to?: string }>(`/api/admin/email-campaigns/${id}/test`, 'POST', {
+        toEmail: testTo || undefined,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Test send failed')
-      flash(`Test sent to ${data.data?.to ?? 'you'}`)
+      toast.success(`Test sent to ${res.to ?? 'you'}.`)
     } catch (err) {
-      flash(err instanceof Error ? err.message : 'Test failed', 'error')
+      toast.error(errorMessage(err))
     }
   }
 
   async function sendNow() {
     if (!confirm('Send this campaign to the full audience now? This cannot be undone.')) return
-    const id = draft.id || (await saveDraft())
+    const id = await saveDraft()
     if (!id) return
     try {
-      const res = await fetch(`/api/admin/email-campaigns/${id}/send`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Send failed')
-      flash(`Queued ${data.data?.queued ?? 0} recipients`)
+      const res = await apiSend<{ queued?: number }>(`/api/admin/email-campaigns/${id}/send`, 'POST')
+      toast.success(`Queued ${res.queued ?? 0} recipients.`)
       setDraft((d) => ({ ...d, status: 'sending' }))
     } catch (err) {
-      flash(err instanceof Error ? err.message : 'Send failed', 'error')
+      toast.error(errorMessage(err))
     }
   }
 
   async function schedule() {
     if (!scheduledAt) return
-    const id = draft.id || (await saveDraft())
+    const id = await saveDraft()
     if (!id) return
     try {
-      const res = await fetch(`/api/admin/email-campaigns/${id}/schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduledAt: new Date(scheduledAt).toISOString() }),
+      await apiSend(`/api/admin/email-campaigns/${id}/schedule`, 'POST', {
+        scheduledAt: new Date(scheduledAt).toISOString(),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Schedule failed')
-      flash(`Scheduled for ${new Date(scheduledAt).toLocaleString()}`)
+      toast.success(`Scheduled for ${new Date(scheduledAt).toLocaleString()}.`)
       setDraft((d) => ({ ...d, status: 'scheduled', scheduled_at: new Date(scheduledAt).toISOString() }))
       setShowSchedule(false)
     } catch (err) {
-      flash(err instanceof Error ? err.message : 'Schedule failed', 'error')
+      toast.error(errorMessage(err))
     }
   }
 
@@ -293,12 +260,6 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
           </button>
         </div>
       </div>
-
-      {feedback && (
-        <div className={`rounded-sm border px-3 py-2 font-body text-sm ${feedbackKind === 'ok' ? 'border-teal/30 bg-teal/10 text-teal' : 'border-coral/30 bg-coral/10 text-coral'}`}>
-          {feedback}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         {/* Main form */}

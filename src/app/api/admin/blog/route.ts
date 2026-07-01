@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 // GET /api/admin/blog — get one blog post by id or list all posts; admin only.
 export async function GET(request: Request) {
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
         .single()
 
       if (error) {
-        return Response.json({ error: error.message }, { status: 500 })
+        return dbFail(error, 'admin/blog GET one')
       }
 
       return Response.json({ post })
@@ -30,12 +31,12 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/blog GET list')
     }
 
     return Response.json({ posts: posts || [] })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/blog GET' })
   }
 }
 
@@ -57,10 +58,7 @@ export async function POST(request: Request) {
     } = body
 
     if (!title || !slug) {
-      return Response.json(
-        { error: 'Title and slug are required.' },
-        { status: 400 }
-      )
+      return apiError('Title and slug are required.', 400, 'BAD_REQUEST')
     }
 
     const auth = await requireAdmin()
@@ -93,15 +91,15 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/blog POST')
     }
 
     return Response.json({ post: data }, { status: 201 })
-  } catch {
-    return Response.json(
-      { error: 'Internal server error.' },
-      { status: 500 }
-    )
+  } catch (err) {
+    return apiFail(err, { context: 'admin/blog POST' })
   }
 }
 
@@ -112,7 +110,7 @@ export async function PATCH(request: Request) {
     const { id, ...fields } = body
 
     if (!id) {
-      return Response.json({ error: 'Post ID is required.' }, { status: 400 })
+      return apiError('Post ID is required.', 400, 'BAD_REQUEST')
     }
 
     const auth = await requireAdmin()
@@ -146,12 +144,15 @@ export async function PATCH(request: Request) {
       .single()
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      if (error.code === '23505') {
+        return apiError('That slug already exists. Please use a different slug.', 409, 'CONFLICT')
+      }
+      return dbFail(error, 'admin/blog PATCH')
     }
 
     return Response.json({ post: data })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/blog PATCH' })
   }
 }
 
@@ -162,7 +163,7 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id')
 
     if (!id) {
-      return Response.json({ error: 'Post ID is required.' }, { status: 400 })
+      return apiError('Post ID is required.', 400, 'BAD_REQUEST')
     }
 
     const auth = await requireAdmin()
@@ -175,11 +176,11 @@ export async function DELETE(request: Request) {
       .eq('id', id)
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+      return dbFail(error, 'admin/blog DELETE')
     }
 
     return Response.json({ success: true })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/blog DELETE' })
   }
 }

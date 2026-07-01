@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { quoteLiveShipping } from '@/lib/pricing/shipping-quote'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { apiError, dbFail } from '@/lib/api/respond'
 
 interface CartItemInput {
   variantId: string
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   const cartId = typeof body.cartId === 'string' ? body.cartId : undefined
 
   if (!zip || items.length === 0) {
-    return Response.json({ error: 'zip and items required' }, { status: 400 })
+    return apiError('Please enter a ZIP or postal code to quote shipping.', 400, 'VALIDATION_FAILED')
   }
 
   const akhi = country === 'US' ? inferStateFromZip(zip) : null
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (country !== 'US' && country !== 'CA' && !akhi) {
-    return Response.json({ error: 'Country not supported for surcharge quote' }, { status: 400 })
+    return apiError('We can only quote shipping to the US and Canada right now.', 400, 'VALIDATION_FAILED')
   }
 
   const supabase = await createClient()
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     .select('id, variant_type, fulfillment_metadata, worst_case_shipping')
     .in('id', items.map((i) => i.variantId))
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return dbFail(error, 'cart/shipping-quote variant lookup')
 
   let liveTotal = 0
   let conusTotal = 0

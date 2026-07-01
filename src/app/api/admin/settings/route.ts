@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import {
   getSiteSettings,
   clearSettingsCache,
@@ -81,8 +82,8 @@ export async function GET() {
       globalSettings: globalContent || null,
       settings,
     })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/settings GET' })
   }
 }
 
@@ -118,10 +119,7 @@ export async function PATCH(request: NextRequest) {
         } else {
           const n = Number(v)
           if (!Number.isFinite(n) || n < 0) {
-            return Response.json(
-              { error: `${field} must be a non-negative number` },
-              { status: 400 }
-            )
+            return apiError(`${field} must be a non-negative number.`, 400, 'VALIDATION_FAILED')
           }
           updates[field] = Math.round(n)
         }
@@ -136,10 +134,7 @@ export async function PATCH(request: NextRequest) {
         } else {
           const n = Number(v)
           if (!Number.isFinite(n) || n < 0) {
-            return Response.json(
-              { error: `${field} must be a non-negative number` },
-              { status: 400 }
-            )
+            return apiError(`${field} must be a non-negative number.`, 400, 'VALIDATION_FAILED')
           }
           updates[field] = n
         }
@@ -182,7 +177,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (Object.keys(updates).length === 0) {
-      return Response.json({ error: 'No valid fields to update.' }, { status: 400 })
+      return apiError('No valid fields to update.', 400, 'NO_CHANGES')
     }
 
     updates.updated_at = new Date().toISOString()
@@ -193,14 +188,14 @@ export async function PATCH(request: NextRequest) {
       .upsert({ id: true, ...updates }, { onConflict: 'id' })
 
     if (upsertError) {
-      return Response.json({ error: upsertError.message }, { status: 500 })
+      return dbFail(upsertError, 'admin/settings PATCH')
     }
 
     clearSettingsCache()
     const settings: SiteSettings = await getSiteSettings()
 
     return Response.json({ success: true, settings })
-  } catch {
-    return Response.json({ error: 'Internal server error.' }, { status: 500 })
+  } catch (err) {
+    return apiFail(err, { context: 'admin/settings PATCH' })
   }
 }

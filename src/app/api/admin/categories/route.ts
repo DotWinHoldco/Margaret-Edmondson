@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -15,7 +15,7 @@ export async function GET() {
     .select('id, name, slug, default_margin_pct, sort_order')
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true })
-  if (error) return apiError(error.message, 500, 'DB_ERROR')
+  if (error) return dbFail(error, 'admin/categories GET')
   const { data: prods } = await auth.supabase.from('products').select('category_id')
   const byCat: Record<string, number> = {}
   for (const r of prods || []) if (r.category_id) byCat[r.category_id] = (byCat[r.category_id] || 0) + 1
@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
     })
     .select('id, name, slug, default_margin_pct, sort_order')
     .single()
-  if (error) return apiError(error.message, error.code === '23505' ? 409 : 500, 'DB_ERROR')
+  if (error) {
+    if (error.code === '23505') {
+      return apiError('That category already exists. Please use a different name.', 409, 'CONFLICT')
+    }
+    return dbFail(error, 'admin/categories POST')
+  }
   return apiOk({ category: { ...data, product_count: 0 } })
 }

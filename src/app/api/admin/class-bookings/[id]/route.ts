@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiOk, parseBody } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell } from '@/lib/email/shell'
 
@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
     .maybeSingle()
 
-  if (fetchErr) return apiError(fetchErr.message, 500, 'DB_ERROR')
+  if (fetchErr) return dbFail(fetchErr, 'admin/class-bookings/[id] PATCH load')
   if (!row) return apiError('Booking not found', 404, 'NOT_FOUND')
   const booking = row as unknown as BookingRow
   if (!booking.class_sessions) return apiError('Booking session missing', 500, 'DB_ERROR')
@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (body.status === 'paid') updates.payment_received_at = new Date().toISOString()
 
   const { error: updateErr } = await auth.supabase.from('class_bookings').update(updates).eq('id', id)
-  if (updateErr) return apiError(updateErr.message, 500, 'DB_ERROR')
+  if (updateErr) return dbFail(updateErr, 'admin/class-bookings/[id] PATCH update')
 
   // Confirmation email on mark-paid
   if (body.status === 'paid') {

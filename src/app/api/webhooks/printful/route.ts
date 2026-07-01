@@ -135,9 +135,12 @@ export async function POST(request: Request) {
     }
 
     case 'order_failed': {
+      // Mark the honest 'failed' state, NOT 'pending'. 'pending' reads as
+      // "never submitted", so the fulfillment worker's recovery sweep would
+      // re-enqueue an order the provider already has and double-submit it.
       await supabase
         .from('order_items')
-        .update({ fulfillment_status: 'pending' })
+        .update({ fulfillment_status: 'failed' })
         .eq('external_order_id', externalOrderId)
         .eq('fulfillment_type', 'printful')
 
@@ -148,9 +151,11 @@ export async function POST(request: Request) {
     }
 
     case 'order_canceled': {
+      // Terminal 'cancelled' — never 'pending', which the recovery sweep would
+      // treat as un-submitted and re-enqueue for a duplicate provider order.
       await supabase
         .from('order_items')
-        .update({ fulfillment_status: 'pending' })
+        .update({ fulfillment_status: 'cancelled' })
         .eq('external_order_id', externalOrderId)
         .eq('fulfillment_type', 'printful')
 
