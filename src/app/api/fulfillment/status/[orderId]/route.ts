@@ -47,7 +47,7 @@ export async function GET(
       carrier,
       shipped_at,
       delivered_at,
-      product:products ( name )
+      product:products ( name:title )
     `)
     .eq('order_id', orderId)
 

@@ -602,6 +602,24 @@ async function handleCheckoutCompleted(
   const taxCents = session.total_details?.amount_tax ?? 0
   const subtotalCents = session.amount_subtotal ?? ((session.amount_total || 0) + discountCents - shippingCents - taxCents)
 
+  // Reconcile against the merchandise subtotal locked at checkout, NOT Stripe's
+  // amount_subtotal: sales tax is added as its own Stripe line item, so it inflates
+  // amount_subtotal (Stripe's amount_tax stays 0) and would make every taxed order
+  // look divergent and get stranded from fulfillment. The immutable checkout
+  // snapshot stores the merchandise subtotal separately; prefer it, and fall back to
+  // the Stripe-derived value for pre-snapshot orders (identical when tax is off).
+  let reconcileTargetCents = subtotalCents
+  {
+    const { data: snap } = await supabase
+      .from('checkout_snapshots')
+      .select('subtotal_cents')
+      .eq('payment_ref', session.id)
+      .maybeSingle()
+    if (snap && Number.isFinite(Number(snap.subtotal_cents))) {
+      reconcileTargetCents = Number(snap.subtotal_cents)
+    }
+  }
+
   // Guest checkouts only carry the buyer's email on customer_details. (P0-1)
   const buyerEmail = session.customer_email || session.customer_details?.email || ''
 
@@ -718,7 +736,7 @@ async function handleCheckoutCompleted(
     ) * 100,
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
-  const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
+  const reconciled = hasItems && Math.abs(lineSumCents - reconcileTargetCents) <= 1
 
   if (reconciled) {
     // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
@@ -733,13 +751,13 @@ async function handleCheckoutCompleted(
     // owner with the specifics so it can be resolved manually before shipping.
     const reason = !hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
-      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(subtotalCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
     await notifyOrderNeedsAttention(orderId as string, [reason])
     await logEvent(supabase, event, {
       alert: 'reconciliation_failed',
       order_id: orderId,
       line_sum_cents: lineSumCents,
-      subtotal_cents: subtotalCents,
+      subtotal_cents: reconcileTargetCents,
       has_items: hasItems,
     })
   }
@@ -930,6 +948,9 @@ async function handleElementsPaymentSucceeded(
   }
 
   const subtotalCents = Number(md.subtotal_cents) || 0
+  // The embedded (PaymentIntent) flow already reconciles against the merchandise
+  // subtotal carried in metadata, so the reconciliation target is the same value.
+  const reconcileTargetCents = subtotalCents
   const discountCents = Number(md.discount_cents) || 0
   const shippingCents = Number(md.surcharge_cents) || 0
   const taxCents = Number(md.tax_cents) || 0
@@ -1058,7 +1079,7 @@ async function handleElementsPaymentSucceeded(
     ) * 100,
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
-  const reconciled = hasItems && Math.abs(lineSumCents - subtotalCents) <= 1
+  const reconciled = hasItems && Math.abs(lineSumCents - reconcileTargetCents) <= 1
 
   if (reconciled) {
     // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
@@ -1073,13 +1094,13 @@ async function handleElementsPaymentSucceeded(
     // owner with the specifics so it can be resolved manually before shipping.
     const reason = !hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
-      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(subtotalCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
     await notifyOrderNeedsAttention(orderId as string, [reason])
     await logEvent(supabase, event, {
       alert: 'reconciliation_failed',
       order_id: orderId,
       line_sum_cents: lineSumCents,
-      subtotal_cents: subtotalCents,
+      subtotal_cents: reconcileTargetCents,
       has_items: hasItems,
     })
   }

@@ -26,7 +26,7 @@ interface ShippingAddress {
 
 interface ProductImage {
   url: string
-  position: number
+  sort_order: number
   print_master_path?: string | null
 }
 
@@ -152,7 +152,7 @@ function productMasterPath(product: Product): string {
   const masterPath = product.master_artwork?.print_storage_path || product.master_artwork?.storage_path
   const legacyPath = product.product_images
     ?.slice()
-    .sort((a: ProductImage, b: ProductImage) => a.position - b.position)
+    .sort((a: ProductImage, b: ProductImage) => a.sort_order - b.sort_order)
     ?.[0]?.print_master_path
   return masterPath || legacyPath || ''
 }
@@ -370,7 +370,7 @@ async function submitToPrintful(
 
   const printfulItems = items.map((item) => {
     const primaryImage = item.product.product_images
-      ?.sort((a: ProductImage, b: ProductImage) => a.position - b.position)
+      ?.sort((a: ProductImage, b: ProductImage) => a.sort_order - b.sort_order)
       ?.[0]
     const imageUrl = resolveImageUrl(primaryImage?.url || '')
 
@@ -471,7 +471,7 @@ export async function routeOrderToFulfillment(
         master_artwork:master_artworks (
           id, storage_path, print_storage_path, file_name, mime_type
         ),
-        product_images ( url, position, print_master_path )
+        product_images ( url, sort_order, print_master_path )
       ),
       variant:product_variants (
         id,
@@ -731,7 +731,7 @@ export async function retryFulfillmentForItem(
         master_artwork:master_artworks (
           id, storage_path, print_storage_path, file_name, mime_type
         ),
-        product_images ( url, position, print_master_path )
+        product_images ( url, sort_order, print_master_path )
       ),
       variant:product_variants (
         id,
