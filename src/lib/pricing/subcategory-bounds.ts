@@ -18,13 +18,15 @@ export interface SubcategoryBounds {
   requiredDPI: number
 }
 
-// Canvas family: 5–120" W × 5–52" H @ 200 DPI (from the subcategory example in
-// docs/lumaprints-api-reference.md). Canvas 1.25" = 101002, Framed canvas 1.25"
-// = 102002 (the two enabled mediums today).
-const CANVAS_BOUNDS: SubcategoryBounds = { minW: 5, maxW: 120, minH: 5, maxH: 52, requiredDPI: 200 }
+// Live values from GET /products/categories/{101,102}/subcategories against the
+// LumaPrints sandbox on 2026-07-06 (previously seeded 5–120 × 5–52 from the doc
+// example, which overstated max width and understated min size). Canvas 1.25" =
+// 101002, Framed canvas 1.25" = 102002 (the two enabled mediums today).
+const CANVAS_BOUNDS: SubcategoryBounds = { minW: 6, maxW: 100, minH: 6, maxH: 52, requiredDPI: 200 }
+const CANVAS_075_BOUNDS: SubcategoryBounds = { minW: 6, maxW: 65, minH: 6, maxH: 36, requiredDPI: 200 }
 
 const BOUNDS_BY_SUBCATEGORY: Record<number, SubcategoryBounds> = {
-  101001: CANVAS_BOUNDS,
+  101001: CANVAS_075_BOUNDS,
   101002: CANVAS_BOUNDS,
   102001: CANVAS_BOUNDS,
   102002: CANVAS_BOUNDS,

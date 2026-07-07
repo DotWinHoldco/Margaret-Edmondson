@@ -58,8 +58,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ surcharge: 0, zone: 'CONUS' })
   }
 
-  if (country !== 'US' && country !== 'CA' && !akhi) {
-    return apiError('We can only quote shipping to the US and Canada right now.', 400, 'VALIDATION_FAILED')
+  // US-only until CA fulfillment is verified with the print partner (KNOWN_RISKS,
+  // "Checkout accepts CA addresses ..."). Server-side gate — the UI no longer offers CA.
+  if (country !== 'US') {
+    return apiError('We currently ship within the United States only.', 400, 'VALIDATION_FAILED')
   }
 
   const supabase = await createClient()
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
   }
 
   const surcharge = Math.max(0, Math.round((liveTotal - conusTotal) * 100) / 100)
-  const zone = akhi || (country === 'CA' ? 'CA' : 'OTHER')
+  const zone = akhi || 'OTHER'
   await persistSurcharge(cartId, Math.round(surcharge * 100))
   return Response.json({ surcharge, zone, breakdown })
 }

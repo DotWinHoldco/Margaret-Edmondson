@@ -355,7 +355,7 @@ function CheckoutForm({
 
       <h2 className="mt-7 font-display text-xl font-light text-charcoal">Shipping</h2>
       <div className="mt-1 mb-4 w-10 h-px bg-gold" />
-      <AddressElement options={{ mode: 'shipping', allowedCountries: ['US', 'CA'] }} />
+      <AddressElement options={{ mode: 'shipping', allowedCountries: ['US'] }} />
 
       <h2 className="mt-7 font-display text-xl font-light text-charcoal">Payment</h2>
       <div className="mt-1 mb-4 w-10 h-px bg-gold" />

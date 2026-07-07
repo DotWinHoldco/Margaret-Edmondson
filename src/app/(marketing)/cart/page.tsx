@@ -28,7 +28,6 @@ export default function CartPage() {
   const { state, dispatch, subtotal, itemCount, setEmail } = useCart()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [country, setCountry] = useState('US')
   const [zip, setZip] = useState('')
   const [surcharge, setSurcharge] = useState<number | null>(null)
   const [surchargeLabel, setSurchargeLabel] = useState<string | null>(null)
@@ -42,7 +41,8 @@ export default function CartPage() {
   const [showPromo, setShowPromo] = useState(false)
   const [showShipping, setShowShipping] = useState(false)
 
-  const needsSurcharge = country !== 'US' || /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
+  // US-only shipping; the surcharge quote applies to AK/HI ZIPs.
+  const needsSurcharge = /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
   // Recompute the displayed discount from the CURRENT subtotal so a percentage
   // code stays correct after a quantity change (checkout re-prices the same
   // way). A fixed code is only capped by the subtotal.
@@ -69,7 +69,7 @@ export default function CartPage() {
       const res = await fetch('/api/cart/shipping-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, zip, items: variantItems, cartId: state.cartId }),
+        body: JSON.stringify({ country: 'US', zip, items: variantItems, cartId: state.cartId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not quote shipping')
@@ -77,7 +77,6 @@ export default function CartPage() {
       const label =
         data.zone === 'AK' ? 'Alaska shipping surcharge'
         : data.zone === 'HI' ? 'Hawaii shipping surcharge'
-        : data.zone === 'CA' ? 'Canada shipping surcharge'
         : 'Outside contiguous US shipping surcharge'
       setSurchargeLabel(label)
     } catch (err) {
@@ -424,27 +423,19 @@ export default function CartPage() {
                 <Collapsible
                   open={showShipping}
                   onToggle={() => setShowShipping((v) => !v)}
-                  label="Shipping to Alaska, Hawaii, or Canada?"
+                  label="Shipping to Alaska or Hawaii?"
                   active={!!(needsSurcharge && surcharge != null)}
                 >
                   <p className="font-body text-xs text-charcoal/55">
-                    Shipping is included for the contiguous US. Alaska, Hawaii, and Canada incur a calculated surcharge — quote it here and I&rsquo;ll add it at checkout.
+                    Shipping is included for the contiguous US. Alaska and Hawaii incur a calculated surcharge — quote it here and I&rsquo;ll add it at checkout.
                   </p>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <select
-                      value={country}
-                      onChange={(e) => { setCountry(e.target.value); setSurcharge(null); setSurchargeLabel(null) }}
-                      className="rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal focus:border-teal focus:outline-none"
-                    >
-                      <option value="US">US</option>
-                      <option value="CA">Canada</option>
-                    </select>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <input
                       type="text"
                       inputMode="numeric"
                       value={zip}
                       onChange={(e) => { setZip(e.target.value); setSurcharge(null); setSurchargeLabel(null) }}
-                      placeholder={country === 'CA' ? 'A1A 1A1' : 'ZIP'}
+                      placeholder="ZIP"
                       className="rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal placeholder:text-charcoal/35 focus:border-teal focus:outline-none"
                     />
                     <button

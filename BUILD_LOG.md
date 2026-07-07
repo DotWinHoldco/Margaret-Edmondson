@@ -8,6 +8,24 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #launch-night-2026-07-06 — sandbox-verified fulfillment; Mirror Wrap fix; US-only checkout
+
+- **Date:** 2026-07-06
+- **Module:** pricing/fulfillment options · subcategory bounds · checkout/cart/shipping-policy · prod data
+- **Category:** launch-blocking fix + verification (live LumaPrints sandbox probes)
+- **Summary:** Sandbox probes proved implicit `orderItemOptions` resolve to Image Wrap, whose
+  +3.75in-per-axis bleed requirement 406s every aspect-exact padded master — no print could ever
+  have shipped. Pinned Canvas Border to Mirror Wrap across `wholesale-lookup.ts`, `mediums.ts`,
+  the catalog-sync seeds, prod `lumaprints_mediums.option_ids`, and tests (price-neutral,
+  verified against /pricing/products). Also closed by probe: externalId dedup (409 — duplicate
+  print risk retired), fractional-size submit (201), live bounds/DPI into
+  `subcategory-bounds.ts`. Restricted checkout to US (4 code touchpoints + policy copy in tsx and
+  `pages.content_html`; KNOWN_RISKS CA entry → MITIGATED). Deleted the stale legacy print draft
+  variant. Full evidence: `audit/LAUNCH-VERIFICATION-2026-07-06.md`; runbook:
+  `audit/LAUNCH-NIGHT-2026-07-06.md`; owner guide: `docs/product-setup-prints.md`. Native
+  `build-check` + commit + push remain human-gated from the Mac.
+
+
 ### [2026-06-22T21:27:12.930Z] #build-check
 Status: green
 Verified: 11/11 required gates

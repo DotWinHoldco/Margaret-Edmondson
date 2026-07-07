@@ -100,17 +100,22 @@ const STANDARD_ALL: MediumSize[] = [
 ]
 
 export const MEDIUMS_CATALOG: Record<Medium, MediumConfig> = {
+  // Canvas Border must be explicit (2 = Mirror Wrap): omitting it makes
+  // LumaPrints default to Image Wrap, which expects +3.75in bleed the padded
+  // masters don't include, so every submit 406s (sandbox-verified 2026-07-06).
+  // Hardware (11 sawtooth / 28 wire) mirrors LumaPrints' implicit defaults —
+  // price-neutral, verified against /pricing/products.
   canvas: {
     label: MEDIUM_LABELS.canvas,
     subcategoryId: 101002,
-    orderItemOptions: [],
+    orderItemOptions: [2, 11],
     sizes: STANDARD_ALL,
     enabled: true,
   },
   framed_canvas: {
     label: MEDIUM_LABELS.framed_canvas,
     subcategoryId: 102002,
-    orderItemOptions: [27],
+    orderItemOptions: [27, 2, 28],
     sizes: STANDARD_ALL,
     enabled: true,
   },

@@ -6,6 +6,23 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-07-06) — LAUNCH NIGHT: sandbox-verified fulfillment + Mirror Wrap fix + US-only checkout.**
+> All payment phases are merged AND deployed (prod = main `0947183`); the PHASE-5 runbook's deploy
+> half is obsolete. Live LumaPrints sandbox probes (store 82222) closed three KNOWN_RISKS items:
+> duplicate submits are rejected 409 on the same externalId (worker auto-retry is safe), fractional
+> 0.05in sizes price AND submit (7.5×10 → $16.06, 201), and live bounds/DPI now replace the stale
+> seed in `subcategory-bounds.ts`. CRITICAL find: implicit/empty `orderItemOptions` resolve to
+> Image Wrap (option 1), which demands +3.75in bleed per axis and 406s every aspect-exact padded
+> master — i.e. zero prints would ever have shipped. Canvas Border is now pinned to Mirror Wrap
+> (2) in `wholesale-lookup.ts`, `mediums.ts`, the sync route seeds, `lumaprints_mediums.option_ids`
+> (applied to prod: `{2,11}`/`{27,2,28}`/`{2,19}`), and tests; price-neutral (verified). Checkout
+> is US-only (KNOWN_RISKS CA entry → MITIGATED). The stale legacy print draft variant was deleted;
+> shipping-policy copy (tsx + `pages.content_html`) is US-only. Store has taken 0 orders ever;
+> 39 masters await crops; print catalog starts clean. Remaining human gates + the one unknown
+> (TIFF acceptance at LumaPrints, PNG fallback prepared): `audit/LAUNCH-NIGHT-2026-07-06.md` ·
+> evidence: `audit/LAUNCH-VERIFICATION-2026-07-06.md` · Margaret's guide:
+> `docs/product-setup-prints.md`.
+
 > **Current truth (2026-07-01) — overnight UX + correctness hardening (branch `harden/overnight-2026-07-01`, restore tag `restore/pre-overnight-2026-07-01` = prod `90e909b`):** A uniform error/success UX now spans the platform. New foundation: `src/lib/errors/friendly.ts` (friendly-error dictionary + `resolveErrorMessage`), `apiFail`/`dbFail` in `src/lib/api/respond.ts` (log real detail, return friendly copy), `src/lib/api/client.ts` (`apiFetch`/`apiSend`/`errorMessage`, typed `ApiError`), an app-wide toast system (`ToastProvider`/`useToast`) + `StatusBanner`, segment `error.tsx`/`loading.tsx` for admin/shop/account/courses/checkout + `global-error.tsx`, and a committed `database.types.ts`. Raw Supabase/Postgres/Stripe/exception text no longer reaches customers or the studio owner; unique-violations return a friendly 409; every save/create/update/delete/upload confirms success loudly and refreshes values. Fixed 42 audited defects (1 P0 fulfillment schema `product_images.position`→`sort_order`; tax-safe hosted-checkout reconciliation; New Product create; FAQ write columns; subscribers ordering; commission messages table; class/course slug dedupe; v2–v6 newsletter forms now actually subscribe; campaign send persists unsaved edits; refund no-op warning; Printful terminal states; brand casing; +more) plus 6 adversarial-review fixes. No DB migrations (all schema fixes were code-side). Full `build-check` GREEN. Record: `audit/OVERNIGHT-2026-07-01-PLAN.md`.
 
 > **Current truth (2026-06-29) — payment remediation Phases 0–5 implemented:** the full E2E fix plan

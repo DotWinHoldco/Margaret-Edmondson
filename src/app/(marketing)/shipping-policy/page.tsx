@@ -41,14 +41,14 @@ function shippingDefault() {
         </h1>
         <div className="mt-3 mx-auto w-16 h-px bg-gold" />
         <p className="mt-6 text-center text-sm text-charcoal/60">
-          Last updated: April 2, 2026
+          Last updated: July 6, 2026
         </p>
 
         <div className="mt-12 prose prose-charcoal max-w-none space-y-8 text-charcoal/80 leading-relaxed">
           <section>
             <h2 className="font-display text-2xl font-light text-charcoal">Overview</h2>
             <p>
-              ArtByME ships to the United States and Canada. I handle two types of shipments depending on what you order:
+              ArtByME ships within the United States. I handle two types of shipments depending on what you order:
             </p>
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Original artwork</strong> — shipped directly by the artist</li>
@@ -95,17 +95,6 @@ function shippingDefault() {
             <p>
               Once your order ships, you will receive an email with tracking information. You can also check your order status by logging into your account on my website.
             </p>
-          </section>
-
-          <section>
-            <h2 className="font-display text-2xl font-light text-charcoal">International Shipping (Canada)</h2>
-            <p>
-              I ship to Canada. Please note:
-            </p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>International orders may be subject to customs duties, import taxes, or fees imposed by the destination country. These charges are the responsibility of the buyer.</li>
-              <li>Delivery times for international orders are typically longer (7–14 business days after shipment).</li>
-            </ul>
           </section>
 
           <section>

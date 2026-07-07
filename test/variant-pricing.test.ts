@@ -100,9 +100,15 @@ describe('mediums catalog', () => {
     expect(mediumConfig('canvas').enabled).toBe(true)
   })
 
-  it('framed_canvas carries the frame option 27', () => {
-    expect(mediumConfig('framed_canvas').orderItemOptions).toEqual([27])
+  it('framed_canvas carries frame 27 + Mirror Wrap 2 + wire 28', () => {
+    // Mirror Wrap must be explicit: an implicit border resolves to Image Wrap,
+    // which requires bleed the padded masters do not include (2026-07-06 probe).
+    expect(mediumConfig('framed_canvas').orderItemOptions).toEqual([27, 2, 28])
     expect(mediumConfig('framed_canvas').subcategoryId).toBe(102002)
+  })
+
+  it('canvas carries Mirror Wrap 2 + sawtooth 11', () => {
+    expect(mediumConfig('canvas').orderItemOptions).toEqual([2, 11])
   })
 })
 

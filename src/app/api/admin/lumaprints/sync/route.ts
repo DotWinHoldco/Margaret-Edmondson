@@ -53,23 +53,36 @@ interface MediumMapping {
 // mediums default to the most standard subcategory in their category; admins
 // can re-point any medium by editing subcategory_id and re-running the sync.
 const MEDIUM_MAP: Record<Medium, MediumMapping> = {
+  // Canvas-family seeds MUST pin Canvas Border = Mirror Wrap (option 2). If the
+  // border is left implicit, LumaPrints resolves it to Image Wrap (option 1),
+  // which requires +3.75in wrap bleed in the file — the padded masters are cut
+  // to the ordered aspect, so every Image-Wrap submit fails the aspect check
+  // (sandbox-verified 2026-07-06). The resolved set is persisted to
+  // lumaprints_mediums.option_ids and drives pricing, shipping, AND the order
+  // submit, so the seed here is what production orders ultimately carry.
   canvas: {
     categoryId: 101,
     subcategoryId: 101002, // 1.25in Stretched Canvas
     namePattern: /1\.25in stretched canvas/i,
-    seedOptions: [],
+    seedOptions: [2, 11], // Mirror Wrap + Sawtooth Hanger (both $0, matches prior implicit set)
   },
   framed_canvas: {
     categoryId: 102,
     subcategoryId: 102002, // 1.25in Framed Canvas
     namePattern: /1\.25in framed canvas/i,
-    seedOptions: [27], // 1.25in Black Floating Frame — required for framed canvas
+    seedOptions: [27, 2, 28], // 1.25in Black Floating Frame (required) + Mirror Wrap + Hanging Wire
   },
+  // Paper-family seeds pin Bleed = 39 (No Bleed — image to paper edge). The
+  // group default is 36 (0.25in bleed per side), which shifts the expected file
+  // aspect away from the ordered size exactly like Image Wrap does on canvas
+  // (sandbox-verified 2026-07-06: 103001 [36] → 406, [39] → 200 at the ordered
+  // aspect). Note for enablement: paper recommends 300 DPI (canvas is 200) —
+  // add 103xxx/108xxx rows to subcategory-bounds.ts from a live probe then.
   fine_art_paper: {
     categoryId: 103,
     subcategoryId: 103001, // Archival Matte Fine Art Paper
     namePattern: /archival matte fine art paper/i,
-    seedOptions: [],
+    seedOptions: [39], // No Bleed — matches the aspect-exact padded masters
   },
   framed_fine_art_paper: {
     categoryId: 105,
@@ -82,7 +95,7 @@ const MEDIUM_MAP: Record<Medium, MediumMapping> = {
     categoryId: 108,
     subcategoryId: 108001, // Foam-mounted Archival Matte Fine Art Paper
     namePattern: /foam-mounted archival matte/i,
-    seedOptions: [],
+    seedOptions: [39], // No Bleed (same Bleed group as 103xxx — see paper note above)
   },
   metal: {
     categoryId: 106,
@@ -100,7 +113,7 @@ const MEDIUM_MAP: Record<Medium, MediumMapping> = {
     categoryId: 101,
     subcategoryId: 101005, // Rolled Canvas
     namePattern: /rolled canvas/i,
-    seedOptions: [],
+    seedOptions: [2], // Mirror Wrap (see canvas note above); remaining groups resolve to defaults
   },
 }
 

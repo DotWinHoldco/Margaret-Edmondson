@@ -232,7 +232,7 @@ export async function POST(request: Request) {
         },
         quantity: item.quantity,
       })),
-      shipping_address_collection: { allowed_countries: ['US', 'CA'] },
+      shipping_address_collection: { allowed_countries: ['US'] },
       metadata: {
         cart_id: cartId || '',
         contact_id: contactId || '',

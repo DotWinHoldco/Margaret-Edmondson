@@ -332,11 +332,11 @@ Description: The checkout country selector allows Canada, but the LumaPrints sto
 config target the US store; a CA print order may 406 at submit AFTER the card is charged. The
 Phase 2 reconciliation + needs-attention alert catch it (the owner is notified and can refund), but
 the customer is charged first. Self-ship originals are unaffected.
-Current status: ACCEPTED pending verification. Not changed unilaterally (selling to Canada is a
-business decision).
-Required fix (Phase 5): verify the US store + the enabled subcategories fulfill to CA in the
-LumaPrints sandbox; if not, restrict the checkout country selector (and the shipping quote) to US,
-or stand up a CA store. Until verified, treat any CA print order as manual-review.
+Current status: MITIGATED 2026-07-06 (launch decision) — checkout is US-only: AddressElement
+`allowedCountries`, hosted-Checkout `allowed_countries`, and the shipping-quote API all reject
+non-US; the cart quote UI offers AK/HI only; the shipping-policy page states US-only.
+Required fix (post-launch, optional): verify the US store + enabled subcategories fulfill to CA in
+the LumaPrints sandbox, then re-enable CA in those four places if Margaret wants Canadian sales.
 Related tag: #payment-e2e-phase4, #payment-e2e-phase5
 
 ### AK/HI/CA shipping surcharge under-collected on the embedded (Elements) checkout
