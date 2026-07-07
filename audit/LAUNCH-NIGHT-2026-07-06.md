@@ -66,30 +66,24 @@ Admin → Settings → toggle Stripe test mode ON (or:
 `update site_settings set stripe_test_mode = true;`). Storefront checkout now uses the TEST
 keys; the webhook verifies against both secrets, so no other change.
 
-## 3. First master + the TIFF gate (do this BEFORE cropping all 39)
+## 3. First master (TIFF question RESOLVED 2026-07-07 — worker now outputs PNG)
 
-1. Crop ONE master in the admin (product edit → set the crop box; matte border if wanted).
-2. On the Mac: `node scripts/process-master-crop.mjs` (reads `.env.local`:
-   `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`). Confirm the master shows
-   `print_status='ready'` with `print_storage_path print/<id>-<rev>.tif`.
-3. **TIFF acceptance check** — the sandbox rejected `.webp` with "Please use a JPEG or PNG
-   file"; whether `.tif` is accepted is still UNPROVEN. Mint a signed URL for the new
-   `print/…​.tif` (Supabase dashboard → Storage → print-masters → Create signed URL) and run:
-   ```bash
-   LUMAPRINTS_BASE_URL=https://us.api-sandbox.lumaprints.com \
-   LUMAPRINTS_API_KEY=<sandbox> LUMAPRINTS_API_SECRET=<sandbox> LUMAPRINTS_STORE_ID=82222 \
-   node scripts/lumaprints-sandbox-dryrun.mjs "<signed-tif-url>" --width <W> --height <H> --subcategory 101002
-   ```
-   (Use the variant W×H that matches the crop aspect. Note: the dry-run script submits with
-   empty options = Image Wrap semantics, so expect the aspect check to demand bleed — the
-   meaningful signal here is ONLY the file-type response. `checkImageConfig` mentioning
-   aspect/resolution = TIFF accepted; "not a valid file type" = TIFF rejected.)
-4. **If TIFF is rejected**: single-line fix in `scripts/lib/crop-transform.mjs` — replace
-   `.tiff({ compression: 'deflate', predictor: 'horizontal' })` with `.png()` (PNG is equally
-   lossless), change the two `.tif`/`image/tiff` references in `process-master-crop.mjs`
-   (`objectName` → `print/<id>-<rev>.png`, contentType `image/png`), re-run the worker for
-   the one master, re-test. Then proceed — nothing else in the pipeline assumes the
-   extension (the router mints a signed URL from `print_storage_path` verbatim).
+The TIFF gate was run against a real master `.tif` via signed URL: LumaPrints **rejects
+TIFF** ("not a valid file type. Please use a JPEG or PNG file", HTTP 400). The crop worker
+was patched the same hour to emit **lossless PNG** (`crop-transform.mjs` → `.png()`,
+worker → `print/<id>-<rev>.png` / `image/png`, tests updated). Also proven with signed
+URLs: LumaPrints fetches token-signed private-bucket URLs fine (200), and a real raw
+master validated at 12×16 with Mirror Wrap — the production submit mechanism works.
+
+1. **`git pull` on the Mac first** (the PNG patch must be local before the worker runs).
+2. Crop ONE master in the admin (product edit → set the crop box; matte border if wanted).
+3. `node scripts/process-master-crop.mjs` (reads `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`
+   + `SUPABASE_SERVICE_ROLE_KEY`). Confirm the master shows `print_status='ready'` with
+   `print_storage_path print/<id>-<rev>.png`, then proceed to the batch (section 4).
+   Note: masters inventory is 37 JPG / 1 PNG / 1 TIF — JPEG/PNG sources are fine (the
+   worker re-encodes losslessly from any input; TIFF remains accepted as INPUT). Post-launch
+   quality task: re-upload the original TIFF scans from the studio machine (bucket allows
+   500 MB and `image/tiff`; browser uploads of the biggest scans likely timed out before).
 
 ## 4. Batch content pass (the long pole — all 39)
 
@@ -149,6 +143,12 @@ select event_type, created_at from webhook_logs order by created_at desc limit 1
 
 1. `update site_settings set stripe_test_mode = false;` (or admin toggle).
 2. Confirm `LUMAPRINTS_BASE_URL` in Vercel is unset/production. Redeploy if env changed.
+2b. **Lift the site password gate**: the production site is currently rewriting all
+   non-cookied traffic to `/gate` (verified live 2026-07-07, `x-matched-path: /gate`).
+   Webhooks + crons are exempt (`src/proxy.ts:37-38`), so the gated E2E is full-fidelity —
+   but customers cannot see the store until `SITE_PASSWORD` + `SITE_AUTH_SECRET` are removed
+   from Vercel env (both must be absent; either one present keeps the gate armed) and the
+   project is redeployed.
 3. Final smoke (no purchase): storefront loads, product pages offer prints, cart quotes,
    checkout page renders Elements with the LIVE publishable key (dev tools → `pk_live_…`).
 4. Leave the admin Orders page and email open for the first real order.

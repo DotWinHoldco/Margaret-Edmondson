@@ -1,7 +1,10 @@
 // Pure master-crop transform (shared by the worker + its test). Given the source
 // image bytes + a normalized crop box, it region-extracts the crop, optionally
-// pads an aspect-preserving matte border, and re-encodes a LOSSLESS deflate TIFF
-// with the DPI carried through. A pure crop resamples nothing → zero quality loss.
+// pads an aspect-preserving matte border, and re-encodes a LOSSLESS PNG with the
+// DPI carried through. A pure crop resamples nothing → zero quality loss.
+// PNG (not TIFF): the LumaPrints order API rejects TIFF file URLs outright —
+// "not a valid file type. Please use a JPEG or PNG file." (sandbox-verified
+// 2026-07-07 against a real master .tif). PNG is equally lossless.
 import sharp from 'sharp'
 
 export const MATTE_FRACTION = 0.05 // per-side border = 5% of each axis (preserves aspect)
@@ -36,7 +39,7 @@ export async function applyMasterCrop(
   const d = dpi && dpi > 0 ? Math.round(dpi) : 300
   const buffer = await pipeline
     .withMetadata({ density: d })
-    .tiff({ compression: 'deflate', predictor: 'horizontal' })
+    .png({ compressionLevel: 9 })
     .toBuffer()
   return { buffer, width: outW, height: outH, dpi: d }
 }

@@ -18,8 +18,12 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 > (applied to prod: `{2,11}`/`{27,2,28}`/`{2,19}`), and tests; price-neutral (verified). Checkout
 > is US-only (KNOWN_RISKS CA entry → MITIGATED). The stale legacy print draft variant was deleted;
 > shipping-policy copy (tsx + `pages.content_html`) is US-only. Store has taken 0 orders ever;
-> 39 masters await crops; print catalog starts clean. Remaining human gates + the one unknown
-> (TIFF acceptance at LumaPrints, PNG fallback prepared): `audit/LAUNCH-NIGHT-2026-07-06.md` ·
+> 39 masters await crops; print catalog starts clean. 2026-07-07: TIFF question ANSWERED —
+> LumaPrints rejects `.tif` file URLs outright; the crop worker now emits lossless PNG
+> (`print/<id>-<rev>.png`), tests updated; signed private-bucket URL fetch + Mirror Wrap
+> validation proven live against a real master. Site is behind the password gate
+> (webhooks/crons exempt) — lifting it is go-live step 2b. Remaining human gates:
+> `audit/LAUNCH-NIGHT-2026-07-06.md` ·
 > evidence: `audit/LAUNCH-VERIFICATION-2026-07-06.md` · Margaret's guide:
 > `docs/product-setup-prints.md`.
 

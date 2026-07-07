@@ -4,7 +4,9 @@ import sharp from 'sharp'
 import { applyMasterCrop } from '../scripts/lib/crop-transform.mjs'
 
 describe('master crop transform (Phase 1 worker)', () => {
-  it('full_bleed: lossless TIFF, exact crop dims, DPI preserved, original untouched', async () => {
+  // Output is lossless PNG (not TIFF): the LumaPrints order API rejects TIFF
+  // file URLs — sandbox-verified 2026-07-07. Source scans may still be TIFF.
+  it('full_bleed: lossless PNG, exact crop dims, DPI preserved, original untouched', async () => {
     const src = await sharp({ create: { width: 1000, height: 800, channels: 3, background: { r: 120, g: 60, b: 200 } } })
       .withMetadata({ density: 600 })
       .tiff({ compression: 'deflate' })
@@ -19,12 +21,14 @@ describe('master crop transform (Phase 1 worker)', () => {
     })
 
     const meta = await sharp(out.buffer).metadata()
-    expect(meta.format).toBe('tiff')
+    expect(meta.format).toBe('png')
     expect(meta.width).toBe(500) // 0.5 × 1000
     expect(meta.height).toBe(400) // 0.5 × 800
     expect(out.width).toBe(500)
     expect(out.height).toBe(400)
-    expect(meta.density).toBe(600) // DPI carried through
+    // PNG stores density as integer pixels-per-metre (pHYs), so round-trip can
+    // be off by <0.5 DPI — assert to the nearest whole DPI.
+    expect(meta.density).toBeCloseTo(600, 0) // DPI carried through
 
     // The source buffer is never mutated.
     const srcMeta = await sharp(src).metadata()
@@ -51,7 +55,7 @@ describe('master crop transform (Phase 1 worker)', () => {
     expect(out.width).toBe(660)
     expect(out.height).toBe(660)
     expect(out.width / out.height).toBeCloseTo(1, 6)
-    expect((await sharp(out.buffer).metadata()).format).toBe('tiff')
+    expect((await sharp(out.buffer).metadata()).format).toBe('png')
   })
 
   it('losslessness: a flat-color crop round-trips to the exact source color', async () => {

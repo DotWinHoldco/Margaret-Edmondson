@@ -107,8 +107,9 @@ async function processOne(m) {
     if (dlErr || !blob) throw new Error(`download failed: ${dlErr?.message || 'no data'}`)
     const srcBuf = Buffer.from(await blob.arrayBuffer())
 
-    // 2-4. Extract crop → optional aspect-preserving matte → lossless TIFF
-    // (shared with the crop-quality test).
+    // 2-4. Extract crop → optional aspect-preserving matte → lossless PNG
+    // (shared with the crop-quality test). PNG because the LumaPrints order API
+    // rejects TIFF file URLs (sandbox-verified 2026-07-07).
     const { buffer: outBuf, width: outW, height: outH, dpi } = await applyMasterCrop(srcBuf, {
       cropBox: m.crop_box,
       borderMode: m.border_mode,
@@ -119,13 +120,13 @@ async function processOne(m) {
     })
 
     // 5. Upload to a VERSIONED print path (P3-6). A re-crop must NOT overwrite
-    // print/<id>.tif in place: an order snapshot freezes print_storage_path at
+    // print/<id>.png in place: an order snapshot freezes print_storage_path at
     // purchase, so overwriting would make a later refire mint NEW bytes against the
     // OLD priced inches. A unique per-crop path keeps every snapshot resolvable to
     // the exact bytes it priced; superseded versions are harmless to leave behind.
     const rev = Date.now()
-    const objectName = `print/${m.id}-${rev}.tif`
-    const via = await uploadOutput(outBuf, objectName, 'image/tiff')
+    const objectName = `print/${m.id}-${rev}.png`
+    const via = await uploadOutput(outBuf, objectName, 'image/png')
 
     await sb
       .from('master_artworks')

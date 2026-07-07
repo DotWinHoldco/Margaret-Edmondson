@@ -81,10 +81,17 @@ enforces ASPECT (406) but under-resolution only lowers `recommended*` — it ret
 a 170-DPI file. The builder's own resolution gate is therefore stricter than the API's:
 correct, quality-first, no conflict.
 
-**4e. File formats.** `.webp` rejected: "not a valid file type. Please use a JPEG or PNG
-file." `.jpg` accepted. **`.tif` (the crop worker's output) untested** — no public TIFF was
-reachable tonight; resolved by runbook §3 with the first real cropped master + a prepared
-one-line PNG (lossless) fallback patch. This is the single remaining unknown in the pipeline.
+**4e. File formats — RESOLVED 2026-07-07.** `.webp` rejected; `.jpg` accepted; **`.tif`
+REJECTED** ("not a valid file type. Please use a JPEG or PNG file", HTTP 400, tested with a
+real master `solo-print.tif` via signed URL). The crop worker now emits **lossless PNG**
+(`crop-transform.mjs` `.png({compressionLevel: 9})` + `withMetadata({density})`; worker
+uploads `print/<id>-<rev>.png` as `image/png`; `master-crop.test.ts` pins PNG output with
+DPI round-trip to the nearest integer). TIFF remains valid as INPUT (admin upload accept
+lists unchanged; sharp decodes it). Bonus proofs from the same probes: LumaPrints fetches
+token-signed private-bucket Supabase URLs (200) — the exact production submit mechanism —
+and a raw 3:4 master validated at 12×16 with Mirror Wrap. Masters inventory: 37 JPG / 1 PNG
+/ 1 TIF (bucket caps 500 MB, allows image/tiff — re-uploading the original TIFF scans is a
+post-launch quality task, not a blocker).
 
 **4f. Sandbox account gotcha.** Submits 400 until a default billing address was configured
 in the LumaPrints dashboard — added to preflight as a production-account check.
