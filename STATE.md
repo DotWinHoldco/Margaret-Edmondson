@@ -6,6 +6,32 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-07-30) — full-platform smoke test + money-path retest DONE; money flow proven end-to-end (Stripe test mode).**
+> A cloud smoke test (Playwright vs prod, password-gated, Stripe TEST) click-tested the whole
+> platform three levels deep with backend verification for every claim. Evidence report:
+> `audit/SMOKE-TEST-2026-07-28/ArtByME-Smoke-Test-Report-2026-07-30.html`. **NEXT-AGENT BUILD SPEC:
+> `audit/SMOKE-TEST-2026-07-28/REMEDIATION-BUILD.md`** (single phased prompt; also at repo root on the
+> build machine as the gitignored `claude-code-prompt__smoke-test-remediation.md`). Read it before
+> touching the money path, RLS, courses, or classes.
+> FIXED LIVE this round (migrations committed + applied to prod, re-proven): **F1** Stripe TEST webhook
+> endpoint created (`we_1Tyfvf…`) + `STRIPE_WEBHOOK_SECRET_TEST` set → a hosted test purchase writes
+> Order #1 → order_items → self-ship fulfillment auto-submit → inventory 1→0 → buyer account →
+> confirmation + welcome emails → admin order view → Stripe refund → order auto-flips to refunded;
+> **F4** all 21 originals repriced from $0 to `base_price` (were all showing SOLD); **F13**
+> `class_bookings.payment_method` now allows `stripe` (mig `2026073001`) — paid bookings were silently
+> stranded before; **F14** admin SELECT RLS added to orders/order_items/enrollments/blog_posts (mig
+> `2026073002`) — admin Orders showed "No orders found" before.
+> STILL OPEN (need a human value or decision — cannot be done from the sandbox): **F3** embedded on-site
+> checkout needs `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` (in no Vercel env, no on-disk `.env`, not
+> derivable from the secret key — Stripe dashboard → Test mode → API keys); **F2** paid-but-no-order
+> reconciliation sweep; **F5** 8 products have `base_price=0` (Margaret must price); **F14** 20 more
+> tables still need admin-read RLS (list in the build spec); **F7** cohort course type; plus F9/F10/F11.
+> LumaPrints: prod keys valid against the live pricing API, exact submit payload + real signed
+> print-master PNG (4800×3600 @ 400 DPI, aspect-matched to 12×9 Mirror Wrap) verified, worker fires on
+> real orders — a live print submission (201) was NOT exercised (needs sandbox keys or sign-off to print
+> a real canvas). All ZZ-TEST data cleaned up; only the 3 real accounts remain; Poolside inventory
+> restored to 1.
+
 > **Current truth (2026-07-06) — LAUNCH NIGHT: sandbox-verified fulfillment + Mirror Wrap fix + US-only checkout.**
 > All payment phases are merged AND deployed (prod = main `0947183`); the PHASE-5 runbook's deploy
 > half is obsolete. Live LumaPrints sandbox probes (store 82222) closed three KNOWN_RISKS items:
