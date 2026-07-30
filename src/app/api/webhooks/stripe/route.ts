@@ -419,7 +419,12 @@ interface CheckoutSession {
   total_details?: { amount_discount?: number; amount_shipping?: number; amount_tax?: number }
 }
 
-async function handleCheckoutCompleted(
+// Exported so the reconciliation sweep (/api/cron/reconcile-orders) can replay a
+// paid-but-unrecorded Checkout Session through the EXACT same idempotent path the
+// live webhook uses — no duplicated order/booking/enrollment logic. Safe to call
+// with a synthesized event: orders are UNIQUE on the session id, bookings
+// transition awaiting_payment→paid only, and enrollments upsert on (profile,course).
+export async function handleCheckoutCompleted(
   supabase: SupabaseClient,
   stripe: Stripe,
   event: Stripe.Event,
