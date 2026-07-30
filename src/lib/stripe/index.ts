@@ -17,13 +17,21 @@ export function clearStripeModeCache() {
 async function readMode(): Promise<StripeMode> {
   if (modeCache && Date.now() - modeCache.ts < MODE_CACHE_MS) return modeCache.mode
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !anon) {
+  // site_settings is readable only by admins under RLS (it carries internal
+  // config: margin %, tax, order-notification email), so the anon key returns
+  // NOTHING and the mode would silently pin to 'test' forever — making the
+  // live/test toggle a no-op no matter what the admin sets. readMode runs
+  // server-side only (API routes, webhooks, crons), so it must read with the
+  // service-role key, exactly as the settings accessor does. Anon is kept only
+  // as a last-resort fallback so a missing service key still yields a safe
+  // 'test' default instead of throwing on the money path.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) {
     modeCache = { ts: Date.now(), mode: 'test' }
     return 'test'
   }
   try {
-    const sb = createSbClient(url, anon)
+    const sb = createSbClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
     const { data } = await sb
       .from('site_settings')
       .select('stripe_test_mode')
