@@ -6,6 +6,33 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-07-30 later) — GA prep: went LIVE on Stripe (+ fixed a launch-blocking mode bug), priced everything, turned on the print catalog.**
+> Commits this round on `origin/main`: `dfc1e0e` (F2 reconcile sweep + F14 remaining-tables admin RLS)
+> and `65d4eaf` (Stripe live/test mode fix). Prod deploy = `65d4eaf`, READY.
+> **STRIPE IS LIVE**: `site_settings.stripe_test_mode=false`. Proven — a live PaymentIntent was created
+> through prod `/api/checkout/intent` (`mode:live`, correct amount) for both a product and a print.
+> **Launch-blocking bug found + fixed (`65d4eaf`)**: `src/lib/stripe/index.ts` `readMode()` read
+> `site_settings` with the ANON key, but that table has NO anon SELECT policy (admin-only RLS), so the
+> read returned null and the mode silently pinned to `'test'` forever — flipping the toggle did nothing.
+> Now reads with the service-role key (server-only path), anon kept only as a safe `'test'` fallback.
+> **F2 + F14 CLOSED**: reconcile-orders cron deployed + gate-exempt (401 unauth) as the paid-but-no-order
+> backstop; admin-read RLS now on all remaining tables (mig `2026073003`). Webhook + cron both reachable
+> and gate-exempt in prod.
+> **Prices set on everything** (no active sellable left at $0): 5 prints → $35 base; Graze Daze ORIGINAL
+> → $450 (FLAG: inventory said TBD, Margaret to confirm); course "Mixed Media Foundations" → $79 (FLAG:
+> was null = accidentally free); 2 custom-portrait SAMPLES (Dog and Daughter, Family Gift Painting)
+> archived per inventory ("samples are not products"). Classes already priced.
+> **Print catalog turned ON**: generated + priced (default margin, ~52% gross) Paper + Canvas S/M/L for
+> the active Lumaprints pieces via the real admin endpoints — **37/39 now sell prints (160 live sizes)**.
+> Was 0 before (no print variants existed anywhere; prints-only pieces showed "This piece has sold").
+> Still print-blocked, need Margaret: **Due Date** (master too low-res for any standard size) and
+> **Road Trip** (no master_artwork attached). Both still sell as originals / list fine.
+> **Crops**: all 39 masters `print_status=ready`; before/after review gallery delivered + persisted as a
+> desktop artifact (`artbyme-print-review`). **Owner's guide** (docx+pdf, Skylar voice) delivered.
+> Temp admin `smoke-test@holdco.win` was recreated (auth.users insert + bcrypt) to drive variant
+> generation, then deleted. REMAINING HUMAN CHECK: confirm the LIVE Stripe webhook endpoint is
+> registered in Margaret's dashboard with a matching `STRIPE_WEBHOOK_SECRET` (F2 sweep backstops it).
+
 > **Current truth (2026-07-30) — full-platform smoke test + money-path retest DONE; money flow proven end-to-end (Stripe test mode).**
 > A cloud smoke test (Playwright vs prod, password-gated, Stripe TEST) click-tested the whole
 > platform three levels deep with backend verification for every claim. Evidence report:
