@@ -6,6 +6,28 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-07-31) — LUMAPRINTS ORDER CREATION FINALLY PROVEN (sandbox order 10000337513).**
+> Prior claims that "the sandbox proved the order pipeline" were WRONG. The three `audit/diag/
+> sandbox-dryrun-*.json` runs from 2026-07-06 ALL failed at submit: 401, then 400 (webp not a valid
+> file type), then 400 ("default billing address of this account has not been configured"). **No
+> LumaPrints order had ever been created until now**, which is why the sandbox dashboard was empty.
+> TODAY, using the real cropped master + the exact payload `src/lib/fulfillment/router.ts` builds:
+> signed URL from the private `print-masters` bucket (fetchable, 206, image/jpeg, 34.5MB) → pricing 200
+> ($15.94 for 6×12 canvas) → **checkImageConfig 200 "aspect ratio of the image is the same as the
+> ordered size"** → **POST /api/v1/orders 201, orderNumber 10000337513** → read-back confirms
+> storeId 82222, subcategory 101002, 6.00×12.00 in, options Mirror Wrap + Sawtooth + Matte, and OUR
+> cropped print master as the image. Evidence: `/home/claude/luma/PROOF.json` (session-local).
+> SANDBOX CREDS (rotate/keep safe): key = the 56-char string, secret = the 36-char string; the pair
+> is `Basic base64(key:secret)`; **storeId 82222** is authoritative from `GET /api/v1/stores` (the
+> hex tail embedded in the keys decodes to 1017934, which is NOT the store id and 404s).
+> STILL NOT EXERCISED: the deployed fulfillment worker calling this on a real purchase — that needs
+> `LUMAPRINTS_BASE_URL=https://us.api-sandbox.lumaprints.com` set in Vercel (this session's tool
+> classifier blocked the env write). The payload was mirrored exactly, so only the trigger is unproven.
+> GO-LIVE WATCH ITEM: the sandbox order sits at **"Pending Payment"** (sandbox test card). Production
+> LumaPrints must have a valid card + default billing address or real orders park the same way
+> (LAUNCH-CHECKLIST Step 2C). Aspect/DPI verified in bulk: all 169 live print sizes within 1% aspect
+> (worst 0.36%) and ≥200 DPI.
+
 > **Current truth (2026-07-30 later) — GA prep: went LIVE on Stripe (+ fixed a launch-blocking mode bug), priced everything, turned on the print catalog.**
 > Commits this round on `origin/main`: `dfc1e0e` (F2 reconcile sweep + F14 remaining-tables admin RLS)
 > and `65d4eaf` (Stripe live/test mode fix). Prod deploy = `65d4eaf`, READY.
