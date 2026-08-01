@@ -6,6 +6,32 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**
+> The password gate is now DB-driven: `site_settings.gate_enabled/gate_password/gate_secret/
+> gate_cookie_hours` (mig `2026080101`), read by `src/lib/gate/config.ts` (service-role PostgREST,
+> 30s stale-while-error cache, env-var fallback only on cold failure) from BOTH `src/proxy.ts` and
+> `/api/gate`. Secrets seeded operationally (NOT in git); the seeded token hash equals the pre-change
+> cookie, so existing gate sessions carried over with zero interruption (verified live).
+> **Settings → Site access**: gate on/off + password + cookie duration (Margaret can re-gate later).
+> **Launch modal** on the admin dashboard (`LaunchSequence.tsx` + `/api/admin/launch`): 5 prep steps
+> (Lumaprints login → permanent card+billing address → crop review → prices → margins at all 4
+> levels) + GO LIVE. Hideable (floating pill); state in `site_settings.launch_checklist`.
+> **Enforcement is server-side**: `/api/admin/settings/gate` refuses `enabled:false` until all 5 prep
+> steps are done (verified live: 409 LAUNCH_INCOMPLETE with the missing list, then success after).
+> Lumaprints credentials are served ONLY via the admin API from `launch_notes` (seeded, not in git,
+> not in client bundles). Per Skylar: Margaret must NOT change the Lumaprints email/password until the
+> first real-card purchase is verified (the modal says exactly this); card+address go in NOW.
+> **/admin/print-review**: live crop gallery (39/39 print-ready, full-frame chips, per-piece editor
+> links + how-to-recrop incl. "prints pause while the print file rebuilds").
+> LIVE-VERIFIED end to end with a temp admin (since deleted): gate page/pass/401s, DB-driven cookie
+> duration (48h→Max-Age 172800 observed, restored 720), step persistence, modal/pill/settings-card/
+> print-review rendering (0 console errors), and the FULL go-live loop: steps done → gate off →
+> homepage truly public at the edge → re-gated → checklist reset to `{}` for Margaret's real run.
+> ProjectHubClient note: the hub bounces browsers without `artbyme_welcome_dismissed` localStorage to
+> /welcome — the modal shows after the welcome letter, by design.
+> LAUNCH-CHECKLIST.md Step 10 rewritten: go-live is now the in-admin switch; deleting
+> SITE_PASSWORD/SITE_AUTH_SECRET env vars is optional (fallback only).
+
 > **Current truth (2026-08-01) — FULL PURCHASE→PRINT CHAIN PROVEN END TO END (sandbox order 10000337514).**
 > A real test purchase was driven through the live storefront (Stripe TEST, embedded intent, card
 > confirmed via API, $52.75 canvas 6×12 of "The Dual"). The platform did all of it unaided:
