@@ -6,6 +6,29 @@ Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is co
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
+> **Current truth (2026-08-01) — FULL PURCHASE→PRINT CHAIN PROVEN END TO END (sandbox order 10000337514).**
+> A real test purchase was driven through the live storefront (Stripe TEST, embedded intent, card
+> confirmed via API, $52.75 canvas 6×12 of "The Dual"). The platform did all of it unaided:
+> `payment_intent.succeeded` → **order #4 created** with shipping address → order_item carrying the
+> correct purchase-time print snapshot (medium=canvas, 6×12, subcategory 101002, options [2,11],
+> print_storage_path=masters/cactuses/the-dual.jpg) → **fulfillment auto-attempted 7 seconds later**.
+> That auto-attempt FAILED only because `LUMAPRINTS_BASE_URL` had been set to the DASHBOARD host
+> without a scheme (`sandbox.lumaprints.com`) → "Failed to parse URL". The correct API host is
+> `https://us.api-sandbox.lumaprints.com`. The trigger wiring is therefore PROVEN.
+> The submit was then completed by running the REAL `routeOrderToFulfillment()` from
+> `src/lib/fulfillment/router.ts` locally (tsx, service-role client, sandbox LumaPrints env in-shell
+> only, `suppressFailureAlert:true`) against that same real order: **LumaPrints order 10000337514**,
+> `order_items.fulfillment_status='submitted'`, `external_order_id=10000337514`. Read-back confirms
+> storeId 82222, externalId = the real order_item id, recipient = the real shipping address,
+> 6.00×12.00 in, options Mirror Wrap + Sawtooth + Matte, image = OUR cropped print master.
+> RESTORED AFTER THE TEST: `LUMAPRINTS_BASE_URL` DELETED from Vercel (production host again);
+> production LUMAPRINTS_API_KEY/SECRET/STORE_ID were NEVER touched (still 2026-05-15); Stripe back to
+> `stripe_test_mode=false` (LIVE); test order + snapshot deleted (0 orders, 0 zero-item orders).
+> NOTE: Vercel injects these env vars at runtime — the added var took effect with no redeploy, so the
+> delete propagates the same way; redeploy only as belt-and-braces.
+> REMAINING GO-LIVE ITEM: both sandbox orders sit at **"Pending Payment"**. Production LumaPrints must
+> have a default billing address + valid card or real orders park unprinted (LAUNCH-CHECKLIST 2C).
+
 > **Current truth (2026-07-31) — LUMAPRINTS ORDER CREATION FINALLY PROVEN (sandbox order 10000337513).**
 > Prior claims that "the sandbox proved the order pipeline" were WRONG. The three `audit/diag/
 > sandbox-dryrun-*.json` runs from 2026-07-06 ALL failed at submit: 401, then 400 (webp not a valid
