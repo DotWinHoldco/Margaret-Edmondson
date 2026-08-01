@@ -1,5 +1,6 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getGateConfig, gateToken } from '@/lib/gate/config'
 
 const GATE_COOKIE = 'site-auth'
 
@@ -14,19 +15,7 @@ function constantTimeEqual(a: string, b: string): boolean {
   return mismatch === 0
 }
 
-async function expectedGateToken(secret: string) {
-  const data = new TextEncoder().encode(secret)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 async function gateCheck(request: NextRequest): Promise<NextResponse | null> {
-  const password = process.env.SITE_PASSWORD
-  const secret = process.env.SITE_AUTH_SECRET
-  if (!password || !secret) return null
-
   const { pathname } = request.nextUrl
   if (
     pathname.startsWith('/gate') ||
@@ -45,8 +34,14 @@ async function gateCheck(request: NextRequest): Promise<NextResponse | null> {
     return null
   }
 
+  // Gate config is DB-first (site_settings) with env fallback, cached ~30s per
+  // edge instance — the owner's go-live toggle takes effect without a deploy.
+  // The exclusions above run FIRST so webhooks/crons never pay the config read.
+  const cfg = await getGateConfig()
+  if (!cfg.enabled || !cfg.password || !cfg.secret) return null
+
   const token = request.cookies.get(GATE_COOKIE)?.value
-  const expected = await expectedGateToken(password + secret)
+  const expected = await gateToken(cfg.password, cfg.secret)
   if (token && constantTimeEqual(token, expected)) return null
 
   const url = request.nextUrl.clone()

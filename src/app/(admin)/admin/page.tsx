@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import ProjectHubClient from './ProjectHubClient'
+import LaunchSequence from '@/components/admin/LaunchSequence'
 
 export const metadata: Metadata = {
   title: 'Project Hub',
@@ -65,11 +66,15 @@ export default async function AdminDashboard() {
   }))
 
   return (
-    <ProjectHubClient
-      initialFeedback={feedbackItems}
-      initialWorkRequests={workRequests}
-      initialNotes={notes}
-      initialFunnels={funnels}
-    />
+    <>
+      {/* Owner go-live sequence — renders only while the site is still gated. */}
+      <LaunchSequence />
+      <ProjectHubClient
+        initialFeedback={feedbackItems}
+        initialWorkRequests={workRequests}
+        initialNotes={notes}
+        initialFunnels={funnels}
+      />
+    </>
   )
 }

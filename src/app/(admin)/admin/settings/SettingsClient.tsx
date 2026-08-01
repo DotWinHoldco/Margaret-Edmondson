@@ -48,6 +48,7 @@ export default function SettingsClient() {
     <div className="space-y-8">
       <AccountSection />
       <SiteSettingsSection />
+      <SiteAccessSection />
       <StripeModeSection />
       <PricingSettingsSection />
       <BusinessInfoSection />
@@ -58,6 +59,212 @@ export default function SettingsClient() {
       <IntegrationStatusSection />
       <PromoCodesSection />
       <DangerZoneSection />
+    </div>
+  )
+}
+
+/* ─── Site Access (password gate) ─── */
+
+interface GateData {
+  enabled: boolean
+  password: string
+  cookieHours: number
+  secretSet: boolean
+  missingPrepSteps: string[]
+}
+
+function SiteAccessSection() {
+  const [data, setData] = useState<GateData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [password, setPassword] = useState('')
+  const [cookieHours, setCookieHours] = useState('')
+  const [confirming, setConfirming] = useState<'off' | 'on' | null>(null)
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const res = await fetch('/api/admin/settings/gate')
+      const json = await res.json()
+      if (!cancelled && res.ok) {
+        setData(json)
+        setPassword(json.password || '')
+        setCookieHours(String(json.cookieHours ?? 720))
+      }
+      if (!cancelled) setLoading(false)
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function patch(body: Record<string, unknown>, okText: string) {
+    setSaving(true)
+    setMsg(null)
+    const res = await fetch('/api/admin/settings/gate', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const json = await res.json()
+    setSaving(false)
+    setConfirming(null)
+    if (!res.ok) {
+      setMsg({
+        text:
+          json?.code === 'LAUNCH_INCOMPLETE'
+            ? 'The launch checklist on the Dashboard must be fully complete before the site can go public.'
+            : json?.error || 'Could not save.',
+        ok: false,
+      })
+      return
+    }
+    setData(json)
+    setPassword(json.password || '')
+    setCookieHours(String(json.cookieHours ?? 720))
+    setMsg({ text: okText, ok: true })
+    setTimeout(() => setMsg(null), 4000)
+  }
+
+  return (
+    <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-6">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-charcoal">Site access</h2>
+          <p className="mt-1 font-body text-sm text-charcoal/60">
+            While the gate is on, visitors must enter a password before they can see the site.
+            Turn it off to open the store to everyone; turn it back on any time to work in
+            private. Changes reach every visitor within about 30 seconds.
+          </p>
+        </div>
+        {data && (
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wider ${
+              data.enabled ? 'bg-gold/20 text-charcoal' : 'bg-teal/20 text-deep-teal'
+            }`}
+          >
+            {data.enabled ? 'Password-protected' : 'Public'}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="mt-4 font-body text-sm text-charcoal/40">Loading…</p>
+      ) : !data ? (
+        <p className="mt-4 font-body text-sm text-coral">Couldn&apos;t load site access settings.</p>
+      ) : (
+        <div className="mt-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={data.enabled}
+              onClick={() => setConfirming(data.enabled ? 'off' : 'on')}
+              disabled={saving}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                data.enabled ? 'bg-gold' : 'bg-charcoal/30'
+              } ${saving ? 'opacity-50' : ''}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  data.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+            <span className="font-body text-sm text-charcoal">
+              Password protection {data.enabled ? 'is on' : 'is off'}
+            </span>
+          </div>
+
+          {confirming && (
+            <div className="rounded-sm border border-charcoal/15 bg-cream p-4">
+              <p className="font-body text-sm font-semibold text-charcoal">
+                {confirming === 'off'
+                  ? 'Turn the password off and make the site public?'
+                  : 'Turn the password back on?'}
+              </p>
+              <p className="mt-1 font-body text-sm text-charcoal/65">
+                {confirming === 'off'
+                  ? 'Anyone will be able to visit and buy. This is the go-live switch.'
+                  : 'Visitors will need the password below to see the site again.'}
+              </p>
+              <div className="mt-3 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    patch(
+                      { enabled: confirming === 'on' },
+                      confirming === 'off' ? 'The site is now public.' : 'The site is password-protected again.',
+                    )
+                  }
+                  disabled={saving}
+                  className="rounded-sm bg-teal px-4 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Yes, do it'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(null)}
+                  disabled={saving}
+                  className="rounded-sm border border-charcoal/15 px-4 py-2 font-body text-sm text-charcoal hover:bg-charcoal/5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block font-body text-sm font-medium text-charcoal">Gate password</label>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none"
+              />
+              <p className="mt-1 font-body text-xs text-charcoal/50">
+                At least 6 characters. Changing it signs every visitor out of the gate — they enter
+                the new password next visit.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block font-body text-sm font-medium text-charcoal">
+                Remember visitors for (hours)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={8760}
+                value={cookieHours}
+                onChange={(e) => setCookieHours(e.target.value)}
+                className="w-full rounded-sm border border-charcoal/15 bg-cream px-3 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none"
+              />
+              <p className="mt-1 font-body text-xs text-charcoal/50">
+                How long a correct password lasts before it is asked for again. 720 = 30 days.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() =>
+                patch({ password: password.trim(), cookieHours: Number(cookieHours) }, 'Site access settings saved.')
+              }
+              disabled={saving || password.trim().length < 6}
+              className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save password & duration'}
+            </button>
+            {msg && (
+              <p className={`font-body text-sm ${msg.ok ? 'text-teal' : 'text-coral'}`}>{msg.text}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

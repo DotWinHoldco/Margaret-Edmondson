@@ -154,19 +154,24 @@ clickable tracking link.
 
 **[DotWin verifies]** — no error rows anywhere in the logs.
 
-## Step 10 — GO LIVE (browser, 10 min)
+## Step 10 — GO LIVE (browser, 2 min — no Vercel needed anymore)
 
-Do these in order:
+The password gate is now controlled from the admin, not env vars. Margaret's launch
+modal (admin Dashboard) walks every prep step and ends in a GO LIVE button; the same
+switch lives at **Admin → Settings → Site access** (gate on/off, password, cookie
+duration). The API refuses to open the site until every launch prep step is checked.
 
-1. Tell DotWin — the store flips from TEST money to REAL money (one database switch).
-2. Vercel → Environment Variables → **delete** `LUMAPRINTS_BASE_URL` (test orders were
-   pointed at the practice printer; real orders must not be).
-3. Vercel → Environment Variables → **delete** `SITE_PASSWORD` and `SITE_AUTH_SECRET`
-   (this removes the password wall — THE SITE BECOMES PUBLIC NOW).
-4. Deployments → Redeploy.
-5. Open `https://artbyme.studio` in a private/incognito window (no cookies): you should
-   see the real store — no password page. Click an artwork: print sizes and prices show.
-   Everything looks right.
+1. Confirm the store is on REAL money (Settings → Stripe Mode shows Live). Done 2026-07-31.
+2. Confirm `LUMAPRINTS_BASE_URL` is NOT set in Vercel (test orders were pointed at the
+   practice printer once; it was removed 2026-08-01 — real orders go to the real printer).
+3. Complete the launch modal steps, then press **GO LIVE** (or flip Settings → Site
+   access → Password protection off).
+4. Open `https://artbyme.studio` in a private/incognito window (no cookies): you should
+   see the real store — no password page (allow ~30s for the switch to reach every
+   visitor). Click an artwork: print sizes and prices show. Everything looks right.
+
+Note: `SITE_PASSWORD` / `SITE_AUTH_SECRET` env vars are now only a fallback used if the
+database is unreachable — deleting them is optional and no longer part of go-live.
 
 **[DotWin verifies]** — live mode on, live Stripe key serving, gate gone, crons green.
 
