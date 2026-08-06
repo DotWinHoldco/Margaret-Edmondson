@@ -33,6 +33,14 @@ export const transactions: Array<{
 //                         class_bookings atomically (no oversell). migration 2026060806.
 //   reserve_original    — catalog. Locks product_variants FOR UPDATE, decrements one-of-a-kind
 //                         original inventory atomically (no oversell). migration 2026060806.
+//                         Superseded on the storefront money path by the hold family below;
+//                         retained for admin tooling and back-compat.
+//   hold_originals / convert_original_hold / release_original_holds / refund_original_holds
+//                       — catalog. Expiring checkout-time purchase holds for originals: claim at
+//                         session/intent creation, idempotent webhook conversion (exactly one
+//                         decrement per payment ref), release on expiry/cancel, restock on full
+//                         refund. All lock product_variants FOR UPDATE and write original_holds.
+//                         migration 2026080601.
 //   upsert_contact_to_list — crm. Upserts crm_contacts + contact_list_members. migration 20260522.
 //
 // STAGED (TO BUILD — see audit/ADOPT-2026-06-24/STAGED-REFACTOR-PLAN.md, finding ACID-1):

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/meta/pixel'
+import { rememberFunnelAttribution } from '@/lib/funnels/attribution'
 
 interface FunnelViewTrackerProps {
   funnelId: string
@@ -16,6 +17,10 @@ export default function FunnelViewTracker({ funnelId, productId, productTitle, b
   useEffect(() => {
     if (tracked.current) return
     tracked.current = true
+
+    // Last-touch attribution: a purchase started within a day of this visit
+    // credits this funnel (verified server-side, counted only by the webhook).
+    rememberFunnelAttribution(funnelId)
 
     // Increment views_count via public SECURITY DEFINER RPC
     fetch(`/api/funnels/${funnelId}/track`, {

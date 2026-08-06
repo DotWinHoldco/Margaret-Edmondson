@@ -17,6 +17,12 @@ import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
+import {
+  holdOriginals,
+  originalVariantIds,
+  releaseOriginalHolds,
+  resolveFunnelId,
+} from '@/lib/checkout/holds'
 import { resolveCartToken } from '@/lib/cart/token'
 
 function jsonError(message: string, status: number = 400, code?: string) {
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
       const { message, status, code } = parsedRequest.error
       return jsonError(message, status, code)
     }
-    const { items, email, cartToken, promoCode } = parsedRequest.data
+    const { items, email, cartToken, promoCode, funnelId } = parsedRequest.data
 
     // Derive the cart from the signed token. Everything downstream (the cart
     // item write, the server-set surcharge, cart-scoped promo validation, the
@@ -195,6 +201,35 @@ export async function POST(request: Request) {
       },
     })
 
+    // Claim every one-of-a-kind original under this PaymentIntent id BEFORE
+    // the client receives a secret it can pay with. A failed claim cancels the
+    // intent: two buyers can no longer both pay for the same original. The
+    // release-expired-holds cron cancels intents whose holds lapse unpaid.
+    const holdSvc = await createServiceClient()
+    const originals = originalVariantIds(validatedItems)
+    if (originals.length > 0) {
+      const hold = await holdOriginals(holdSvc, intent.id, originals)
+      if (!hold.ok) {
+        try {
+          await stripe.paymentIntents.cancel(intent.id)
+        } catch (cancelError) {
+          console.error('failed to cancel intent after hold failure:', cancelError)
+        }
+        if (hold.kind === 'unavailable') {
+          return jsonError(
+            'Someone else is completing a purchase of an original in your cart. It may become available again shortly if their checkout is not completed.',
+            409,
+            'original_unavailable',
+          )
+        }
+        return jsonError(
+          'We could not reserve your artwork just now. Please try checkout again.',
+          503,
+          'original_hold_failed',
+        )
+      }
+    }
+
     // P0-3: lock the validated, server-priced line items into an immutable
     // snapshot keyed by the PaymentIntent id. The webhook builds the order from
     // THIS, not the mutable carts.items, so a cart changed after the amount is
@@ -202,7 +237,7 @@ export async function POST(request: Request) {
     // null (the empty-order case). This is required before the client receives
     // the secret; cancel the intent if persistence fails.
     try {
-      const svc = await createServiceClient()
+      const svc = holdSvc
       const { error: snapshotError } = await svc.from('checkout_snapshots').insert({
         payment_ref: intent.id,
         cart_id: cartId || null,
@@ -220,6 +255,7 @@ export async function POST(request: Request) {
         surcharge_cents: surchargeCents,
         tax_cents: taxCents,
         email: normalizedEmail || null,
+        funnel_id: await resolveFunnelId(svc, funnelId),
       })
       if (snapshotError) throw snapshotError
     } catch (err) {
@@ -229,6 +265,7 @@ export async function POST(request: Request) {
       } catch (cancelError) {
         console.error('failed to cancel payment intent after snapshot error:', cancelError)
       }
+      await releaseOriginalHolds(holdSvc, intent.id)
       return jsonError(
         'We could not secure your order details just now. Please try checkout again.',
         503,

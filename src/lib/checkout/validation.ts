@@ -33,6 +33,12 @@ const checkoutRequestSchema = z.object({
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(120).nullable(),
   ),
+  // Last-touch funnel attribution. Optional analytics context: the route
+  // re-verifies it against a real published funnel before it is stored.
+  funnelId: z.preprocess(
+    (value) => value === '' || value == null ? null : value,
+    z.string().uuid().nullable(),
+  ).optional().default(null),
 }).superRefine((value, ctx) => {
   const seen = new Set<string>()
   for (const [index, item] of value.items.entries()) {

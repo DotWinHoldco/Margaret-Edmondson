@@ -552,6 +552,7 @@ export type Database = {
           created_at: string
           discount_cents: number
           email: string | null
+          funnel_id: string | null
           items: Json
           payment_ref: string
           subtotal_cents: number
@@ -563,6 +564,7 @@ export type Database = {
           created_at?: string
           discount_cents?: number
           email?: string | null
+          funnel_id?: string | null
           items: Json
           payment_ref: string
           subtotal_cents: number
@@ -574,6 +576,7 @@ export type Database = {
           created_at?: string
           discount_cents?: number
           email?: string | null
+          funnel_id?: string | null
           items?: Json
           payment_ref?: string
           subtotal_cents?: number
@@ -3962,6 +3965,25 @@ export type Database = {
         Returns: number
       }
       reserve_original: { Args: { p_variant_id: string }; Returns: boolean }
+      hold_originals: {
+        Args: { p_payment_ref: string; p_variant_ids: string[]; p_ttl_minutes?: number }
+        Returns: {
+          variant_id: string
+          ok: boolean
+        }[]
+      }
+      convert_original_hold: {
+        Args: { p_payment_ref: string; p_variant_id: string }
+        Returns: string
+      }
+      release_original_holds: {
+        Args: { p_payment_ref: string }
+        Returns: number
+      }
+      refund_original_holds: {
+        Args: { p_payment_ref: string }
+        Returns: number
+      }
       subscribe_to_newsletter: {
         Args: { p_email: string; p_first_name?: string; p_source?: string }
         Returns: {

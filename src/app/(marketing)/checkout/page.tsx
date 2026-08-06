@@ -16,6 +16,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { useCart } from '@/lib/cart/context'
+import { readFunnelAttribution } from '@/lib/funnels/attribution'
 
 // NEXT_PUBLIC_* vars are inlined at build time — reference both literally and
 // pick at runtime based on the mode the server resolved from site settings.
@@ -134,6 +135,7 @@ export default function CheckoutPage() {
       cartToken: state.cartToken,
       promoCode: h.promoCode || undefined,
       shippingSurchargeLabel: h.surchargeLabel || undefined,
+      funnelId: readFunnelAttribution() || undefined,
     }
   }, [handoff, state.items, state.email, state.cartToken])
 

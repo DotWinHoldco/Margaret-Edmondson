@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/reconcile-orders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/release-expired-holds",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

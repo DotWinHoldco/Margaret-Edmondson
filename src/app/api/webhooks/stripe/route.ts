@@ -64,6 +64,7 @@ interface OiMasterArtwork {
 }
 interface OiProduct {
   id: string
+  title: string | null
   base_price: number
   fulfillment_type: string | null
   master_artwork?: OiMasterArtwork | OiMasterArtwork[] | null
@@ -164,6 +165,160 @@ async function loadSnapshotItems(
   }
 }
 
+/** Funnel attribution locked into the checkout snapshot at purchase time. */
+async function loadSnapshotFunnelId(
+  supabase: SupabaseClient,
+  paymentRef: string,
+): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from('checkout_snapshots')
+      .select('funnel_id')
+      .eq('payment_ref', paymentRef)
+      .maybeSingle()
+    return (data?.funnel_id as string | null) ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Count a funnel purchase exactly once per order: only the delivery that
+ * CREATES the order row calls this, so webhook replays cannot inflate the
+ * counter. Best-effort analytics; never blocks the money path.
+ */
+async function recordFunnelPurchase(
+  supabase: SupabaseClient,
+  funnelId: string | null,
+): Promise<void> {
+  if (!funnelId) return
+  const { error } = await supabase.rpc('increment_funnel_metric', {
+    p_funnel_id: funnelId,
+    p_metric: 'purchase',
+  })
+  if (error) console.error('funnel purchase attribution failed:', error)
+}
+
+/** PostgREST embed rows for the confirmation-email item list. */
+interface OrderEmailItemRow {
+  quantity: number
+  unit_price: number
+  product: { title: string | null } | Array<{ title: string | null }> | null
+  variant: { name: string | null } | Array<{ name: string | null }> | null
+}
+
+/** Flatten order_items embed rows into the confirmation email's item shape. */
+function toEmailItems(rows: OrderEmailItemRow[] | null) {
+  return (rows || []).map((oi) => {
+    const product = Array.isArray(oi.product) ? oi.product[0] : oi.product
+    const variant = Array.isArray(oi.variant) ? oi.variant[0] : oi.variant
+    return {
+      name: product?.title || 'Artwork',
+      quantity: oi.quantity,
+      price: oi.unit_price * oi.quantity,
+      variant: variant?.name || undefined,
+    }
+  })
+}
+
+/**
+ * A paid order contains an original that could not be claimed (its hold lapsed
+ * and someone else's purchase converted first, or a pre-hold legacy race).
+ * Never fulfill it: refund the full charge, restock any of this order's
+ * ALREADY-converted originals, mark the order refunded, and tell the buyer and
+ * the studio owner what happened. Claims the order's one-shot side-effect slot
+ * so the normal confirmation flow can never also run; idempotent across
+ * webhook replays (refund uses a per-order idempotency key, restock flips hold
+ * status once, and the claim is atomic).
+ */
+async function refundOversoldOrder(
+  supabase: SupabaseClient,
+  stripe: Stripe,
+  event: Stripe.Event,
+  opts: {
+    orderId: string
+    paymentRef: string
+    paymentIntentId: string | null
+    buyerEmail: string
+    oversoldTitles: string[]
+  },
+): Promise<void> {
+  const { orderId, paymentRef, paymentIntentId, buyerEmail, oversoldTitles } = opts
+
+  if (paymentIntentId) {
+    try {
+      await stripe.refunds.create(
+        { payment_intent: paymentIntentId },
+        { idempotencyKey: `oversell-refund-${orderId}` },
+      )
+    } catch (err) {
+      const code = (err as { code?: string }).code
+      if (code !== 'charge_already_refunded') {
+        // Money must go back: surface the failure so Stripe redelivers and the
+        // refund is retried rather than silently dropped.
+        throw new Error(`oversell refund failed for order ${orderId}: ${(err as Error).message}`)
+      }
+    }
+  }
+
+  // Restock this order's other originals that DID convert; the refund returns
+  // them to the storefront. Status flip is one-way, so replays are no-ops.
+  await supabase.rpc('refund_original_holds', { p_payment_ref: paymentRef })
+
+  await supabase
+    .from('orders')
+    .update({ status: 'refunded', updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+
+  const { data: claim } = await supabase
+    .from('orders')
+    .update({ side_effects_completed_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .is('side_effects_completed_at', null)
+    .select('id')
+    .maybeSingle()
+
+  if (claim) {
+    const titleList = oversoldTitles.length > 0 ? oversoldTitles.join(', ') : 'an original artwork'
+    try {
+      const { sendEmail } = await import('@/lib/email/send')
+      const { brandedShell } = await import('@/lib/email/shell')
+      const notifyEmail = await getOrderNotificationEmail().catch(() => null)
+      if (buyerEmail) {
+        const buyerHtml = brandedShell(
+          `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">About your order</h2>
+           <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+             ${escapeHtml(titleList)} is one of a kind, and another collector completed its purchase moments before you.
+             Your payment has been refunded in full; it arrives back on your card within 5 to 10 business days.
+           </p>
+           <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
+             Fine art prints of many pieces remain available, and Margaret would love to talk about a commission.
+           </p>
+           <p style="text-align:center;color:#3A7D7B;font-size:13px;line-height:1.6;">— Margaret</p>`,
+          { hideUnsubscribe: true, preheader: 'Your payment has been refunded in full' },
+        )
+        await sendEmail({
+          to: buyerEmail,
+          subject: 'Your ArtByME payment has been refunded',
+          html: buyerHtml,
+          ...(notifyEmail ? { replyTo: notifyEmail } : {}),
+        })
+      }
+    } catch (err) {
+      console.error('Oversell buyer email failed:', err)
+    }
+    await notifyOrderNeedsAttention(orderId, [
+      `Oversell auto-refund: ${titleList} was already sold when this payment arrived. The full charge was refunded, the buyer was emailed, and any other originals in the order were restocked. No action needed unless the refund needs review in Stripe.`,
+    ])
+  }
+
+  await logEvent(supabase, event, {
+    alert: 'oversell_refunded',
+    order_id: orderId,
+    payment_ref: paymentRef,
+  })
+}
+
 // Batched, authoritative lookups for the order_items rows + the print snapshot.
 async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem[]): Promise<OrderItemData> {
   const productIds = [...new Set(cartItems.map((i) => i.productId))]
@@ -172,7 +327,7 @@ async function loadOrderItemData(supabase: SupabaseClient, cartItems: OiCartItem
     productIds.length
       ? supabase
           .from('products')
-          .select('id, base_price, fulfillment_type, master_artwork:master_artworks(print_storage_path, print_status)')
+          .select('id, title, base_price, fulfillment_type, master_artwork:master_artworks(print_storage_path, print_status)')
           .in('id', productIds)
       : Promise.resolve({ data: [] as OiProduct[] }),
     variantIds.length
@@ -322,7 +477,7 @@ export async function POST(request: Request) {
       case 'checkout.session.expired':
       case 'checkout.session.async_payment_failed': {
         // B-11: release a held class seat when its checkout never completes.
-        const session = event.data.object as { metadata?: { class_booking_id?: string } }
+        const session = event.data.object as { id: string; metadata?: { class_booking_id?: string } }
         if (session.metadata?.class_booking_id) {
           await supabase
             .from('class_bookings')
@@ -330,6 +485,19 @@ export async function POST(request: Request) {
             .eq('id', session.metadata.class_booking_id)
             .eq('status', 'awaiting_payment')
         }
+        // Release this session's original holds: the piece goes straight back
+        // on sale instead of waiting out the hold TTL.
+        await supabase.rpc('release_original_holds', { p_payment_ref: session.id })
+        await logEvent(supabase, event)
+        break
+      }
+
+      case 'payment_intent.canceled': {
+        // Embedded-checkout intents hold originals under the intent id; a
+        // cancellation (buyer abandoned, or the expired-holds cron) releases
+        // them immediately.
+        const pi = event.data.object as { id: string }
+        await supabase.rpc('release_original_holds', { p_payment_ref: pi.id })
         await logEvent(supabase, event)
         break
       }
@@ -341,7 +509,7 @@ export async function POST(request: Request) {
         // so anything else is just logged (identical to the old default branch).
         const pi = event.data.object as Stripe.PaymentIntent
         if (pi.metadata?.elements_checkout === '1') {
-          await handleElementsPaymentSucceeded(supabase, event)
+          await handleElementsPaymentSucceeded(supabase, stripe, event)
         } else {
           await logEvent(supabase, event)
         }
@@ -359,12 +527,27 @@ export async function POST(request: Request) {
       }
 
       case 'charge.refunded': {
-        const charge = event.data.object as { payment_intent: string }
-        if (charge.payment_intent) {
-          await supabase
+        // charge.refunded also fires for PARTIAL refunds; `refunded` is only
+        // true once the charge is fully refunded. Flip the order and restock
+        // its originals only then: a partial refund keeps the order live and
+        // the piece sold.
+        const charge = event.data.object as { payment_intent: string; refunded?: boolean }
+        if (charge.payment_intent && charge.refunded === true) {
+          const { data: refundedOrder } = await supabase
             .from('orders')
             .update({ status: 'refunded', updated_at: new Date().toISOString() })
             .eq('stripe_payment_intent_id', charge.payment_intent)
+            .select('id, stripe_checkout_session_id')
+            .maybeSingle()
+          // Restock converted originals under whichever reference keyed the
+          // holds (session id for hosted checkout, intent id for embedded).
+          // Both calls are idempotent no-ops when nothing matches.
+          await supabase.rpc('refund_original_holds', { p_payment_ref: charge.payment_intent })
+          if (refundedOrder?.stripe_checkout_session_id) {
+            await supabase.rpc('refund_original_holds', {
+              p_payment_ref: refundedOrder.stripe_checkout_session_id,
+            })
+          }
         }
         await logEvent(supabase, event)
         break
@@ -632,6 +815,10 @@ export async function handleCheckoutCompleted(
   let orderTotal = existingOrder?.total ?? (session.amount_total || 0) / 100
 
   if (!orderId) {
+    // Funnel attribution rides the immutable snapshot; stamping it on the order
+    // and counting the purchase happen ONLY on the delivery that creates the
+    // row, so replays cannot double-count.
+    const funnelId = await loadSnapshotFunnelId(supabase, session.id)
     const { data: created, error: createErr } = await supabase
       .from('orders')
       .insert({
@@ -646,6 +833,7 @@ export async function handleCheckoutCompleted(
         discount: discountCents / 100,
         total: (session.amount_total || 0) / 100,
         promo_code: session.metadata.promo_code || null,
+        funnel_id: funnelId,
         shipping_address: {
           ...(session.shipping_details?.address || {}),
           name: session.shipping_details?.name || session.customer_details?.name || '',
@@ -653,6 +841,8 @@ export async function handleCheckoutCompleted(
       })
       .select('id, total')
       .single()
+
+    if (!createErr && created) await recordFunnelPurchase(supabase, funnelId)
 
     if (createErr) {
       // 23505 = a concurrent delivery already created this order. Let that
@@ -671,17 +861,28 @@ export async function handleCheckoutCompleted(
   // batched lookups (never trust cart-stored price), and claim originals atomically.
   const { productMap, variantMap, mediumMap } = await loadOrderItemData(supabase, cartItems)
 
+  const oversoldTitles: string[] = []
   for (const ci of cartItems) {
     const p = productMap.get(ci.productId)
     const v = ci.variantId ? variantMap.get(ci.variantId) : null
 
-    // B-9: atomically claim a one-of-a-kind original. reserve_original clamps at
-    // 0 (safe on resume) and returns false only when it was already sold out.
+    // B-9: convert this session's checkout-time hold into the sale. Exactly one
+    // inventory decrement per (session, variant) across replays; 'oversold'
+    // means no hold survived AND no free unit remains, so this paid order must
+    // be refunded, never fulfilled.
     if (v?.variant_type === 'original' && ci.variantId) {
-      const { data: reserved } = await supabase.rpc('reserve_original', { p_variant_id: ci.variantId })
-      if (reserved === false) {
+      const { data: outcome, error: convertErr } = await supabase.rpc('convert_original_hold', {
+        p_payment_ref: session.id,
+        p_variant_id: ci.variantId,
+      })
+      if (convertErr) {
+        // Claim state is unknowable: throw so Stripe redelivers and the
+        // idempotent conversion re-runs, instead of guessing.
+        throw new Error(`convert_original_hold failed for ${ci.variantId}: ${convertErr.message}`)
+      }
+      if (outcome === 'oversold') {
         console.error(`OVERSELL: original variant ${ci.variantId} already sold (order ${orderId})`)
-        await logEvent(supabase, event, { alert: 'oversell', variant_id: ci.variantId, order_id: orderId })
+        oversoldTitles.push(p?.title || 'Original artwork')
       }
     }
 
@@ -699,6 +900,20 @@ export async function handleCheckoutCompleted(
     if (itemUpsertErr) {
       throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
     }
+  }
+
+  // A paid order containing an unclaimable original never fulfills: full
+  // refund, restock, buyer + owner notice, done. The cart is deliberately NOT
+  // marked converted so the buyer can adjust it and check out again.
+  if (oversoldTitles.length > 0) {
+    await refundOversoldOrder(supabase, stripe, event, {
+      orderId: orderId as string,
+      paymentRef: session.id,
+      paymentIntentId: (session.payment_intent as string) || null,
+      buyerEmail,
+      oversoldTitles,
+    })
+    return
   }
 
   // Mark cart converted.
@@ -827,13 +1042,7 @@ export async function handleCheckoutCompleted(
           .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
           .eq('order_id', orderId)
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const emailItems = (orderItems || []).map((oi: any) => ({
-          name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
-          quantity: oi.quantity,
-          price: oi.unit_price * oi.quantity,
-          variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
-        }))
+        const emailItems = toEmailItems(orderItems as OrderEmailItemRow[] | null)
 
         // P1-3: the public order page works for guests (keyed by the Stripe id),
         // so it is a real "track your order" link, not a login wall.
@@ -893,6 +1102,7 @@ export async function handleCheckoutCompleted(
 // from carts.items via metadata.cart_id exactly like the hosted flow (B-5).
 async function handleElementsPaymentSucceeded(
   supabase: SupabaseClient,
+  stripe: Stripe,
   event: Stripe.Event,
 ) {
   const pi = event.data.object as Stripe.PaymentIntent
@@ -982,6 +1192,9 @@ async function handleElementsPaymentSucceeded(
   let orderTotal = existingOrder?.total ?? totalCents / 100
 
   if (!orderId) {
+    // Funnel attribution rides the immutable snapshot; only the creating
+    // delivery stamps and counts it, so replays cannot double-count.
+    const funnelId = await loadSnapshotFunnelId(supabase, pi.id)
     const { data: created, error: createErr } = await supabase
       .from('orders')
       .insert({
@@ -995,10 +1208,13 @@ async function handleElementsPaymentSucceeded(
         discount: discountCents / 100,
         total: totalCents / 100,
         promo_code: md.promo_code || null,
+        funnel_id: funnelId,
         shipping_address: shippingAddress,
       })
       .select('id, total')
       .single()
+
+    if (!createErr && created) await recordFunnelPurchase(supabase, funnelId)
 
     if (createErr) {
       // 23505 = a concurrent delivery already created this order. Let that
@@ -1015,16 +1231,25 @@ async function handleElementsPaymentSucceeded(
 
   const { productMap, variantMap, mediumMap } = await loadOrderItemData(supabase, cartItems)
 
+  const oversoldTitles: string[] = []
   for (const ci of cartItems) {
     const p = productMap.get(ci.productId)
     const v = ci.variantId ? variantMap.get(ci.variantId) : null
 
-    // B-9: atomically claim a one-of-a-kind original.
+    // B-9: convert this intent's checkout-time hold into the sale (exactly one
+    // decrement per (intent, variant) across replays; 'oversold' means the
+    // paid order must be refunded, never fulfilled).
     if (v?.variant_type === 'original' && ci.variantId) {
-      const { data: reserved } = await supabase.rpc('reserve_original', { p_variant_id: ci.variantId })
-      if (reserved === false) {
+      const { data: outcome, error: convertErr } = await supabase.rpc('convert_original_hold', {
+        p_payment_ref: pi.id,
+        p_variant_id: ci.variantId,
+      })
+      if (convertErr) {
+        throw new Error(`convert_original_hold failed for ${ci.variantId}: ${convertErr.message}`)
+      }
+      if (outcome === 'oversold') {
         console.error(`OVERSELL: original variant ${ci.variantId} already sold (order ${orderId})`)
-        await logEvent(supabase, event, { alert: 'oversell', variant_id: ci.variantId, order_id: orderId })
+        oversoldTitles.push(p?.title || 'Original artwork')
       }
     }
 
@@ -1042,6 +1267,20 @@ async function handleElementsPaymentSucceeded(
     if (itemUpsertErr) {
       throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
     }
+  }
+
+  // A paid order containing an unclaimable original never fulfills: full
+  // refund, restock, buyer + owner notice, done. The cart is deliberately NOT
+  // marked converted so the buyer can adjust it and check out again.
+  if (oversoldTitles.length > 0) {
+    await refundOversoldOrder(supabase, stripe, event, {
+      orderId: orderId as string,
+      paymentRef: pi.id,
+      paymentIntentId: pi.id,
+      buyerEmail,
+      oversoldTitles,
+    })
+    return
   }
 
   // Mark cart converted.
@@ -1168,13 +1407,7 @@ async function handleElementsPaymentSucceeded(
           .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
           .eq('order_id', orderId)
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const emailItems = (orderItems || []).map((oi: any) => ({
-          name: Array.isArray(oi.product) ? oi.product[0]?.title : oi.product?.title || 'Artwork',
-          quantity: oi.quantity,
-          price: oi.unit_price * oi.quantity,
-          variant: Array.isArray(oi.variant) ? oi.variant[0]?.name : oi.variant?.name || undefined,
-        }))
+        const emailItems = toEmailItems(orderItems as OrderEmailItemRow[] | null)
 
         // P1-3: the public order page works for guests (keyed by the PaymentIntent
         // id), so it is a real "track your order" link, not a login wall.

@@ -7,6 +7,13 @@ import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
+import {
+  SESSION_EXPIRES_MINUTES,
+  holdOriginals,
+  originalVariantIds,
+  releaseOriginalHolds,
+  resolveFunnelId,
+} from '@/lib/checkout/holds'
 import { resolveCartToken } from '@/lib/cart/token'
 
 function jsonError(message: string, status: number = 400, code?: string) {
@@ -41,7 +48,7 @@ export async function POST(request: Request) {
       const { message, status, code } = parsedRequest.error
       return jsonError(message, status, code)
     }
-    const { items, email, cartToken, shippingSurchargeLabel, promoCode } = parsedRequest.data
+    const { items, email, cartToken, shippingSurchargeLabel, promoCode, funnelId } = parsedRequest.data
 
     // Derive the cart from the signed token. Everything downstream (the cart
     // item write, the server-set surcharge, cart-scoped promo validation, the
@@ -212,6 +219,10 @@ export async function POST(request: Request) {
       },
       success_url: `${siteUrl}/order/{CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cart`,
+      // Bounded session lifetime: expiry emits checkout.session.expired, which
+      // releases this session's original holds so an abandoned checkout puts a
+      // one-of-a-kind piece back on sale promptly.
+      expires_at: Math.floor(Date.now() / 1000) + SESSION_EXPIRES_MINUTES * 60,
     }
 
     if (surchargeCents > 0) {
@@ -263,6 +274,35 @@ export async function POST(request: Request) {
     const stripe = await getStripe()
     const session = await stripe.checkout.sessions.create(sessionParams)
 
+    // Claim every one-of-a-kind original under this session id BEFORE the
+    // buyer can pay. If any piece is already held or sold, kill the session
+    // and fail the checkout: this is what makes two buyers paying for the same
+    // original impossible, instead of merely detected after the fact.
+    const holdSvc = await createServiceClient()
+    const originals = originalVariantIds(validatedItems)
+    if (originals.length > 0) {
+      const hold = await holdOriginals(holdSvc, session.id, originals)
+      if (!hold.ok) {
+        try {
+          await stripe.checkout.sessions.expire(session.id)
+        } catch (expireError) {
+          console.error('failed to expire session after hold failure:', expireError)
+        }
+        if (hold.kind === 'unavailable') {
+          return jsonError(
+            'Someone else is completing a purchase of an original in your cart. It may become available again shortly if their checkout is not completed.',
+            409,
+            'original_unavailable',
+          )
+        }
+        return jsonError(
+          'We could not reserve your artwork just now. Please try checkout again.',
+          503,
+          'original_hold_failed',
+        )
+      }
+    }
+
     // P0-3: lock the validated, server-priced line items into an immutable
     // snapshot keyed by the Checkout Session id. The webhook builds the order
     // from THIS, not the mutable carts.items, so a cart changed after the amount
@@ -293,6 +333,7 @@ export async function POST(request: Request) {
         discount_cents: snapshotDiscountCents,
         surcharge_cents: surchargeCents,
         email: email ? String(email).toLowerCase().trim() : null,
+        funnel_id: await resolveFunnelId(svc, funnelId),
       })
       if (snapshotError) throw snapshotError
     } catch (err) {
@@ -302,6 +343,7 @@ export async function POST(request: Request) {
       } catch (expireError) {
         console.error('failed to expire checkout session after snapshot error:', expireError)
       }
+      await releaseOriginalHolds(holdSvc, session.id)
       return jsonError(
         'We could not secure your order details just now. Please try checkout again.',
         503,

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useCart } from '@/lib/cart/context'
+import { clearFunnelAttribution } from '@/lib/funnels/attribution'
 
 // P1-4: empty the cart after a successful checkout so purchased items don't
 // linger ("keep shopping" starts clean) and the now-converted cart isn't
@@ -14,6 +15,7 @@ export default function ClearCartOnConfirm() {
   useEffect(() => {
     dispatch({ type: 'CLEAR' })
     dispatch({ type: 'SET_CART_TOKEN', payload: null })
+    clearFunnelAttribution()
   }, [dispatch])
   return null
 }
