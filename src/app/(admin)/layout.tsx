@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminPage } from '@/lib/auth/admin-page-guard'
 import Providers from '@/components/shared/Providers'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import type { Metadata } from 'next'
@@ -42,11 +43,20 @@ async function SidebarWithUser() {
   return <AdminSidebar user={profile} />
 }
 
-export default function AdminLayout({
+/**
+ * Server layout for the whole admin surface, and the single enforcement point
+ * for admin pages. `requireAdminPage` runs before any child renders, so no
+ * admin page can be reached without an admin role on a TOTP-verified (aal2)
+ * session; it redirects to the enrolment or step-up screen otherwise. Nothing
+ * below this layout may assume it can authorise itself by other means.
+ */
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  await requireAdminPage()
+
   return (
     <Providers>
       <div className="min-h-screen bg-cream">

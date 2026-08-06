@@ -16,11 +16,14 @@ against Supabase project `klwkajukicsoiwpsgftt`.
   authorizes itself; the proxy is an optimistic filter only.
 - Data access: two Supabase client roles, cookie/anon (`createClient`, RLS as the user) and
   service-role (`createServiceClient`, server-only, webhooks/crons/capability-token lookups).
+- Admin access: role plus a TOTP-verified (`aal2`) session, enforced in the `(admin)` server
+  layout for pages and in `requireAdmin` for API routes. See `docs/technical/admin-mfa.md`.
 - Domains: storefront/checkout, fulfillment, LMS/account, CRM/email, page builder/funnels,
   social calendar, media library.
 
 ## Where the detail lives
 
+- Admin MFA enforcement and the enrolment/step-up flows: `docs/technical/admin-mfa.md`.
 - Schema, RLS policies, and functions: `audit/00-backend-reference.md`.
 - Audit register and P2/P3 backlog: `audit/ADOPT-2026-06-21/FINDINGS.md`.
 - Current state: `STATE.md`. Tagged history: `BUILD_LOG.md`. Open risk: `KNOWN_RISKS.md`.

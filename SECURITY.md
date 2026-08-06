@@ -13,7 +13,7 @@ Authored by DotWin
 - Validate inputs (zod) and return safe, non-leaking user-facing errors.
 - Verify every inbound webhook signature (Stripe, LumaPrints, Printful, ShipStation, Resend).
 - Never trust client-side payment state. The money path is server-verified and idempotent.
-- Protect admin operations behind server-side role checks.
+- Protect admin operations behind server-side role checks plus a TOTP-verified (`aal2`) session.
 
 ## Hardened areas (2026-06-22, live on prod)
 
@@ -28,6 +28,10 @@ Authored by DotWin
 - Newsletter RLS: `newsletter_subscribers` SELECT is restricted to `is_admin_or_artist()`.
 - Email: one-click `List-Unsubscribe` (RFC 8058), a central suppression gate before send, and a
   dedicated `UNSUBSCRIBE_SECRET` for unsubscribe tokens that fails closed in production.
+- Admin MFA: the admin surface requires TOTP. One shared decision (`decideAdminAccess`) is
+  enforced in the `(admin)` server layout for pages and in `requireAdmin` for API routes, which
+  answer with `401 mfa_required` / `mfa_enrollment_required` instead of a redirect. Enrolment and
+  step-up live at `/admin/security/mfa/*`. See `docs/technical/admin-mfa.md`.
 
 ## Sensitive areas
 
