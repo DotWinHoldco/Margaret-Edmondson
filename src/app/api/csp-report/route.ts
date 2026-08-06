@@ -93,7 +93,7 @@ function noContent(): Response {
 // browsers (both the `application/csp-report` and `application/reports+json`
 // shapes) and emit one compact line per violation for the log drain; public.
 export async function POST(request: Request): Promise<Response> {
-  const rl = rateLimit(request, RATE_LIMIT)
+  const rl = await rateLimit(request, RATE_LIMIT)
   if (!rl.ok) return rateLimitResponse(rl)
 
   // Refuse an oversized body before reading it. `content-length` is absent on a

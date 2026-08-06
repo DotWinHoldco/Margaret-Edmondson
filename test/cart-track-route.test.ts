@@ -35,9 +35,28 @@ const ITEMS = [{
   quantity: 1,
 }]
 
+/**
+ * Route the shared mock by RPC name: the route now hits rate_limit_hit through
+ * the same service client before it ever reaches track_cart, so the limiter
+ * gets a healthy allow row and only track_cart returns the per-test result.
+ */
+function mockTrackCart(result: { data: unknown; error: unknown }): void {
+  rpc.mockImplementation((fn: string) =>
+    fn === 'rate_limit_hit'
+      ? Promise.resolve({ data: [{ allowed: true, remaining: 59, retry_after_ms: 0 }], error: null })
+      : Promise.resolve(result),
+  )
+}
+
+/** Calls that reached the cart table, ignoring the limiter's own RPC traffic. */
+function trackCartCalls(): unknown[][] {
+  return rpc.mock.calls.filter((call) => call[0] === 'track_cart')
+}
+
 beforeEach(() => {
   process.env.SITE_AUTH_SECRET = SECRET
   rpc.mockReset()
+  mockTrackCart({ data: null, error: null })
   // A fresh client IP per request keeps the in-memory rate limiter out of the way.
   ipCounter += 1
 })
@@ -69,12 +88,13 @@ function issueAgedToken(cartId: string, daysAgo: number): string {
 }
 
 function presentedCartId(): string | null {
-  return rpc.mock.calls[0]?.[1]?.p_cart_id ?? null
+  const call = trackCartCalls()[0] as [string, { p_cart_id?: string | null }] | undefined
+  return call?.[1]?.p_cart_id ?? null
 }
 
 describe('POST /api/cart/track token derivation', () => {
   it('sends the token-derived cart id to track_cart and returns no raw cart id', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
     const token = issueCartToken(CART_ID)
 
     const response = await POST(trackRequest({ cartToken: token, items: ITEMS, subtotal: 125 }))
@@ -89,7 +109,7 @@ describe('POST /api/cart/track token derivation', () => {
   })
 
   it('ignores a bare cart UUID: the hard cutover accepts no legacy identifiers', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
 
     const response = await POST(
       trackRequest({ cartToken: ATTACKER_TARGET_ID, items: ITEMS, subtotal: 125 }),
@@ -103,7 +123,7 @@ describe('POST /api/cart/track token derivation', () => {
   })
 
   it('ignores a forged token whose signature does not verify', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
     const real = issueCartToken(CART_ID)
     const [version, , expiresAt, signature] = real.split('.')
     const forged = `${version}.${ATTACKER_TARGET_ID}.${expiresAt}.${signature}`
@@ -114,7 +134,7 @@ describe('POST /api/cart/track token derivation', () => {
   })
 
   it('ignores an expired token and starts a fresh cart silently', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
     const expired = issueAgedToken(ATTACKER_TARGET_ID, 40)
 
     const response = await POST(trackRequest({ cartToken: expired, items: ITEMS, subtotal: 125 }))
@@ -127,7 +147,7 @@ describe('POST /api/cart/track token derivation', () => {
   })
 
   it('issues a token for a cart created on the first sync', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
 
     const response = await POST(trackRequest({ items: ITEMS, subtotal: 125 }))
     const body = await response.json()
@@ -137,7 +157,7 @@ describe('POST /api/cart/track token derivation', () => {
   })
 
   it('re-issues a token inside the renewal window for the same cart', async () => {
-    rpc.mockResolvedValue({ data: CART_ID, error: null })
+    mockTrackCart({ data: CART_ID, error: null })
     const aging = issueAgedToken(CART_ID, 20)
 
     const response = await POST(trackRequest({ cartToken: aging, items: ITEMS, subtotal: 125 }))
@@ -151,7 +171,7 @@ describe('POST /api/cart/track token derivation', () => {
 
   it('re-issues when track_cart settles on a different cart than the token named', async () => {
     // The named cart row is gone, so the RPC inserts a replacement.
-    rpc.mockResolvedValue({ data: ATTACKER_TARGET_ID, error: null })
+    mockTrackCart({ data: ATTACKER_TARGET_ID, error: null })
     const token = issueCartToken(CART_ID)
 
     const response = await POST(trackRequest({ cartToken: token, items: ITEMS, subtotal: 125 }))
@@ -161,11 +181,11 @@ describe('POST /api/cart/track token derivation', () => {
     expect(verifyCartToken(body.cartToken)).toBe(ATTACKER_TARGET_ID)
   })
 
-  it('short-circuits an empty cart with no usable token without touching the database', async () => {
+  it('short-circuits an empty cart with no usable token without touching the cart tables', async () => {
     const response = await POST(trackRequest({ cartToken: ATTACKER_TARGET_ID, items: [] }))
     const body = await response.json()
 
-    expect(rpc).not.toHaveBeenCalled()
+    expect(trackCartCalls()).toHaveLength(0)
     expect(body).toEqual({ ok: true, cartToken: null })
   })
 
@@ -175,6 +195,6 @@ describe('POST /api/cart/track token derivation', () => {
     )
 
     expect(response.status).toBe(400)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(trackCartCalls()).toHaveLength(0)
   })
 })
