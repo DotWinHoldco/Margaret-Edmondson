@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { track } from '@/lib/meta/track'
 
 export default function FooterNewsletter() {
@@ -16,7 +17,7 @@ export default function FooterNewsletter() {
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await antiBotHeaders()) },
         body: JSON.stringify({ email: value, source: 'footer' }),
       })
       const data = (await res.json().catch(() => ({}))) as { discountCode?: string }

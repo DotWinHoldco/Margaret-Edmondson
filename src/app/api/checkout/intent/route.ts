@@ -43,7 +43,7 @@ function promoReasonMessage(reason?: string): string {
 
 // POST /api/checkout/intent — re-price the cart from DB and create a Stripe PaymentIntent for on-site checkout; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout-intent' })
+  const rl = await rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout-intent' })
   if (!rl.ok) return rateLimitResponse(rl)
   try {
     const parsedRequest = parseCheckoutRequest(await request.json().catch(() => null))

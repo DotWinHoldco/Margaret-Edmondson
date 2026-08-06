@@ -2,14 +2,10 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { createBrowserClient } from '@supabase/ssr'
 import { useToast } from '@/components/shared/toast/ToastProvider'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { apiSend, errorMessage } from '@/lib/api/client'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-)
+import { uploadPublicFiles } from '@/lib/uploads/public-upload'
 
 const MAX_FILES = 8
 const MAX_SIZE_BYTES = 15 * 1024 * 1024 // 15 MB per file (matches bucket cap)
@@ -88,25 +84,12 @@ export default function CommissionRequestPage() {
     setReferenceFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  // Reference photos go to storage through the server: it checks the intent
+  // token, applies the count/size/type ceilings, chooses the storage path, and
+  // mints one signed upload URL per file. The bucket takes no anonymous writes
+  // of its own.
   async function uploadReferences(): Promise<string[]> {
-    if (referenceFiles.length === 0) return []
-    const folder = `pending/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const urls: string[] = []
-    for (const file of referenceFiles) {
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      const path = `${folder}/${safeName}`
-      const { error: upErr } = await supabase.storage
-        .from('commission-references')
-        .upload(path, file, { contentType: file.type, upsert: false })
-      if (upErr) {
-        console.error('[commissions] reference upload failed:', upErr.message)
-        throw new Error(`We couldn't upload ${file.name}. Please try a different file and submit again.`)
-      }
-      // Store the bucket-relative path — commission-references is a private
-      // bucket; the admin view mints signed URLs from these paths.
-      urls.push(path)
-    }
-    return urls
+    return uploadPublicFiles('commission-references', referenceFiles)
   }
 
   function update(field: string, value: string) {
@@ -127,7 +110,12 @@ export default function CommissionRequestPage() {
       // Upload reference photos first so the URLs can be saved alongside the commission.
       const reference_images = await uploadReferences()
 
-      await apiSend('/api/commissions', 'POST', { ...form, reference_images })
+      await apiSend(
+        '/api/commissions',
+        'POST',
+        { ...form, reference_images },
+        { headers: await antiBotHeaders() },
+      )
 
       setSubmitted(true)
       toast.success('Your commission request is on its way to Margaret.')

@@ -16,7 +16,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'funnel-track' })
+  const rl = await rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'funnel-track' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { id } = await params

@@ -1,5 +1,6 @@
 // dotwin-allow:public-write — public newsletter signup (input validated + rate-limited). Authored by DotWin.
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireAntiBotToken } from '@/lib/api/anti-bot'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { sendWelcomeEmail } from '@/lib/email/triggers'
 import { apiError } from '@/lib/api/respond'
@@ -15,8 +16,13 @@ interface SubscribeRow {
 
 // POST /api/newsletter/subscribe — subscribe an email to the newsletter and issue a welcome discount code; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 3, windowMs: 60_000, keyPrefix: 'newsletter' })
+  const rl = await rateLimit(request, { limit: 3, windowMs: 60_000, keyPrefix: 'newsletter' })
   if (!rl.ok) return rateLimitResponse(rl)
+
+  // Anonymous write: a subscribe mints a single-use discount code and sends a
+  // welcome email, so it needs the same-origin intent token first.
+  const botCheck = requireAntiBotToken(request)
+  if (botCheck) return botCheck
 
   const parsed = await parseBody(request, newsletterInputSchema)
   if (!parsed.ok) return parsed.response

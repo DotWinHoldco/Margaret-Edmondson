@@ -18,7 +18,7 @@ const Body = z.object({
 
 // POST /api/classes/[slug]/checkout — book a class seat and create a Stripe Checkout session for it; public.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-checkout' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-checkout' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { slug } = await params

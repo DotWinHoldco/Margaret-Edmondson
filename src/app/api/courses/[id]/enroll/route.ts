@@ -34,7 +34,7 @@ export async function POST(
     }
 
     // Per-user throttle so a single valid account can't hammer enrollment.
-    const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'course-enroll', key: user.id })
+    const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'course-enroll', key: user.id })
     if (!rl.ok) return rateLimitResponse(rl)
 
     // Validate course exists and is published

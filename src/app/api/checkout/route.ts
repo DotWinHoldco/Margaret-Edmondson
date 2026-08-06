@@ -32,7 +32,7 @@ function promoReasonMessage(reason?: string): string {
 
 // POST /api/checkout — re-price the cart from DB and create a hosted Stripe Checkout session; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
+  const rl = await rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
   if (!rl.ok) return rateLimitResponse(rl)
   try {
     const parsedRequest = parseCheckoutRequest(await request.json().catch(() => null))

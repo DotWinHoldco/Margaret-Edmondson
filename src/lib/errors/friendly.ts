@@ -42,6 +42,9 @@ export const FRIENDLY_MESSAGES: Record<string, string> = {
   // Rate limiting
   RATE_LIMITED: "You're doing that a little too quickly. Please wait a moment and try again.",
 
+  // Anti-bot intent token on the public forms (src/lib/api/anti-bot.ts)
+  anti_bot: 'We could not verify this request came from the site. Please refresh the page and try again.',
+
   // Payments / Stripe
   PAYMENT_ERROR: 'There was a problem processing your payment. Please try again.',
   PROVIDER_STRIPE: 'There was a problem with the payment system. Please try again in a moment.',

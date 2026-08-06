@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   // Admin-scoped but still rate-limited: live API probes (and especially the
   // test email send) shouldn't be hammerable.
-  const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'integrations-test' })
+  const rl = await rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'integrations-test' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const body = (await request.json().catch(() => ({}))) as { provider?: string }

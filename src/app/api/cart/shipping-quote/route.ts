@@ -30,7 +30,7 @@ function inferStateFromZip(zip: string): 'AK' | 'HI' | null {
 
 // POST /api/cart/shipping-quote — compute server-trusted shipping surcharge for a guest cart and persist it; public.
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'shipping-quote' })
+  const rl = await rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'shipping-quote' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, shippingQuoteInputSchema)

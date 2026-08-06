@@ -1,4 +1,5 @@
 import { sendEmail } from '@/lib/email/send'
+import { requireAntiBotToken } from '@/lib/api/anti-bot'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
@@ -9,8 +10,13 @@ import { contactInputSchema } from '@/lib/api/public-input'
 
 // POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'contact' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'contact' })
   if (!rl.ok) return rateLimitResponse(rl)
+
+  // Anonymous write: require the same-origin intent token before spending a
+  // CRM upsert and an outbound email on the request.
+  const botCheck = requireAntiBotToken(request)
+  if (botCheck) return botCheck
 
   const parsed = await parseBody(request, contactInputSchema)
   if (!parsed.ok) return parsed.response

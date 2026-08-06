@@ -30,7 +30,7 @@ function priceUsd(cents: number) {
 
 // POST /api/classes/[slug]/signup — reserve a class seat and email pay-by-Venmo/Zelle instructions; public.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-signup' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'class-signup' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { slug } = await params

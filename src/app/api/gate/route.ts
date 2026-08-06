@@ -11,7 +11,7 @@ const COOKIE_NAME = 'site-auth';
 // applies here without a deploy. When the gate is disabled this endpoint says
 // so instead of validating against a dead password.
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(req, { limit: 5, windowMs: 300_000, keyPrefix: 'gate' });
+  const rl = await rateLimit(req, { limit: 5, windowMs: 300_000, keyPrefix: 'gate' });
   if (!rl.ok) return rateLimitResponse(rl);
 
   const cfg = await getGateConfig();

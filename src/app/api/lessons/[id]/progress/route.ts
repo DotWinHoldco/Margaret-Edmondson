@@ -19,7 +19,7 @@ export async function PATCH(
     }
 
     // Per-user throttle so a single valid account can't hammer progress writes.
-    const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'lesson-progress', key: user.id })
+    const rl = await rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'lesson-progress', key: user.id })
     if (!rl.ok) return rateLimitResponse(rl)
 
     const body = await request.json()

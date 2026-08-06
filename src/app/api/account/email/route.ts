@@ -12,7 +12,7 @@ const Body = z.object({
 // Supabase sends a confirmation link to the new address; the email only
 // changes once that link is clicked. We re-verify the current password first.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'account-email' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'account-email' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const supabase = await createClient()
