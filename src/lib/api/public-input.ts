@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CART_TOKEN_MAX_LENGTH } from '@/lib/cart/token'
 
 const email = z.string().trim().max(254).email()
 const headerSafeText = (max: number) => z.string().trim().min(1).max(max).regex(
@@ -114,8 +115,17 @@ const optionalUuid = z.preprocess(
   z.string().uuid().nullable(),
 )
 
+// A guest cart is addressed by a signed, expiring token (src/lib/cart/token.ts),
+// never by a bare `carts.id`. The schema only bounds the string; the route
+// verifies the signature and derives the cart id server-side, so a client that
+// invents or replays a value simply gets treated as having no cart yet.
+const optionalCartToken = z.preprocess(
+  (value) => value === '' || value == null ? null : value,
+  z.string().trim().max(CART_TOKEN_MAX_LENGTH).nullable(),
+)
+
 export const cartTrackingInputSchema = z.object({
-  cartId: optionalUuid.optional().default(null),
+  cartToken: optionalCartToken.optional().default(null),
   email: z.preprocess(
     (value) => value === '' || value == null ? null : value,
     email.nullable(),
@@ -137,7 +147,7 @@ export const shippingQuoteInputSchema = z.object({
     variantId: z.string().uuid(),
     quantity: z.number().int().min(1).max(99),
   })).min(1).max(50),
-  cartId: optionalUuid.optional().default(null),
+  cartToken: optionalCartToken.optional().default(null),
 })
 
 export const discountPreviewInputSchema = z.object({
@@ -146,7 +156,7 @@ export const discountPreviewInputSchema = z.object({
     (value) => value === '' || value == null ? null : value,
     email.nullable(),
   ).optional().default(null),
-  cartId: optionalUuid.optional().default(null),
+  cartToken: optionalCartToken.optional().default(null),
   cartSubtotal: z.number().finite().min(0).max(50_000_000),
 })
 

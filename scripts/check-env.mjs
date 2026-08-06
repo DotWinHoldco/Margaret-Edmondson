@@ -78,11 +78,10 @@ const GROUPS = {
   Platform: [
     { name: 'CRON_SECRET', required: true },
     { name: 'SITE_PASSWORD', required: false },
-    // Required in production: signs the pre-launch gate token and the anti-bot
-    // intent tokens the public forms present. Optional here so dev/test runs do
-    // not fail; the runtime guard (src/lib/api/anti-bot.ts) fails closed in
-    // production, so an unset value means contact/newsletter/commission/upload
-    // requests are refused with 403 anti_bot.
+    // Required in production: signs the pre-launch gate token, the anti-bot
+    // intent tokens (src/lib/api/anti-bot.ts), and the guest cart tokens
+    // (src/lib/cart/token.ts). All three fail closed without it. Optional here
+    // so dev/test runs pass; the runtime guards enforce it in prod.
     { name: 'SITE_AUTH_SECRET', required: false },
   ],
 }

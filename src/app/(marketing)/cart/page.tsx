@@ -24,8 +24,11 @@ function promoErrorMessage(reason?: string, hadEmail?: boolean): string {
   }
 }
 
+// The cart review screen: line-item editing, discount-code preview, and the
+// AK/HI shipping quote. Every cart-aware call here presents the signed cart
+// token rather than a cart id, and adopts a renewed token when one comes back.
 export default function CartPage() {
-  const { state, dispatch, subtotal, itemCount, setEmail } = useCart()
+  const { state, dispatch, subtotal, itemCount, setEmail, setCartToken } = useCart()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [zip, setZip] = useState('')
@@ -69,10 +72,11 @@ export default function CartPage() {
       const res = await fetch('/api/cart/shipping-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country: 'US', zip, items: variantItems, cartId: state.cartId }),
+        body: JSON.stringify({ country: 'US', zip, items: variantItems, cartToken: state.cartToken }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not quote shipping')
+      if (data.cartToken) setCartToken(data.cartToken)
       setSurcharge(data.surcharge || 0)
       const label =
         data.zone === 'AK' ? 'Alaska shipping surcharge'
@@ -99,11 +103,12 @@ export default function CartPage() {
         body: JSON.stringify({
           code,
           email: emailForApply,
-          cartId: state.cartId,
+          cartToken: state.cartToken,
           cartSubtotal: subtotal,
         }),
       })
       const data = await res.json()
+      if (data.cartToken) setCartToken(data.cartToken)
       if (data.ok) {
         setAppliedPromo({
           code: data.code,

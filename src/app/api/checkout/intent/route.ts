@@ -17,6 +17,7 @@ import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
+import { resolveCartToken } from '@/lib/cart/token'
 
 function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
@@ -51,7 +52,14 @@ export async function POST(request: Request) {
       const { message, status, code } = parsedRequest.error
       return jsonError(message, status, code)
     }
-    const { items, email, cartId, promoCode } = parsedRequest.data
+    const { items, email, cartToken, promoCode } = parsedRequest.data
+
+    // Derive the cart from the signed token. Everything downstream (the cart
+    // item write, the server-set surcharge, cart-scoped promo validation, the
+    // snapshot, PaymentIntent metadata) keeps using this id exactly as before;
+    // an unreadable token simply checks out as a cartless guest.
+    const presentedCart = cartToken ? resolveCartToken(cartToken) : null
+    const cartId = presentedCart?.cartId ?? null
 
     const { getStripeMode, isStripeKeyConfigured } = await import('@/lib/stripe')
     const activeMode = await getStripeMode()
@@ -268,6 +276,7 @@ export async function POST(request: Request) {
         tax: taxCents,
         total: totalCents,
       },
+      ...(presentedCart?.renewedToken ? { cartToken: presentedCart.renewedToken } : {}),
     })
   } catch (err) {
     // Log the real detail server-side; the shopper on the money path only ever

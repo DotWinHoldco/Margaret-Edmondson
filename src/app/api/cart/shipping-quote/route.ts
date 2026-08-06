@@ -7,6 +7,7 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { apiError, dbFail } from '@/lib/api/respond'
 import { parseBody } from '@/lib/api/respond'
 import { shippingQuoteInputSchema } from '@/lib/api/public-input'
+import { resolveCartToken } from '@/lib/cart/token'
 
 // B-6: persist the server-computed surcharge onto the cart so checkout reads a
 // trusted value rather than a tamperable client POST field. Best-effort.
@@ -35,13 +36,20 @@ export async function POST(request: NextRequest) {
 
   const parsed = await parseBody(request, shippingQuoteInputSchema)
   if (!parsed.ok) return parsed.response
-  const { country, zip, items, cartId } = parsed.data
+  const { country, zip, items, cartToken } = parsed.data
+
+  // The surcharge is written onto the cart the token names. An unreadable token
+  // still gets a quote (the shopper sees a number) but no cart is touched, so a
+  // caller cannot pin a surcharge onto a cart it does not hold a token for.
+  const presented = cartToken ? resolveCartToken(cartToken) : null
+  const cartId = presented?.cartId ?? null
+  const renewal = presented?.renewedToken ? { cartToken: presented.renewedToken } : {}
 
   const akhi = country === 'US' ? inferStateFromZip(zip) : null
   const isContiguous = country === 'US' && !akhi
   if (isContiguous) {
     await persistSurcharge(cartId, 0)
-    return Response.json({ surcharge: 0, zone: 'CONUS' })
+    return Response.json({ surcharge: 0, zone: 'CONUS', ...renewal })
   }
 
   // US-only until CA fulfillment is verified with the print partner (KNOWN_RISKS,
@@ -92,5 +100,5 @@ export async function POST(request: NextRequest) {
   const surcharge = Math.max(0, Math.round((liveTotal - conusTotal) * 100) / 100)
   const zone = akhi || 'OTHER'
   await persistSurcharge(cartId, Math.round(surcharge * 100))
-  return Response.json({ surcharge, zone, breakdown })
+  return Response.json({ surcharge, zone, breakdown, ...renewal })
 }
