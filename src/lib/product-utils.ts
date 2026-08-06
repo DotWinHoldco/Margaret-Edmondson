@@ -21,6 +21,7 @@ interface AvailabilityProduct {
     | null
 }
 
+/** Price of the in-stock original variant, or null when no original is available. */
 export function availableOriginalPrice(product: AvailabilityProduct): number | null {
   const original = product.product_variants?.find(
     (variant) =>

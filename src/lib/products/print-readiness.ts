@@ -7,6 +7,10 @@ export interface PrintReadiness {
   heightPx: number | null
 }
 
+/**
+ * Load the bounded public print-readiness projection for a set of products via
+ * the get_public_print_readiness RPC (RLS keeps master_artworks admin-only).
+ */
 export async function loadPublicPrintReadiness(
   supabase: SupabaseClient,
   productIds: string[],
@@ -37,6 +41,10 @@ export async function loadPublicPrintReadiness(
   return { data: byProduct, error: null }
 }
 
+/**
+ * Shape a readiness row into the master_artwork projection storefront code
+ * expects; returns null when the product has no ready print master.
+ */
 export function storefrontMaster(readiness: PrintReadiness | undefined) {
   if (!readiness?.ready) return null
   return {

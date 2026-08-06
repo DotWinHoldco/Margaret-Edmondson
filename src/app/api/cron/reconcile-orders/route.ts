@@ -7,6 +7,10 @@ import type Stripe from 'stripe'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+const GRACE_MIN = 15 // don't touch a session until the webhook has had time to land
+const LOOKBACK_HOURS = 48 // how far back to reconcile
+const MAX_SESSIONS = 500 // hard bound on Stripe pages per run
+
 // GET /api/cron/reconcile-orders — money-path safety net for the "paid but never
 // recorded" class (a Stripe webhook that was never delivered, or delivered while
 // the endpoint/secret was misconfigured). The ops-monitor cron only catches orders
@@ -17,10 +21,6 @@ export const maxDuration = 60
 // the SAME idempotent handler the live webhook uses (handleCheckoutCompleted) — so
 // the order/enrollment/booking is created, emails fire, and fulfillment is queued,
 // exactly as if the webhook had arrived. Idempotent + CRON_SECRET-guarded.
-const GRACE_MIN = 15 // don't touch a session until the webhook has had time to land
-const LOOKBACK_HOURS = 48 // how far back to reconcile
-const MAX_SESSIONS = 500 // hard bound on Stripe pages per run
-
 export async function GET(request: Request) {
   const cron = requireCron(request)
   if (!cron.ok) return cron.response
