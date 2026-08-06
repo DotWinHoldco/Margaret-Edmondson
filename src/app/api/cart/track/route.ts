@@ -10,29 +10,19 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
-
-interface CartTrackPayload {
-  cartId?: string | null
-  email?: string | null
-  items: Array<{
-    productId: string
-    variantId?: string | null
-    title?: string
-    price?: number
-    quantity: number
-  }>
-  subtotal?: number
-}
+import { parseBody } from '@/lib/api/respond'
+import { cartTrackingInputSchema } from '@/lib/api/public-input'
 
 // POST /api/cart/track — sync a guest cart server-side for abandonment tracking; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'cart-track' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = (await request.json().catch(() => ({}))) as CartTrackPayload
-  const items = Array.isArray(body.items) ? body.items : []
-  const subtotal = typeof body.subtotal === 'number' ? body.subtotal : 0
-  const email = body.email ? body.email.toLowerCase().trim() : null
+  const parsed = await parseBody(request, cartTrackingInputSchema)
+  if (!parsed.ok) return parsed.response
+  const body = parsed.data
+  const { items, subtotal } = body
+  const email = body.email?.toLowerCase() ?? null
 
   if (items.length === 0 && !body.cartId) {
     return Response.json({ ok: true, cartId: null })

@@ -3893,6 +3893,15 @@ export type Database = {
         }
         Returns: string
       }
+      get_public_print_readiness: {
+        Args: { p_product_ids: string[] }
+        Returns: {
+          print_height_px: number | null
+          print_ready: boolean
+          print_width_px: number | null
+          product_id: string
+        }[]
+      }
       increment_funnel_metric: {
         Args: { p_funnel_id: string; p_metric: string }
         Returns: undefined

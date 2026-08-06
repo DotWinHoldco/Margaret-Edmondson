@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { safeInternalPath } from '@/lib/navigation/safe-redirect'
 
 // GET /auth/callback — exchange an OAuth code for a session, upsert the profile, and redirect; public (completes sign-in).
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const redirect = searchParams.get('redirect') || null
+  const redirect = searchParams.has('redirect')
+    ? safeInternalPath(searchParams.get('redirect'), '/account')
+    : null
 
   if (code) {
     const cookieStore = await cookies()
@@ -42,7 +45,7 @@ export async function GET(request: Request) {
 
         // Check if admin — route to admin dashboard
         if (redirect) {
-          return NextResponse.redirect(`${origin}${redirect}`)
+          return NextResponse.redirect(new URL(redirect, origin))
         }
 
         const { data: profile } = await supabase

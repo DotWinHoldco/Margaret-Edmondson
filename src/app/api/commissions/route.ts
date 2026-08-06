@@ -7,6 +7,8 @@ import { signBucketUrls } from '@/lib/storage/signed'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, dbFail } from '@/lib/api/respond'
+import { parseBody } from '@/lib/api/respond'
+import { commissionInputSchema } from '@/lib/api/public-input'
 
 const COMMISSION_STATUSES = [
   'inquiry',
@@ -26,7 +28,8 @@ export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json()
+  const parsed = await parseBody(request, commissionInputSchema)
+  if (!parsed.ok) return parsed.response
   const {
     client_name,
     client_email,
@@ -37,15 +40,9 @@ export async function POST(request: Request) {
     budget_range,
     timeline,
     reference_images,
-  } = body
+  } = parsed.data
 
-  if (!client_name || !client_email || !description) {
-    return apiError('Name, email, and description are required.', 400, 'MISSING_FIELDS')
-  }
-
-  const refs = Array.isArray(reference_images)
-    ? reference_images.filter((u: unknown): u is string => typeof u === 'string').slice(0, 20)
-    : []
+  const refs = reference_images
 
   // The commissions insert runs on the service-role client: anon INSERT is
   // revoked and the public submitter doesn't need to read the row back (no
@@ -57,12 +54,12 @@ export async function POST(request: Request) {
     .insert({
       client_name,
       client_email,
-      client_phone,
+      client_phone: client_phone || null,
       description,
-      preferred_medium,
-      preferred_size,
-      budget_range,
-      timeline,
+      preferred_medium: preferred_medium || null,
+      preferred_size: preferred_size || null,
+      budget_range: budget_range || null,
+      timeline: timeline || null,
       reference_images: refs,
       status: 'inquiry',
     })

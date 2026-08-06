@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle, signInWithMagicLink } from '@/lib/supabase/auth'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 import { resolveErrorMessage } from '@/lib/errors/friendly'
+import { safeInternalPath } from '@/lib/navigation/safe-redirect'
 
 export default function LoginPage() {
   return (
@@ -26,7 +27,7 @@ function LoginForm() {
   const toast = useToast()
   const searchParams = useSearchParams()
   // Default to /account — admins/artists are bounced on to /admin from there.
-  const redirectTo = searchParams.get('redirect') || '/account'
+  const redirectTo = safeInternalPath(searchParams.get('redirect'), '/account')
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault()

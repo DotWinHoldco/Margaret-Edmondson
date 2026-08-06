@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { sendWelcomeEmail } from '@/lib/email/triggers'
 import { apiError } from '@/lib/api/respond'
+import { parseBody } from '@/lib/api/respond'
+import { newsletterInputSchema } from '@/lib/api/public-input'
 
 interface SubscribeRow {
   contact_id: string
@@ -16,16 +18,9 @@ export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 3, windowMs: 60_000, keyPrefix: 'newsletter' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json().catch(() => ({}))
-  const { email, source, first_name: firstName } = body as {
-    email?: string
-    source?: string
-    first_name?: string
-  }
-
-  if (!email || !email.includes('@')) {
-    return apiError('Enter a valid email address.', 400, 'INVALID_EMAIL')
-  }
+  const parsed = await parseBody(request, newsletterInputSchema)
+  if (!parsed.ok) return parsed.response
+  const { email, source, first_name: firstName } = parsed.data
 
   const normalizedEmail = email.toLowerCase().trim()
   // Privileged writes run on the service-role client. The subscribe RPC and
@@ -38,7 +33,7 @@ export async function POST(request: Request) {
   const { error: legacyErr } = await svc
     .from('newsletter_subscribers')
     .upsert(
-      { email: normalizedEmail, first_name: firstName ?? null, source: source ?? null },
+      { email: normalizedEmail, first_name: firstName ?? null, source },
       { onConflict: 'email', ignoreDuplicates: true }
     )
   if (legacyErr) {
@@ -52,7 +47,7 @@ export async function POST(request: Request) {
   const { data, error } = await svc.rpc('subscribe_to_newsletter', {
     p_email: normalizedEmail,
     p_first_name: firstName ?? null,
-    p_source: source ?? 'unknown',
+    p_source: source,
   })
 
   if (error) {

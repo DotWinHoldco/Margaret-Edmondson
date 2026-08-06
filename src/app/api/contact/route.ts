@@ -3,25 +3,18 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 import { brandedShell } from '@/lib/email/shell'
 import { escapeHtml } from '@/lib/email/escape'
-import { apiError, apiFail, apiOk } from '@/lib/api/respond'
+import { apiFail, apiOk } from '@/lib/api/respond'
+import { parseBody } from '@/lib/api/respond'
+import { contactInputSchema } from '@/lib/api/public-input'
 
 // POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'contact' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json().catch(() => ({}))
-  const { name, email, subject, message, joinNewsletter } = body as {
-    name?: string
-    email?: string
-    subject?: string
-    message?: string
-    joinNewsletter?: boolean
-  }
-
-  if (!name || !email || !message) {
-    return apiError('Please add your name, email, and a message so I can reply.', 400, 'VALIDATION_FAILED')
-  }
+  const parsed = await parseBody(request, contactInputSchema)
+  if (!parsed.ok) return parsed.response
+  const { name, email, subject, message, joinNewsletter } = parsed.data
 
   // Log every inbound contact to the CRM and tag with the contact-form list
   // (regardless of whether they opted into marketing).

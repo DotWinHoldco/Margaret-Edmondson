@@ -126,6 +126,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${cormorant.variable} ${sourceSans.variable} ${caveat.variable} ${playfair.variable} ${nunito.variable} ${dmSerif.variable} ${lora.variable} ${dancingScript.variable}`}
     >
       <body className="min-h-screen bg-cream text-charcoal antialiased">

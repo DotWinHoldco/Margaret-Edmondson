@@ -10,6 +10,7 @@ import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { signBucketUrls } from '@/lib/storage/signed'
 import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { pendingUploadPathSchema } from '@/lib/api/public-input'
 
 const SignupBody = z.object({
   name: z.string().trim().min(1).max(200),
@@ -17,7 +18,7 @@ const SignupBody = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   special_notes: z.string().trim().max(2000).optional().or(z.literal('')),
   // bucket-relative object paths (class-pet-photos is a private bucket), not URLs
-  pet_photo_urls: z.array(z.string().trim().min(1).max(512)).max(5).optional(),
+  pet_photo_urls: z.array(pendingUploadPathSchema).max(5).optional(),
 })
 
 const VENMO = process.env.MARGARET_VENMO_HANDLE || '@margaret-edmondson'

@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
 import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { pendingUploadPathSchema } from '@/lib/api/public-input'
 
 const Body = z.object({
   name: z.string().trim().min(1).max(200),
@@ -12,7 +13,7 @@ const Body = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   special_notes: z.string().trim().max(2000).optional().or(z.literal('')),
   // bucket-relative object paths (class-pet-photos is a private bucket), not URLs
-  pet_photo_urls: z.array(z.string().trim().min(1).max(512)).max(5).optional(),
+  pet_photo_urls: z.array(pendingUploadPathSchema).max(5).optional(),
 })
 
 // POST /api/classes/[slug]/checkout — book a class seat and create a Stripe Checkout session for it; public.

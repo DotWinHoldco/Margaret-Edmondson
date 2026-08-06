@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { getProductBadge } from '@/lib/product-utils'
+import { availableOriginalPrice, getProductBadge, hasPurchasablePrints } from '@/lib/product-utils'
 import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 
 interface ProductImage {
@@ -17,6 +17,10 @@ interface ProductImage {
 interface Variant {
   variant_type: string | null
   inventory_count: number | null
+  medium?: string | null
+  is_active?: boolean
+  is_lumaprints_available?: boolean
+  price?: number
 }
 
 export interface MasonryProduct {
@@ -30,6 +34,10 @@ export interface MasonryProduct {
   prints_enabled: boolean
   product_images?: ProductImage[]
   product_variants?: Variant[]
+  master_artwork?:
+    | { print_status: string | null; print_storage_path: string | null }
+    | Array<{ print_status: string | null; print_storage_path: string | null }>
+    | null
 }
 
 const cardVariants = {
@@ -55,14 +63,15 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-start gap-x-10 gap-y-14 sm:gap-x-12 sm:gap-y-16 lg:gap-x-14 lg:gap-y-20">
       {products.map((product, index) => {
         const img = pickPrimary(product.product_images)
-        const badge = getProductBadge({
-          status: product.status,
-          is_original: product.is_original,
-          prints_enabled: product.prints_enabled,
-          product_variants: product.product_variants,
-        })
-        const price = product.prints_enabled
+        const badge = getProductBadge(product)
+        const hasPrints = hasPurchasablePrints(product)
+        const originalPrice = availableOriginalPrice(product)
+        const price = hasPrints
           ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
+          : originalPrice !== null
+            ? `$${originalPrice.toFixed(2)}`
+            : product.prints_enabled
+              ? 'Prints coming soon'
           : Number(product.base_price) > 0
             ? `${product.is_original ? '' : 'From '}$${Number(product.base_price).toFixed(2)}`
             : 'Made to order'

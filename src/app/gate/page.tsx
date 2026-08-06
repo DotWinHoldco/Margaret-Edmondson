@@ -2,11 +2,12 @@
 
 import { FormEvent, Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { safeInternalPath } from '@/lib/navigation/safe-redirect';
 
 function GateForm() {
   const params = useSearchParams();
   const router = useRouter();
-  const next = params.get('next') || '/';
+  const next = safeInternalPath(params.get('next'), '/');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

@@ -6,31 +6,22 @@
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { createClient } from '@/lib/supabase/server'
 import { validateDiscountCode } from '@/lib/discounts/validate'
+import { parseBody } from '@/lib/api/respond'
+import { discountPreviewInputSchema } from '@/lib/api/public-input'
 
 // POST /api/discounts/validate — validate a discount code against the cart for instant client feedback; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 20, windowMs: 60_000, keyPrefix: 'discount-validate' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json().catch(() => ({}))
-  const { code, email, cartId, cartSubtotal } = body as {
-    code?: string
-    email?: string
-    cartId?: string
-    cartSubtotal?: number
-  }
-
-  if (!code || typeof code !== 'string') {
-    return Response.json({ ok: false, reason: 'missing_code' }, { status: 400 })
-  }
-  if (typeof cartSubtotal !== 'number' || cartSubtotal < 0) {
-    return Response.json({ ok: false, reason: 'missing_subtotal' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, discountPreviewInputSchema)
+  if (!parsed.ok) return parsed.response
+  const { code, email, cartId, cartSubtotal } = parsed.data
 
   const supabase = await createClient()
 
   let contactId: string | null = null
-  if (email && email.includes('@')) {
+  if (email) {
     const { data: contact } = await supabase
       .from('crm_contacts')
       .select('id')
@@ -41,7 +32,7 @@ export async function POST(request: Request) {
 
   const result = await validateDiscountCode(
     code,
-    { contactId, email: email ?? null, cartId: cartId ?? null, cartSubtotal }
+    { contactId, email, cartId, cartSubtotal }
   )
 
   if (!result.ok) {

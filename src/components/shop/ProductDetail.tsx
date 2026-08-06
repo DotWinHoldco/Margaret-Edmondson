@@ -96,11 +96,22 @@ interface RelatedProduct {
   is_original: boolean
   prints_enabled: boolean
   product_images: Array<{ url: string; alt_text: string | null; is_primary: boolean }>
-  product_variants?: Array<{ variant_type: string | null; inventory_count: number | null }>
+  product_variants?: Array<{
+    variant_type: string | null
+    inventory_count: number | null
+    medium?: string | null
+    is_active?: boolean
+    is_lumaprints_available?: boolean
+    price?: number
+  }>
+  master_artwork?:
+    | { print_status: string | null; print_storage_path: string | null }
+    | Array<{ print_status: string | null; print_storage_path: string | null }>
+    | null
 }
 
 /* ─── Badge helper (re-exported from shared util for backward compat) ─── */
-import { getProductBadge } from '@/lib/product-utils'
+import { availableOriginalPrice, getProductBadge, hasPurchasablePrints } from '@/lib/product-utils'
 export { getProductBadge }
 
 /* ─── Zoom Image Component ─── */
@@ -567,6 +578,7 @@ export default function ProductDetail({
   // purchasable variants, no prints, not an original for sale. Shown with a
   // "commission" CTA instead of a price + cart.
   const isCommission = !isSold && !originalVariant && !hasPrints && !product.is_original && !product.prints_enabled
+  const printsUnavailable = !isSold && !originalAvailable && product.prints_enabled && !hasPrints
 
   // Default variant: original if available, else the smallest print.
   const defaultVariant = originalAvailable ? originalVariant : printVariants[0]
@@ -680,7 +692,11 @@ export default function ProductDetail({
 
             {/* Price display */}
             <div className="mt-6 mb-6">
-              {isCommission ? (
+              {printsUnavailable ? (
+                <span className="font-body text-sm font-semibold uppercase tracking-[0.18em] text-charcoal/55">
+                  Prints temporarily unavailable
+                </span>
+              ) : isCommission ? (
                 Number(product.base_price) > 0 ? (
                   <>
                     <span className="font-body text-2xl font-semibold text-charcoal">
@@ -722,7 +738,7 @@ export default function ProductDetail({
             </div>
 
             {/* Variant Selector Dropdown */}
-            {!isCommission && (
+            {!isCommission && !printsUnavailable && (
               <VariantSelector
                 product={product}
                 originalVariant={originalAvailable ? originalVariant : undefined}
@@ -743,6 +759,20 @@ export default function ProductDetail({
                   : `Add Print to Cart — $${price.toFixed(2)}`
                 }
               </button>
+            )}
+
+            {printsUnavailable && (
+              <div className="mt-6 px-4 py-4 text-center bg-charcoal/5 rounded-sm">
+                <p className="font-body text-sm text-charcoal/60">
+                  Print options for this piece are being prepared. Please check back soon or ask about a custom order.
+                </p>
+                <Link
+                  href="/commissions/request"
+                  className="inline-block mt-2 font-body text-sm text-teal underline hover:text-deep-teal transition-colors"
+                >
+                  Ask about this piece &rarr;
+                </Link>
+              </div>
             )}
 
             {/* Sold, no prints */}
@@ -840,6 +870,15 @@ export default function ProductDetail({
               {relatedProducts.map((rp) => {
                 const img = rp.product_images?.find((i) => i.is_primary) || rp.product_images?.[0]
                 const rpBadge = getProductBadge(rp)
+                const rpHasPrints = hasPurchasablePrints(rp)
+                const rpOriginalPrice = availableOriginalPrice(rp)
+                const rpPrice = rpHasPrints
+                  ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
+                  : rpOriginalPrice !== null
+                    ? `$${rpOriginalPrice.toFixed(2)}`
+                    : rp.prints_enabled
+                      ? 'Prints coming soon'
+                      : `$${rp.base_price.toFixed(2)}`
                 return (
                   <Link key={rp.id} href={`/shop/art/${rp.slug}`} className="group block flex-shrink-0 w-56">
                     <div className="relative aspect-[4/5] overflow-hidden bg-charcoal/5 rounded-sm">
@@ -862,7 +901,7 @@ export default function ProductDetail({
                       {rp.title}
                     </h3>
                     <p className="font-body text-sm text-charcoal/70">
-                      {rp.prints_enabled ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}` : `$${rp.base_price.toFixed(2)}`}
+                      {rpPrice}
                     </p>
                   </Link>
                 )

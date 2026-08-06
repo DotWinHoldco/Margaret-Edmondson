@@ -39,6 +39,9 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Hero/featured artwork intentionally requests 90; Next 16.3 requires
+    // every non-default optimizer quality to be allow-listed.
+    qualities: [75, 90],
     remotePatterns: [
       {
         protocol: 'https',

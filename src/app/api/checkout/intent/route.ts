@@ -16,6 +16,7 @@ import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
 
 function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
@@ -45,6 +46,13 @@ export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout-intent' })
   if (!rl.ok) return rateLimitResponse(rl)
   try {
+    const parsedRequest = parseCheckoutRequest(await request.json().catch(() => null))
+    if (!parsedRequest.ok) {
+      const { message, status, code } = parsedRequest.error
+      return jsonError(message, status, code)
+    }
+    const { items, email, cartId, promoCode } = parsedRequest.data
+
     const { getStripeMode, isStripeKeyConfigured } = await import('@/lib/stripe')
     const activeMode = await getStripeMode()
     if (!isStripeKeyConfigured(activeMode)) {
@@ -60,60 +68,13 @@ export async function POST(request: Request) {
       )
     }
 
-    const { items, email, cartId, promoCode } = await request.json()
-
-    if (!items?.length) {
-      return jsonError('No items provided', 400, 'empty_cart')
-    }
-
     const supabase = await createClient()
-
-    // Validate prices server-side — NEVER trust client prices. (Mirrors /api/checkout.)
-    const validatedItems = []
-    for (const item of items) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('id, title, base_price, fulfillment_type')
-        .eq('id', item.productId)
-        .single()
-
-      if (!product) {
-        return jsonError(`Product ${item.productId} not found`, 400, 'product_missing')
-      }
-
-      let price = product.base_price
-      let variantName = ''
-      let variantType: string | null = null
-
-      if (item.variantId) {
-        const { data: variant } = await supabase
-          .from('product_variants')
-          .select('id, name, price, variant_type, inventory_count')
-          .eq('id', item.variantId)
-          .single()
-
-        if (variant) {
-          if (variant.variant_type === 'original' && variant.inventory_count !== null && variant.inventory_count <= 0) {
-            return jsonError(`"${product.title}" original is no longer available`, 400, 'sold_out')
-          }
-          price = variant.price
-          variantName = ` — ${variant.name}`
-          variantType = variant.variant_type
-        }
-      }
-
-      // B-7: derive fulfillment from SERVER data, never the client.
-      const fulfillmentType =
-        variantType === 'original' ? 'self_ship' : (product.fulfillment_type || 'lumaprints')
-
-      validatedItems.push({
-        ...item,
-        title: product.title + variantName,
-        price,
-        variantType,
-        fulfillmentType,
-      })
+    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items)
+    if (!catalogValidation.ok) {
+      const { message, status, code } = catalogValidation.error
+      return jsonError(message, status, code)
     }
+    const validatedItems = catalogValidation.data
 
     // B-5 + B-6: persist validated line items onto the cart row (the webhook
     // reads items back from carts.items) and take the surcharge from the
@@ -230,11 +191,11 @@ export async function POST(request: Request) {
     // snapshot keyed by the PaymentIntent id. The webhook builds the order from
     // THIS, not the mutable carts.items, so a cart changed after the amount is
     // locked can't alter what ships — and items are captured even when cartId is
-    // null (the empty-order case). Fail-soft: a snapshot failure never blocks
-    // the charge (reconciliation in the webhook still backstops).
+    // null (the empty-order case). This is required before the client receives
+    // the secret; cancel the intent if persistence fails.
     try {
       const svc = await createServiceClient()
-      await svc.from('checkout_snapshots').insert({
+      const { error: snapshotError } = await svc.from('checkout_snapshots').insert({
         payment_ref: intent.id,
         cart_id: cartId || null,
         items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
@@ -252,8 +213,19 @@ export async function POST(request: Request) {
         tax_cents: taxCents,
         email: normalizedEmail || null,
       })
+      if (snapshotError) throw snapshotError
     } catch (err) {
-      console.error('checkout snapshot write failed (non-blocking):', err)
+      console.error('checkout snapshot write failed; cancelling PaymentIntent:', err)
+      try {
+        await stripe.paymentIntents.cancel(intent.id)
+      } catch (cancelError) {
+        console.error('failed to cancel payment intent after snapshot error:', cancelError)
+      }
+      return jsonError(
+        'We could not secure your order details just now. Please try checkout again.',
+        503,
+        'checkout_snapshot_failed',
+      )
     }
 
     // Base URL for CAPI event_source_url — same normalization as /api/checkout.

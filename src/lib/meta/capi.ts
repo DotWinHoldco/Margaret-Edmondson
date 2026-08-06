@@ -16,13 +16,7 @@ interface ServerEvent {
     client_ip_address?: string
     client_user_agent?: string
   }
-  custom_data?: {
-    value?: number
-    currency?: string
-    content_ids?: string[]
-    content_type?: string
-    num_items?: number
-  }
+  custom_data?: Record<string, unknown>
   event_source_url: string
 }
 

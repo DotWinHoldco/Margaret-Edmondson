@@ -1,7 +1,9 @@
 // dotwin-allow:public-write — public funnel analytics event (input validated + rate-limited). Authored by DotWin.
 import { createServiceClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-import { apiError, apiOk, dbFail } from '@/lib/api/respond'
+import { apiError, apiOk, dbFail, parseBody } from '@/lib/api/respond'
+import { funnelMetricInputSchema } from '@/lib/api/public-input'
 
 // Public endpoint that the funnel landing page calls to increment the
 // view / add_to_cart / purchase counters on artwork_funnels. The RLS
@@ -18,23 +20,16 @@ export async function POST(
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { id } = await params
-  if (!id) return apiError('A funnel id is required.', 400, 'VALIDATION_FAILED')
-
-  let body: { metric?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return apiError('Invalid JSON body', 400, 'INVALID_JSON')
+  if (!id || !z.string().uuid().safeParse(id).success) {
+    return apiError('A valid funnel id is required.', 400, 'VALIDATION_FAILED')
   }
-
-  if (!body.metric || !['views', 'add_to_cart', 'purchase'].includes(body.metric)) {
-    return apiError('That metric is not supported.', 400, 'VALIDATION_FAILED')
-  }
+  const parsed = await parseBody(request, funnelMetricInputSchema)
+  if (!parsed.ok) return parsed.response
 
   const svc = await createServiceClient()
   const { error } = await svc.rpc('increment_funnel_metric', {
     p_funnel_id: id,
-    p_metric: body.metric,
+    p_metric: parsed.data.metric,
   })
   if (error) {
     return dbFail(error, 'funnels/[id]/track POST')

@@ -6,6 +6,7 @@ import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { getSiteSettings } from '@/lib/settings/accessor'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
+import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
 
 function jsonError(message: string, status: number = 400, code?: string) {
   return Response.json({ error: message, code: code ?? null }, { status })
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'checkout' })
   if (!rl.ok) return rateLimitResponse(rl)
   try {
+    const parsedRequest = parseCheckoutRequest(await request.json().catch(() => null))
+    if (!parsedRequest.ok) {
+      const { message, status, code } = parsedRequest.error
+      return jsonError(message, status, code)
+    }
+    const { items, email, cartId, shippingSurchargeLabel, promoCode } = parsedRequest.data
+
     const { getStripeMode, isStripeKeyConfigured } = await import('@/lib/stripe')
     const activeMode = await getStripeMode()
     if (!isStripeKeyConfigured(activeMode)) {
@@ -49,61 +57,13 @@ export async function POST(request: Request) {
       )
     }
 
-    const { items, email, cartId, shippingSurchargeLabel, promoCode } = await request.json()
-
-    if (!items?.length) {
-      return jsonError('No items provided', 400, 'empty_cart')
-    }
-
     const supabase = await createClient()
-
-    // Validate prices server-side — NEVER trust client prices.
-    const validatedItems = []
-    for (const item of items) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('id, title, base_price, fulfillment_type')
-        .eq('id', item.productId)
-        .single()
-
-      if (!product) {
-        return jsonError(`Product ${item.productId} not found`, 400, 'product_missing')
-      }
-
-      let price = product.base_price
-      let variantName = ''
-      let variantType: string | null = null
-
-      if (item.variantId) {
-        const { data: variant } = await supabase
-          .from('product_variants')
-          .select('id, name, price, variant_type, inventory_count')
-          .eq('id', item.variantId)
-          .single()
-
-        if (variant) {
-          if (variant.variant_type === 'original' && variant.inventory_count !== null && variant.inventory_count <= 0) {
-            return jsonError(`"${product.title}" original is no longer available`, 400, 'sold_out')
-          }
-          price = variant.price
-          variantName = ` — ${variant.name}`
-          variantType = variant.variant_type
-        }
-      }
-
-      // B-7: derive fulfillment from SERVER data, never the client. Originals
-      // ship themselves; everything else follows the product's fulfillment_type.
-      const fulfillmentType =
-        variantType === 'original' ? 'self_ship' : (product.fulfillment_type || 'lumaprints')
-
-      validatedItems.push({
-        ...item,
-        title: product.title + variantName,
-        price,
-        variantType,
-        fulfillmentType,
-      })
+    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items)
+    if (!catalogValidation.ok) {
+      const { message, status, code } = catalogValidation.error
+      return jsonError(message, status, code)
     }
+    const validatedItems = catalogValidation.data
 
     const imageUrls: Record<string, string> = {}
     for (const item of validatedItems) {
@@ -292,13 +252,15 @@ export async function POST(request: Request) {
       console.error('Tax line item skipped:', err)
     }
 
-    const session = await (await getStripe()).checkout.sessions.create(sessionParams)
+    const stripe = await getStripe()
+    const session = await stripe.checkout.sessions.create(sessionParams)
 
     // P0-3: lock the validated, server-priced line items into an immutable
     // snapshot keyed by the Checkout Session id. The webhook builds the order
     // from THIS, not the mutable carts.items, so a cart changed after the amount
-    // is locked can't alter what ships. Fail-soft: never blocks checkout
-    // (reconciliation in the webhook still backstops).
+    // is locked can't alter what ships. This write is required: if it fails,
+    // expire the new Stripe Session so no payment can complete without an
+    // immutable fulfillment record.
     try {
       const svc = await createServiceClient()
       let snapshotDiscountCents = 0
@@ -307,7 +269,7 @@ export async function POST(request: Request) {
       } else if (appliedCoupon?.percent_off) {
         snapshotDiscountCents = Math.round(Math.round(cartSubtotal * 100) * (appliedCoupon.percent_off / 100))
       }
-      await svc.from('checkout_snapshots').insert({
+      const { error: snapshotError } = await svc.from('checkout_snapshots').insert({
         payment_ref: session.id,
         cart_id: cartId || null,
         items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
@@ -324,8 +286,19 @@ export async function POST(request: Request) {
         surcharge_cents: surchargeCents,
         email: email ? String(email).toLowerCase().trim() : null,
       })
+      if (snapshotError) throw snapshotError
     } catch (err) {
-      console.error('checkout snapshot write failed (non-blocking):', err)
+      console.error('checkout snapshot write failed; expiring Stripe Session:', err)
+      try {
+        await stripe.checkout.sessions.expire(session.id)
+      } catch (expireError) {
+        console.error('failed to expire checkout session after snapshot error:', expireError)
+      }
+      return jsonError(
+        'We could not secure your order details just now. Please try checkout again.',
+        503,
+        'checkout_snapshot_failed',
+      )
     }
 
     // Best-effort Meta CAPI InitiateCheckout — never fails the

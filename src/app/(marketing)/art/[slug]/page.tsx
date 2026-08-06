@@ -5,6 +5,7 @@ import GallerySpotlightTemplate from '@/components/funnels/GallerySpotlightTempl
 import IntimateJournalTemplate from '@/components/funnels/IntimateJournalTemplate'
 import BoldShowcaseTemplate from '@/components/funnels/BoldShowcaseTemplate'
 import FunnelViewTracker from '@/components/funnels/FunnelViewTracker'
+import { loadPublicPrintReadiness, storefrontMaster } from '@/lib/products/print-readiness'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -21,8 +22,7 @@ async function getFunnelBySlug(slug: string) {
         id, title, slug, description_html, story_html,
         medium, dimensions, base_price, is_original, prints_enabled, status,
         product_images ( id, url, alt_text, sort_order ),
-        product_variants ( id, name, price, variant_type, inventory_count, sort_order, is_active, is_lumaprints_available, medium ),
-        master_artwork:master_artworks ( print_status, print_storage_path )
+        product_variants ( id, name, price, variant_type, inventory_count, sort_order, is_active, is_lumaprints_available, medium )
       )
     `)
     .eq('slug', slug)
@@ -30,7 +30,17 @@ async function getFunnelBySlug(slug: string) {
     .single()
 
   if (error || !funnel) return null
-  return funnel
+  const product = funnel.products as { id?: string } | null
+  if (!product?.id) return funnel
+  const readiness = await loadPublicPrintReadiness(supabase, [product.id])
+  if (readiness.error) console.error('Funnel print readiness lookup failed', readiness.error)
+  return {
+    ...funnel,
+    products: {
+      ...product,
+      master_artwork: storefrontMaster(readiness.data.get(product.id)),
+    },
+  }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {

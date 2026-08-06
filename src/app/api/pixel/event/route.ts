@@ -7,38 +7,17 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
-
-const ALLOWED_EVENTS = new Set([
-  'PageView',
-  'ViewContent',
-  'AddToCart',
-  'InitiateCheckout',
-  'Purchase',
-  'Subscribe',
-  'Lead',
-  'CompleteRegistration',
-])
+import { parseBody } from '@/lib/api/respond'
+import { publicPixelEventSchema } from '@/lib/api/public-input'
 
 // POST /api/pixel/event — queue an allowed marketing event and forward it to the Meta CAPI; public.
 export async function POST(request: Request) {
   const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'pixel' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json().catch(() => ({}))
-  const { eventName, eventId, params, userData, sourceUrl } = body as {
-    eventName?: string
-    eventId?: string
-    params?: Record<string, unknown>
-    userData?: { email?: string | null }
-    sourceUrl?: string
-  }
-
-  if (!eventName || !eventId) {
-    return Response.json({ error: 'eventName and eventId required' }, { status: 400 })
-  }
-  if (!ALLOWED_EVENTS.has(eventName)) {
-    return Response.json({ error: 'Unknown event' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, publicPixelEventSchema)
+  if (!parsed.ok) return parsed.response
+  const { eventName, eventId, params, userData, sourceUrl } = parsed.data
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
   const ua = request.headers.get('user-agent') || null
@@ -85,7 +64,7 @@ export async function POST(request: Request) {
       event_id: eventId,
       event_time: Math.floor(Date.now() / 1000),
       user_data: userDataPayload,
-      custom_data: params as undefined as never,
+      custom_data: params,
       event_source_url: sourceUrl || '',
     })
     if (r && rowId && supabase) {

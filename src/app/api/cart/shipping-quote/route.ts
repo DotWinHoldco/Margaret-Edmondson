@@ -5,15 +5,12 @@ import { quoteLiveShipping } from '@/lib/pricing/shipping-quote'
 import { lookupVariantWholesale } from '@/lib/pricing/wholesale-lookup'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { apiError, dbFail } from '@/lib/api/respond'
-
-interface CartItemInput {
-  variantId: string
-  quantity: number
-}
+import { parseBody } from '@/lib/api/respond'
+import { shippingQuoteInputSchema } from '@/lib/api/public-input'
 
 // B-6: persist the server-computed surcharge onto the cart so checkout reads a
 // trusted value rather than a tamperable client POST field. Best-effort.
-async function persistSurcharge(cartId: string | undefined, surchargeCents: number) {
+async function persistSurcharge(cartId: string | null, surchargeCents: number) {
   if (!cartId) return
   try {
     const svc = await createServiceClient()
@@ -36,20 +33,9 @@ export async function POST(request: NextRequest) {
   const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'shipping-quote' })
   if (!rl.ok) return rateLimitResponse(rl)
 
-  const body = await request.json() as {
-    country?: string
-    zip?: string
-    items?: CartItemInput[]
-    cartId?: string
-  }
-  const country = (body.country || 'US').toUpperCase()
-  const zip = (body.zip || '').trim()
-  const items = Array.isArray(body.items) ? body.items : []
-  const cartId = typeof body.cartId === 'string' ? body.cartId : undefined
-
-  if (!zip || items.length === 0) {
-    return apiError('Please enter a ZIP or postal code to quote shipping.', 400, 'VALIDATION_FAILED')
-  }
+  const parsed = await parseBody(request, shippingQuoteInputSchema)
+  if (!parsed.ok) return parsed.response
+  const { country, zip, items, cartId } = parsed.data
 
   const akhi = country === 'US' ? inferStateFromZip(zip) : null
   const isContiguous = country === 'US' && !akhi
