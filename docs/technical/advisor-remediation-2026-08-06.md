@@ -432,3 +432,15 @@ unchanged. That is why the merged predicates read as `((status = 'published'::te
 rather than `(status = 'published')`: the inner parentheses are the catalog's own
 rendering, and the outer pair is added by the OR merge. No expression was
 re-typed, re-worded, or simplified by hand.
+
+## Post-apply verification (2026-08-06, production)
+
+All three apply-ready files were applied to klwkajukicsoiwpsgftt (ledger
+versions 20260806080542, 20260806080550, 20260806080755). Advisor re-run:
+unindexed_foreign_keys 56 to 0, auth_rls_initplan 29 to 0, duplicate_index
+1 to 0. Remaining: multiple_permissive_policies 210 (the review-gated
+consolidation proposal stays deferred; the +1 is the new admin storage
+write policy overlapping the service path), unused_index 90 (expected
+noise: the new FK indexes have zero scans on a pre-launch site; revisit
+after real traffic), auth_db_connections_absolute 1 (project setting,
+out of migration scope).

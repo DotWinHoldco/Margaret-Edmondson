@@ -583,7 +583,15 @@ export type Database = {
           surcharge_cents?: number
           tax_cents?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checkout_snapshots_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "artwork_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       class_bookings: {
         Row: {
@@ -2385,6 +2393,7 @@ export type Database = {
           created_at: string | null
           discount: number | null
           email: string
+          funnel_id: string | null
           id: string
           notes: string | null
           order_number: number
@@ -2406,6 +2415,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           email: string
+          funnel_id?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -2427,6 +2437,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           email?: string
+          funnel_id?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -2445,10 +2456,55 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "artwork_funnels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      original_holds: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          payment_ref: string
+          status: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          payment_ref: string
+          status?: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payment_ref?: string
+          status?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "original_holds_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -3271,8 +3327,15 @@ export type Database = {
           email_from_name: string | null
           facebook_url: string | null
           free_shipping_threshold_cents: number | null
+          gate_cookie_hours: number
+          gate_enabled: boolean
+          gate_password: string | null
+          gate_secret: string | null
           id: boolean
           instagram_url: string | null
+          launch_checklist: Json
+          launch_modal_hidden: boolean
+          launch_notes: Json
           lumaprints_enabled: boolean | null
           maintenance_mode: boolean | null
           meta_pixel_enabled: boolean | null
@@ -3308,8 +3371,15 @@ export type Database = {
           email_from_name?: string | null
           facebook_url?: string | null
           free_shipping_threshold_cents?: number | null
+          gate_cookie_hours?: number
+          gate_enabled?: boolean
+          gate_password?: string | null
+          gate_secret?: string | null
           id?: boolean
           instagram_url?: string | null
+          launch_checklist?: Json
+          launch_modal_hidden?: boolean
+          launch_notes?: Json
           lumaprints_enabled?: boolean | null
           maintenance_mode?: boolean | null
           meta_pixel_enabled?: boolean | null
@@ -3345,8 +3415,15 @@ export type Database = {
           email_from_name?: string | null
           facebook_url?: string | null
           free_shipping_threshold_cents?: number | null
+          gate_cookie_hours?: number
+          gate_enabled?: boolean
+          gate_password?: string | null
+          gate_secret?: string | null
           id?: boolean
           instagram_url?: string | null
+          launch_checklist?: Json
+          launch_modal_hidden?: boolean
+          launch_notes?: Json
           lumaprints_enabled?: boolean | null
           maintenance_mode?: boolean | null
           meta_pixel_enabled?: boolean | null
@@ -3917,13 +3994,28 @@ export type Database = {
         }
         Returns: string
       }
+      convert_original_hold: {
+        Args: { p_payment_ref: string; p_variant_id: string }
+        Returns: string
+      }
       get_public_print_readiness: {
         Args: { p_product_ids: string[] }
         Returns: {
-          print_height_px: number | null
+          print_height_px: number
           print_ready: boolean
-          print_width_px: number | null
+          print_width_px: number
           product_id: string
+        }[]
+      }
+      hold_originals: {
+        Args: {
+          p_payment_ref: string
+          p_ttl_minutes?: number
+          p_variant_ids: string[]
+        }
+        Returns: {
+          ok: boolean
+          variant_id: string
         }[]
       }
       increment_funnel_metric: {
@@ -3960,30 +4052,19 @@ export type Database = {
         }
         Returns: string
       }
-      reprice_variants: {
-        Args: { p_category?: string; p_product?: string }
+      refund_original_holds: {
+        Args: { p_payment_ref: string }
         Returns: number
-      }
-      reserve_original: { Args: { p_variant_id: string }; Returns: boolean }
-      hold_originals: {
-        Args: { p_payment_ref: string; p_variant_ids: string[]; p_ttl_minutes?: number }
-        Returns: {
-          variant_id: string
-          ok: boolean
-        }[]
-      }
-      convert_original_hold: {
-        Args: { p_payment_ref: string; p_variant_id: string }
-        Returns: string
       }
       release_original_holds: {
         Args: { p_payment_ref: string }
         Returns: number
       }
-      refund_original_holds: {
-        Args: { p_payment_ref: string }
+      reprice_variants: {
+        Args: { p_category?: string; p_product?: string }
         Returns: number
       }
+      reserve_original: { Args: { p_variant_id: string }; Returns: boolean }
       subscribe_to_newsletter: {
         Args: { p_email: string; p_first_name?: string; p_source?: string }
         Returns: {
