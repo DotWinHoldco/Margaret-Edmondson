@@ -1,0 +1,21 @@
+-- Advisor remediation: duplicate index (Supabase performance lint 0009).
+--
+-- public.product_categories carries two identical unique btree indexes on
+-- (product_id, category_id):
+--
+--   product_categories_pkey  backs the PRIMARY KEY constraint (pg_constraint contype 'p')
+--   product_categories_pk    standalone unique index, no owning constraint
+--
+-- Verified read-only against pg_index and pg_get_indexdef on 2026-08-06 for
+-- project klwkajukicsoiwpsgftt. Both are on the same table, both use btree, both
+-- have indkey '1 2' (product_id, category_id in that order), both have indoption
+-- '0 0', both are unique, neither is partial (indpred is null), and both are
+-- valid. Their pg_get_indexdef output is byte identical apart from the index
+-- name. No foreign key constraint on any table names product_categories_pk as
+-- its referenced unique index (pg_constraint.conindid check returned nothing),
+-- so dropping it cannot invalidate a referencing constraint.
+--
+-- The constraint-backed index is kept because dropping it would require dropping
+-- the PRIMARY KEY constraint itself. The standalone copy is the one removed.
+
+drop index if exists public.product_categories_pk;

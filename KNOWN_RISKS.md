@@ -370,6 +370,31 @@ Required fix (if abuse becomes real): move the counter to a shared store (Upstas
 counter) keyed the same way, behind the same `rateLimit()` interface.
 Related tag: #payment-e2e-phase4, #az-3
 
+### Enforced CSP: Stripe Elements frames verified against vendor docs, not at runtime
+
+Severity: medium (availability, money path)
+Module: CSP (`src/lib/security/csp.ts`, `src/proxy.ts`), embedded checkout
+Description: The Content-Security-Policy moved from Report-Only to enforced, with per-request
+nonces. `script-src` is proven clean: a headless Chromium run over HTTPS against a production
+build recorded zero violations on `/`, a product page, `/gate`, `/login` and `/checkout`, with the
+detector validated by a deliberate control violation. What could NOT be exercised is Stripe
+Elements itself: with no live Supabase or Stripe backend the checkout page never reaches the state
+where `Elements` mounts, so the `frame-src` and `connect-src` sources that Elements, 3D Secure and
+Link actually request were verified against Stripe's published CSP list and this app's own Elements
+options rather than by loading them. Three gaps in the inherited policy were found and closed that
+way: `https://*.js.stripe.com` (missing from `script-src` and `frame-src`), the Link hosts, and
+`https://fonts.googleapis.com` in `connect-src` (the checkout passes `fonts: [{ cssSrc }]` to
+Elements, so Stripe fetches that stylesheet). Enforcement makes every directive live, including
+ones that were never exercised while the policy was Report-Only.
+Current status: ACCEPTED with a monitored rollout. Violations now reach the Vercel log drain as
+one line per event from `/api/csp-report`.
+Required fix (if checkout misbehaves after deploy): set `CSP_REPORT_ONLY=true` in the Vercel
+environment and redeploy. That downgrades the identical policy to Report-Only, so nothing is
+blocked while reports keep arriving; add the host the report names, then flip it back.
+Required check: after the first deploy, grep the log drain for `[csp-violation]` and confirm no
+line has `document=` pointing at `/checkout`; place one test-mode order end to end.
+Related tag: #csp-enforce, #a-10
+
 ## Format
 
 ### Risk

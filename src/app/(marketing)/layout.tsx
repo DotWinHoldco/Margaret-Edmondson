@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { headers } from 'next/headers'
 import Header from '@/components/shared/Header'
 import Footer from '@/components/shared/Footer'
 import CartDrawer from '@/components/shared/CartDrawer'
@@ -37,7 +38,7 @@ export default async function MarketingLayout({
   }
 
   // Maintenance mode bypass for admins/artists so the site stays navigable
-  // while the toggle is on. Fail-soft: any error → treat as a normal visitor.
+  // while the toggle is on. Fail-soft: on error, treat as a normal visitor.
   let isAdmin = false
   if (maintenance) {
     try {
@@ -81,9 +82,14 @@ export default async function MarketingLayout({
 
   const showBanner = announcement.enabled && !!announcement.text
 
+  // The per-request CSP nonce, set on the forwarded request by src/proxy.ts.
+  // The pixel bootstrap is an inline script and needs it to run under the
+  // enforced policy.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <Providers>
-      <PixelScript />
+      <PixelScript nonce={nonce} />
       <Header />
       {showBanner ? (
         <>

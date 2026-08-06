@@ -3,6 +3,16 @@ import { Cormorant_Garamond, Source_Sans_3, Caveat, Playfair_Display, Nunito, DM
 import { getSiteSettings } from "@/lib/settings/accessor";
 import "./globals.css";
 
+// Nonce-based CSP only works on a dynamically rendered document: Next.js reads
+// the nonce off the incoming request and stamps it onto the scripts it emits,
+// and a page prerendered at build time has no request to read. Declared at the
+// root so the invariant "every HTML document carries a nonce" also holds for
+// the few remaining prerendered pages (/gate, /welcome, the 404 boundary) and
+// for any page added later. The site was already dynamic almost everywhere
+// (the marketing group opts in explicitly), so this costs no cached page that
+// was actually being cached. See src/lib/security/csp.ts.
+export const dynamic = 'force-dynamic';
+
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
