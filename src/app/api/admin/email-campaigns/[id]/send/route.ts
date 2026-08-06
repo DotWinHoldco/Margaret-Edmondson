@@ -5,6 +5,7 @@
 
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, dbFail } from '@/lib/api/respond'
+import { toSendableContacts } from '@/lib/email/audience'
 import { NextRequest } from 'next/server'
 
 // POST /api/admin/email-campaigns/[id]/send — send the campaign to its audience now; admin only.
@@ -36,17 +37,13 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   if (mErr) return dbFail(mErr, 'admin/email-campaigns/[id]/send members')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = (members || []).map((row: any) => {
-    const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
-    return contact
-  }).filter((c) => c && c.status === 'active' && c.email)
+  const rows = toSendableContacts(members)
 
   if (rows.length === 0) return apiError('No active recipients in audience list', 400, 'EMPTY_AUDIENCE')
 
   // Bulk insert recipients (ignore duplicates by unique index on
   // campaign_id + email_snapshot).
-  const recipientInserts = rows.map((contact: { id: string; email: string; first_name: string | null }) => ({
+  const recipientInserts = rows.map((contact) => ({
     campaign_id: id,
     contact_id: contact.id,
     email_snapshot: contact.email,

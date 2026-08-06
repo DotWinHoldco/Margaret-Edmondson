@@ -11,6 +11,7 @@ import { requireCron } from '@/lib/auth/require-cron'
 import { renderAndSend } from '@/lib/email/render'
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe'
 import { discountCallout } from '@/lib/email/shell'
+import { toSendableContacts } from '@/lib/email/audience'
 import type { Database } from '@/lib/types/database'
 
 type Campaign = Database['public']['Tables']['email_campaigns']['Row'] & {
@@ -177,13 +178,11 @@ async function materializeRecipients(
     .select('contact:crm_contacts!inner(id, email, first_name, status)')
     .eq('list_id', campaign.audience_list_id)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const contacts = (members || []).map((row: any) => Array.isArray(row.contact) ? row.contact[0] : row.contact)
-    .filter((c) => c && c.status === 'active' && c.email)
+  const contacts = toSendableContacts(members)
 
   if (contacts.length === 0) return
 
-  const inserts = contacts.map((c: { id: string; email: string; first_name: string | null }) => ({
+  const inserts = contacts.map((c) => ({
     campaign_id: campaign.id,
     contact_id: c.id,
     email_snapshot: c.email,

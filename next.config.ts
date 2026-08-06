@@ -14,26 +14,36 @@ const SECURITY_HEADERS = [
   // Cross-origin isolation hints.
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
-  // A-10: CSP defense-in-depth. Shipped in Report-Only first so violations can
-  // be reviewed before switching the header name to `Content-Security-Policy` to
-  // enforce. 'unsafe-inline'/'unsafe-eval' are required for Next.js 16 App
-  // Router until nonce-based CSP is wired.
-  {
-    key: 'Content-Security-Policy-Report-Only',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://connect.facebook.net",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
-      "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.facebook.com https://*.resend.com",
-      "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
-      "frame-ancestors 'none'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; '),
-  },
+  // A-10: the Content-Security-Policy is NOT declared here. It carries a
+  // per-request nonce, so it is built and attached in `src/proxy.ts` from
+  // `src/lib/security/csp.ts`. A copy here would be frozen at deploy time and
+  // the browser would intersect the two headers instead of replacing one.
+];
+
+// Canonical origin, used to replace the wildcard CORS value below. Falls back
+// to the production domain so a build without the env var still emits a real
+// origin rather than an empty header.
+const SITE_ORIGIN = (process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio').replace(/\/+$/, '');
+
+// Documents and public files are served to the browser by the host's static
+// file layer, which stamps `access-control-allow-origin: *` onto everything it
+// serves. Nothing in this codebase sets that header, so it can only be undone
+// by declaring a narrower value for the same header name. The site's own origin
+// grants no cross-origin reader anything a same-origin request did not already
+// have, and no `Access-Control-Allow-Credentials` is sent, so a cookie-bearing
+// cross-origin read stays impossible.
+//
+// Two exclusions, both deliberate:
+//   - `/_next/static` and `/_next/image`: the font and chunk requests Next
+//     issues are CORS-mode fetches and need the permissive value.
+//   - `/api`: every route handler here is same-origin-only, so it gets no CORS
+//     headers at all rather than a narrower wildcard.
+//
+// The value is a constant, not an echo of the request's Origin, so no `Vary:
+// Origin` is added, and adding one here would overwrite the RSC vary list
+// Next.js relies on for router cache correctness.
+const DOCUMENT_CORS_HEADERS = [
+  { key: 'Access-Control-Allow-Origin', value: SITE_ORIGIN },
 ];
 
 const nextConfig: NextConfig = {
@@ -58,7 +68,10 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+    return [
+      { source: '/:path*', headers: SECURITY_HEADERS },
+      { source: '/((?!api|_next/static|_next/image).*)', headers: DOCUMENT_CORS_HEADERS },
+    ];
   },
 };
 

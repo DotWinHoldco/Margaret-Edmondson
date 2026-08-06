@@ -6,7 +6,15 @@ import { usePathname } from 'next/navigation'
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 
-export default function PixelScript() {
+/**
+ * Meta Pixel bootstrap.
+ *
+ * `nonce` comes from the per-request CSP nonce (the marketing layout reads it
+ * off the `x-nonce` request header). The pixel's init block is the only inline
+ * script the site ships, so without the nonce it is the one thing an enforced
+ * `script-src` would block.
+ */
+export default function PixelScript({ nonce }: { nonce?: string }) {
   const pathname = usePathname()
 
   // Manual PageView on client-side route changes (App Router pages
@@ -28,6 +36,7 @@ export default function PixelScript() {
       <Script
         id="meta-pixel-init"
         strategy="afterInteractive"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: `
 !function(f,b,e,v,n,t,s)

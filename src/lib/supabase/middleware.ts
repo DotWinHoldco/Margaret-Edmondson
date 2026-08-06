@@ -1,8 +1,29 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+/**
+ * Refresh the Supabase session cookie for this request and apply the optimistic
+ * route guards for /account and /admin. (Route handlers still self-authorize;
+ * this only saves an unauthenticated visitor a round trip.)
+ *
+ * `extraRequestHeaders` are merged into the headers forwarded to the app: the
+ * CSP nonce, see `src/proxy.ts`. They are re-applied every time the response is
+ * rebuilt rather than snapshotted once, because `setAll` below writes refreshed
+ * auth cookies back onto the request and that mutation has to survive into the
+ * headers that get forwarded.
+ */
+export async function updateSession(
+  request: NextRequest,
+  extraRequestHeaders?: Record<string, string>
+) {
+  const forwardedRequest = () => {
+    if (!extraRequestHeaders) return request
+    const headers = new Headers(request.headers)
+    for (const [name, value] of Object.entries(extraRequestHeaders)) headers.set(name, value)
+    return { headers }
+  }
+
+  let supabaseResponse = NextResponse.next({ request: forwardedRequest() })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +37,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             request.cookies.set(name, value)
           )
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({ request: forwardedRequest() })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
