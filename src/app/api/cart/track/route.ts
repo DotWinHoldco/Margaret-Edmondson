@@ -6,12 +6,17 @@
 // without needing direct INSERT+SELECT grants — RLS forbids anon
 // SELECT on carts, so the previous .insert(...).select('id') path
 // failed silently.
+//
+// This is the only route that can create a cart, so it is also the only issuer
+// of cart tokens. The client never sees a bare `carts.id`: it presents the
+// signed token it holds (if any) and stores whatever token comes back.
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { upsertContact } from '@/lib/crm/contacts'
 import { parseBody } from '@/lib/api/respond'
 import { cartTrackingInputSchema } from '@/lib/api/public-input'
+import { issueCartToken, resolveCartToken } from '@/lib/cart/token'
 
 // POST /api/cart/track — sync a guest cart server-side for abandonment tracking; public.
 export async function POST(request: Request) {
@@ -24,8 +29,14 @@ export async function POST(request: Request) {
   const { items, subtotal } = body
   const email = body.email?.toLowerCase() ?? null
 
-  if (items.length === 0 && !body.cartId) {
-    return Response.json({ ok: true, cartId: null })
+  // An unreadable token (forged, tampered, expired, or issued under a rotated
+  // secret) is not an error the shopper should ever see: it simply means this
+  // browser has no server-side cart, so the sync below starts a fresh one.
+  const presented = body.cartToken ? resolveCartToken(body.cartToken) : null
+  const cartId = presented?.cartId ?? null
+
+  if (items.length === 0 && !cartId) {
+    return Response.json({ ok: true, cartToken: null })
   }
 
   // track_cart is SECURITY DEFINER and EXECUTE-able only by service_role, so
@@ -42,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await svc.rpc('track_cart', {
-    p_cart_id: body.cartId ?? null,
+    p_cart_id: cartId,
     p_email: email,
     p_items: items as unknown as object,
     p_subtotal: subtotal,
@@ -54,5 +65,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: 'cart_track_failed' }, { status: 500 })
   }
 
-  return Response.json({ ok: true, cartId: (data as string | null) ?? null })
+  const syncedCartId = (data as string | null) ?? null
+  if (!syncedCartId) {
+    // track_cart returns null only when there is nothing to persist.
+    return Response.json({ ok: true, cartToken: null })
+  }
+
+  // Hand back a token when the cart the RPC settled on is not the one the
+  // presented token names (a new cart, or a replacement for a cart row that no
+  // longer exists), or when the presented token is inside its renewal window.
+  let cartToken: string | null
+  try {
+    cartToken = syncedCartId === cartId ? presented?.renewedToken ?? null : issueCartToken(syncedCartId)
+  } catch (err) {
+    // Signing is unavailable (no configured secret in production). Fail closed
+    // rather than hand the browser a cart reference it could not have earned.
+    console.error('cart token issuance failed', err)
+    return Response.json({ ok: false, error: 'cart_token_unavailable' }, { status: 503 })
+  }
+
+  return Response.json({ ok: true, cartToken })
 }

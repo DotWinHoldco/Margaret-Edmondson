@@ -66,6 +66,8 @@ interface IntentResponse {
   amountCents: number
   mode: 'test' | 'live'
   summary: { subtotal: number; discount: number; surcharge: number; tax: number; total: number }
+  /** Present only when the server slid the cart token's expiry forward. */
+  cartToken?: string
 }
 
 interface Handoff {
@@ -95,8 +97,11 @@ function formatUsd(cents: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
 }
 
+// On-site payment screen. Creates a PaymentIntent from the cart plus the signed
+// cart token, renders Stripe Payment Elements, and falls back to hosted Stripe
+// Checkout when intent creation is unavailable.
 export default function CheckoutPage() {
-  const { state } = useCart()
+  const { state, setCartToken } = useCart()
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
   const [intent, setIntent] = useState<IntentResponse | null>(null)
@@ -126,11 +131,11 @@ export default function CheckoutPage() {
         quantity: item.quantity,
       })),
       email: h.email || state.email || undefined,
-      cartId: state.cartId,
+      cartToken: state.cartToken,
       promoCode: h.promoCode || undefined,
       shippingSurchargeLabel: h.surchargeLabel || undefined,
     }
-  }, [handoff, state.items, state.email, state.cartId])
+  }, [handoff, state.items, state.email, state.cartToken])
 
   // Create the PaymentIntent once the cart has hydrated from localStorage.
   useEffect(() => {
@@ -152,6 +157,7 @@ export default function CheckoutPage() {
         if (!res.ok || !data.clientSecret || !data.summary) {
           throw new Error(data.error || `Could not start checkout (HTTP ${res.status}).`)
         }
+        if (data.cartToken) setCartToken(data.cartToken)
         setIntent(data as IntentResponse)
         setPhase('ready')
       } catch (err) {
@@ -159,7 +165,7 @@ export default function CheckoutPage() {
         setPhase('error')
       }
     })()
-  }, [handoff, state.items, buildCheckoutBody])
+  }, [handoff, state.items, buildCheckoutBody, setCartToken])
 
   // Empty cart → back to /cart. Grace period lets the context hydrate first.
   useEffect(() => {
@@ -186,7 +192,7 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCheckoutBody()),
       })
-      let data: { url?: string; error?: string } = {}
+      let data: { url?: string; error?: string; cartToken?: string } = {}
       try {
         data = await res.json()
       } catch {
@@ -195,6 +201,7 @@ export default function CheckoutPage() {
       if (!res.ok || !data.url) {
         throw new Error(data.error || `Express checkout failed (HTTP ${res.status}).`)
       }
+      if (data.cartToken) setCartToken(data.cartToken)
       window.location.href = data.url
     } catch (err) {
       setExpressError(err instanceof Error ? err.message : 'Express checkout failed.')

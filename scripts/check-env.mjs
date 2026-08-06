@@ -78,6 +78,10 @@ const GROUPS = {
   Platform: [
     { name: 'CRON_SECRET', required: true },
     { name: 'SITE_PASSWORD', required: false },
+    // Required in production: it is the fallback gate secret AND the key that
+    // signs guest cart tokens (src/lib/cart/token.ts), which fail closed
+    // without it. Optional here so dev/test runs pass; the runtime guard
+    // enforces it in prod.
     { name: 'SITE_AUTH_SECRET', required: false },
   ],
 }

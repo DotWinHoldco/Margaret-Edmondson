@@ -18,7 +18,13 @@ interface CartState {
   items: CartItem[]
   isOpen: boolean
   email: string | null
-  cartId: string | null
+  /**
+   * Opaque, server-signed handle for this browser's guest cart. It replaces the
+   * raw `carts.id` that used to be stored here: the id alone was enough to read
+   * or overwrite a cart through the public cart APIs, so the server now issues a
+   * signed, expiring token and the client only ever carries it.
+   */
+  cartToken: string | null
 }
 
 type CartAction =
@@ -30,7 +36,7 @@ type CartAction =
   | { type: 'SET_OPEN'; payload: boolean }
   | { type: 'LOAD'; payload: CartItem[] }
   | { type: 'SET_EMAIL'; payload: string | null }
-  | { type: 'SET_CART_ID'; payload: string | null }
+  | { type: 'SET_CART_TOKEN'; payload: string | null }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -82,8 +88,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, items: action.payload }
     case 'SET_EMAIL':
       return { ...state, email: action.payload }
-    case 'SET_CART_ID':
-      return { ...state, cartId: action.payload }
+    case 'SET_CART_TOKEN':
+      return { ...state, cartToken: action.payload }
     default:
       return state
   }
@@ -95,18 +101,44 @@ const CartContext = createContext<{
   subtotal: number
   itemCount: number
   setEmail: (email: string | null) => void
+  setCartToken: (token: string | null) => void
 } | null>(null)
 
 const STORAGE_ITEMS = 'artbyme-cart'
 const STORAGE_META = 'artbyme-cart-meta'
 const SYNC_DEBOUNCE_MS = 800
+const CART_TOKEN_PREFIX = 'v1.'
+const CART_TOKEN_MAX_LENGTH = 512
 
+/**
+ * Cheap shape check on a persisted token before it is sent anywhere. The browser
+ * cannot validate the signature, so this only discards values that could never
+ * be a token: junk, oversized strings, and the bare cart UUIDs written by the
+ * previous build (those are no longer accepted by any route, so a shopper
+ * holding one silently starts a fresh cart).
+ */
+function usableCartToken(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > CART_TOKEN_PREFIX.length &&
+    value.length <= CART_TOKEN_MAX_LENGTH &&
+    value.startsWith(CART_TOKEN_PREFIX)
+  )
+}
+
+/**
+ * Holds the shopper's cart for the whole storefront: line items and email in
+ * localStorage for continuity across visits, plus the signed cart token that
+ * addresses the matching server-side row. Cart mutations are debounced into a
+ * single /api/cart/track sync so the abandonment sequence has a record without
+ * a request per keystroke.
+ */
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, {
     items: [],
     isOpen: false,
     email: null,
-    cartId: null,
+    cartToken: null,
   })
 
   // Load persisted state on mount.
@@ -119,9 +151,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       const meta = localStorage.getItem(STORAGE_META)
       if (meta) {
-        const parsed = JSON.parse(meta) as { email?: string | null; cartId?: string | null }
+        const parsed = JSON.parse(meta) as { email?: string | null; cartToken?: string | null }
         if (parsed.email) dispatch({ type: 'SET_EMAIL', payload: parsed.email })
-        if (parsed.cartId) dispatch({ type: 'SET_CART_ID', payload: parsed.cartId })
+        if (usableCartToken(parsed.cartToken)) {
+          dispatch({ type: 'SET_CART_TOKEN', payload: parsed.cartToken })
+        }
       }
     } catch { /* ignore */ }
   }, [])
@@ -133,12 +167,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, [state.items])
 
-  // Persist meta (email, cartId).
+  // Persist meta (email, cart token).
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_META, JSON.stringify({ email: state.email, cartId: state.cartId }))
+      localStorage.setItem(
+        STORAGE_META,
+        JSON.stringify({ email: state.email, cartToken: state.cartToken }),
+      )
     } catch { /* ignore */ }
-  }, [state.email, state.cartId])
+  }, [state.email, state.cartToken])
 
   // Debounced server sync. Runs whenever items/email change.
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -176,7 +213,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cartId: state.cartId,
+          cartToken: state.cartToken,
           email: state.email,
           items: state.items.map((i) => ({
             productId: i.productId,
@@ -189,9 +226,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }),
       })
         .then((res) => res.json())
-        .then((data: { cartId?: string | null }) => {
-          if (data?.cartId && data.cartId !== state.cartId) {
-            dispatch({ type: 'SET_CART_ID', payload: data.cartId })
+        .then((data: { cartToken?: string | null }) => {
+          // A new token means either the first sync of this cart or a sliding
+          // renewal; either way the stored copy is replaced silently. A rejected
+          // token is indistinguishable from having none, so the shopper just
+          // gets a fresh cart with no error to see.
+          if (usableCartToken(data?.cartToken) && data.cartToken !== state.cartToken) {
+            dispatch({ type: 'SET_CART_TOKEN', payload: data.cartToken })
           }
         })
         .catch(() => { /* best effort */ })
@@ -199,7 +240,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current)
     }
-  }, [state.items, state.email, state.cartId])
+  }, [state.items, state.email, state.cartToken])
 
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -208,13 +249,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_EMAIL', payload: email ? email.toLowerCase().trim() : null })
   }, [])
 
+  // Adopt a token returned by any cart-aware route (sliding renewal). Anything
+  // that is not token-shaped is ignored rather than stored.
+  const setCartToken = useCallback((token: string | null) => {
+    if (token === null) {
+      dispatch({ type: 'SET_CART_TOKEN', payload: null })
+      return
+    }
+    if (usableCartToken(token)) dispatch({ type: 'SET_CART_TOKEN', payload: token })
+  }, [])
+
   return (
-    <CartContext.Provider value={{ state, dispatch, subtotal, itemCount, setEmail }}>
+    <CartContext.Provider value={{ state, dispatch, subtotal, itemCount, setEmail, setCartToken }}>
       {children}
     </CartContext.Provider>
   )
 }
 
+/** Read and mutate the shopper's cart. Throws outside CartProvider so a component never silently renders an empty cart. */
 export function useCart() {
   const context = useContext(CartContext)
   if (!context) throw new Error('useCart must be used within CartProvider')

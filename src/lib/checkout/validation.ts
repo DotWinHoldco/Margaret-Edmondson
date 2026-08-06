@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { CART_TOKEN_MAX_LENGTH } from '@/lib/cart/token'
 import { checkFulfillable } from '@/lib/fulfillment/fulfillability'
 import { loadPublicPrintReadiness, storefrontMaster } from '@/lib/products/print-readiness'
 
@@ -18,9 +19,11 @@ const checkoutRequestSchema = z.object({
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(254).email().nullable(),
   ),
-  cartId: z.preprocess(
+  // Signed cart token, not a bare `carts.id`: bounded here, verified by the
+  // route, which derives the cart id server-side before any cart write.
+  cartToken: z.preprocess(
     (value) => value === '' || value == null ? null : value,
-    z.string().uuid().nullable(),
+    z.string().trim().max(CART_TOKEN_MAX_LENGTH).nullable(),
   ),
   promoCode: z.preprocess(
     (value) => value === '' || value == null ? null : value,
