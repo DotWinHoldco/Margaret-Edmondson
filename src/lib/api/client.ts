@@ -86,10 +86,13 @@ export async function apiSend<T = unknown>(
   payload?: unknown,
   init?: RequestInit,
 ): Promise<T> {
+  // `init` is spread first so that method, merged headers, and the serialized
+  // body always win: a caller passing extra headers (e.g. the anti-bot intent
+  // token) must not drop the JSON Content-Type this sets.
   return apiFetch<T>(input, {
+    ...init,
     method,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     body: payload !== undefined ? JSON.stringify(payload) : undefined,
-    ...init,
   })
 }

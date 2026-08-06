@@ -28,7 +28,7 @@ export async function PATCH(
   } = await supabase.auth.getUser()
   if (!user) return apiError('Authentication required', 401, 'UNAUTHORIZED')
 
-  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
+  const rl = await rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, PatchBody)
@@ -95,7 +95,7 @@ export async function DELETE(
   } = await supabase.auth.getUser()
   if (!user) return apiError('Authentication required', 401, 'UNAUTHORIZED')
 
-  const rl = rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
+  const rl = await rateLimit(request, { limit: 30, windowMs: 60_000, keyPrefix: 'acct-address', key: user.id })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const { data, error } = await supabase

@@ -10,6 +10,7 @@ import {
   useInView,
 } from 'framer-motion'
 import { useToast } from '@/components/shared/toast/ToastProvider'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { apiSend, errorMessage } from '@/lib/api/client'
 
 /* ─── animation config ─── */
@@ -506,7 +507,7 @@ function Newsletter() {
       await apiSend('/api/newsletter/subscribe', 'POST', {
         email: email.trim(),
         source: 'v4',
-      })
+      }, { headers: await antiBotHeaders() })
       setSubmitted(true)
       toast.success('You are on the list. Check your inbox for a welcome note.')
     } catch (err) {

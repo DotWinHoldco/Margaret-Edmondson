@@ -4,6 +4,7 @@ import { brandedShell } from '@/lib/email/shell'
 import { escapeHtml } from '@/lib/email/escape'
 import { upsertContact } from '@/lib/crm/contacts'
 import { signBucketUrls } from '@/lib/storage/signed'
+import { requireAntiBotToken } from '@/lib/api/anti-bot'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, dbFail } from '@/lib/api/respond'
@@ -25,8 +26,13 @@ const COMMISSION_STATUSES = [
 
 // POST /api/commissions — submit a commission inquiry and notify the studio; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'commissions' })
   if (!rl.ok) return rateLimitResponse(rl)
+
+  // Anonymous write: the same intent token the uploader used to mint its signed
+  // URLs is required to attach those references to a stored inquiry.
+  const botCheck = requireAntiBotToken(request)
+  if (botCheck) return botCheck
 
   const parsed = await parseBody(request, commissionInputSchema)
   if (!parsed.ok) return parsed.response

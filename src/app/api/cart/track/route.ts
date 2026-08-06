@@ -15,7 +15,7 @@ import { cartTrackingInputSchema } from '@/lib/api/public-input'
 
 // POST /api/cart/track — sync a guest cart server-side for abandonment tracking; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'cart-track' })
+  const rl = await rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'cart-track' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, cartTrackingInputSchema)

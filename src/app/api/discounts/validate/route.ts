@@ -11,7 +11,7 @@ import { discountPreviewInputSchema } from '@/lib/api/public-input'
 
 // POST /api/discounts/validate — validate a discount code against the cart for instant client feedback; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 20, windowMs: 60_000, keyPrefix: 'discount-validate' })
+  const rl = await rateLimit(request, { limit: 20, windowMs: 60_000, keyPrefix: 'discount-validate' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, discountPreviewInputSchema)

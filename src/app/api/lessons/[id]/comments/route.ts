@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // Per-user throttle so a single valid account can't spam comments.
-    const rl = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'lesson-comment', key: user.id })
+    const rl = await rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'lesson-comment', key: user.id })
     if (!rl.ok) return rateLimitResponse(rl)
 
     const body = await request.json()

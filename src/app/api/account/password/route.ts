@@ -12,7 +12,7 @@ const Body = z.object({
 // Re-verifies the current password (signInWithPassword) before updating so a
 // hijacked session can't silently rotate credentials.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'account-password' })
+  const rl = await rateLimit(request, { limit: 5, windowMs: 60_000, keyPrefix: 'account-password' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const supabase = await createClient()

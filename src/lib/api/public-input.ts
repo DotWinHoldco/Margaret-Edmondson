@@ -34,6 +34,47 @@ export const commissionInputSchema = z.object({
   reference_images: z.array(commissionReferencePath).max(8).optional().default([]),
 })
 
+// Buckets an anonymous visitor may be granted a signed upload URL for, and the
+// ceilings applied when the URL is minted. These mirror the live bucket
+// configuration (file_size_limit / allowed_mime_types), so a request that would
+// be rejected by storage is rejected before a URL is ever handed out.
+export const PUBLIC_UPLOAD_BUCKETS = {
+  'commission-references': {
+    maxFiles: 8,
+    maxBytesPerFile: 15 * 1024 * 1024,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'],
+  },
+  'class-pet-photos': {
+    maxFiles: 5,
+    maxBytesPerFile: 10 * 1024 * 1024,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
+  },
+} as const
+
+export type PublicUploadBucket = keyof typeof PUBLIC_UPLOAD_BUCKETS
+
+const PUBLIC_UPLOAD_BUCKET_IDS = Object.keys(PUBLIC_UPLOAD_BUCKETS) as [PublicUploadBucket, ...PublicUploadBucket[]]
+
+// The widest per-file ceiling across the public buckets; the exact per-bucket
+// ceiling is applied in the route once the bucket is known.
+const MAX_PUBLIC_UPLOAD_BYTES = Math.max(
+  ...Object.values(PUBLIC_UPLOAD_BUCKETS).map((b) => b.maxBytesPerFile),
+)
+const MAX_PUBLIC_UPLOAD_FILES = Math.max(
+  ...Object.values(PUBLIC_UPLOAD_BUCKETS).map((b) => b.maxFiles),
+)
+
+export const uploadTicketInputSchema = z.object({
+  bucket: z.enum(PUBLIC_UPLOAD_BUCKET_IDS),
+  files: z.array(z.object({
+    name: z.string().trim().min(1).max(255),
+    size: z.number().int().min(1).max(MAX_PUBLIC_UPLOAD_BYTES),
+    // Browsers report an empty type for some HEIC/HEIF picks; the route
+    // resolves those from the file extension and re-checks the result.
+    type: z.string().trim().max(128).optional().default(''),
+  })).min(1).max(MAX_PUBLIC_UPLOAD_FILES),
+})
+
 export const newsletterInputSchema = z.object({
   email,
   source: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_-]+$/).optional().default('unknown'),

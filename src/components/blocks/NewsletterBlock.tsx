@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { scrollReveal } from '@/lib/animations'
 import { useState } from 'react'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { track } from '@/lib/meta/track'
 
 interface NewsletterConfig {
@@ -28,7 +29,7 @@ export default function NewsletterBlock({ config }: { config: Record<string, unk
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await antiBotHeaders()) },
         body: JSON.stringify({ email, source: 'homepage' }),
       })
       if (res.ok) {

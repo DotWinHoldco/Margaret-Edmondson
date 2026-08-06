@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { track } from '@/lib/meta/track'
 
 const SUBJECT_VALUES = ['general', 'commission', 'order', 'class', 'press', 'privacy', 'unsubscribe'] as const
@@ -36,9 +37,11 @@ export default function ContactFormClient() {
     setStatus('loading')
     try {
       const { joinNewsletter, ...payload } = form
+      // Both endpoints are anti-bot guarded; one token covers the pair.
+      const intentHeaders = await antiBotHeaders()
       const res = await fetch('/api/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...intentHeaders },
         body: JSON.stringify({ ...payload, joinNewsletter }),
       })
       if (res.ok) {
@@ -50,7 +53,7 @@ export default function ContactFormClient() {
         if (joinNewsletter) {
           fetch('/api/newsletter/subscribe', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...intentHeaders },
             body: JSON.stringify({
               email: form.email,
               source: 'contact_form',

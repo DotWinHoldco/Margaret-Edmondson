@@ -3117,6 +3117,27 @@ export type Database = {
           },
         ]
       }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          expires_at: string
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          expires_at: string
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          expires_at?: string
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       shared_file_tags: {
         Row: {
           created_at: string
@@ -3917,6 +3938,14 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: boolean
+      }
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window_ms: number }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_ms: number
+        }[]
       }
       record_order_for_contact: {
         Args: {

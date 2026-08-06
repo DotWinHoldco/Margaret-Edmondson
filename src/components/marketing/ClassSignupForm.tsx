@@ -1,14 +1,9 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 import { apiSend, errorMessage } from '@/lib/api/client'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-)
+import { uploadPublicFiles } from '@/lib/uploads/public-upload'
 
 const MAX_FILES = 5
 const MAX_BYTES = 10 * 1024 * 1024
@@ -46,25 +41,12 @@ export default function ClassSignupForm({ slug, priceCents }: Props) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  // Pet photos go to storage through the server: it checks the intent token,
+  // applies the count/size/type ceilings, chooses the storage path, and mints
+  // one signed upload URL per file. The bucket takes no anonymous writes of its
+  // own.
   async function upload(): Promise<string[]> {
-    if (files.length === 0) return []
-    const urls: string[] = []
-    const folder = `pending/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    for (const f of files) {
-      const safe = f.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      const path = `${folder}/${safe}`
-      const { error: upErr } = await supabase.storage
-        .from('class-pet-photos')
-        .upload(path, f, { contentType: f.type, upsert: false })
-      if (upErr) {
-        console.error('Class pet-photo upload failed:', f.name, upErr)
-        throw new Error(`We could not upload ${f.name}. Please try a different photo or remove it and continue.`)
-      }
-      // Store the bucket-relative path — class-pet-photos is a private bucket;
-      // the admin view mints signed URLs from these paths.
-      urls.push(path)
-    }
-    return urls
+    return uploadPublicFiles('class-pet-photos', files)
   }
 
   async function handleSubmit(e: React.FormEvent) {

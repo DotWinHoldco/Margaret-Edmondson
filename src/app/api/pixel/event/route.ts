@@ -12,7 +12,7 @@ import { publicPixelEventSchema } from '@/lib/api/public-input'
 
 // POST /api/pixel/event — queue an allowed marketing event and forward it to the Meta CAPI; public.
 export async function POST(request: Request) {
-  const rl = rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'pixel' })
+  const rl = await rateLimit(request, { limit: 60, windowMs: 60_000, keyPrefix: 'pixel' })
   if (!rl.ok) return rateLimitResponse(rl)
 
   const parsed = await parseBody(request, publicPixelEventSchema)

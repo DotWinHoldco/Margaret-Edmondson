@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { antiBotHeaders } from '@/lib/api/anti-bot-client'
 import { track } from '@/lib/meta/track'
 
 // Routes where the popup never appears (auth, cart, account, admin).
@@ -88,7 +89,7 @@ export default function NewsletterPopup() {
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await antiBotHeaders()) },
         body: JSON.stringify({ email: email.trim(), source: 'popup' }),
       })
       const data = (await res.json().catch(() => ({}))) as { discountCode?: string }
