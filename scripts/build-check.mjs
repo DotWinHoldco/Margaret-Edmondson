@@ -35,6 +35,7 @@ import { runCheck as state } from './check-state.mjs';
 import { runCheck as docs } from './check-docs.mjs';
 import { runCheck as authz } from './check-authz.mjs';
 import { runCheck as contract } from './check-contract.mjs';
+import { runCheck as grantBoundary } from './check-grant-boundary.mjs';
 import { changedFiles, headCommit } from './lib/changed.mjs';
 
 const args = process.argv.slice(2);
@@ -74,7 +75,7 @@ function docGate(r, name, file, sev = 'required') {
   return gate(name, { required: sev === 'required', status: ok ? 'pass' : (sev === 'required' ? 'fail' : 'skipped'), findings: [], detail: ok ? `${file} present` : `${file} missing` });
 }
 
-function main() {
+async function main() {
   const gates = [];
   const pkg = readJSON(path.join(root, 'package.json'));
   const pm = detectPM(root);
@@ -114,6 +115,13 @@ function main() {
   // DotWin custom gates (diff-scoped when --since/--changed narrows the file set).
   const docsStrict = flag('--docs-strict') || process.env.DOTWIN_DOCS_STRICT === '1';
   gates.push(secrets(root, { scope }));
+  // grant-boundary: reads the GRANT layer (has_column_privilege) and the BEFORE UPDATE
+  // guard triggers on the LIVE project. A WITH CHECK that does not name a column does not
+  // constrain that column, so the policy layer alone can never prove a privilege column
+  // is safe. Self-skips without SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN; CI holds
+  // the secrets and enforces. A failed query is `blocked`, never a pass. Mode is read
+  // from .dotwin/conformance.json. See 01-core-standards/grant-boundary-standard.md.
+  gates.push(await grantBoundary(root));
   gates.push(security(root, { scope }));
   gates.push(boundaries(root, { scope }));
   gates.push(authz(root, { scope }));
@@ -213,4 +221,4 @@ function main() {
   process.exit(reached ? 0 : 1);
 }
 
-main();
+await main();

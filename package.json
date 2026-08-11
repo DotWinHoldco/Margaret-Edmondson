@@ -29,7 +29,9 @@
     "build-check:strict": "node scripts/build-check.mjs --docs-strict",
     "verify": "node scripts/build-check.mjs --tier=pre --since=HEAD",
     "verify:changed": "node scripts/build-check.mjs --changed",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:grants": "node scripts/check-grant-boundary.mjs",
+    "check:grants:test": "node scripts/check-grant-boundary.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

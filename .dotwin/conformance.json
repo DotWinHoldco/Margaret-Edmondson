@@ -27,5 +27,6 @@
     ],
     "note": "Hybrid adopt enforcement: the always-blocking gates run on every build (domain-isolation/contract/read-boundary skip until src/domains/ cells exist; rpc-exists is ACTIVE and passing against the declared registry). The scored gates ratchet to blocking per-domain as the staged refactor lands; flip a ratchet flag to true only after that domain's cells + tests exist. Status/lastGreenCommit are rewritten only by a native build-check:write run.",
     "pendingNativeRecert": true
-  }
+  },
+  "grantBoundaryAllow": []
 }
