@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { senderRoleForEmail } from '@/lib/auth/sender-role'
 import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
@@ -53,8 +54,7 @@ export async function POST(
       return apiError('Message is required.', 400, 'VALIDATION_FAILED')
     }
 
-    const senderRole =
-      user.email === 'skylar.webber@gmail.com' ? 'developer' : 'client'
+    const senderRole = senderRoleForEmail(user.email)
 
     const { data, error } = await supabase
       .from('project_note_comments')

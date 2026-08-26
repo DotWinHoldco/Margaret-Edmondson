@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { senderRoleForEmail } from '@/lib/auth/sender-role'
 import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { NextRequest } from 'next/server'
 
@@ -54,8 +55,7 @@ export async function POST(
     }
 
     // Determine sender role based on email
-    const senderRole =
-      user.email === 'skylar.webber@gmail.com' ? 'developer' : 'client'
+    const senderRole = senderRoleForEmail(user.email)
 
     const { data, error } = await supabase
       .from('feedback_comments')
