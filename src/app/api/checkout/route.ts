@@ -1,3 +1,7 @@
+import { discountedHostedLines } from '@/lib/checkout/hosted-prices'
+import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
+import { calculateCheckoutShipping } from '@/lib/checkout/shipping'
+import { captureProductionSources } from '@/lib/checkout/snapshot'
 // dotwin-allow:public-write — guest checkout session creation (input validated + rate-limited). Authored by DotWin.
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
       const { message, status, code } = parsedRequest.error
       return jsonError(message, status, code)
     }
-    const { items, email, cartToken, shippingSurchargeLabel, promoCode, funnelId } = parsedRequest.data
+    const { items, email, cartToken, promoCode, funnelId } = parsedRequest.data
 
     // Derive the cart from the signed token. Everything downstream (the cart
     // item write, the server-set surcharge, cart-scoped promo validation, the
@@ -73,12 +77,16 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient()
-    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items)
+    const policy = await getFulfillmentPolicy(supabase)
+    const destination = parsedRequest.data.destination
+    if (!destination) return jsonError('Enter your shipping ZIP code in the cart before checkout.', 400, 'shipping_destination_required')
+    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items, policy)
     if (!catalogValidation.ok) {
       const { message, status, code } = catalogValidation.error
       return jsonError(message, status, code)
     }
     const validatedItems = catalogValidation.data
+    if (!policy.ship_akhi || validatedItems.some(i => i.shippingMode === 'integration')) return jsonError('Please use the on-site checkout so we can verify shipping for your address.', 409, 'on_site_checkout_required')
 
     const imageUrls: Record<string, string> = {}
     for (const item of validatedItems) {
@@ -96,30 +104,14 @@ export async function POST(request: Request) {
     // /api/cart/shipping-quote), never the client POST body. The webhook reads
     // items back from the cart, so orders survive any cart size (Stripe metadata
     // is hard-capped at 500 chars per key) and the surcharge can't be tampered.
-    let surchargeCents = 0
-    if (cartId) {
-      const svc = await createServiceClient()
-      await svc
-        .from('carts')
-        .update({
-          items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
-            productId: i.productId,
-            variantId: i.variantId ?? null,
-            variantType: i.variantType ?? null,
-            fulfillmentType: i.fulfillmentType,
-            quantity: i.quantity,
-            price: i.price,
-            title: i.title,
-          })),
-        })
-        .eq('id', cartId)
-      const { data: cartRow } = await svc
-        .from('carts')
-        .select('shipping_surcharge_cents')
-        .eq('id', cartId)
-        .maybeSingle()
-      surchargeCents = cartRow?.shipping_surcharge_cents ?? 0
+    let surchargeCents: number
+    try {
+      surchargeCents = await calculateCheckoutShipping(validatedItems, destination, policy)
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : 'Could not calculate shipping.', 400, 'shipping_unavailable')
     }
+    const snapshotClient = await createServiceClient()
+    await captureProductionSources(snapshotClient, validatedItems)
 
     let contactId: string | null = null
     if (email) {
@@ -136,49 +128,19 @@ export async function POST(request: Request) {
       0
     )
 
-    // Promo code application via a one-shot Stripe coupon.
-    let appliedCoupon: Stripe.Coupon | null = null
-    let appliedCodeId: string | null = null
-    let appliedCodeText: string | null = null
-    if (promoCode && typeof promoCode === 'string') {
-      const validation = await validateDiscountCode(
-        promoCode,
-        { contactId, email, cartId, cartSubtotal }
-      )
-      if (!validation.ok) {
-        return jsonError(promoReasonMessage(validation.reason), 400, validation.reason)
-      }
-
-      const stripe = await getStripe()
-      const stripeCouponId = validation.code.stripe_coupon_id
-      if (stripeCouponId) {
-        try {
-          appliedCoupon = await stripe.coupons.retrieve(stripeCouponId)
-        } catch {
-          appliedCoupon = null
-        }
-      }
-      if (!appliedCoupon || !appliedCoupon.valid) {
-        appliedCoupon = await stripe.coupons.create({
-          ...validation.stripeCoupon,
-          name: `ArtByME ${validation.code.code}`,
-          max_redemptions: 1,
-        })
-        // Persist stripe_coupon_id back so the SAME coupon is reused next time
-        // (otherwise max_redemptions:1 is bypassed by minting a fresh coupon on
-        // every checkout). Must use the service client — the anon client's
-        // UPDATE is silently dropped by RLS. (B-20)
-        if (validation.code.id) {
-          const svc = await createServiceClient()
-          await svc
-            .from('promo_codes')
-            .update({ stripe_coupon_id: appliedCoupon.id })
-            .eq('id', validation.code.id)
-        }
-      }
-      appliedCodeId = validation.code.id || null
-      appliedCodeText = validation.code.code
+    // The same validated merchandise discount as the embedded checkout.
+    const subtotalCents=Math.round(cartSubtotal*100)
+    let discountCents=0
+    let appliedCodeId:string|null=null,appliedCodeText:string|null=null
+    if(promoCode){
+      const validation=await validateDiscountCode(promoCode,{contactId,email,cartId,cartSubtotal})
+      if(!validation.ok)return jsonError(promoReasonMessage(validation.reason),400,validation.reason)
+      discountCents=Math.min(validation.amountOffCents,subtotalCents)
+      appliedCodeId=validation.code.id||null;appliedCodeText=validation.code.code
     }
+    const settings=await getSiteSettings()
+    const taxRatePct=Number(settings.tax_rate_pct)
+    const taxCents=settings.tax_enabled===true&&Number.isFinite(taxRatePct)&&taxRatePct>0?Math.round(Math.max(0,subtotalCents-discountCents)*taxRatePct/100):0
 
     // Base URL for Stripe redirect/image URLs. Normalize NEXT_PUBLIC_SITE_URL
     // (tolerate a missing scheme or trailing slash); fall back to the request
@@ -195,24 +157,27 @@ export async function POST(request: Request) {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       customer_email: email || undefined,
-      line_items: validatedItems.map((item) => ({
+      line_items: discountedHostedLines(validatedItems,discountCents).map(({item,quantity,unitAmount}) => ({
         price_data: {
           currency: 'usd',
           product_data: {
             name: item.title,
             images: imageUrls[item.productId] ? [`${siteUrl}${imageUrls[item.productId]}`] : [],
-            metadata: { product_id: item.productId, variant_id: item.variantId || '' },
+            metadata: {
+              product_id: item.productId, variant_id: item.variantId || '' },
           },
-          unit_amount: Math.round(item.price * 100),
+          unit_amount: unitAmount,
         },
-        quantity: item.quantity,
+        quantity,
       })),
       shipping_address_collection: { allowed_countries: ['US'] },
       metadata: {
+        snapshot_version: '2',
         cart_id: cartId || '',
         contact_id: contactId || '',
         promo_code_id: appliedCodeId || '',
         promo_code: appliedCodeText || '',
+        subtotal_cents:String(subtotalCents),discount_cents:String(discountCents),tax_cents:String(taxCents),surcharge_cents:String(surchargeCents),
         // items intentionally NOT stored here — Stripe caps metadata at 500
         // chars/key which silently truncates 4+ item carts. The webhook reads
         // items from carts.items (persisted above) instead. (B-5)
@@ -230,46 +195,13 @@ export async function POST(request: Request) {
         shipping_rate_data: {
           type: 'fixed_amount',
           fixed_amount: { amount: surchargeCents, currency: 'usd' },
-          display_name: shippingSurchargeLabel || 'Outside contiguous US shipping surcharge',
+          display_name: 'Shipping',
         },
       }]
     }
 
-    if (appliedCoupon) {
-      sessionParams.discounts = [{ coupon: appliedCoupon.id }]
-    }
-
-    // Sales tax from settings: a flat tax_rate_pct (a percentage, e.g. 8.25)
-    // applied to the discounted merchandise subtotal, added as its own line
-    // item. Fail-soft — an unreadable setting must never block checkout.
-    try {
-      const settings = await getSiteSettings()
-      const taxRatePct = Number(settings.tax_rate_pct)
-      if (settings.tax_enabled === true && Number.isFinite(taxRatePct) && taxRatePct > 0) {
-        const subtotalCents = Math.round(Number(cartSubtotal) * 100)
-        let discountCents = 0
-        if (appliedCoupon?.amount_off) {
-          discountCents = appliedCoupon.amount_off
-        } else if (appliedCoupon?.percent_off) {
-          discountCents = Math.round(subtotalCents * (appliedCoupon.percent_off / 100))
-        }
-        const taxCents = Math.round(
-          Math.max(0, subtotalCents - discountCents) * (taxRatePct / 100)
-        )
-        if (Number.isFinite(taxCents) && taxCents > 0) {
-          sessionParams.line_items?.push({
-            price_data: {
-              currency: 'usd',
-              product_data: { name: `Sales tax (${taxRatePct}%)` },
-              unit_amount: taxCents,
-            },
-            quantity: 1,
-          })
-        }
-      }
-    } catch (err) {
-      console.error('Tax line item skipped:', err)
-    }
+    if(taxCents>0)sessionParams.line_items?.push({price_data:{currency:'usd',product_data:{name:`Sales tax (${taxRatePct}%)`},unit_amount:taxCents},quantity:1})
+    if((sessionParams.line_items?.length||0)>100)return jsonError('Please use the on-site checkout for this cart.',409,'on_site_checkout_required')
 
     const stripe = await getStripe()
     const session = await stripe.checkout.sessions.create(sessionParams)
@@ -311,26 +243,14 @@ export async function POST(request: Request) {
     // immutable fulfillment record.
     try {
       const svc = await createServiceClient()
-      let snapshotDiscountCents = 0
-      if (appliedCoupon?.amount_off) {
-        snapshotDiscountCents = appliedCoupon.amount_off
-      } else if (appliedCoupon?.percent_off) {
-        snapshotDiscountCents = Math.round(Math.round(cartSubtotal * 100) * (appliedCoupon.percent_off / 100))
-      }
       const { error: snapshotError } = await svc.from('checkout_snapshots').insert({
         payment_ref: session.id,
         cart_id: cartId || null,
-        items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
-          productId: i.productId,
-          variantId: i.variantId ?? null,
-          variantType: i.variantType ?? null,
-          fulfillmentType: i.fulfillmentType,
-          quantity: i.quantity,
-          price: i.price,
-          title: i.title,
-        })),
+        items: validatedItems,
+        policy_version: policy.version,
+        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi },
         subtotal_cents: Math.round(cartSubtotal * 100),
-        discount_cents: snapshotDiscountCents,
+        discount_cents: discountCents,
         surcharge_cents: surchargeCents,
         email: email ? String(email).toLowerCase().trim() : null,
         funnel_id: await resolveFunnelId(svc, funnelId),

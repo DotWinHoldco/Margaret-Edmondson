@@ -1,0 +1,55 @@
+
+> margaret-edmonson@0.1.0 build-check
+> node scripts/build-check.mjs
+
+
+  DotWin build-check
+  2026-09-11T20:11:22.423Z  ·  profile: green  ·  mode: adopt
+  Rule 1: ACID invariants outrank module purity
+
+  ✓ typecheck  ·  ok
+  ✓ lint  ·  ok
+  ✓ test  ·  ok
+  ✓ build  ·  ok
+  ✓ secrets  ·  no hardcoded secrets
+  · grant-boundary (optional)  ·  SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN not set (CI enforces this gate via repository secrets)
+  ✓ security  ·  0 advisory
+  ✓ supabase-boundaries  ·  client boundaries respected
+  ✓ authz  ·  mutation boundaries guarded
+  ✓ rls  ·  69 tables, 69 with RLS; 0 blocking
+      [medium] read policy "public can read product images" on "product_images" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+      [medium] read policy "public can read product variants" on "product_variants" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+      [medium] read policy "public can read categories" on "categories" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+      [medium] read policy "public can read lessons" on "lessons" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+      [medium] read policy "public read testimonial_media" on "testimonial_media" uses permissive (true)  supabase/migrations/20260415214421_testimonials_expand_and_media.sql:48
+      [medium] read policy "public can read cv_settings" on "cv_settings" uses permissive (true)  supabase/migrations/20260519000001_cv_entries.sql:28
+      [medium] read policy "public read lumaprints_mediums" on "lumaprints_mediums" uses permissive (true)  supabase/migrations/20260520000001_lumaprints_mediums.sql:27
+      [medium] read policy "public can read product_categories" on "product_categories" uses permissive (true)  supabase/migrations/20260622212139_adopt_rls_conformance.sql:13
+  ✓ migrations  ·  85 migration file(s)
+  · domain-isolation (optional)  ·  no src/domains or src/modules directory
+  · contract (optional)  ·  no src/domains or src/modules (score via audit)
+  · read-boundary (optional)  ·  no src/domains or src/modules
+  · table-ownership (optional)  ·  no src/domains or src/modules
+  · atomicity (optional)  ·  no src/domains or src/modules
+  · event-boundaries (optional)  ·  no src/domains or src/modules
+  ✓ rpc-exists  ·  1 declared transaction(s); 0 blocking
+  · no-duplicate-transactions (optional)  ·  no src/domains or src/modules
+  ✓ anchors (optional)  ·  0 source anchor(s)
+  ✓ state  ·  7 tag(s) resolve
+  ✓ docs  ·  325 undocumented (0 blocking)
+      [medium] exported function/component "ProjectHubClient" has no intent doc comment  src/app/(admin)/admin/ProjectHubClient.tsx:539
+      [medium] exported function/component "AdminAboutPage" has no intent doc comment  src/app/(admin)/admin/about/page.tsx:5
+      [medium] exported function/component "EditBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/[id]/page.tsx:22
+      [medium] exported function/component "NewBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/new/page.tsx:22
+      [medium] exported function/component "AdminBlogPage" has no intent doc comment  src/app/(admin)/admin/blog/page.tsx:9
+      [medium] exported function/component "BookingsPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/bookings/page.tsx:9
+      [medium] exported function/component "EditClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/page.tsx:8
+      [medium] exported function/component "NewClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/new/page.tsx:7
+      [medium] exported function/component "AdminClassesPage" has no intent doc comment  src/app/(admin)/admin/classes/page.tsx:32
+      [medium] exported function/component "AdminCommissionDetailPage" has no intent doc comment  src/app/(admin)/admin/commissions/[id]/page.tsx:77
+      [medium] exported function/component "AdminCommissionsPage" has no intent doc comment  src/app/(admin)/admin/commissions/page.tsx:59
+      [medium] exported function/component "ContentEditor" has no intent doc comment  src/app/(admin)/admin/content/ContentEditor.tsx:17
+      … 313 more
+
+  status: GREEN
+

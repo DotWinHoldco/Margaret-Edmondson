@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { trackEvent } from '@/lib/meta/pixel'
-import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
+import { cheapestPrintPrice } from '@/lib/product-utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import WishlistButton from './WishlistButton'
 
@@ -34,6 +34,10 @@ interface ProductVariant {
   inventory_count: number | null
   sort_order: number
   is_active?: boolean
+  fulfillment_type?: string
+  shipping_mode?: 'included' | 'flat' | 'integration'
+  shipping_fee_cents?: number
+  lead_days?: number
   is_lumaprints_available?: boolean
 }
 
@@ -101,7 +105,11 @@ interface RelatedProduct {
     inventory_count: number | null
     medium?: string | null
     is_active?: boolean
-    is_lumaprints_available?: boolean
+    fulfillment_type?: string
+  shipping_mode?: 'included' | 'flat' | 'integration'
+  shipping_fee_cents?: number
+  lead_days?: number
+  is_lumaprints_available?: boolean
     price?: number
   }>
   master_artwork?:
@@ -548,9 +556,7 @@ export default function ProductDetail({
   // false and excluded). Group by medium; within a medium order by area.
   const printVariants = useMemo(
     () =>
-      !masterReady
-        ? []
-        : (product.product_variants?.filter((v) => v.medium && isPubliclyAvailable(v)) || []).sort(
+      (product.product_variants?.filter((v) => v.medium && isPubliclyAvailable(v) && (v.fulfillment_type === 'self_ship' || masterReady)) || []).sort(
             (a, b) => (a.width_in || 0) * (a.height_in || 0) - (b.width_in || 0) * (b.height_in || 0),
           ),
     [product.product_variants, masterReady]
@@ -620,7 +626,9 @@ export default function ProductDetail({
         image: images[0]?.url || '',
         price,
         quantity: 1,
-        fulfillmentType: selectedVariant.variant_type === 'original' ? 'self_ship' : 'lumaprints',
+        fulfillmentType: selectedVariant.fulfillment_type || (selectedVariant.variant_type === 'original' ? 'self_ship' : 'lumaprints'),
+        shippingMode: selectedVariant.shipping_mode,
+        shippingFeeCents: selectedVariant.shipping_fee_cents,
       },
     })
     trackEvent('AddToCart', {
@@ -750,6 +758,8 @@ export default function ProductDetail({
 
             {/* Add to Cart */}
             {!isSold && selectedVariant && (
+              <>
+              {selectedVariant && <p className="mb-3 font-body text-sm text-teal">{selectedVariant.shipping_mode === 'flat' ? `$${((selectedVariant.shipping_fee_cents || 0) / 100).toFixed(2)} shipping per item` : selectedVariant.shipping_mode === 'included' ? 'Shipping included' : 'Shipping included in the contiguous US'}{selectedVariant.fulfillment_type === 'self_ship' && selectedVariant.lead_days != null ? ` · Ships within ${selectedVariant.lead_days} days` : ''}</p>}
               <button
                 onClick={addToCart}
                 className="mt-6 w-full py-3.5 bg-teal text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-deep-teal transition-colors"
@@ -759,6 +769,7 @@ export default function ProductDetail({
                   : `Add Print to Cart — $${price.toFixed(2)}`
                 }
               </button>
+              </>
             )}
 
             {printsUnavailable && (
@@ -873,7 +884,7 @@ export default function ProductDetail({
                 const rpHasPrints = hasPurchasablePrints(rp)
                 const rpOriginalPrice = availableOriginalPrice(rp)
                 const rpPrice = rpHasPrints
-                  ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
+                  ? `From $${(cheapestPrintPrice(rp) || 0).toFixed(2)}`
                   : rpOriginalPrice !== null
                     ? `$${rpOriginalPrice.toFixed(2)}`
                     : rp.prints_enabled

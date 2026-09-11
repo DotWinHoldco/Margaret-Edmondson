@@ -7,7 +7,6 @@ import { motion, useInView } from 'framer-motion'
 import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
 import type { FunnelTemplateProps } from './types'
 
@@ -152,14 +151,14 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
   // Print gate mirrors the storefront ProductDetail: only offer prints when the
   // master file is print-ready and the variant is live (is_active +
   // is_lumaprints_available). Otherwise a print order would fail at LumaPrints.
-  const printVariants = masterReady
-    ? variants.filter(
+  const printVariants = variants.filter(
         (v) =>
           (v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print') &&
+          (masterReady || v.fulfillment_type === 'self_ship') &&
           v.is_active !== false &&
           v.is_lumaprints_available !== false,
       )
-    : []
+
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
   const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
@@ -175,7 +174,7 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
       ? Math.min(...printVariants.map((v) => v.price))
       : product.base_price
 
-  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string }) => {
+  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string; fulfillment_type?: string; shipping_mode?: 'included' | 'flat' | 'integration'; shipping_fee_cents?: number }) => {
     // Funnel analytics: count the add-to-cart for this funnel. (D-4)
     fetch(`/api/funnels/${funnel.id}/track`, {
       method: 'POST',
@@ -192,7 +191,9 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
         image: heroImage?.url || '',
         price: variant.price,
         quantity: 1,
-        fulfillmentType: variant.variant_type === 'original' ? 'self_ship' : 'lumaprints',
+        fulfillmentType: variant.fulfillment_type || (variant.variant_type === 'original' ? 'self_ship' : 'lumaprints'),
+        shippingMode: variant.shipping_mode,
+        shippingFeeCents: variant.shipping_fee_cents,
       },
     })
   }
@@ -256,7 +257,7 @@ export default function BoldShowcaseTemplate({ funnel, product, images, variants
               className="mt-8 flex items-end gap-4"
             >
               <span className="font-display text-3xl sm:text-4xl text-gold font-bold">
-                {printVariants.length > 0 ? `From $${CHEAPEST_PRINT_PRICE}` : `$${lowestPrice.toLocaleString()}`}
+                {printVariants.length > 0 ? `From $${Math.min(...printVariants.map(v=>v.price)).toFixed(2)}` : `$${lowestPrice.toLocaleString()}`}
               </span>
               {originalVariant && !originalSold && (
                 <span className="font-body text-sm text-cream/40 pb-1">

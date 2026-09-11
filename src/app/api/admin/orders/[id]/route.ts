@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { getStripe, getStripeMode, isStripeKeyConfigured } from '@/lib/stripe'
+import { getStripeForMode, getStripeMode, isStripeKeyConfigured } from '@/lib/stripe'
 import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 const VALID_STATUSES = [
@@ -42,7 +42,7 @@ export async function PATCH(
   // Verify the order exists
   const { data: existing, error: fetchError } = await supabase
     .from('orders')
-    .select('id, status, stripe_payment_intent_id')
+    .select('id, status, stripe_payment_intent_id, stripe_mode')
     .eq('id', id)
     .single()
 
@@ -50,18 +50,25 @@ export async function PATCH(
     return apiError('That order could not be found.', 404, 'NOT_FOUND')
   }
 
+  if(['cancelled','refunded','failed_payment','disputed'].includes(existing.status) && !['cancelled','refunded'].includes(status)) return apiError('Closed or disputed orders cannot be reopened from this control.',409,'ORDER_CLOSED')
+  if(['shipped','delivered','processing','pending'].includes(status)) {
+    const {count,error}=await supabase.from('studio_jobs').select('id',{head:true,count:'exact'}).eq('order_id',id)
+    if(error)return dbFail(error)
+    if(count)return apiError('Update studio progress and packages in Studio work. The order status updates automatically.',409,'USE_STUDIO_WORK')
+  }
   // B-14: marking an order "refunded" must actually issue the Stripe refund,
   // not just flip a DB field. Env-guarded: with no Stripe key the status still
   // updates and we report it (code complete, works once keys are in Vercel).
   let refundIssued = false
-  let refundNote: string | null = null
+  const refundNote: string | null = null
   if (status === 'refunded' && existing.status !== 'refunded') {
     if (existing.stripe_payment_intent_id) {
-      const mode = await getStripeMode()
+      const mode = existing.stripe_mode === 'live' || existing.stripe_mode === 'test' ? existing.stripe_mode : await getStripeMode()
       if (isStripeKeyConfigured(mode)) {
         try {
-          const stripe = await getStripe()
-          await stripe.refunds.create({ payment_intent: existing.stripe_payment_intent_id })
+          const stripe = getStripeForMode(mode)
+          const refund = await stripe.refunds.create({ payment_intent: existing.stripe_payment_intent_id }, {idempotencyKey:`studio-full-refund/${id}`})
+          if(refund.status!=='succeeded')return apiError('Stripe is still processing this refund. The order will update when the refund completes.',409,'REFUND_PENDING')
           refundIssued = true
         } catch (err) {
           // Do not flip status to refunded if the refund did not go through.
@@ -74,12 +81,10 @@ export async function PATCH(
           })
         }
       } else {
-        refundNote = `Stripe ${mode} key not configured — status updated but no refund was issued`
-        console.error(refundNote)
+        return apiError('Configure the payment processor before issuing a refund.',409,'PAYMENTS_UNAVAILABLE')
       }
     } else {
-      refundNote = 'Order has no payment intent — status updated but no refund issued'
-      console.error(refundNote)
+      return apiError('This order has no payment reference. Review the payment before refunding.',409,'PAYMENT_MISSING')
     }
   }
 

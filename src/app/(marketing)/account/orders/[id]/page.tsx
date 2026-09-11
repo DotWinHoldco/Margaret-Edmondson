@@ -1,3 +1,5 @@
+import { loadCustomerProgress } from '@/lib/orders/customer-progress'
+import CustomerShipments from '@/components/orders/CustomerShipments'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -24,6 +26,7 @@ function statusLabel(s: string): string {
 }
 
 interface OrderItemRow {
+  purchase_spec?: {title?:string;option_name?:string}
   id: string
   quantity: number
   unit_price: number | null
@@ -66,11 +69,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { data: itemRows } = await admin
     .from('order_items')
     .select(
-      'id, quantity, unit_price, medium, size_label, print_width_in, print_height_in, fulfillment_status, tracking_number, tracking_url, carrier, product:products(title), variant:product_variants(name)',
+      'id, quantity, unit_price, purchase_spec, medium, size_label, print_width_in, print_height_in, fulfillment_status, tracking_number, tracking_url, carrier, product:products(title), variant:product_variants(name)',
     )
     .eq('order_id', id)
   const items = (itemRows || []) as OrderItemRow[]
 
+  const progress = await loadCustomerProgress(admin, order.id)
   const addr = (order.shipping_address || {}) as { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country?: string }
 
   return (
@@ -111,9 +115,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <div key={it.id} className="px-6 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-body text-sm font-medium text-charcoal">{product?.title || 'Item'}</p>
+                      <p className="font-body text-sm font-medium text-charcoal">{it.purchase_spec?.title || product?.title || 'Item'}</p>
                       <p className="mt-0.5 font-body text-xs text-charcoal/55">
-                        {variant?.name ? `${variant.name}` : ''}
+                        {it.purchase_spec?.option_name || variant?.name || ''}
                         {it.medium ? `${variant?.name ? ' · ' : ''}${it.medium.replace(/_/g, ' ')}` : ''}
                         {size ? ` · ${size}` : ''}
                         {` · Qty ${it.quantity}`}
@@ -146,6 +150,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
           </div>
         </div>
+
+        <CustomerShipments progress={progress} />
 
         {/* Totals */}
         <div className="mt-6 ml-auto max-w-xs space-y-1.5 font-body text-sm">

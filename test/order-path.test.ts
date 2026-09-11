@@ -1,3 +1,4 @@
+vi.mock('@/lib/supabase/server', () => ({ createServiceClient: async () => ({ rpc: async () => ({ data: {lumaprints_enabled:true,version:1,shipping_mode:'included',shipping_fee_cents:0,lead_days:10,ship_akhi:true},error:null }) }) }))
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { grossMarginPct, customerPriceCents } from '@/lib/pricing/variant-pricing'
 import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'

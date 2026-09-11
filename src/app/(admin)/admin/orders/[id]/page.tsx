@@ -1,3 +1,4 @@
+import StudioOrderPanel from '@/components/admin/StudioOrderPanel'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -219,7 +220,8 @@ export default async function AdminOrderDetailPage(
             </div>
 
             {/* Shipping & Tracking (self-ship + provider items) */}
-            <OrderFulfillmentPanel items={fulfillmentItems} />
+            <StudioOrderPanel orderId={id} />
+            <OrderFulfillmentPanel items={fulfillmentItems.filter((item: { fulfillment_type: string }) => item.fulfillment_type !== 'self_ship')} />
 
             {/* Shipping Address */}
             {shippingAddress && (

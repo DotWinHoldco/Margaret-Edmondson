@@ -25,6 +25,9 @@ export async function PATCH(
     return apiError('Please provide a valid request.', 400, 'INVALID_BODY')
   }
 
+  const {data: item, error: readError} = await auth.supabase.from('order_items').select('fulfillment_type').eq('id',id).single()
+  if(readError)return dbFail(readError)
+  if(item.fulfillment_type==='self_ship')return apiError('Record studio packages in Studio work so quantities and customer tracking stay accurate.',409,'USE_STUDIO_SHIPMENT')
   const updates: Record<string, unknown> = {}
   if (typeof body.tracking_number === 'string') updates.tracking_number = body.tracking_number.trim() || null
   if (typeof body.tracking_url === 'string') updates.tracking_url = body.tracking_url.trim() || null

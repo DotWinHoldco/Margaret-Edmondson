@@ -54,14 +54,14 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
   // Print gate mirrors the storefront ProductDetail: only offer prints when the
   // master file is print-ready and the variant is live (is_active +
   // is_lumaprints_available). Otherwise a print order would fail at LumaPrints.
-  const printVariants = masterReady
-    ? variants.filter(
+  const printVariants = variants.filter(
         (v) =>
           (v.variant_type === 'canvas_print' || v.variant_type === 'framed_canvas_print') &&
+          (masterReady || v.fulfillment_type === 'self_ship') &&
           v.is_active !== false &&
           v.is_lumaprints_available !== false,
       )
-    : []
+
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
   const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
@@ -73,7 +73,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
   const offerRef = useRef<HTMLElement>(null)
   const scrollToOffer = () => offerRef.current?.scrollIntoView({ behavior: 'smooth' })
 
-  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string }) => {
+  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string; fulfillment_type?: string; shipping_mode?: 'included' | 'flat' | 'integration'; shipping_fee_cents?: number }) => {
     // Funnel analytics: count the add-to-cart for this funnel. (D-4)
     fetch(`/api/funnels/${funnel.id}/track`, {
       method: 'POST',
@@ -90,7 +90,9 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
         image: heroImage?.url || '',
         price: variant.price,
         quantity: 1,
-        fulfillmentType: variant.variant_type === 'original' ? 'self_ship' : 'lumaprints',
+        fulfillmentType: variant.fulfillment_type || (variant.variant_type === 'original' ? 'self_ship' : 'lumaprints'),
+        shippingMode: variant.shipping_mode,
+        shippingFeeCents: variant.shipping_fee_cents,
       },
     })
   }

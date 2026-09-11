@@ -64,6 +64,7 @@ const elementsFonts = [
 
 interface IntentResponse {
   clientSecret: string
+  items: Array<{productId:string;variantId:string;title:string;quantity:number;price:number}>
   amountCents: number
   mode: 'test' | 'live'
   summary: { subtotal: number; discount: number; surcharge: number; tax: number; total: number }
@@ -75,6 +76,7 @@ interface Handoff {
   email: string
   promoCode: string
   surchargeLabel: string
+  zip: string
 }
 
 function readHandoff(): Handoff {
@@ -86,12 +88,13 @@ function readHandoff(): Handoff {
         email: typeof parsed.email === 'string' ? parsed.email : '',
         promoCode: typeof parsed.promoCode === 'string' ? parsed.promoCode : '',
         surchargeLabel: typeof parsed.surchargeLabel === 'string' ? parsed.surchargeLabel : '',
+        zip: typeof parsed.zip === 'string' ? parsed.zip : '',
       }
     }
   } catch {
     /* ignore */
   }
-  return { email: '', promoCode: '', surchargeLabel: '' }
+  return { email: '', promoCode: '', surchargeLabel: '', zip: '' }
 }
 
 function formatUsd(cents: number): string {
@@ -124,7 +127,7 @@ export default function CheckoutPage() {
   }, [state.email])
 
   const buildCheckoutBody = useCallback(() => {
-    const h = handoff ?? { email: '', promoCode: '', surchargeLabel: '' }
+    const h = handoff ?? { email: '', promoCode: '', surchargeLabel: '', zip: '' }
     return {
       items: state.items.map((item) => ({
         productId: item.productId,
@@ -135,6 +138,7 @@ export default function CheckoutPage() {
       cartToken: state.cartToken,
       promoCode: h.promoCode || undefined,
       shippingSurchargeLabel: h.surchargeLabel || undefined,
+      destination: { country: 'US', zip: h.zip },
       funnelId: readFunnelAttribution() || undefined,
     }
   }, [handoff, state.items, state.email, state.cartToken])
@@ -293,7 +297,7 @@ export default function CheckoutPage() {
             stripe={stripeJs}
             options={{ clientSecret: intent.clientSecret, appearance, fonts: elementsFonts }}
           >
-            <CheckoutForm email={email} setEmail={setEmail} totalCents={intent.summary.total} />
+            <CheckoutForm email={email} setEmail={setEmail} totalCents={intent.summary.total} clientSecret={intent.clientSecret} />
           </Elements>
 
           <OrderSummary intent={intent} promoCode={handoff?.promoCode || ''} />
@@ -307,10 +311,12 @@ function CheckoutForm({
   email,
   setEmail,
   totalCents,
+  clientSecret,
 }: {
   email: string
   setEmail: (v: string) => void
   totalCents: number
+  clientSecret: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -327,6 +333,13 @@ function CheckoutForm({
     }
     setSubmitting(true)
     setPayError('')
+    const address = await elements.getElement('address')?.getValue()
+    if (!address?.complete) {setPayError('Complete your shipping address.');setSubmitting(false);return}
+    try {
+      const response = await fetch('/api/checkout/verify', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientSecret, destination:{country:address.value.address.country,zip:address.value.address.postal_code,state:address.value.address.state,city:address.value.address.city}})})
+      const result = await response.json()
+      if(!response.ok) throw new Error(result.error||'Please review your cart before paying.')
+    } catch(e) {setPayError(e instanceof Error?e.message:'Could not verify your order.');setSubmitting(false);return}
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -414,7 +427,8 @@ function OrderSummary({ intent, promoCode }: { intent: IntentResponse; promoCode
         <div className="mt-1 w-10 h-px bg-gold" />
 
         <ul className="mt-5 divide-y divide-charcoal/10">
-          {state.items.map((item) => {
+          {intent.items.map((purchased) => {
+            const item = {...state.items.find(i=>i.variantId===purchased.variantId),...purchased}
             const key = item.variantId || item.productId
             return (
               <li key={key} className="flex items-center gap-3 py-3">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCart } from '@/lib/cart/context'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -36,16 +36,16 @@ export default function CartPage() {
   const [surchargeLabel, setSurchargeLabel] = useState<string | null>(null)
   const [quoting, setQuoting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
+  const quoteRequest=useRef<AbortController|null>(null)
   const [emailDraft, setEmailDraft] = useState(state.email || '')
   const [promoInput, setPromoInput] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; amountOffCents: number; discountValue: number; discountType: 'percentage' | 'fixed' | null } | null>(null)
   const [promoChecking, setPromoChecking] = useState(false)
   const [promoError, setPromoError] = useState('')
   const [showPromo, setShowPromo] = useState(false)
-  const [showShipping, setShowShipping] = useState(false)
+  const [showShipping, setShowShipping] = useState(true)
 
-  // US-only shipping; the surcharge quote applies to AK/HI ZIPs.
-  const needsSurcharge = /^(99[5-9]\d{2}|96[7-8]\d{2})/.test(zip)
+
   // Recompute the displayed discount from the CURRENT subtotal so a percentage
   // code stays correct after a quantity change (checkout re-prices the same
   // way). A fixed code is only capped by the subtotal.
@@ -54,7 +54,7 @@ export default function CartPage() {
       ? Math.min(subtotal, Math.round(subtotal * appliedPromo.discountValue) / 100)
       : Math.min(subtotal, appliedPromo.amountOffCents / 100)
     : 0
-  const shippingUsd = needsSurcharge && surcharge ? surcharge : 0
+  const shippingUsd = surcharge ?? state.items.reduce((sum,i)=>sum+(i.shippingMode==='flat'?(i.shippingFeeCents||0)*i.quantity/100:0),0)
   const total = Math.max(0, subtotal - discountUsd + shippingUsd)
 
   async function fetchSurcharge() {
@@ -62,7 +62,9 @@ export default function CartPage() {
     setSurcharge(null)
     setSurchargeLabel(null)
     if (!zip.trim()) return
-    if (!needsSurcharge) return
+    quoteRequest.current?.abort()
+    const controller=new AbortController()
+    quoteRequest.current=controller
     setQuoting(true)
     try {
       const variantItems = state.items
@@ -70,23 +72,23 @@ export default function CartPage() {
         .map((i) => ({ variantId: i.variantId!, quantity: i.quantity }))
       if (variantItems.length === 0) return
       const res = await fetch('/api/cart/shipping-quote', {
+        signal:controller.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country: 'US', zip, items: variantItems, cartToken: state.cartToken }),
       })
       const data = await res.json()
+      if(controller.signal.aborted)return
       if (!res.ok) throw new Error(data.error || 'Could not quote shipping')
       if (data.cartToken) setCartToken(data.cartToken)
       setSurcharge(data.surcharge || 0)
-      const label =
-        data.zone === 'AK' ? 'Alaska shipping surcharge'
-        : data.zone === 'HI' ? 'Hawaii shipping surcharge'
-        : 'Outside contiguous US shipping surcharge'
+      const label = 'Shipping'
+      if (Array.isArray(data.items)) dispatch({type:'QUOTE_PRICES',payload:data.items})
       setSurchargeLabel(label)
     } catch (err) {
-      setQuoteError(err instanceof Error ? err.message : 'Could not quote shipping')
+      if(!controller.signal.aborted)setQuoteError(err instanceof Error ? err.message : 'Could not quote shipping')
     } finally {
-      setQuoting(false)
+      if(quoteRequest.current===controller)setQuoting(false)
     }
   }
 
@@ -134,7 +136,11 @@ export default function CartPage() {
     setPromoError('')
   }
 
+  const quoteItemsKey = state.items.map(i=>`${i.variantId}:${i.quantity}`).join('|')
+  useEffect(()=>{setSurcharge(null);quoteRequest.current?.abort()},[quoteItemsKey,zip])
+
   function handleCheckout() {
+    if (!/^\d{5}(-\d{4})?$/.test(zip) || surcharge === null) {setError('Enter your shipping ZIP code and calculate shipping before checkout.');setShowShipping(true);return}
     setLoading(true)
     setError('')
 
@@ -164,6 +170,7 @@ export default function CartPage() {
           email: trimmedEmail || state.email || '',
           promoCode: appliedPromo?.code || '',
           surchargeLabel: surchargeLabel || '',
+          zip,
         })
       )
     } catch {
@@ -371,7 +378,7 @@ export default function CartPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-3.5 w-3.5 text-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" /></svg>
-                  Free shipping in the contiguous US
+                  Shipping shown before payment
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-3.5 w-3.5 text-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -428,11 +435,11 @@ export default function CartPage() {
                 <Collapsible
                   open={showShipping}
                   onToggle={() => setShowShipping((v) => !v)}
-                  label="Shipping to Alaska or Hawaii?"
-                  active={!!(needsSurcharge && surcharge != null)}
+                  label="Shipping destination"
+                  active={surcharge != null}
                 >
                   <p className="font-body text-xs text-charcoal/55">
-                    Shipping is included for the contiguous US. Alaska and Hawaii incur a calculated surcharge — quote it here and I&rsquo;ll add it at checkout.
+                    Enter your United States ZIP code to verify shipping for these artworks. Included items add no shipping charge; flat fees apply per item.
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <input
@@ -440,27 +447,25 @@ export default function CartPage() {
                       inputMode="numeric"
                       value={zip}
                       onChange={(e) => { setZip(e.target.value); setSurcharge(null); setSurchargeLabel(null) }}
-                      placeholder="ZIP"
+                      aria-label="Shipping ZIP code" placeholder="ZIP"
                       className="rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal placeholder:text-charcoal/35 focus:border-teal focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={fetchSurcharge}
-                      disabled={quoting || !zip.trim() || !needsSurcharge}
+                      disabled={quoting || !zip.trim()}
                       className="rounded-sm border border-charcoal/15 bg-white px-2 py-1.5 font-body text-xs text-charcoal hover:bg-charcoal/5 disabled:opacity-40"
                     >
-                      {quoting ? '…' : 'Quote'}
+                      {quoting ? '…' : 'Calculate'}
                     </button>
                   </div>
-                  {needsSurcharge && surcharge != null && (
+                  {surcharge != null && (
                     <p className="mt-2 font-body text-xs text-charcoal/60">{surchargeLabel}: {formatUsd(surcharge)}</p>
                   )}
                   {quoteError && (
                     <p className="mt-2 font-body text-xs text-coral">{quoteError}</p>
                   )}
-                  {!needsSurcharge && zip.trim() && (
-                    <p className="mt-2 font-body text-xs text-teal">Contiguous US — no surcharge.</p>
-                  )}
+
                 </Collapsible>
 
                 <div className="rounded-sm border border-charcoal/10 bg-charcoal/[0.02] px-3 py-2.5">

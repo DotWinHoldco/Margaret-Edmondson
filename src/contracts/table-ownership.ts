@@ -28,6 +28,12 @@ export const tableOwnership = {
 
   // commerce
   orders: { owner: 'commerce', class: 'core' },
+  studio_variant_details: { owner: 'catalog', class: 'core' },
+  studio_jobs: { owner: 'commerce', class: 'core' },
+  order_shipments: { owner: 'commerce', class: 'core' },
+  order_shipment_items: { owner: 'commerce', class: 'core' },
+  studio_order_events: { owner: 'commerce', class: 'recoverable' },
+  studio_notifications: { owner: 'email', class: 'recoverable' },
   order_items: { owner: 'commerce', class: 'core' },
   carts: { owner: 'commerce', class: 'core' },
   wishlist_items: { owner: 'commerce', class: 'recoverable' },

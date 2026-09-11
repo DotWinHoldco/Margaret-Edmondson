@@ -1,3 +1,5 @@
+import { cheapestPrintPrice, availableOriginalPrice } from '@/lib/product-utils'
+import { resolveStorefrontProducts } from '@/lib/fulfillment/storefront'
 import { createClient } from './server'
 import { loadPublicPrintReadiness, storefrontMaster } from '@/lib/products/print-readiness'
 
@@ -41,20 +43,33 @@ export async function getPageBlocks(page: string) {
     .eq('is_visible', true)
     .order('sort_order', { ascending: true })
 
-  return data || []
+  const blocks=data||[]
+  const ids=blocks.filter(b=>b.block_type==='featured_grid').flatMap(b=>((b.config?.products||[]) as Array<{id:string}>).map(p=>p.id)).filter(id=>/^[0-9a-f-]{36}$/i.test(id))
+  if(!ids.length)return blocks
+  const {data:catalog}=await supabase.from('products').select('*,product_variants(*)').in('id',ids).in('status',['active','sold'])
+  const resolved=await resolveStorefrontProducts(supabase,catalog||[])
+  const readiness=await loadPublicPrintReadiness(supabase,ids)
+  const labels=new Map(resolved.map(p=>{
+    const product={...p,master_artwork:storefrontMaster(readiness.data.get(p.id))}
+    const print=cheapestPrintPrice(product),original=availableOriginalPrice(product)
+    return [p.id,print!==null?'From $'+print.toFixed(2):original!==null?'$'+original.toFixed(2):'View options']
+  }))
+  return blocks.map(b=>b.block_type==='featured_grid'?{...b,config:{...b.config,products:((b.config?.products||[]) as Array<{id:string}>).map(p=>({...p,display_price_label:labels.get(p.id)||'View options'}))}}:b)
 }
 
 export async function getFeaturedProducts(limit = 4) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('products')
-    .select('*, product_images(*)')
+    .select('*, product_images(*), product_variants(*)')
     .eq('is_featured', true)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  return data || []
+  const products = await resolveStorefrontProducts(supabase, data || [])
+  const readiness = await loadPublicPrintReadiness(supabase, products.map(p=>p.id))
+  return products.map(p=>({...p,master_artwork:storefrontMaster(readiness.data.get(p.id))}))
 }
 
 export async function getFeaturedTestimonials() {
@@ -91,7 +106,7 @@ export async function getProducts(options?: {
   const supabase = await createClient()
   let query = supabase
     .from('products')
-    .select('*, product_images(*), categories!products_category_id_fkey(id, name, slug), product_variants(id, variant_type, inventory_count, price, medium, is_active, is_lumaprints_available)', { count: 'exact' })
+    .select('*, product_images(*), categories!products_category_id_fkey(id, name, slug), product_variants(*)', { count: 'exact' })
     .eq('status', 'active')
 
   if (options?.category) {
@@ -113,7 +128,7 @@ export async function getProducts(options?: {
   if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 12) - 1)
 
   const { data, count } = await query
-  const products = data || []
+  const products = await resolveStorefrontProducts(supabase, data || [])
   const readiness = await loadPublicPrintReadiness(supabase, products.map((product) => product.id))
   if (readiness.error) console.error('Storefront print readiness lookup failed', readiness.error)
   return {
@@ -137,7 +152,8 @@ export async function getProductBySlug(slug: string) {
   if (!data) return data
   const readiness = await loadPublicPrintReadiness(supabase, [data.id])
   if (readiness.error) console.error('Product print readiness lookup failed', readiness.error)
-  return { ...data, master_artwork: storefrontMaster(readiness.data.get(data.id)) }
+  const [resolved] = await resolveStorefrontProducts(supabase, [data])
+  return { ...resolved, master_artwork: storefrontMaster(readiness.data.get(data.id)) }
 }
 
 export async function getPublishedBlogPosts(limit?: number) {
@@ -198,7 +214,7 @@ export async function getProductsByCategory(categorySlug: string) {
 
   const { data: products } = await supabase
     .from('products')
-    .select('*, product_images(*), product_variants(id, variant_type, inventory_count, price, medium, is_active, is_lumaprints_available)')
+    .select('*, product_images(*), product_variants(*)')
     .in('id', productIds)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -209,7 +225,8 @@ export async function getProductsByCategory(categorySlug: string) {
   // column-major to lay out like-sized pieces into the same visual row.
   const readiness = await loadPublicPrintReadiness(supabase, (products || []).map((product) => product.id))
   if (readiness.error) console.error('Collection print readiness lookup failed', readiness.error)
-  const hydratedProducts = (products || []).map((product) => ({
+  const resolvedProducts = await resolveStorefrontProducts(supabase, products || [])
+  const hydratedProducts = resolvedProducts.map((product) => ({
     ...product,
     master_artwork: storefrontMaster(readiness.data.get(product.id)),
   }))

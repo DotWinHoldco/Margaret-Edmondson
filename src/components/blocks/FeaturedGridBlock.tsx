@@ -10,6 +10,7 @@ interface FeaturedProduct {
   title: string
   slug: string
   base_price: number
+  display_price_label?: string
   image_url: string
   medium?: string
   width?: number
@@ -86,7 +87,7 @@ export default function FeaturedGridBlock({ config }: { config: Record<string, u
                     )}
                     {showPrices && (
                       <p className="font-body text-sm text-charcoal/70 mt-2">
-                        ${product.base_price.toFixed(2)}
+                        {product.display_price_label || 'View options'}
                       </p>
                     )}
                   </div>

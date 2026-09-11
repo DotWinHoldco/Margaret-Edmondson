@@ -1,3 +1,4 @@
+import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
 import { requireCron } from '@/lib/auth/require-cron'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getOrder, getShipments, lumaprintsConfigured } from '@/lib/integrations/lumaprints'
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createServiceClient()
+  if (!(await getFulfillmentPolicy(supabase)).lumaprints_enabled) return Response.json({ skipped: 'Lumaprints is off' })
 
   // In-flight items awaiting a shipping update.
   const { data: items, error } = await supabase

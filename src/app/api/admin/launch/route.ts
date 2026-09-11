@@ -7,9 +7,10 @@ import {
   type LaunchChecklist,
 } from '@/lib/launch/steps'
 
-const SELECT = 'launch_checklist, launch_modal_hidden, gate_enabled, launch_notes'
+const SELECT = 'lumaprints_enabled, launch_checklist, launch_modal_hidden, gate_enabled, launch_notes'
 
 interface LaunchRow {
+  lumaprints_enabled: boolean
   launch_checklist: LaunchChecklist | null
   launch_modal_hidden: boolean | null
   gate_enabled: boolean | null
@@ -17,8 +18,9 @@ interface LaunchRow {
 }
 
 function shape(row: LaunchRow) {
-  const missing = missingPrepSteps(row.launch_checklist)
+  const missing = missingPrepSteps(row.launch_checklist, row.lumaprints_enabled)
   return {
+    lumaprintsEnabled: row.lumaprints_enabled,
     steps: row.launch_checklist || {},
     hidden: row.launch_modal_hidden === true,
     gateEnabled: row.gate_enabled !== false,

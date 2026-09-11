@@ -40,7 +40,6 @@ const BOOL_FIELDS = [
   'tax_enabled',
   'announcement_bar_enabled',
   'maintenance_mode',
-  'lumaprints_enabled',
   'printful_enabled',
   'shipstation_enabled',
   'meta_pixel_enabled',

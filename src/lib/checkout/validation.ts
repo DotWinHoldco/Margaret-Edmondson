@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { getFulfillmentPolicy, isStudioReady, resolveProvider, resolveShipping, studioPriceCents, STUDIO_PRODUCT_COLUMNS, STUDIO_VARIANT_COLUMNS, type FulfillmentPolicy, type StudioFields, type ShippingMode } from '@/lib/fulfillment/policy'
 import { CART_TOKEN_MAX_LENGTH } from '@/lib/cart/token'
 import { checkFulfillable } from '@/lib/fulfillment/fulfillability'
 import { loadPublicPrintReadiness, storefrontMaster } from '@/lib/products/print-readiness'
@@ -29,6 +30,7 @@ const checkoutRequestSchema = z.object({
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(64).nullable(),
   ),
+  destination: z.object({ country: z.literal('US'), zip: z.string().regex(/^\d{5}(-\d{4})?$/), state: z.string().max(2).optional(), city: z.string().max(100).optional() }).optional(),
   shippingSurchargeLabel: z.preprocess(
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(120).nullable(),
@@ -56,11 +58,33 @@ const checkoutRequestSchema = z.object({
 export type CheckoutRequestInput = z.infer<typeof checkoutRequestSchema>
 export type CheckoutItemInput = CheckoutRequestInput['items'][number]
 
+export interface PurchaseSpec {
+  kind: 'original' | 'print'
+  title: string
+  option_name: string
+  medium: string | null
+  size_label: string | null
+  width_in: number | null
+  height_in: number | null
+  details: Record<string, unknown>
+  lead_days: number
+  subcategory_id: number | null
+  option_ids: number[]
+  included_shipping_cents: number
+}
+
 export interface ValidatedCheckoutItem extends CheckoutItemInput {
   title: string
   price: number
   variantType: string | null
   fulfillmentType: string
+  snapshotVersion?: number
+  policyVersion?: number
+  shippingMode?: ShippingMode
+  shippingFeeCents?: number
+  shippingTotalCents?: number
+  purchaseSpec?: PurchaseSpec
+  printStoragePath?: string | null
 }
 
 export interface CheckoutValidationError {
@@ -80,7 +104,7 @@ interface MasterRecord {
   print_height_px: number | null
 }
 
-export interface CheckoutProductRecord {
+export interface CheckoutProductRecord extends StudioFields {
   id: string
   title: string
   status: string | null
@@ -90,7 +114,7 @@ export interface CheckoutProductRecord {
   master_artwork: MasterRecord | MasterRecord[] | null
 }
 
-export interface CheckoutVariantRecord {
+export interface CheckoutVariantRecord extends StudioFields {
   id: string
   product_id: string | null
   name: string
@@ -100,6 +124,8 @@ export interface CheckoutVariantRecord {
   is_active: boolean
   is_lumaprints_available: boolean
   lumaprints_cost_cents: number | null
+  shipping_cost_cents?: number | null
+  size_label?: string | null
   medium: string | null
   width_in: number | null
   height_in: number | null
@@ -142,6 +168,7 @@ export function validateCheckoutCatalog(
   products: CheckoutProductRecord[],
   variants: CheckoutVariantRecord[],
   mediums: CheckoutMediumRecord[],
+  policy?: FulfillmentPolicy,
 ): ValidationResult<ValidatedCheckoutItem[]> {
   const productById = new Map(products.map((product) => [product.id, product]))
   const variantById = new Map(variants.map((variant) => [variant.id, variant]))
@@ -150,7 +177,7 @@ export function validateCheckoutCatalog(
 
   for (const item of items) {
     const product = productById.get(item.productId)
-    if (!product || product.status !== 'active') {
+    if (!product || !['active','sold'].includes(product.status || '')) {
       return validationError(
         409,
         'product_unavailable',
@@ -159,7 +186,9 @@ export function validateCheckoutCatalog(
     }
 
     const variant = variantById.get(item.variantId)
-    if (!variant || variant.product_id !== product.id || variant.is_active !== true) {
+    const provider = variant && policy ? resolveProvider(policy, product.fulfillment_type, variant) : undefined
+    const studio = provider === 'self_ship' && variant?.variant_type !== 'original'
+    if (!variant || variant.product_id !== product.id || (studio ? variant.studio_is_active !== true : variant.is_active !== true)) {
       return validationError(
         409,
         'variant_unavailable',
@@ -167,7 +196,7 @@ export function validateCheckoutCatalog(
       )
     }
 
-    const price = Number(variant.price)
+    const price = studio ? studioPriceCents(variant) / 100 : Number(variant.price)
     if (!Number.isFinite(price) || price <= 0) {
       return validationError(
         409,
@@ -192,6 +221,8 @@ export function validateCheckoutCatalog(
           `"${product.title}" original is no longer available.`,
         )
       }
+    } else if (studio) {
+      if (!product.prints_enabled || !isStudioReady(variant)) return validationError(409, 'variant_unfulfillable', `The selected print option for "${product.title}" is not ready for production.`)
     } else {
       const master = Array.isArray(product.master_artwork)
         ? product.master_artwork[0]
@@ -224,12 +255,18 @@ export function validateCheckoutCatalog(
       }
     }
 
+    const shipping = policy ? resolveShipping(policy, product, variant, provider!) : null
+    const medium = variant.medium ? mediumByName.get(variant.medium) : undefined
     validated.push({
       ...item,
       title: `${product.title} — ${variant.name}`,
       price,
       variantType: variant.variant_type,
-      fulfillmentType: isOriginal ? 'self_ship' : (product.fulfillment_type || 'lumaprints'),
+      fulfillmentType: provider || (isOriginal ? 'self_ship' : (product.fulfillment_type || 'lumaprints')),
+      ...(policy && shipping ? {
+        snapshotVersion: 2, policyVersion: policy.version, shippingMode: shipping.mode, shippingFeeCents: shipping.feeCents,
+        purchaseSpec: {kind: isOriginal ? 'original' as const : 'print' as const, title: product.title, option_name: variant.name, medium: variant.medium, size_label: variant.size_label ?? null, width_in: variant.width_in, height_in: variant.height_in, details: variant.studio_specs || {}, lead_days: variant.studio_lead_days ?? product.studio_lead_days ?? policy.lead_days, subcategory_id: medium?.subcategory_id ?? null, option_ids: medium?.option_ids ?? [], included_shipping_cents: variant.shipping_cost_cents || 0},
+      } : {}),
     })
   }
 
@@ -240,18 +277,20 @@ export function validateCheckoutCatalog(
 export async function validateAndPriceCheckoutItems(
   supabase: SupabaseClient,
   items: CheckoutItemInput[],
+  suppliedPolicy?: FulfillmentPolicy,
 ): Promise<ValidationResult<ValidatedCheckoutItem[]>> {
+  const policy = suppliedPolicy ?? await getFulfillmentPolicy(supabase)
   const productIds = [...new Set(items.map((item) => item.productId))]
   const variantIds = [...new Set(items.map((item) => item.variantId))]
 
   const [productResult, variantResult] = await Promise.all([
     supabase
       .from('products')
-      .select('id, title, status, base_price, fulfillment_type, prints_enabled')
+      .select(`id, title, status, base_price, fulfillment_type, prints_enabled, ${STUDIO_PRODUCT_COLUMNS}`)
       .in('id', productIds),
     supabase
       .from('product_variants')
-      .select('id, product_id, name, price, variant_type, inventory_count, is_active, is_lumaprints_available, lumaprints_cost_cents, medium, width_in, height_in')
+      .select(`id, product_id, name, price, variant_type, inventory_count, is_active, is_lumaprints_available, lumaprints_cost_cents, shipping_cost_cents, medium, size_label, width_in, height_in, ${STUDIO_VARIANT_COLUMNS}`)
       .in('id', variantIds),
   ])
 
@@ -279,7 +318,7 @@ export async function validateAndPriceCheckoutItems(
     variants.map((variant) => variant.medium).filter((medium): medium is string => Boolean(medium)),
   )]
   let mediums: CheckoutMediumRecord[] = []
-  if (mediumNames.length > 0) {
+  if (policy.lumaprints_enabled && mediumNames.length > 0) {
     const mediumResult = await supabase
       .from('lumaprints_mediums')
       .select('medium, subcategory_id, option_ids, enabled')
@@ -303,5 +342,6 @@ export async function validateAndPriceCheckoutItems(
     })) as CheckoutProductRecord[],
     variants,
     mediums,
+    policy,
   )
 }

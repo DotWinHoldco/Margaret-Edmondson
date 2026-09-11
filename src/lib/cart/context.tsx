@@ -1,5 +1,6 @@
 'use client'
 
+import { applyQuotedPrices, type QuotedPrice } from './quoted-prices'
 import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { track } from '@/lib/meta/track'
 
@@ -12,6 +13,8 @@ export interface CartItem {
   price: number
   quantity: number
   fulfillmentType: string
+  shippingMode?: 'included' | 'flat' | 'integration'
+  shippingFeeCents?: number
 }
 
 interface CartState {
@@ -35,6 +38,7 @@ type CartAction =
   | { type: 'TOGGLE_CART' }
   | { type: 'SET_OPEN'; payload: boolean }
   | { type: 'LOAD'; payload: CartItem[] }
+  | { type: 'QUOTE_PRICES'; payload: QuotedPrice[] }
   | { type: 'SET_EMAIL'; payload: string | null }
   | { type: 'SET_CART_TOKEN'; payload: string | null }
 
@@ -84,6 +88,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, isOpen: !state.isOpen }
     case 'SET_OPEN':
       return { ...state, isOpen: action.payload }
+    case 'QUOTE_PRICES':
+      return {...state,items:applyQuotedPrices(state.items,action.payload)}
     case 'LOAD':
       return { ...state, items: action.payload }
     case 'SET_EMAIL':

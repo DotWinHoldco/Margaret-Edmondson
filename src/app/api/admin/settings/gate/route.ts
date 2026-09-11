@@ -4,13 +4,14 @@ import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { clearGateConfigCache } from '@/lib/gate/config'
 import { missingPrepSteps } from '@/lib/launch/steps'
 
-const SELECT = 'gate_enabled, gate_password, gate_secret, gate_cookie_hours, launch_checklist'
+const SELECT = 'lumaprints_enabled, gate_enabled, gate_password, gate_secret, gate_cookie_hours, launch_checklist'
 
 interface GateRow {
   gate_enabled: boolean | null
   gate_password: string | null
   gate_secret: string | null
   gate_cookie_hours: number | null
+  lumaprints_enabled: boolean
   launch_checklist: unknown
 }
 
@@ -28,7 +29,7 @@ function shape(row: GateRow) {
     password: row.gate_password || '',
     cookieHours: row.gate_cookie_hours ?? 720,
     secretSet: Boolean(row.gate_secret),
-    missingPrepSteps: missingPrepSteps(row.launch_checklist),
+    missingPrepSteps: missingPrepSteps(row.launch_checklist, row.lumaprints_enabled),
   }
 }
 
@@ -83,7 +84,7 @@ export async function PATCH(request: NextRequest) {
       if (body.enabled === false && row.gate_enabled !== false) {
         // Going live is deliberately blocked until the owner has worked
         // through every prep step in the launch sequence.
-        const missing = missingPrepSteps(row.launch_checklist)
+        const missing = missingPrepSteps(row.launch_checklist, row.lumaprints_enabled)
         if (missing.length > 0) {
           return Response.json(
             {

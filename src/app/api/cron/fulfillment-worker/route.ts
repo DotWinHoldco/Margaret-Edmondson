@@ -1,3 +1,4 @@
+import { drainStudioNotifications } from '@/lib/fulfillment/studio-notifications'
 import { requireCron } from '@/lib/auth/require-cron'
 import { createServiceClient } from '@/lib/supabase/server'
 import { routeOrderToFulfillment } from '@/lib/fulfillment/router'
@@ -45,6 +46,13 @@ export async function GET(request: Request) {
     failed: 0,
     needsAttention: 0,
     errors: [] as string[],
+  }
+
+  try {
+    await drainStudioNotifications(supabase)
+  } catch (error) {
+    summary.errors.push('Studio notification delivery failed; queued messages will retry.')
+    console.error('Studio notifications:', error)
   }
 
   // 0) Requeue jobs stuck in 'running' past the timeout (a worker that crashed

@@ -1,9 +1,11 @@
+import { getFulfillmentPolicy } from './policy'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   submitOrder as lumaprintsSubmitOrder,
   checkImageConfig,
   LumaprintsApiError,
+  LumaprintsDisabledError,
   type LumaprintsRecipient,
 } from '@/lib/integrations/lumaprints'
 import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
@@ -39,6 +41,7 @@ interface MasterArtwork {
 }
 
 interface OrderItem {
+  policy_version?: number | null
   id: string
   order_id: string
   product_id: string
@@ -188,7 +191,7 @@ async function validateLumaprintsItem(
   if (!medium) return { ok: false, reason: 'order_item.medium not set (no print snapshot)' }
 
   const cfg = mediumsByKey.get(medium)
-  if (cfg && cfg.enabled === false) {
+  if (!item.lumaprints_subcategory_id && cfg && cfg.enabled === false) {
     return { ok: false, reason: `medium "${medium}" is disabled` }
   }
 
@@ -204,8 +207,8 @@ async function validateLumaprintsItem(
   }
 
   const optionIds =
-    item.lumaprints_option_ids && item.lumaprints_option_ids.length
-      ? item.lumaprints_option_ids
+    item.policy_version != null || (item.lumaprints_option_ids && item.lumaprints_option_ids.length)
+      ? item.lumaprints_option_ids || []
       : cfg?.option_ids || []
 
   if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postal_code) {
@@ -437,6 +440,14 @@ export async function routeOrderToFulfillment(
 ): Promise<FulfillmentResult[]> {
   const { includeValidationFailures = true, suppressFailureAlert = false } = opts
   const supabase = await createServiceClient()
+  const policy = await getFulfillmentPolicy(supabase)
+  if (!policy.lumaprints_enabled) {
+    const { error } = await supabase.from('order_items').update({ fulfillment_status: 'paused' }).eq('order_id', orderId).eq('fulfillment_type', 'lumaprints').in('fulfillment_status', ['pending','failed','failed_validation'])
+    if (error) throw error
+  }
+  const { error: studioError } = await supabase.rpc('start_studio_fulfillment', { p_order_id: orderId })
+  if (studioError) throw studioError
+
 
   // P2-2: which item states this pass may (re)claim. The automatic caller (the
   // fulfillment worker) passes includeValidationFailures:false so a LumaPrints 406
@@ -450,13 +461,15 @@ export async function routeOrderToFulfillment(
   // Fetch order
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, shipping_address')
+    .select('id, shipping_address, fulfillment_hold_reason')
     .eq('id', orderId)
     .single()
 
   if (orderError || !order) {
     throw new Error(`Order not found: ${orderId}`)
   }
+
+  if (order.fulfillment_hold_reason) return []
 
   // Fetch order items with product + master artwork + images + variant
   const { data: orderItems, error: itemsError } = await supabase
@@ -514,13 +527,9 @@ export async function routeOrderToFulfillment(
     // skips submission, so the provider order is created at most once. An item
     // left in 'submitting' (process killed mid-call) is a visible state for
     // reconciliation, never a silent double-submit.
-    const { data: claimedRows } = await supabase
-      .from('order_items')
-      .update({ fulfillment_status: 'submitting' })
-      .in('id', groupItems.map((i) => i.id))
-      .in('fulfillment_status', CLAIMABLE)
-      .select('id')
-    const claimedIds = new Set((claimedRows || []).map((r) => r.id))
+    const { data: claimedRows, error: claimError } = await supabase.rpc('claim_fulfillment_items', { p_item_ids: groupItems.map(i => i.id) })
+    if (claimError) throw claimError
+    const claimedIds = new Set((claimedRows || []).map((r: { id: string }) => r.id))
     const items = groupItems.filter((it) => claimedIds.has(it.id))
     if (items.length === 0) continue // another run owns these items
 
@@ -659,7 +668,7 @@ export async function routeOrderToFulfillment(
       // validation failure (admin can re-crop the master + refire), not a
       // transient failure, and capture the expected-vs-actual dims in the log.
       const is406 = err instanceof LumaprintsApiError && err.status === 406
-      const failStatus = is406 ? 'failed_validation' : 'failed'
+      const failStatus = err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed'
       console.error(
         `Fulfillment submission failed for ${provider}:`,
         errorMessage,
@@ -753,7 +762,7 @@ export async function retryFulfillmentForItem(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, shipping_address')
+    .select('id, shipping_address, fulfillment_hold_reason')
     .eq('id', item.order_id)
     .single()
 
@@ -768,13 +777,9 @@ export async function retryFulfillmentForItem(
   // FIN-2: atomically claim this item before the provider call. If it is not in
   // a claimable state (already 'submitting' or 'submitted'), skip rather than
   // submit a duplicate provider order.
-  const { data: claimed } = await supabase
-    .from('order_items')
-    .update({ fulfillment_status: 'submitting' })
-    .eq('id', itemId)
-    .in('fulfillment_status', ['pending', 'failed', 'failed_validation'])
-    .select('id')
-    .maybeSingle()
+  const { data: claimedRows, error: claimError } = await supabase.rpc('claim_fulfillment_items', { p_item_ids: [itemId] })
+  if (claimError) throw claimError
+  const claimed = claimedRows?.[0]
   if (!claimed) {
     return {
       itemId,
@@ -889,7 +894,7 @@ export async function retryFulfillmentForItem(
     // dims/aspect) is a validation failure the admin fixes by re-cropping.
     await supabase
       .from('order_items')
-      .update({ fulfillment_status: is406 ? 'failed_validation' : 'failed' })
+      .update({ fulfillment_status: err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed' })
       .eq('id', itemId)
 
     await supabase.from('webhook_logs').insert({

@@ -10,9 +10,10 @@ interface SendEmailOptions {
   html: string
   replyTo?: string
   headers?: Record<string, string>
+  idempotencyKey?: string
 }
 
-export async function sendEmail({ to, subject, html, replyTo, headers }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, replyTo, headers, idempotencyKey }: SendEmailOptions) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set — skipping email:', subject)
     return null
@@ -33,6 +34,7 @@ export async function sendEmail({ to, subject, html, replyTo, headers }: SendEma
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body: JSON.stringify({
       from,

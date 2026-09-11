@@ -12,6 +12,7 @@ import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } fr
 import ArrangeCollection from '../../ArrangeCollection'
 import CropModal from '@/components/admin/CropModal'
 import MasterCropModal from '@/components/admin/MasterCropModal'
+import StudioProductEditor from '@/components/admin/StudioProductEditor'
 import type { Medium } from '@/lib/pricing/mediums'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
@@ -1193,6 +1194,7 @@ export default function EditProductPage({
             )}
           </section>
 
+          <StudioProductEditor productId={id}>
           <VariantsTab
             productId={id}
             productDefaultMargin={effectiveMargin}
@@ -1216,6 +1218,7 @@ export default function EditProductPage({
                 : undefined
             }
           />
+          </StudioProductEditor>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-charcoal/10 pt-6">

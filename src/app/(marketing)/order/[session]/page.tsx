@@ -1,3 +1,5 @@
+import { loadCustomerProgress } from '@/lib/orders/customer-progress'
+import CustomerShipments from '@/components/orders/CustomerShipments'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 type Rel = { title?: string; name?: string } | { title?: string; name?: string }[] | null
 
 type OrderItem = {
+  purchase_spec?: {title?:string;option_name?:string}
   id: string
   quantity: number
   unit_price: number | null
@@ -63,7 +66,7 @@ async function loadOrder(sessionId: string): Promise<Order | null> {
     const { data, error } = await svc
       .from('orders')
       .select(
-        'id, order_number, email, status, subtotal, shipping_cost, tax, discount, total, promo_code, shipping_address, created_at, order_items(id, quantity, unit_price, fulfillment_status, product:products(title), variant:product_variants(name))',
+        'id, order_number, email, status, subtotal, shipping_cost, tax, discount, total, promo_code, shipping_address, created_at, order_items(id, quantity, unit_price, purchase_spec, fulfillment_status, product:products(title), variant:product_variants(name))',
       )
       // Embedded (Payment Elements) orders are keyed by payment intent id;
       // hosted Checkout orders by session id. The param tells us which.
@@ -134,6 +137,7 @@ export default async function OrderConfirmationPage(props: {
     )
   }
 
+  const progress = await loadCustomerProgress(await createServiceClient(), order.id)
   const items = order.order_items ?? []
   const addr = order.shipping_address ?? {}
   const hasAddress = Boolean(addr.line1)
@@ -163,8 +167,8 @@ export default async function OrderConfirmationPage(props: {
         <div className="mt-10 bg-white border border-charcoal/10 rounded-lg p-6 sm:p-8 text-left">
           <ul className="divide-y divide-charcoal/10">
             {items.map((it) => {
-              const title = rel(it.product, 'title') ?? 'Artwork'
-              const variant = rel(it.variant, 'name')
+              const title = (it.purchase_spec?.title || rel(it.product, 'title')) ?? 'Artwork'
+              const variant = it.purchase_spec?.option_name || rel(it.variant, 'name')
               const line = (Number(it.unit_price) || 0) * (it.quantity || 1)
               return (
                 <li key={it.id} className="flex items-start justify-between py-3 gap-4">
@@ -227,6 +231,7 @@ export default async function OrderConfirmationPage(props: {
           email tracking as soon as it ships. Questions? Just reply to your confirmation email.
         </p>
 
+        <CustomerShipments progress={progress} />
         <CtaRow />
       </div>
     </div>

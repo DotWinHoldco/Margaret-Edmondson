@@ -1,3 +1,10 @@
+import { createServiceClient } from '@/lib/supabase/server'
+import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
+
+export class LumaprintsDisabledError extends Error {
+  constructor() { super('Lumaprints is off. Orders are fulfilled by the studio.'); this.name = 'LumaprintsDisabledError' }
+}
+
 const API_KEY = process.env.LUMAPRINTS_API_KEY!
 const API_SECRET = process.env.LUMAPRINTS_API_SECRET!
 const BASE_URL = process.env.LUMAPRINTS_BASE_URL || 'https://us.api.lumaprints.com'
@@ -35,6 +42,8 @@ export class LumaprintsApiError extends Error {
 }
 
 async function request(path: string, options: RequestInit = {}, attempt = 0): Promise<unknown> {
+  const policy = await getFulfillmentPolicy(await createServiceClient())
+  if (!policy.lumaprints_enabled) throw new LumaprintsDisabledError()
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {

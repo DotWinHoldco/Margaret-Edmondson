@@ -7,6 +7,7 @@ interface AvailabilityVariant {
   inventory_count: number | null
   medium?: string | null
   is_active?: boolean
+  fulfillment_type?: string
   is_lumaprints_available?: boolean
   price?: number
 }
@@ -45,9 +46,9 @@ export function hasPurchasablePrints(product: AvailabilityProduct): boolean {
     ? product.master_artwork[0]
     : product.master_artwork
   const masterReady = master?.print_status === 'ready' && Boolean(master.print_storage_path)
-  if (!masterReady) return false
 
   return product.product_variants.some((variant) =>
+    (masterReady || variant.fulfillment_type === 'self_ship') &&
     Boolean(variant.medium) &&
     variant.is_active !== false &&
     variant.is_lumaprints_available !== false,
@@ -72,4 +73,11 @@ export function getProductBadge(product: {
   if (hasPrints) return { text: 'Prints Available', color: 'bg-teal/90' }
   if (hasOriginal) return { text: 'Original', color: 'bg-gold/90' }
   return null
+}
+
+/** The advertised starting price always comes from currently purchasable offers. */
+export function cheapestPrintPrice(product: AvailabilityProduct): number | null {
+  if (!hasPurchasablePrints(product)) return null
+  const prices = (product.product_variants || []).filter(v => v.variant_type !== 'original' && v.medium && v.is_active !== false && v.is_lumaprints_available !== false && Number(v.price) > 0).map(v => Number(v.price))
+  return prices.length ? Math.min(...prices) : null
 }

@@ -32,10 +32,10 @@ export function isLaunchStepKey(v: unknown): v is LaunchStepKey {
 }
 
 /** Which prep steps are still unfinished in a stored checklist blob. */
-export function missingPrepSteps(checklist: unknown): string[] {
+export function missingPrepSteps(checklist: unknown, lumaprintsEnabled = true): string[] {
   const map = (checklist && typeof checklist === 'object' ? checklist : {}) as Record<
     string,
     { done?: unknown } | undefined
   >
-  return LAUNCH_PREP_STEPS.filter((key) => map[key]?.done !== true)
+  return LAUNCH_PREP_STEPS.filter(key => lumaprintsEnabled || !key.startsWith('luma_')).filter((key) => map[key]?.done !== true)
 }

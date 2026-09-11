@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { availableOriginalPrice, getProductBadge, hasPurchasablePrints } from '@/lib/product-utils'
-import { CHEAPEST_PRINT_PRICE } from '@/lib/pricing/canvas-prints'
+import { cheapestPrintPrice } from '@/lib/product-utils'
 
 interface ProductImage {
   url: string
@@ -20,6 +20,7 @@ interface Variant {
   medium?: string | null
   is_active?: boolean
   is_lumaprints_available?: boolean
+  fulfillment_type?: string
   price?: number
 }
 
@@ -67,7 +68,7 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
         const hasPrints = hasPurchasablePrints(product)
         const originalPrice = availableOriginalPrice(product)
         const price = hasPrints
-          ? `From $${CHEAPEST_PRINT_PRICE.toFixed(2)}`
+          ? `From $${(cheapestPrintPrice(product) || 0).toFixed(2)}`
           : originalPrice !== null
             ? `$${originalPrice.toFixed(2)}`
             : product.prints_enabled

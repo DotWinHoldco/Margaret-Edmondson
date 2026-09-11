@@ -1,3 +1,6 @@
+import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
+import { calculateCheckoutShipping } from '@/lib/checkout/shipping'
+import { captureProductionSources } from '@/lib/checkout/snapshot'
 // dotwin-allow:public-write — guest checkout: create Stripe payment intent (input validated + rate-limited). Authored by DotWin.
 // Embedded (Stripe Payment Elements) checkout — creates a PaymentIntent for
 // the on-site /checkout page. ADDITIVE: the hosted-Checkout flow in
@@ -83,7 +86,10 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient()
-    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items)
+    const policy = await getFulfillmentPolicy(supabase)
+    const destination = parsedRequest.data.destination
+    if (!destination) return jsonError('Enter your shipping ZIP code in the cart before checkout.', 400, 'shipping_destination_required')
+    const catalogValidation = await validateAndPriceCheckoutItems(supabase, items, policy)
     if (!catalogValidation.ok) {
       const { message, status, code } = catalogValidation.error
       return jsonError(message, status, code)
@@ -93,30 +99,14 @@ export async function POST(request: Request) {
     // B-5 + B-6: persist validated line items onto the cart row (the webhook
     // reads items back from carts.items) and take the surcharge from the
     // SERVER-set cart value, never the client body. (Mirrors /api/checkout.)
-    let surchargeCents = 0
-    if (cartId) {
-      const svc = await createServiceClient()
-      await svc
-        .from('carts')
-        .update({
-          items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
-            productId: i.productId,
-            variantId: i.variantId ?? null,
-            variantType: i.variantType ?? null,
-            fulfillmentType: i.fulfillmentType,
-            quantity: i.quantity,
-            price: i.price,
-            title: i.title,
-          })),
-        })
-        .eq('id', cartId)
-      const { data: cartRow } = await svc
-        .from('carts')
-        .select('shipping_surcharge_cents')
-        .eq('id', cartId)
-        .maybeSingle()
-      surchargeCents = cartRow?.shipping_surcharge_cents ?? 0
+    let surchargeCents: number
+    try {
+      surchargeCents = await calculateCheckoutShipping(validatedItems, destination, policy)
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : 'Could not calculate shipping.', 400, 'shipping_unavailable')
     }
+    const snapshotClient = await createServiceClient()
+    await captureProductionSources(snapshotClient, validatedItems)
 
     let contactId: string | null = null
     if (email) {
@@ -187,6 +177,7 @@ export async function POST(request: Request) {
       automatic_payment_methods: { enabled: true },
       receipt_email: normalizedEmail || undefined,
       metadata: {
+        snapshot_version: '2',
         elements_checkout: '1',
         cart_id: cartId || '',
         contact_id: contactId || '',
@@ -241,15 +232,9 @@ export async function POST(request: Request) {
       const { error: snapshotError } = await svc.from('checkout_snapshots').insert({
         payment_ref: intent.id,
         cart_id: cartId || null,
-        items: validatedItems.map((i: { productId: string; variantId?: string; variantType: string | null; fulfillmentType: string; quantity: number; price: number; title: string }) => ({
-          productId: i.productId,
-          variantId: i.variantId ?? null,
-          variantType: i.variantType ?? null,
-          fulfillmentType: i.fulfillmentType,
-          quantity: i.quantity,
-          price: i.price,
-          title: i.title,
-        })),
+        items: validatedItems,
+        policy_version: policy.version,
+        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi },
         subtotal_cents: subtotalCents,
         discount_cents: discountCents,
         surcharge_cents: surchargeCents,
@@ -304,7 +289,9 @@ export async function POST(request: Request) {
 
     return Response.json({
       clientSecret: intent.client_secret,
+      policyVersion: policy.version,
       amountCents: totalCents,
+      items: validatedItems.map(({productId,variantId,title,quantity,price})=>({productId,variantId,title,quantity,price})),
       mode: activeMode,
       summary: {
         subtotal: subtotalCents,

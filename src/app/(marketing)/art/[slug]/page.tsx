@@ -1,3 +1,4 @@
+import { resolveStorefrontProducts } from '@/lib/fulfillment/storefront'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -20,9 +21,9 @@ async function getFunnelBySlug(slug: string) {
       *,
       products:product_id (
         id, title, slug, description_html, story_html,
-        medium, dimensions, base_price, is_original, prints_enabled, status,
+        medium, dimensions, base_price, is_original, prints_enabled, status, fulfillment_type, studio_shipping_mode, studio_shipping_fee_cents, studio_lead_days, provider_shipping_mode, provider_shipping_fee_cents,
         product_images ( id, url, alt_text, sort_order ),
-        product_variants ( id, name, price, variant_type, inventory_count, sort_order, is_active, is_lumaprints_available, medium )
+        product_variants (*)
       )
     `)
     .eq('slug', slug)
@@ -30,7 +31,9 @@ async function getFunnelBySlug(slug: string) {
     .single()
 
   if (error || !funnel) return null
-  const product = funnel.products as { id?: string } | null
+  const raw = funnel.products
+  const [resolved] = await resolveStorefrontProducts(supabase, raw ? [raw] : [])
+  const product = resolved as { id?: string } | null
   if (!product?.id) return funnel
   const readiness = await loadPublicPrintReadiness(supabase, [product.id])
   if (readiness.error) console.error('Funnel print readiness lookup failed', readiness.error)
@@ -136,6 +139,9 @@ export default async function ArtFunnelPage(props: Props) {
       is_active: v.is_active as boolean | undefined,
       is_lumaprints_available: v.is_lumaprints_available as boolean | undefined,
       medium: v.medium as string | null | undefined,
+      fulfillment_type: v.fulfillment_type as string | undefined,
+      shipping_mode: v.shipping_mode as 'included' | 'flat' | 'integration' | undefined,
+      shipping_fee_cents: v.shipping_fee_cents as number | undefined,
     })),
     masterReady,
   }

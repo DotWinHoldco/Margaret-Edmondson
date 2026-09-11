@@ -22,6 +22,7 @@ interface StepState {
 }
 
 interface LaunchState {
+  lumaprintsEnabled: boolean
   steps: Partial<Record<string, StepState>>
   hidden: boolean
   gateEnabled: boolean
@@ -50,7 +51,7 @@ export default function LaunchSequence() {
         const json = (await res.json()) as LaunchState
         if (!cancelled) {
           setState(json)
-          const firstOpen = PREP_KEYS.find((k) => json.steps[k]?.done !== true)
+          const firstOpen = PREP_KEYS.filter(k=>json.lumaprintsEnabled||!k.startsWith('luma_')).find((k) => json.steps[k]?.done !== true)
           setExpanded(firstOpen ?? 'go_live')
         }
       } catch {
@@ -106,7 +107,8 @@ export default function LaunchSequence() {
 
   if (!state || (!state.gateEnabled && !wentLive)) return null
 
-  const doneCount = PREP_KEYS.filter((k) => state.steps[k]?.done === true).length
+  const prepKeys = PREP_KEYS.filter(k=>state.lumaprintsEnabled||!k.startsWith('luma_'))
+  const doneCount = prepKeys.filter((k) => state.steps[k]?.done === true).length
 
   if (state.hidden && !wentLive) {
     return (
@@ -115,7 +117,7 @@ export default function LaunchSequence() {
         onClick={() => patchLaunch({ hidden: false }, 'hidden')}
         className="fixed bottom-6 right-6 z-[90] flex items-center gap-2 rounded-full bg-teal px-5 py-3 font-body text-sm font-semibold text-cream shadow-lg transition-colors hover:bg-deep-teal"
       >
-        <span aria-hidden>🚀</span> Launch checklist · {doneCount}/{PREP_KEYS.length}
+        <span aria-hidden>🚀</span> Launch checklist · {doneCount}/{prepKeys.length}
       </button>
     )
   }
@@ -164,7 +166,7 @@ export default function LaunchSequence() {
                     Let&apos;s get you launched, Margaret
                   </h2>
                   <p className="mt-2 font-body text-sm text-charcoal/65">
-                    Work through these {PREP_KEYS.length} steps at your own pace, checking each one
+                    Work through these {prepKeys.length} steps at your own pace, checking each one
                     off as you finish it. When every step is done, the big button at the end opens
                     your store to the world. You can hide this any time — the little rocket in the
                     corner brings it back.
@@ -182,20 +184,26 @@ export default function LaunchSequence() {
               <div className="mt-5">
                 <div className="flex items-center justify-between font-body text-xs text-charcoal/55">
                   <span>
-                    {doneCount} of {PREP_KEYS.length} steps complete
+                    {doneCount} of {prepKeys.length} steps complete
                   </span>
                   <span>{state.readyToGoLive ? 'Ready to go live!' : 'Keep going — almost there'}</span>
                 </div>
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-charcoal/10">
                   <div
                     className="h-full rounded-full bg-teal transition-all"
-                    style={{ width: `${(doneCount / PREP_KEYS.length) * 100}%` }}
+                    style={{ width: `${(doneCount / prepKeys.length) * 100}%` }}
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 p-6 sm:p-8">
+              {!state.lumaprintsEnabled ? <>{([
+                ['crops','Approve your production sources','Confirm the file or sample with your printer for every live size and finish. In each product, open My studio → Production details and approve the source.'],
+                ['prices','Set your studio selling prices','Open each product’s My studio pricing area. Include printing, framing, packaging, and your profit in the selling price.'],
+                ['margins','Set shipping and practice an order','Choose Shipping included or a Flat fee. Confirm the lead time, then review the order queue, work tickets, and package tracking.'],
+              ] as const).map(([key,title,body],index)=><Step key={key} index={index+1} stepKey={key} title={title} state={state} expanded={expanded} saving={saving} onToggleExpand={setExpanded} onMark={(k,done)=>patchLaunch({step:k,done},k)}><p>{body}</p><Link href="/admin/products" className="mt-3 inline-block text-teal underline">Open products</Link></Step>)}</> : <>
+
               <Step
                 index={1}
                 stepKey="luma_login"
@@ -396,6 +404,7 @@ export default function LaunchSequence() {
                 </p>
               </Step>
 
+              </>}
               {/* ── Go live ── */}
               <div
                 className={`rounded-xl border-2 p-5 ${
@@ -423,7 +432,7 @@ export default function LaunchSequence() {
                 <div className="mt-4 pl-11">
                   {!state.readyToGoLive ? (
                     <p className="font-body text-sm font-medium text-charcoal/50">
-                      Complete the {PREP_KEYS.length} steps above to unlock this button.
+                      Complete the {prepKeys.length} steps above to unlock this button.
                     </p>
                   ) : confirmingGoLive ? (
                     <div className="rounded-lg border border-teal/40 bg-white p-4">

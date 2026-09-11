@@ -1,7 +1,3 @@
-// Authored by DotWin
-// Generated Supabase types for prod project klwkajukicsoiwpsgftt.
-// Regenerate with: supabase gen types (or the Supabase MCP) after any migration.
-
 export type Json =
   | string
   | number
@@ -14,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -555,6 +551,8 @@ export type Database = {
           funnel_id: string | null
           items: Json
           payment_ref: string
+          policy_version: number | null
+          shipping_destination: Json | null
           subtotal_cents: number
           surcharge_cents: number
           tax_cents: number
@@ -567,6 +565,8 @@ export type Database = {
           funnel_id?: string | null
           items: Json
           payment_ref: string
+          policy_version?: number | null
+          shipping_destination?: Json | null
           subtotal_cents: number
           surcharge_cents?: number
           tax_cents?: number
@@ -579,6 +579,8 @@ export type Database = {
           funnel_id?: string | null
           items?: Json
           payment_ref?: string
+          policy_version?: number | null
+          shipping_destination?: Json | null
           subtotal_cents?: number
           surcharge_cents?: number
           tax_cents?: number
@@ -2303,12 +2305,16 @@ export type Database = {
           lumaprints_subcategory_id: number | null
           medium: string | null
           order_id: string | null
+          policy_version: number | null
           print_height_in: number | null
           print_storage_path: string | null
           print_width_in: number | null
           product_id: string | null
+          purchase_spec: Json
           quantity: number
+          returned_at: string | null
           shipped_at: string | null
+          shipping_fee_cents: number
           size_label: string | null
           tracking_number: string | null
           tracking_url: string | null
@@ -2327,12 +2333,16 @@ export type Database = {
           lumaprints_subcategory_id?: number | null
           medium?: string | null
           order_id?: string | null
+          policy_version?: number | null
           print_height_in?: number | null
           print_storage_path?: string | null
           print_width_in?: number | null
           product_id?: string | null
+          purchase_spec?: Json
           quantity?: number
+          returned_at?: string | null
           shipped_at?: string | null
+          shipping_fee_cents?: number
           size_label?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
@@ -2351,12 +2361,16 @@ export type Database = {
           lumaprints_subcategory_id?: number | null
           medium?: string | null
           order_id?: string | null
+          policy_version?: number | null
           print_height_in?: number | null
           print_storage_path?: string | null
           print_width_in?: number | null
           product_id?: string | null
+          purchase_spec?: Json
           quantity?: number
+          returned_at?: string | null
           shipped_at?: string | null
+          shipping_fee_cents?: number
           size_label?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
@@ -2387,12 +2401,93 @@ export type Database = {
           },
         ]
       }
+      order_shipment_items: {
+        Row: {
+          quantity: number
+          shipment_id: string
+          studio_job_id: string
+        }
+        Insert: {
+          quantity: number
+          shipment_id: string
+          studio_job_id: string
+        }
+        Update: {
+          quantity?: number
+          shipment_id?: string
+          studio_job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipment_items_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "order_shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_shipment_items_studio_job_id_fkey"
+            columns: ["studio_job_id"]
+            isOneToOne: false
+            referencedRelation: "studio_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_shipments: {
+        Row: {
+          carrier: string
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          id: string
+          order_id: string
+          postage_cents: number | null
+          shipped_at: string
+          tracking_number: string
+          tracking_url: string | null
+        }
+        Insert: {
+          carrier: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id: string
+          order_id: string
+          postage_cents?: number | null
+          shipped_at?: string
+          tracking_number: string
+          tracking_url?: string | null
+        }
+        Update: {
+          carrier?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          order_id?: string
+          postage_cents?: number | null
+          shipped_at?: string
+          tracking_number?: string
+          tracking_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           billing_address: Json | null
           created_at: string | null
           discount: number | null
           email: string
+          fulfillment_hold_reason: string | null
           funnel_id: string | null
           id: string
           notes: string | null
@@ -2404,6 +2499,7 @@ export type Database = {
           side_effects_completed_at: string | null
           status: string | null
           stripe_checkout_session_id: string | null
+          stripe_mode: string | null
           stripe_payment_intent_id: string | null
           subtotal: number
           tax: number | null
@@ -2415,6 +2511,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           email: string
+          fulfillment_hold_reason?: string | null
           funnel_id?: string | null
           id?: string
           notes?: string | null
@@ -2426,6 +2523,7 @@ export type Database = {
           side_effects_completed_at?: string | null
           status?: string | null
           stripe_checkout_session_id?: string | null
+          stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
           subtotal: number
           tax?: number | null
@@ -2437,6 +2535,7 @@ export type Database = {
           created_at?: string | null
           discount?: number | null
           email?: string
+          fulfillment_hold_reason?: string | null
           funnel_id?: string | null
           id?: string
           notes?: string | null
@@ -2448,6 +2547,7 @@ export type Database = {
           side_effects_completed_at?: string | null
           status?: string | null
           stripe_checkout_session_id?: string | null
+          stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
           subtotal?: number
           tax?: number | null
@@ -2737,6 +2837,13 @@ export type Database = {
           size_tier: string | null
           sku: string | null
           sort_order: number | null
+          studio_is_active: boolean
+          studio_lead_days: number | null
+          studio_only: boolean
+          studio_price_cents: number | null
+          studio_shipping_fee_cents: number | null
+          studio_shipping_mode: string | null
+          studio_source_approved: boolean
           updated_at: string | null
           variant_type: string | null
           wholesale_cost: number | null
@@ -2768,6 +2875,13 @@ export type Database = {
           size_tier?: string | null
           sku?: string | null
           sort_order?: number | null
+          studio_is_active?: boolean
+          studio_lead_days?: number | null
+          studio_only?: boolean
+          studio_price_cents?: number | null
+          studio_shipping_fee_cents?: number | null
+          studio_shipping_mode?: string | null
+          studio_source_approved?: boolean
           updated_at?: string | null
           variant_type?: string | null
           wholesale_cost?: number | null
@@ -2799,6 +2913,13 @@ export type Database = {
           size_tier?: string | null
           sku?: string | null
           sort_order?: number | null
+          studio_is_active?: boolean
+          studio_lead_days?: number | null
+          studio_only?: boolean
+          studio_price_cents?: number | null
+          studio_shipping_fee_cents?: number | null
+          studio_shipping_mode?: string | null
+          studio_source_approved?: boolean
           updated_at?: string | null
           variant_type?: string | null
           wholesale_cost?: number | null
@@ -2836,12 +2957,17 @@ export type Database = {
           medium: string | null
           printful_sync_product_id: string | null
           prints_enabled: boolean
+          provider_shipping_fee_cents: number | null
+          provider_shipping_mode: string | null
           seo_description: string | null
           seo_title: string | null
           slug: string
           status: string | null
           story_html: string | null
           story_json: Json | null
+          studio_lead_days: number | null
+          studio_shipping_fee_cents: number | null
+          studio_shipping_mode: string | null
           tags: string[] | null
           title: string
           updated_at: string | null
@@ -2866,12 +2992,17 @@ export type Database = {
           medium?: string | null
           printful_sync_product_id?: string | null
           prints_enabled?: boolean
+          provider_shipping_fee_cents?: number | null
+          provider_shipping_mode?: string | null
           seo_description?: string | null
           seo_title?: string | null
           slug: string
           status?: string | null
           story_html?: string | null
           story_json?: Json | null
+          studio_lead_days?: number | null
+          studio_shipping_fee_cents?: number | null
+          studio_shipping_mode?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
@@ -2896,12 +3027,17 @@ export type Database = {
           medium?: string | null
           printful_sync_product_id?: string | null
           prints_enabled?: boolean
+          provider_shipping_fee_cents?: number | null
+          provider_shipping_mode?: string | null
           seo_description?: string | null
           seo_title?: string | null
           slug?: string
           status?: string | null
           story_html?: string | null
           story_json?: Json | null
+          studio_lead_days?: number | null
+          studio_shipping_fee_cents?: number | null
+          studio_shipping_mode?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
@@ -3327,6 +3463,7 @@ export type Database = {
           email_from_name: string | null
           facebook_url: string | null
           free_shipping_threshold_cents: number | null
+          fulfillment_policy_version: number
           gate_cookie_hours: number
           gate_enabled: boolean
           gate_password: string | null
@@ -3353,6 +3490,10 @@ export type Database = {
           show_shipping_policy: boolean | null
           show_tos: boolean | null
           stripe_test_mode: boolean
+          studio_lead_days: number
+          studio_ship_akhi: boolean
+          studio_shipping_fee_cents: number
+          studio_shipping_mode: string
           tax_enabled: boolean | null
           tax_nexus_states: string[] | null
           tax_rate_pct: number | null
@@ -3371,6 +3512,7 @@ export type Database = {
           email_from_name?: string | null
           facebook_url?: string | null
           free_shipping_threshold_cents?: number | null
+          fulfillment_policy_version?: number
           gate_cookie_hours?: number
           gate_enabled?: boolean
           gate_password?: string | null
@@ -3397,6 +3539,10 @@ export type Database = {
           show_shipping_policy?: boolean | null
           show_tos?: boolean | null
           stripe_test_mode?: boolean
+          studio_lead_days?: number
+          studio_ship_akhi?: boolean
+          studio_shipping_fee_cents?: number
+          studio_shipping_mode?: string
           tax_enabled?: boolean | null
           tax_nexus_states?: string[] | null
           tax_rate_pct?: number | null
@@ -3415,6 +3561,7 @@ export type Database = {
           email_from_name?: string | null
           facebook_url?: string | null
           free_shipping_threshold_cents?: number | null
+          fulfillment_policy_version?: number
           gate_cookie_hours?: number
           gate_enabled?: boolean
           gate_password?: string | null
@@ -3441,6 +3588,10 @@ export type Database = {
           show_shipping_policy?: boolean | null
           show_tos?: boolean | null
           stripe_test_mode?: boolean
+          studio_lead_days?: number
+          studio_ship_akhi?: boolean
+          studio_shipping_fee_cents?: number
+          studio_shipping_mode?: string
           tax_enabled?: boolean | null
           tax_nexus_states?: string[] | null
           tax_rate_pct?: number | null
@@ -3613,6 +3764,191 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_jobs: {
+        Row: {
+          assignee: string
+          created_at: string
+          due_at: string
+          hold_reason: string | null
+          id: string
+          notes: string
+          order_id: string
+          order_item_id: string
+          quantity: number
+          replacement_of: string | null
+          revision: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string
+          created_at?: string
+          due_at: string
+          hold_reason?: string | null
+          id?: string
+          notes?: string
+          order_id: string
+          order_item_id: string
+          quantity: number
+          replacement_of?: string | null
+          revision?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string
+          created_at?: string
+          due_at?: string
+          hold_reason?: string | null
+          id?: string
+          notes?: string
+          order_id?: string
+          order_item_id?: string
+          quantity?: number
+          replacement_of?: string | null
+          revision?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_jobs_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_jobs_replacement_of_fkey"
+            columns: ["replacement_of"]
+            isOneToOne: false
+            referencedRelation: "studio_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_notifications: {
+        Row: {
+          attempts: number
+          created_at: string
+          first_attempt_at: string | null
+          id: string
+          last_error: string | null
+          payload: Json | null
+          run_after: string
+          sent_at: string | null
+          shipment_id: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          run_after?: string
+          sent_at?: string | null
+          shipment_id: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          run_after?: string
+          sent_at?: string | null
+          shipment_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_notifications_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: true
+            referencedRelation: "order_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          id: string
+          job_id: string | null
+          order_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          id?: string
+          job_id?: string | null
+          order_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+          job_id?: string | null
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_order_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "studio_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_variant_details: {
+        Row: {
+          specs: Json
+          variant_id: string
+        }
+        Insert: {
+          specs?: Json
+          variant_id: string
+        }
+        Update: {
+          specs?: Json
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_variant_details_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: true
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -3994,10 +4330,18 @@ export type Database = {
         }
         Returns: string
       }
+      claim_fulfillment_items: {
+        Args: { p_item_ids: string[] }
+        Returns: {
+          id: string
+        }[]
+      }
       convert_original_hold: {
         Args: { p_payment_ref: string; p_variant_id: string }
         Returns: string
       }
+      deliver_studio_shipment: { Args: { p_id: string }; Returns: undefined }
+      get_fulfillment_policy: { Args: never; Returns: Json }
       get_public_print_readiness: {
         Args: { p_product_ids: string[] }
         Returns: {
@@ -4006,6 +4350,10 @@ export type Database = {
           print_width_px: number
           product_id: string
         }[]
+      }
+      has_active_enrollment_for_lesson: {
+        Args: { p_lesson_id: string }
+        Returns: boolean
       }
       hold_originals: {
         Args: {
@@ -4023,6 +4371,13 @@ export type Database = {
         Returns: undefined
       }
       is_admin_or_artist: { Args: never; Returns: boolean }
+      list_studio_jobs: {
+        Args: { p_offset?: number; p_search?: string; p_stage?: string }
+        Returns: {
+          job: Json
+          total: number
+        }[]
+      }
       mark_contact_unsubscribed: {
         Args: {
           p_contact_id: string
@@ -4034,6 +4389,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      queue_reviewed_fulfillment: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       rate_limit_hit: {
         Args: { p_key: string; p_limit: number; p_window_ms: number }
         Returns: {
@@ -4041,6 +4400,10 @@ export type Database = {
           remaining: number
           retry_after_ms: number
         }[]
+      }
+      receive_studio_original_return: {
+        Args: { p_item_id: string; p_reason: string }
+        Returns: undefined
       }
       record_order_for_contact: {
         Args: {
@@ -4052,6 +4415,18 @@ export type Database = {
         }
         Returns: string
       }
+      record_studio_shipment: {
+        Args: {
+          p_carrier: string
+          p_id: string
+          p_items: Json
+          p_order_id: string
+          p_postage_cents: number
+          p_tracking_number: string
+          p_tracking_url: string
+        }
+        Returns: string
+      }
       refund_original_holds: {
         Args: { p_payment_ref: string }
         Returns: number
@@ -4060,11 +4435,35 @@ export type Database = {
         Args: { p_payment_ref: string }
         Returns: number
       }
+      release_studio_order_hold: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: undefined
+      }
+      replace_studio_job: {
+        Args: { p_id: string; p_job_id: string; p_reason: string }
+        Returns: string
+      }
       reprice_variants: {
         Args: { p_category?: string; p_product?: string }
         Returns: number
       }
       reserve_original: { Args: { p_variant_id: string }; Returns: boolean }
+      resume_lumaprints_item: {
+        Args: { p_item_id: string; p_reason: string }
+        Returns: undefined
+      }
+      retry_studio_notification: {
+        Args: { p_shipment_id: string }
+        Returns: undefined
+      }
+      save_studio_product: {
+        Args: { p_product: Json; p_product_id: string; p_variants: Json }
+        Returns: undefined
+      }
+      start_studio_fulfillment: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       subscribe_to_newsletter: {
         Args: { p_email: string; p_first_name?: string; p_source?: string }
         Returns: {
@@ -4083,6 +4482,22 @@ export type Database = {
           p_subtotal?: number
         }
         Returns: string
+      }
+      transfer_to_studio: {
+        Args: { p_item_id: string; p_reason: string }
+        Returns: undefined
+      }
+      update_studio_job: {
+        Args: {
+          p_assignee: string
+          p_due_at: string
+          p_hold_reason: string
+          p_job_id: string
+          p_notes: string
+          p_revision: number
+          p_status: string
+        }
+        Returns: undefined
       }
       upsert_contact_to_list: {
         Args: {
@@ -4130,12 +4545,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4159,11 +4574,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4184,11 +4599,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4209,11 +4624,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4226,11 +4641,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

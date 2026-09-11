@@ -38,6 +38,9 @@ export interface ImageData {
 }
 
 export interface VariantData {
+  fulfillment_type?: string
+  shipping_mode?: 'included' | 'flat' | 'integration'
+  shipping_fee_cents?: number
   id: string
   name: string
   price: number

@@ -6,7 +6,7 @@ import { useToast } from '@/components/shared/toast/ToastProvider'
 import { apiSend, apiFetch, errorMessage } from '@/lib/api/client'
 import BusinessInfoSection from '@/components/admin/settings/BusinessInfoSection'
 import EmailConfigSection from '@/components/admin/settings/EmailConfigSection'
-import ShippingConfigSection from '@/components/admin/settings/ShippingConfigSection'
+import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
 import SocialLinksSection from '@/components/admin/settings/SocialLinksSection'
 import SiteConfigSection from '@/components/admin/settings/SiteConfigSection'
 
@@ -46,6 +46,7 @@ interface PromoCode {
 export default function SettingsClient() {
   return (
     <div className="space-y-8">
+      <FulfillmentSettings />
       <AccountSection />
       <SiteSettingsSection />
       <SiteAccessSection />
@@ -53,7 +54,6 @@ export default function SettingsClient() {
       <PricingSettingsSection />
       <BusinessInfoSection />
       <EmailConfigSection />
-      <ShippingConfigSection />
       <SocialLinksSection />
       <SiteConfigSection />
       <IntegrationStatusSection />

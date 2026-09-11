@@ -1,3 +1,6 @@
+import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
+import { snapshotOrderItem } from '@/lib/checkout/snapshot'
+import type { ValidatedCheckoutItem } from '@/lib/checkout/validation'
 import { getStripe, webhookSecretFor } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
@@ -53,7 +56,7 @@ async function logEvent(
 // or deleted. Everything here is best-effort + null-safe: a missing master,
 // medium config, or column must NEVER break order creation.
 
-interface OiCartItem {
+interface OiCartItem extends Partial<Omit<ValidatedCheckoutItem, 'variantId'>> {
   productId: string
   variantId?: string | null
   quantity: number
@@ -140,28 +143,33 @@ async function ensureCustomerAccount(supabase: SupabaseClient, email: string | n
   return await resolveProfileId(supabase, norm)
 }
 
-// P0-3: read the immutable purchase-time line-item snapshot for a Stripe payment
-// reference (PaymentIntent id or Checkout Session id). Fail-soft: returns null
-// when there is no snapshot (orders placed before snapshots existed) or the
-// table is unavailable, so the caller falls back to the legacy carts.items read.
-async function loadSnapshotItems(
-  supabase: SupabaseClient,
-  paymentRef: string,
-): Promise<Array<{ productId: string; variantId?: string | null; quantity: number }> | null> {
-  try {
-    const { data } = await supabase
-      .from('checkout_snapshots')
-      .select('items')
-      .eq('payment_ref', paymentRef)
-      .maybeSingle()
-    if (data && Array.isArray(data.items)) {
-      return (data.items as Array<{ productId: string; variantId?: string | null; quantity: number }>).filter(
-        (i) => i && i.productId && i.quantity,
-      )
-    }
-    return null
-  } catch {
-    return null
+// New checkouts must reconcile exclusively from the server snapshot. A failed
+// read is retryable; it must never fall back to a cart edited after payment.
+async function loadSnapshotItems(supabase: SupabaseClient, paymentRef: string, required = false): Promise<OiCartItem[] | null> {
+  const { data, error } = await supabase.from('checkout_snapshots').select('items').eq('payment_ref', paymentRef).maybeSingle()
+  if (error) throw error
+  const items = Array.isArray(data?.items) ? data.items as OiCartItem[] : null
+  if (required && (!items?.length || items.some(i => i.snapshotVersion !== 2 || !i.purchaseSpec))) throw new Error('Paid checkout snapshot missing or incomplete')
+  return items
+}
+
+async function shippingProblem(supabase: SupabaseClient, paymentRef: string, items: OiCartItem[], address: { country?: string | null; postal_code?: string | null; state?: string | null } | null | undefined) {
+  if (!items.some(i => i.snapshotVersion === 2)) return null
+  const { data, error } = await supabase.from('checkout_snapshots').select('shipping_destination').eq('payment_ref', paymentRef).single()
+  if (error) throw error
+  return paidShippingProblem(items as Partial<ValidatedCheckoutItem>[], data.shipping_destination, address)
+}
+
+// A refund/dispute webhook may arrive before payment success. Read the charge
+// before releasing new work so event delivery order cannot ship refunded art.
+async function refreshPaymentStanding(supabase:SupabaseClient,stripe:Stripe,orderId:string,paymentIntentId:string,items:OiCartItem[],paymentReference=paymentIntentId) {
+  if(!items.some(i=>i.snapshotVersion===2))return
+  const intent=await stripe.paymentIntents.retrieve(paymentIntentId,{expand:['latest_charge']})
+  const charge=typeof intent.latest_charge==='object'?intent.latest_charge:null
+  if(charge?.refunded || charge?.disputed){
+    const {error}=await supabase.from('orders').update({status:charge.refunded?'refunded':'disputed'}).eq('id',orderId)
+    if(error)throw error
+    if(charge.refunded){for(const ref of new Set([paymentIntentId,paymentReference])){const {error:restoreError}=await supabase.rpc('refund_original_holds',{p_payment_ref:ref});if(restoreError)throw restoreError}}
   }
 }
 
@@ -201,6 +209,7 @@ async function recordFunnelPurchase(
 
 /** PostgREST embed rows for the confirmation-email item list. */
 interface OrderEmailItemRow {
+  purchase_spec?: { title?: string; option_name?: string }
   quantity: number
   unit_price: number
   product: { title: string | null } | Array<{ title: string | null }> | null
@@ -213,10 +222,10 @@ function toEmailItems(rows: OrderEmailItemRow[] | null) {
     const product = Array.isArray(oi.product) ? oi.product[0] : oi.product
     const variant = Array.isArray(oi.variant) ? oi.variant[0] : oi.variant
     return {
-      name: product?.title || 'Artwork',
+      name: oi.purchase_spec?.title || product?.title || 'Artwork',
       quantity: oi.quantity,
       price: oi.unit_price * oi.quantity,
-      variant: variant?.name || undefined,
+      variant: oi.purchase_spec?.option_name || variant?.name || undefined,
     }
   })
 }
@@ -363,6 +372,7 @@ function buildOrderItemRow(
   v: OiVariant | null | undefined,
   mediumMap: Map<string, OiMedium>,
 ): Record<string, unknown> {
+  if (ci.snapshotVersion === 2) return snapshotOrderItem(orderId, ci as ValidatedCheckoutItem)
   const price = v?.price ?? p?.base_price ?? 0
   const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
   const id = crypto.randomUUID()
@@ -533,21 +543,17 @@ export async function POST(request: Request) {
         // the piece sold.
         const charge = event.data.object as { payment_intent: string; refunded?: boolean }
         if (charge.payment_intent && charge.refunded === true) {
-          const { data: refundedOrder } = await supabase
+          const { data: refundedOrder, error: refundUpdateError } = await supabase
             .from('orders')
             .update({ status: 'refunded', updated_at: new Date().toISOString() })
             .eq('stripe_payment_intent_id', charge.payment_intent)
             .select('id, stripe_checkout_session_id')
             .maybeSingle()
-          // Restock converted originals under whichever reference keyed the
-          // holds (session id for hosted checkout, intent id for embedded).
-          // Both calls are idempotent no-ops when nothing matches.
-          await supabase.rpc('refund_original_holds', { p_payment_ref: charge.payment_intent })
-          if (refundedOrder?.stripe_checkout_session_id) {
-            await supabase.rpc('refund_original_holds', {
-              p_payment_ref: refundedOrder.stripe_checkout_session_id,
-            })
-          }
+          if(refundUpdateError)throw refundUpdateError
+          // The database excludes dispatched originals until their physical return.
+          const refs=[charge.payment_intent,refundedOrder?.stripe_checkout_session_id].filter(Boolean) as string[]
+          for(const ref of refs){const {error}=await supabase.rpc('refund_original_holds',{p_payment_ref:ref});if(error)throw error}
+
         }
         await logEvent(supabase, event)
         break
@@ -587,6 +593,11 @@ interface CheckoutSession {
   // on customer_email — Stripe collects it on the hosted checkout page.
   customer_details?: { name?: string | null; email?: string | null }
   metadata: {
+    snapshot_version?: string
+    subtotal_cents?:string
+    discount_cents?:string
+    surcharge_cents?:string
+    tax_cents?:string
     cart_id?: string
     course_id?: string
     profile_id?: string
@@ -746,8 +757,8 @@ export async function handleCheckoutCompleted(
   // P0-3: prefer the immutable purchase-time snapshot (keyed by the session id);
   // fall back to the mutable carts.items only for orders placed before snapshots
   // existed. B-5: items never come from Stripe metadata (500-char cap).
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> =
-    (await loadSnapshotItems(supabase, session.id)) ?? []
+  let cartItems: OiCartItem[] =
+    (await loadSnapshotItems(supabase, session.id, session.metadata.snapshot_version === '2')) ?? []
   if (cartItems.length === 0 && session.metadata.cart_id) {
     const { data: cart } = await supabase
       .from('carts')
@@ -785,10 +796,11 @@ export async function handleCheckoutCompleted(
     return // already fully processed (items + side effects)
   }
 
-  const discountCents = session.total_details?.amount_discount ?? 0
+  const v2=session.metadata.snapshot_version==='2'
+  const discountCents = v2?Number(session.metadata.discount_cents):session.total_details?.amount_discount ?? 0
   const shippingCents = session.total_details?.amount_shipping ?? 0
-  const taxCents = session.total_details?.amount_tax ?? 0
-  const subtotalCents = session.amount_subtotal ?? ((session.amount_total || 0) + discountCents - shippingCents - taxCents)
+  const taxCents = v2?Number(session.metadata.tax_cents):session.total_details?.amount_tax ?? 0
+  const subtotalCents = v2?Number(session.metadata.subtotal_cents):session.amount_subtotal ?? ((session.amount_total || 0) + discountCents - shippingCents - taxCents)
 
   // Reconcile against the merchandise subtotal locked at checkout, NOT Stripe's
   // amount_subtotal: sales tax is added as its own Stripe line item, so it inflates
@@ -827,6 +839,8 @@ export async function handleCheckoutCompleted(
         profile_id: await ensureCustomerAccount(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
+        fulfillment_hold_reason: 'Payment verification is in progress.',
+        stripe_mode: event.livemode ? 'live' : 'test',
         subtotal: subtotalCents / 100,
         shipping_cost: shippingCents / 100,
         tax: taxCents / 100,
@@ -870,7 +884,7 @@ export async function handleCheckoutCompleted(
     // inventory decrement per (session, variant) across replays; 'oversold'
     // means no hold survived AND no free unit remains, so this paid order must
     // be refunded, never fulfilled.
-    if (v?.variant_type === 'original' && ci.variantId) {
+    if ((ci.variantType === 'original' || v?.variant_type === 'original') && ci.variantId) {
       const { data: outcome, error: convertErr } = await supabase.rpc('convert_original_hold', {
         p_payment_ref: session.id,
         p_variant_id: ci.variantId,
@@ -932,6 +946,7 @@ export async function handleCheckoutCompleted(
     for (const ci of cartItems) {
       const p = productMap.get(ci.productId)
       const v = ci.variantId ? variantMap.get(ci.variantId) : null
+      if (ci.snapshotVersion === 2) continue
       const fz = printItemFulfillability(p, v, mediumMap)
       if (!fz.ok && fz.reason) attention.add(fz.reason)
     }
@@ -956,22 +971,32 @@ export async function handleCheckoutCompleted(
     ) * 100,
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
-  const reconciled = hasItems && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  const addressProblem = await shippingProblem(supabase, session.id, cartItems, session.shipping_details?.address)
+  const reconciled = hasItems && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  if (!reconciled) {
+    const { error: holdError } = await supabase.from('orders').update({ fulfillment_hold_reason: addressProblem || 'The paid total and purchased items need review.' }).eq('id', orderId as string)
+    if (holdError) throw holdError
+  }
 
   if (reconciled) {
+    await refreshPaymentStanding(supabase,stripe,orderId as string,session.payment_intent as string,cartItems,session.id)
+    const { error: releaseError } = await supabase.from('orders').update({ fulfillment_hold_reason: null }).eq('id', orderId as string).eq('fulfillment_hold_reason', 'Payment verification is in progress.')
+    if (releaseError) throw releaseError
     // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
     // under maxDuration=60; a synchronous LumaPrints / Printful submit here could
     // time out mid-flight and strand un-submitted prints with no recovery. The
     // fulfillment-worker cron drains the durable queue off the request path, with
     // bounded retries + a stranded-item sweep. enqueue is idempotent (one active job
     // per order via the partial unique index) and no-throw.
+    const { error: studioError } = await supabase.rpc('start_studio_fulfillment', { p_order_id: orderId as string })
+    if (studioError) throw studioError
     await enqueueFulfillmentJob(supabase, orderId as string)
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.
-    const reason = !hasItems
+    const reason = addressProblem || (!hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
-      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`)
     await notifyOrderNeedsAttention(orderId as string, [reason])
     await logEvent(supabase, event, {
       alert: 'reconciliation_failed',
@@ -1039,7 +1064,7 @@ export async function handleCheckoutCompleted(
       try {
         const { data: orderItems } = await supabase
           .from('order_items')
-          .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
+          .select('quantity, unit_price, purchase_spec, product:products(title), variant:product_variants(name)')
           .eq('order_id', orderId)
 
         const emailItems = toEmailItems(orderItems as OrderEmailItemRow[] | null)
@@ -1123,8 +1148,8 @@ async function handleElementsPaymentSucceeded(
   // P0-3: prefer the immutable purchase-time snapshot (keyed by the PaymentIntent
   // id); fall back to the mutable carts.items only for orders placed before
   // snapshots existed. B-5: items never come from Stripe metadata.
-  let cartItems: Array<{ productId: string; variantId?: string | null; quantity: number }> =
-    (await loadSnapshotItems(supabase, pi.id)) ?? []
+  let cartItems: OiCartItem[] =
+    (await loadSnapshotItems(supabase, pi.id, md.snapshot_version === '2')) ?? []
   if (cartItems.length === 0 && md.cart_id) {
     const { data: cart } = await supabase
       .from('carts')
@@ -1202,6 +1227,8 @@ async function handleElementsPaymentSucceeded(
         profile_id: await ensureCustomerAccount(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
+        fulfillment_hold_reason: 'Payment verification is in progress.',
+        stripe_mode: event.livemode ? 'live' : 'test',
         subtotal: subtotalCents / 100,
         shipping_cost: shippingCents / 100,
         tax: taxCents / 100,
@@ -1239,7 +1266,7 @@ async function handleElementsPaymentSucceeded(
     // B-9: convert this intent's checkout-time hold into the sale (exactly one
     // decrement per (intent, variant) across replays; 'oversold' means the
     // paid order must be refunded, never fulfilled).
-    if (v?.variant_type === 'original' && ci.variantId) {
+    if ((ci.variantType === 'original' || v?.variant_type === 'original') && ci.variantId) {
       const { data: outcome, error: convertErr } = await supabase.rpc('convert_original_hold', {
         p_payment_ref: pi.id,
         p_variant_id: ci.variantId,
@@ -1299,6 +1326,7 @@ async function handleElementsPaymentSucceeded(
     for (const ci of cartItems) {
       const p = productMap.get(ci.productId)
       const v = ci.variantId ? variantMap.get(ci.variantId) : null
+      if (ci.snapshotVersion === 2) continue
       const fz = printItemFulfillability(p, v, mediumMap)
       if (!fz.ok && fz.reason) attention.add(fz.reason)
     }
@@ -1323,22 +1351,32 @@ async function handleElementsPaymentSucceeded(
     ) * 100,
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
-  const reconciled = hasItems && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  const addressProblem = await shippingProblem(supabase, pi.id, cartItems, pi.shipping?.address)
+  const reconciled = hasItems && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  if (!reconciled) {
+    const { error: holdError } = await supabase.from('orders').update({ fulfillment_hold_reason: addressProblem || 'The paid total and purchased items need review.' }).eq('id', orderId as string)
+    if (holdError) throw holdError
+  }
 
   if (reconciled) {
+    await refreshPaymentStanding(supabase,stripe,orderId as string,pi.id,cartItems)
+    const { error: releaseError } = await supabase.from('orders').update({ fulfillment_hold_reason: null }).eq('id', orderId as string).eq('fulfillment_hold_reason', 'Payment verification is in progress.')
+    if (releaseError) throw releaseError
     // P2-2: enqueue fulfillment instead of submitting inline. This webhook runs
     // under maxDuration=60; a synchronous LumaPrints / Printful submit here could
     // time out mid-flight and strand un-submitted prints with no recovery. The
     // fulfillment-worker cron drains the durable queue off the request path, with
     // bounded retries + a stranded-item sweep. enqueue is idempotent (one active job
     // per order via the partial unique index) and no-throw.
+    const { error: studioError } = await supabase.rpc('start_studio_fulfillment', { p_order_id: orderId as string })
+    if (studioError) throw studioError
     await enqueueFulfillmentJob(supabase, orderId as string)
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.
-    const reason = !hasItems
+    const reason = addressProblem || (!hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
-      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`
+      : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`)
     await notifyOrderNeedsAttention(orderId as string, [reason])
     await logEvent(supabase, event, {
       alert: 'reconciliation_failed',
@@ -1404,7 +1442,7 @@ async function handleElementsPaymentSucceeded(
       try {
         const { data: orderItems } = await supabase
           .from('order_items')
-          .select('quantity, unit_price, product:products(title), variant:product_variants(name)')
+          .select('quantity, unit_price, purchase_spec, product:products(title), variant:product_variants(name)')
           .eq('order_id', orderId)
 
         const emailItems = toEmailItems(orderItems as OrderEmailItemRow[] | null)

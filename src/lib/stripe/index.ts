@@ -91,3 +91,10 @@ export function isStripeKeyConfigured(mode: StripeMode): boolean {
 export function isWebhookSecretConfigured(mode: StripeMode): boolean {
   return !!webhookSecretFor(mode)
 }
+
+// Historical order actions use the mode captured by the signed payment event.
+export function getStripeForMode(mode: StripeMode): Stripe {
+  const secret = secretFor(mode)
+  if (!secret) throw new Error(`Stripe ${mode} secret key is missing.`)
+  return new Stripe(secret, { apiVersion: API_VERSION })
+}
