@@ -1,6 +1,7 @@
 // Isolated browser fixture. No real accounts, database, printer, payment, or email calls.
 import { createRoot } from 'react-dom/client'
 import LaunchSequence from '@/components/admin/LaunchSequence'
+import ProjectHubClient from '@/app/(admin)/admin/ProjectHubClient'
 import { missingPrepSteps, prepSteps, type LaunchChecklist } from '@/lib/launch/steps'
 import { launchConnectionBlockers, readLaunchConnections } from '@/lib/launch/readiness'
 import '@/app/globals.css'
@@ -74,4 +75,4 @@ window.fetch = async (input, init) => {
   }
   return Response.json({ error: 'Unknown sample endpoint' }, { status: 404 })
 }
-createRoot(document.getElementById('root')!).render(<main className="min-h-screen bg-cream p-8"><h1 className="font-display text-4xl">Margaret’s admin workspace</h1><p className="mt-4">Browser review with sample data only.</p><LaunchSequence /></main>)
+createRoot(document.getElementById('root')!).render(<main className="min-h-screen bg-cream p-8"><p className="mb-4">Browser review with sample data only.</p><ProjectHubClient initialFeedback={[]} initialWorkRequests={[]} initialNotes={[]} /><LaunchSequence /></main>)

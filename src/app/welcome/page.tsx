@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import WelcomeClient from './WelcomeClient'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
-  title: 'Welcome to ArtByME artOS',
-  description: 'Your brand new art management and operating system.',
+  title: 'Launch guide | ArtByME',
+  robots: { index: false, follow: false },
 }
 
+/** Retire old welcome links into the current guide behind the admin role/MFA gate. */
 export default function WelcomePage() {
-  return <WelcomeClient />
+  redirect('/admin')
 }

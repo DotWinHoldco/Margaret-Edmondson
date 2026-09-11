@@ -67,7 +67,7 @@ export default async function AdminDashboard() {
 
   return (
     <>
-      {/* Owner go-live sequence — renders only while the site is still gated. */}
+      {/* Quick fulfillment controls; the shared admin layout hosts the launch guide. */}
       <div className="mx-auto mb-6 max-w-7xl px-4 pt-6"><FulfillmentSettings compact /></div>
       <ProjectHubClient
         initialFeedback={feedbackItems}

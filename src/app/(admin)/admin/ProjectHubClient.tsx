@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
@@ -628,21 +627,13 @@ export default function ProjectHubClient({
 
   const feedbackRef = useRef<HTMLDivElement>(null)
 
-  const router = useRouter()
   const toast = useToast()
 
-  // Welcome gate + tutorial
+  // The admin layout owns launch onboarding; the dashboard never redirects away.
+  // Keep the optional project-hub tutorial available only through its explicit URL.
   const [tutorialStep, setTutorialStep] = useState<number | null>(null)
   useEffect(() => {
-    // Redirect to welcome letter unless permanently dismissed or just entered from welcome
-    const permanent = localStorage.getItem('artbyme_welcome_dismissed') === 'permanent'
-    const fromWelcome = sessionStorage.getItem('artbyme_entered_from_welcome')
-    if (!permanent && !fromWelcome) {
-      router.replace('/welcome')
-      return
-    }
-
-    // Start tutorial if coming from welcome page
+    // Start the optional tutorial when explicitly requested.
     const params = new URLSearchParams(window.location.search)
     if (params.get('tutorial') === '1' && !localStorage.getItem('artbyme_tutorial_hidden')) {
       setTutorialStep(0)

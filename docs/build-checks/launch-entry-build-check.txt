@@ -1,0 +1,55 @@
+
+> margaret-edmonson@0.1.0 build-check
+> node scripts/build-check.mjs
+
+
+[1m  DotWin build-check[0m
+[2m  2026-09-11T22:25:09.751Z  ·  profile: green  ·  mode: adopt[0m
+[2m  Rule 1: ACID invariants outrank module purity[0m
+
+  [32m✓[0m typecheck[2m  ·  ok[0m
+  [32m✓[0m lint[2m  ·  ok[0m
+  [32m✓[0m test[2m  ·  ok[0m
+  [32m✓[0m build[2m  ·  ok[0m
+  [32m✓[0m secrets[2m  ·  no hardcoded secrets[0m
+  [2m·[0m grant-boundary[2m (optional)[0m[2m  ·  SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN not set (CI enforces this gate via repository secrets)[0m
+  [32m✓[0m security[2m  ·  0 advisory[0m
+  [32m✓[0m supabase-boundaries[2m  ·  client boundaries respected[0m
+  [32m✓[0m authz[2m  ·  mutation boundaries guarded[0m
+  [32m✓[0m rls[2m  ·  69 tables, 69 with RLS; 0 blocking[0m
+      [2m[medium][0m read policy "public can read product images" on "product_images" uses permissive (true)  [2msupabase/migrations/20260401003826_add_rls_policies.sql:15[0m
+      [2m[medium][0m read policy "public can read product variants" on "product_variants" uses permissive (true)  [2msupabase/migrations/20260401003826_add_rls_policies.sql:15[0m
+      [2m[medium][0m read policy "public can read categories" on "categories" uses permissive (true)  [2msupabase/migrations/20260401003826_add_rls_policies.sql:15[0m
+      [2m[medium][0m read policy "public can read lessons" on "lessons" uses permissive (true)  [2msupabase/migrations/20260401003826_add_rls_policies.sql:15[0m
+      [2m[medium][0m read policy "public read testimonial_media" on "testimonial_media" uses permissive (true)  [2msupabase/migrations/20260415214421_testimonials_expand_and_media.sql:48[0m
+      [2m[medium][0m read policy "public can read cv_settings" on "cv_settings" uses permissive (true)  [2msupabase/migrations/20260519000001_cv_entries.sql:28[0m
+      [2m[medium][0m read policy "public read lumaprints_mediums" on "lumaprints_mediums" uses permissive (true)  [2msupabase/migrations/20260520000001_lumaprints_mediums.sql:27[0m
+      [2m[medium][0m read policy "public can read product_categories" on "product_categories" uses permissive (true)  [2msupabase/migrations/20260622212139_adopt_rls_conformance.sql:13[0m
+  [32m✓[0m migrations[2m  ·  85 migration file(s)[0m
+  [2m·[0m domain-isolation[2m (optional)[0m[2m  ·  no src/domains or src/modules directory[0m
+  [2m·[0m contract[2m (optional)[0m[2m  ·  no src/domains or src/modules (score via audit)[0m
+  [2m·[0m read-boundary[2m (optional)[0m[2m  ·  no src/domains or src/modules[0m
+  [2m·[0m table-ownership[2m (optional)[0m[2m  ·  no src/domains or src/modules[0m
+  [2m·[0m atomicity[2m (optional)[0m[2m  ·  no src/domains or src/modules[0m
+  [2m·[0m event-boundaries[2m (optional)[0m[2m  ·  no src/domains or src/modules[0m
+  [32m✓[0m rpc-exists[2m  ·  1 declared transaction(s); 0 blocking[0m
+  [2m·[0m no-duplicate-transactions[2m (optional)[0m[2m  ·  no src/domains or src/modules[0m
+  [32m✓[0m anchors[2m (optional)[0m[2m  ·  0 source anchor(s)[0m
+  [32m✓[0m state[2m  ·  7 tag(s) resolve[0m
+  [32m✓[0m docs[2m  ·  321 undocumented (0 blocking)[0m
+      [2m[medium][0m exported function/component "ProjectHubClient" has no intent doc comment  [2msrc/app/(admin)/admin/ProjectHubClient.tsx:538[0m
+      [2m[medium][0m exported function/component "AdminAboutPage" has no intent doc comment  [2msrc/app/(admin)/admin/about/page.tsx:5[0m
+      [2m[medium][0m exported function/component "EditBlogPostPage" has no intent doc comment  [2msrc/app/(admin)/admin/blog/[id]/page.tsx:22[0m
+      [2m[medium][0m exported function/component "NewBlogPostPage" has no intent doc comment  [2msrc/app/(admin)/admin/blog/new/page.tsx:22[0m
+      [2m[medium][0m exported function/component "AdminBlogPage" has no intent doc comment  [2msrc/app/(admin)/admin/blog/page.tsx:9[0m
+      [2m[medium][0m exported function/component "BookingsPage" has no intent doc comment  [2msrc/app/(admin)/admin/classes/[id]/bookings/page.tsx:9[0m
+      [2m[medium][0m exported function/component "EditClassSessionPage" has no intent doc comment  [2msrc/app/(admin)/admin/classes/[id]/page.tsx:8[0m
+      [2m[medium][0m exported function/component "NewClassSessionPage" has no intent doc comment  [2msrc/app/(admin)/admin/classes/new/page.tsx:7[0m
+      [2m[medium][0m exported function/component "AdminClassesPage" has no intent doc comment  [2msrc/app/(admin)/admin/classes/page.tsx:32[0m
+      [2m[medium][0m exported function/component "AdminCommissionDetailPage" has no intent doc comment  [2msrc/app/(admin)/admin/commissions/[id]/page.tsx:77[0m
+      [2m[medium][0m exported function/component "AdminCommissionsPage" has no intent doc comment  [2msrc/app/(admin)/admin/commissions/page.tsx:59[0m
+      [2m[medium][0m exported function/component "ContentEditor" has no intent doc comment  [2msrc/app/(admin)/admin/content/ContentEditor.tsx:17[0m
+[2m      … 309 more[0m
+
+  status: [32m[1mGREEN[0m[0m
+
