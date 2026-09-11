@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdminPage } from '@/lib/auth/admin-page-guard'
 import Providers from '@/components/shared/Providers'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import LaunchSequence from '@/components/admin/LaunchSequence'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -70,6 +71,7 @@ export default async function AdminLayout({
             {children}
           </div>
         </main>
+        <LaunchSequence />
       </div>
     </Providers>
   )

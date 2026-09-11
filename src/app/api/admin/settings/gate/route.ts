@@ -3,8 +3,9 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import { clearGateConfigCache } from '@/lib/gate/config'
 import { missingPrepSteps } from '@/lib/launch/steps'
+import { launchConnectionBlockers, readLaunchConnections } from '@/lib/launch/readiness'
 
-const SELECT = 'lumaprints_enabled, gate_enabled, gate_password, gate_secret, gate_cookie_hours, launch_checklist'
+const SELECT = 'lumaprints_enabled, stripe_test_mode, gate_enabled, gate_password, gate_secret, gate_cookie_hours, launch_checklist, updated_at'
 
 interface GateRow {
   gate_enabled: boolean | null
@@ -12,6 +13,8 @@ interface GateRow {
   gate_secret: string | null
   gate_cookie_hours: number | null
   lumaprints_enabled: boolean
+  stripe_test_mode: boolean
+  updated_at: string | null
   launch_checklist: unknown
 }
 
@@ -96,6 +99,9 @@ export async function PATCH(request: NextRequest) {
             { status: 409 },
           )
         }
+        const blockers = launchConnectionBlockers(readLaunchConnections(process.env), row.stripe_test_mode !== false, row.lumaprints_enabled)
+        if (blockers.length > 0)
+          return Response.json({ error: 'Finish payment and order-service setup before opening the store.', code: 'LAUNCH_CONNECTIONS_INCOMPLETE', blockers }, { status: 409 })
         goingLive = true
       }
       updates.gate_enabled = body.enabled
@@ -144,14 +150,16 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    const { data, error } = await auth.supabase
+    let update = auth.supabase
       .from('site_settings')
       .update(updates)
       .eq('id', true)
+    update = row.updated_at === null ? update.is('updated_at', null) : update.eq('updated_at', row.updated_at)
+    const { data, error } = await update
       .select(SELECT)
       .maybeSingle()
     if (error) return dbFail(error, 'admin/settings/gate PATCH')
-    if (!data) return apiError('Site settings row missing.', 500, 'SETTINGS_MISSING')
+    if (!data) return apiError('Store settings changed. Refresh the launch guide before opening the store.', 409, 'SETTINGS_CHANGED')
 
     // Local-instance cache clear; other instances converge within the ~30s TTL.
     clearGateConfigCache()

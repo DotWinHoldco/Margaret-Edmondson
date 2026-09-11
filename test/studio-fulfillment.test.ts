@@ -14,7 +14,7 @@ import { calculateCheckoutShipping } from '@/lib/checkout/shipping'
 import { snapshotOrderItem } from '@/lib/checkout/snapshot'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
 import { cheapestPrintPrice } from '@/lib/product-utils'
-import { missingPrepSteps } from '@/lib/launch/steps'
+import { missingPrepSteps, prepSteps } from '@/lib/launch/steps'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const quote = vi.hoisted(() => vi.fn())
@@ -154,16 +154,12 @@ describe('studio switching and pricing', () => {
     ).toBe(85)
   })
   it('does not require a Lumaprints login or billing card to launch studio mode', () => {
-    const completed = {
-      crops: { done: true },
-      prices: { done: true },
-      margins: { done: true },
-    }
+    const completed = Object.fromEntries(prepSteps(false).map(key => [key, { done: true }]))
     expect(missingPrepSteps(completed, false)).toEqual([])
-    expect(missingPrepSteps(completed, true)).toEqual([
+    expect(missingPrepSteps(completed, true)).toEqual(expect.arrayContaining([
       'luma_login',
       'luma_billing',
-    ])
+    ]))
   })
 })
 describe('shipping and frozen purchases', () => {

@@ -2,7 +2,6 @@ import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import ProjectHubClient from './ProjectHubClient'
-import LaunchSequence from '@/components/admin/LaunchSequence'
 
 export const metadata: Metadata = {
   title: 'Project Hub',
@@ -69,7 +68,6 @@ export default async function AdminDashboard() {
   return (
     <>
       {/* Owner go-live sequence — renders only while the site is still gated. */}
-      <LaunchSequence />
       <div className="mx-auto mb-6 max-w-7xl px-4 pt-6"><FulfillmentSettings compact /></div>
       <ProjectHubClient
         initialFeedback={feedbackItems}

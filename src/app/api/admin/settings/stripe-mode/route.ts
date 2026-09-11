@@ -6,6 +6,7 @@ import {
   isStripeKeyConfigured,
   isWebhookSecretConfigured,
 } from '@/lib/stripe'
+import { readLaunchConnections } from '@/lib/launch/readiness'
 
 function payload(testMode: boolean) {
   return {
@@ -46,9 +47,9 @@ export async function PATCH(request: NextRequest) {
   if (typeof body.testMode !== 'boolean') {
     return apiError('testMode must be a boolean.', 400, 'VALIDATION_FAILED')
   }
-  if (body.testMode === false && !isStripeKeyConfigured('live')) {
+  if (body.testMode === false && !Object.values(readLaunchConnections(process.env).stripe.live).every(Boolean)) {
     return apiError(
-      'Cannot switch to live mode: STRIPE_SECRET_KEY is not set in Vercel. Add the live key first.',
+      'Finish connecting the live Stripe secret key, publishable key, and payment-confirmation webhook before switching to live payments.',
       400,
       'NOT_CONFIGURED',
     )

@@ -101,9 +101,11 @@ function ShippingFields({
 export default function StudioProductEditor({
   productId,
   children,
+  initialMode,
 }: {
   productId: string
   children: ReactNode
+  initialMode?: 'studio' | 'lumaprints'
 }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [mode, setMode] = useState<'studio' | 'lumaprints'>('studio')
@@ -118,9 +120,9 @@ export default function StudioProductEditor({
       setProduct(d.product)
       setLiveMode(d.policy.lumaprints_enabled ? 'Lumaprints' : 'My studio')
       if (initial)
-        setMode(d.policy.lumaprints_enabled ? 'lumaprints' : 'studio')
+        setMode(initialMode || (d.policy.lumaprints_enabled ? 'lumaprints' : 'studio'))
     },
-    [productId],
+    [productId, initialMode],
   )
   useEffect(() => {
     load(true).catch((e) => setMessage(e.message))
