@@ -20,11 +20,12 @@ export async function GET() {
   if (!auth.ok) return auth.response
   try {
     const policy = await getFulfillmentPolicy(auth.supabase)
-    const { count } = await auth.supabase
+    const { count, error } = await auth.supabase
       .from('order_items')
       .select('id', { head: true, count: 'exact' })
       .eq('fulfillment_type', 'lumaprints')
       .eq('fulfillment_status', 'submitting')
+    if (error) return dbFail(error, 'admin/fulfillment-settings submissions')
     return Response.json({ policy, inFlight: count || 0 })
   } catch {
     return apiError(
@@ -46,9 +47,9 @@ export async function PATCH(request: Request) {
   if (
     p.lumaprints_enabled &&
     !current.lumaprints_enabled &&
-    (!process.env.LUMAPRINTS_API_KEY ||
-      !process.env.LUMAPRINTS_API_SECRET ||
-      !process.env.LUMAPRINTS_STORE_ID)
+    (!process.env.LUMAPRINTS_API_KEY?.trim() ||
+      !process.env.LUMAPRINTS_API_SECRET?.trim() ||
+      !process.env.LUMAPRINTS_STORE_ID?.trim())
   )
     return apiError(
       'Add the Lumaprints API credentials and store ID before turning it on.',

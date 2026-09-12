@@ -66,7 +66,10 @@ export async function PATCH(request: NextRequest) {
       enabled?: unknown
       password?: unknown
       cookieHours?: unknown
+      updatedAt?: unknown
     }
+    if (!body || typeof body !== 'object' || Array.isArray(body))
+      return apiError('Enter valid store settings.', 400, 'VALIDATION_FAILED')
 
     const { data: current, error: readError } = await auth.supabase
       .from('site_settings')
@@ -76,6 +79,8 @@ export async function PATCH(request: NextRequest) {
     if (readError) return dbFail(readError, 'admin/settings/gate read')
     if (!current) return apiError('Site settings row missing.', 500, 'SETTINGS_MISSING')
     const row = current as GateRow
+    if (body.updatedAt !== undefined && body.updatedAt !== row.updated_at)
+      return apiError('Store settings changed. Refresh the launch guide and review the active fulfillment path before opening the store.', 409, 'SETTINGS_CHANGED')
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
     let goingLive = false

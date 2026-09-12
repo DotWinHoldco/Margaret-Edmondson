@@ -29,6 +29,10 @@ export default function LaunchSequence() {
   const [path, setPath] = useState<LaunchPath | null>(null)
   const [cursor, setCursor] = useState(0)
   const [busy, setBusy] = useState(false)
+  const running = useRef(false)
+  const [editorState, setEditorState] = useState({ dirty: false, saving: false })
+  const [draftVersion, setDraftVersion] = useState(0)
+  const navigationBlocked = busy || editorState.dirty || editorState.saving
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [confirmLaunch, setConfirmLaunch] = useState(false)
@@ -75,13 +79,14 @@ export default function LaunchSequence() {
   }, [cursor, path])
 
   async function run(work: () => Promise<void>) {
-    if (busy) return
+    if (running.current) return
+    running.current = true
     setBusy(true)
     setError('')
     setMessage('')
     setConfirmLaunch(false)
     try { await work() } catch (e) { setError(e instanceof Error ? e.message : 'Could not save. Please try again.') }
-    finally { setBusy(false) }
+    finally { running.current = false; setBusy(false) }
   }
   async function patchLaunch(body: Record<string, unknown>) {
     const next = await jsonRequest('/api/admin/launch', { ...body, updatedAt: stateRef.current?.updatedAt })
@@ -106,7 +111,7 @@ export default function LaunchSequence() {
     setMessage('')
   }
   function close() {
-    if (busy) return
+    if (navigationBlocked) return
     dialog.current?.close()
     setOpen(false)
     setConfirmLaunch(false)
@@ -117,7 +122,7 @@ export default function LaunchSequence() {
   if (skip) return null
   if (!state || !policy || !open) return <div className="fixed bottom-6 right-4 z-[90] max-w-[calc(100%_-_2rem)] sm:right-6">
     {error && <p role="alert" className="mb-2 max-w-sm rounded-lg border border-coral/30 bg-white p-3 font-body text-sm text-charcoal">{error}</p>}
-    <button type="button" disabled={busy} onClick={() => void reopen()} className="min-h-12 rounded-full bg-teal px-6 py-3 font-body font-semibold text-white shadow-lg hover:bg-deep-teal disabled:opacity-50">{busy ? 'Opening guide…' : 'Launch guide'}</button>
+    <button type="button" disabled={navigationBlocked} onClick={() => void reopen()} className="min-h-12 rounded-full bg-teal px-6 py-3 font-body font-semibold text-white shadow-lg hover:bg-deep-teal disabled:opacity-50">{busy ? 'Opening guide…' : 'Launch guide'}</button>
   </div>
 
   const selectedLuma = path === 'lumaprints'
@@ -137,13 +142,13 @@ export default function LaunchSequence() {
     await mark(selectedLuma ? 'luma_shipping' : 'studio_shipping', true, true)
   })
   const activateLivePayments = async () => run(async () => {
-    await jsonRequest('/api/admin/settings/stripe-mode', { testMode: false })
+    await jsonRequest('/api/admin/settings/stripe-mode', { testMode: false, updatedAt: stateRef.current?.updatedAt })
     await load()
     setMessage('Stripe is set to live payments. Complete the launch review before opening the shop.')
     router.refresh()
   })
   const goLive = async () => run(async () => {
-    await jsonRequest('/api/admin/settings/gate', { enabled: false })
+    await jsonRequest('/api/admin/settings/gate', { enabled: false, updatedAt: stateRef.current?.updatedAt })
     await load()
     setMessage('Your store is open. The visitor password has been removed.')
     router.refresh()
@@ -154,7 +159,7 @@ export default function LaunchSequence() {
       <header className="shrink-0 border-b border-charcoal/15 px-5 py-5 sm:px-8">
         <div className="flex items-start justify-between gap-4">
           <div><h2 id="launch-guide-title" className="font-display text-3xl font-bold sm:text-4xl">Your website is built, Margaret.</h2></div>
-          <button type="button" onClick={close} disabled={busy} className="min-h-11 shrink-0 rounded-lg border border-charcoal/20 px-3 text-sm font-semibold hover:bg-white disabled:opacity-50" aria-label="Close launch guide for this visit">Close</button>
+          <button type="button" onClick={close} disabled={navigationBlocked} className="min-h-11 shrink-0 rounded-lg border border-charcoal/20 px-3 text-sm font-semibold hover:bg-white disabled:opacity-50" aria-label="Close launch guide for this visit">Close</button>
         </div>
       </header>
       <div ref={scroll} className="min-h-0 overflow-y-auto overscroll-contain">
@@ -164,7 +169,7 @@ export default function LaunchSequence() {
             <div><p className="text-sm text-charcoal/65">Currently selected for new orders</p><p className="font-semibold">{currentPath}</p></div>
             <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-teal/25 p-3 text-sm font-semibold">
               <span>Self-fulfillment with my contact</span>
-              <input type="checkbox" role="switch" aria-label="Self-fulfillment with my contact" className="peer sr-only" checked={!policy.lumaprints_enabled} disabled={busy} onChange={e => {
+              <input type="checkbox" role="switch" aria-label="Self-fulfillment with my contact" className="peer sr-only" checked={!policy.lumaprints_enabled} disabled={navigationBlocked} onChange={e => {
                 const studio = e.target.checked
                 void run(async () => { await savePolicy({ ...policy, lumaprints_enabled: !studio }); choose(studio ? 'studio' : 'lumaprints'); setMessage(studio ? 'Self-fulfillment is on. Lumaprints requests are off.' : 'Lumaprints is on for new eligible prints.') })
               }} />
@@ -177,7 +182,9 @@ export default function LaunchSequence() {
           {state.connections.preview && <p className="mt-3 text-sm text-charcoal/70">You are viewing a preview. Fulfillment, shipping, and product edits here save to the existing store database. The final store-opening step is available on the live website.</p>}
         </div>
         <div className="px-5 pt-4 sm:px-8">
-          {error && <div role="alert" className="mb-4 rounded-lg border border-coral/40 bg-white p-4 text-sm"><p>{error}</p><button type="button" disabled={busy} onClick={() => void run(async () => { await load(); setMessage('Setup refreshed. Review your entries before saving again.') })} className="mt-2 font-semibold text-teal underline">Refresh setup</button></div>}
+          {error && <div role="alert" className="mb-4 rounded-lg border border-coral/40 bg-white p-4 text-sm"><p>{error}</p><button type="button" disabled={busy || editorState.saving} onClick={() => void run(async () => { await load(); setMessage('Setup refreshed. Review your entries before saving again.') })} className="mt-2 font-semibold text-teal underline">Refresh setup</button></div>}
+          {editorState.dirty && <div role="status" className="mb-4 rounded-lg border border-gold/40 bg-gold/10 p-4 text-sm"><p>You have unsaved changes in this step. Save them before switching steps, products, or fulfillment paths, or closing the guide.</p><button type="button" disabled={busy || editorState.saving} className="mt-2 font-semibold text-teal underline" onClick={() => { setEditorState({ dirty: false, saving: false }); setDraftVersion(v => v + 1) }}>Discard unsaved changes</button></div>}
+          {editorState.saving && <p role="status" className="mb-4 text-sm">Saving product settings. Please wait before moving on.</p>}
           {message && <p role="status" className="mb-4 rounded-lg bg-teal/10 p-3 text-sm">{message}</p>}
         </div>
         {path === null ? <div className="space-y-6 px-5 pb-8 sm:px-8">
@@ -198,12 +205,12 @@ export default function LaunchSequence() {
           <p className="text-sm text-charcoal/65">Exploring a path does not change the store. The fulfillment switch above is what changes how new orders are handled. Progress is saved separately for each path.</p>
         </div> : <div className="grid md:grid-cols-[230px_minmax(0,1fr)]">
           <nav aria-label="Launch setup steps" className="border-b border-charcoal/10 px-5 pb-5 md:border-b-0 md:border-r md:py-2">
-            <button type="button" disabled={busy} onClick={() => { setPath(null); setConfirmLaunch(false) }} className="mb-4 min-h-11 text-sm font-semibold text-teal underline">Compare both paths</button>
+            <button type="button" disabled={navigationBlocked} onClick={() => { setPath(null); setConfirmLaunch(false) }} className="mb-4 min-h-11 text-sm font-semibold text-teal underline">Compare both paths</button>
             <p className="font-semibold">{selectedLuma ? 'Lumaprints setup' : 'Your studio setup'}</p>
             <p className="mb-2 mt-1 text-xs text-charcoal/65">{done} of {steps.length} decisions complete</p>
             <progress aria-label="Setup progress" max={steps.length} value={done} className="mb-4 h-2 w-full accent-teal" />
-            <label className="block text-sm font-medium md:hidden">Setup step<select value={cursor} disabled={busy} onChange={e => { setCursor(Number(e.target.value)); setConfirmLaunch(false) }} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-white p-3">{[...steps, 'go_live' as const].map((key, i) => <option value={i} key={key}>{i + 1}. {STEP_TITLES[key]}{state.steps[key]?.done ? ' — complete' : ''}</option>)}</select></label>
-            <ol className="hidden space-y-1 md:block">{[...steps, 'go_live' as const].map((key, i) => <li key={key}><button type="button" disabled={busy} aria-current={cursor === i ? 'step' : undefined} onClick={() => { setCursor(i); setConfirmLaunch(false) }} className={`flex w-full gap-2 rounded-lg p-2.5 text-left text-sm leading-snug ${cursor === i ? 'bg-teal text-white' : 'hover:bg-white'}`}><span className="w-5 shrink-0" aria-hidden>{state.steps[key]?.done ? '✓' : i + 1}</span><span>{STEP_TITLES[key]}</span>{state.steps[key]?.done && <span className="sr-only">Complete</span>}</button></li>)}</ol>
+            <label className="block text-sm font-medium md:hidden">Setup step<select value={cursor} disabled={navigationBlocked} onChange={e => { setCursor(Number(e.target.value)); setConfirmLaunch(false) }} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-white p-3">{[...steps, 'go_live' as const].map((key, i) => <option value={i} key={key}>{i + 1}. {STEP_TITLES[key]}{state.steps[key]?.done ? ' — complete' : ''}</option>)}</select></label>
+            <ol className="hidden space-y-1 md:block">{[...steps, 'go_live' as const].map((key, i) => <li key={key}><button type="button" disabled={navigationBlocked} aria-current={cursor === i ? 'step' : undefined} onClick={() => { setCursor(i); setConfirmLaunch(false) }} className={`flex w-full gap-2 rounded-lg p-2.5 text-left text-sm leading-snug ${cursor === i ? 'bg-teal text-white' : 'hover:bg-white'}`}><span className="w-5 shrink-0" aria-hidden>{state.steps[key]?.done ? '✓' : i + 1}</span><span>{STEP_TITLES[key]}</span>{state.steps[key]?.done && <span className="sr-only">Complete</span>}</button></li>)}</ol>
           </nav>
           <section aria-labelledby="launch-step-title" className="min-w-0 px-5 pb-8 pt-5 sm:px-8 md:pt-2">
             {!selectedIsActive && <div className="mb-5 rounded-lg border border-gold/50 bg-gold/10 p-4 text-sm">You are exploring the {selectedLuma ? 'Lumaprints' : 'self-fulfillment'} path. The store currently uses {currentPath.toLowerCase()}. Use the fulfillment switch above when you want to activate this path.</div>}
@@ -218,18 +225,18 @@ export default function LaunchSequence() {
                 <div><dt className="text-charcoal/60">Customer emails / order processing</dt><dd>{state.connections.email ? 'Email settings present' : 'Email connection needed'}; {state.connections.worker ? 'scheduled processing configured' : 'scheduled processing needs connection'}.</dd></div>
               </dl>
               {done < steps.length && <div><h4 className="font-semibold">Your decisions still to finish</h4><ul className="mt-2 list-disc space-y-2 pl-5 text-sm">{steps.filter(k => !state.steps[k]?.done).map(k => <li key={k}><button className="text-left text-teal underline" onClick={() => setCursor(steps.indexOf(k))}>{STEP_TITLES[k]}</button></li>)}</ul></div>}
-              {state.blockers.length > 0 && <div className="rounded-lg border border-gold/40 bg-gold/10 p-4"><h4 className="font-semibold">Connection steps before opening</h4><ul className="mt-2 list-disc space-y-2 pl-5 text-sm">{state.blockers.map(b => <li key={b.code}>{b.message}</li>)}</ul><button disabled={busy} onClick={() => void run(async () => { await load(); setMessage('Connection checks refreshed.') })} className="mt-4 min-h-11 font-semibold text-teal underline">Check connections again</button></div>}
+              {state.blockers.length > 0 && <div className="rounded-lg border border-gold/40 bg-gold/10 p-4"><h4 className="font-semibold">Connection steps before opening</h4><ul className="mt-2 list-disc space-y-2 pl-5 text-sm">{state.blockers.map(b => <li key={b.code}>{b.message}</li>)}</ul><button disabled={busy || editorState.saving} onClick={() => void run(async () => { await load(); setMessage('Connection checks refreshed.') })} className="mt-4 min-h-11 font-semibold text-teal underline">Check connections again</button></div>}
               {!state.gateEnabled ? <div className="rounded-lg bg-teal/10 p-5"><h4 className="font-semibold">The visitor password is already off.</h4><p className="mt-2 text-sm">The public site is open. You can keep this guide for reference and finish any outstanding business or connection checks.</p><p className="mt-3"><GuideLink href="https://artbyme.studio">Open ArtByME</GuideLink></p></div> : <div className="rounded-xl border-2 border-teal/30 bg-white p-5">
                 <h4 className="font-semibold">Open the shop when you are ready</h4><p className="mt-2 text-sm">This removes the visitor password. With Stripe set up in live mode, customers can place paid orders using the active fulfillment path. Keep an eye on your first customer order and check your queue regularly.</p>
-                {confirmLaunch ? <div className="mt-4 space-y-3"><p className="font-semibold">Open ArtByME to customers now?</p><p className="text-sm">Your approved prices, shipping settings, and live payment connection will be used for new orders.</p><div className="flex flex-wrap gap-3"><button disabled={busy || !state.readyToGoLive || !selectedIsActive} onClick={() => void goLive()} className="min-h-11 rounded-lg bg-teal px-5 py-3 font-semibold text-white disabled:opacity-50">Yes, open my store</button><button disabled={busy} onClick={() => setConfirmLaunch(false)} className="min-h-11 rounded-lg border border-charcoal/20 px-5 py-3">Keep reviewing</button></div></div> : <button disabled={busy || !state.readyToGoLive || !selectedIsActive} onClick={() => setConfirmLaunch(true)} className="mt-4 min-h-12 rounded-lg bg-teal px-6 py-3 font-semibold text-white disabled:opacity-50">Open my store</button>}
+                {confirmLaunch ? <div className="mt-4 space-y-3"><p className="font-semibold">Open ArtByME to customers now?</p><p className="text-sm">Your approved prices, shipping settings, and live payment connection will be used for new orders.</p><div className="flex flex-wrap gap-3"><button disabled={busy || !state.readyToGoLive || !selectedIsActive} onClick={() => void goLive()} className="min-h-11 rounded-lg bg-teal px-5 py-3 font-semibold text-white disabled:opacity-50">Yes, open my store</button><button disabled={navigationBlocked} onClick={() => setConfirmLaunch(false)} className="min-h-11 rounded-lg border border-charcoal/20 px-5 py-3">Keep reviewing</button></div></div> : <button disabled={busy || !state.readyToGoLive || !selectedIsActive} onClick={() => setConfirmLaunch(true)} className="mt-4 min-h-12 rounded-lg bg-teal px-6 py-3 font-semibold text-white disabled:opacity-50">Open my store</button>}
                 {(!state.readyToGoLive || !selectedIsActive) && <p className="mt-3 text-sm text-charcoal/65">Finish the steps for the active fulfillment path and the connection checks above to enable this button.</p>}
               </div>}
-            </div> : <LaunchGuideContent key={`${path}-${step}`} step={step} state={state} policy={policy} busy={busy} saveContact={saveContact} saveShipping={saveShipping} activateLivePayments={activateLivePayments} />}
+            </div> : <LaunchGuideContent key={`${path}-${step}-${draftVersion}`} step={step} state={state} policy={policy} busy={busy} saveContact={saveContact} saveShipping={saveShipping} activateLivePayments={activateLivePayments} onEditorState={setEditorState} />}
             <footer className="mt-7 flex flex-wrap items-center gap-3 border-t border-charcoal/15 pt-5">
-              {cursor > 0 && <button type="button" disabled={busy} onClick={() => { setCursor(i => i - 1); setConfirmLaunch(false) }} className="min-h-11 rounded-lg border border-charcoal/20 px-4 py-2">Previous</button>}
-              {step && !['studio_partner', 'studio_shipping', 'luma_shipping'].includes(step) && <button type="button" disabled={busy} onClick={() => void run(() => mark(step, !state.steps[step]?.done, !state.steps[step]?.done))} className="min-h-11 rounded-lg bg-teal px-5 py-2 font-semibold text-white disabled:opacity-50">{busy ? 'Saving…' : state.steps[step]?.done ? 'Mark this step unfinished' : 'I have completed this step'}</button>}
-              {step && <button type="button" disabled={busy} onClick={() => setCursor(i => i + 1)} className="min-h-11 px-3 py-2 text-sm font-semibold text-teal underline">{cursor === steps.length - 1 ? 'Review my launch setup' : 'Next step'}</button>}
-              <button type="button" disabled={busy} onClick={close} className="ml-auto min-h-11 px-3 py-2 text-sm text-charcoal/65 underline">Continue later</button>
+              {cursor > 0 && <button type="button" disabled={navigationBlocked} onClick={() => { setCursor(i => i - 1); setConfirmLaunch(false) }} className="min-h-11 rounded-lg border border-charcoal/20 px-4 py-2">Previous</button>}
+              {step && !['studio_partner', 'studio_shipping', 'luma_shipping'].includes(step) && <button type="button" disabled={navigationBlocked} onClick={() => void run(() => mark(step, !state.steps[step]?.done, !state.steps[step]?.done))} className="min-h-11 rounded-lg bg-teal px-5 py-2 font-semibold text-white disabled:opacity-50">{busy ? 'Saving…' : state.steps[step]?.done ? 'Mark this step unfinished' : 'I have completed this step'}</button>}
+              {step && <button type="button" disabled={navigationBlocked} onClick={() => setCursor(i => i + 1)} className="min-h-11 px-3 py-2 text-sm font-semibold text-teal underline">{cursor === steps.length - 1 ? 'Review my launch setup' : 'Next step'}</button>}
+              <button type="button" disabled={navigationBlocked} onClick={close} className="ml-auto min-h-11 px-3 py-2 text-sm text-charcoal/65 underline">Continue later</button>
             </footer>
           </section>
         </div>}

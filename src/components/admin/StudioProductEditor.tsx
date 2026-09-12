@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MEDIUMS, mediumLabel } from '@/lib/pricing/mediums'
 import type { StudioFields } from '@/lib/fulfillment/policy'
+import { useEditorState, type EditorStateChange } from './useEditorState'
 
 interface Offer extends StudioFields {
   id: string
@@ -102,22 +103,30 @@ export default function StudioProductEditor({
   productId,
   children,
   initialMode,
+  onEditorState,
 }: {
   productId: string
   children: ReactNode
   initialMode?: 'studio' | 'lumaprints'
+  onEditorState?: EditorStateChange
 }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [mode, setMode] = useState<'studio' | 'lumaprints'>('studio')
   const [liveMode, setLiveMode] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
+  const saving = useRef(false)
+  const [savedProduct, setSavedProduct] = useState<Product | null>(null)
   const [message, setMessage] = useState('')
+  const [failed, setFailed] = useState(false)
+  const dirty = product !== null && JSON.stringify(product) !== JSON.stringify(savedProduct)
+  useEditorState(dirty, busy, onEditorState)
   const load = useCallback(
     async (initial = false) => {
-      const r = await fetch(`/api/admin/products/${productId}/studio`)
+      const r = await fetch(`/api/admin/products/${productId}/studio`, { cache: 'no-store' })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Could not load studio settings.')
       setProduct(d.product)
+      setSavedProduct(d.product)
       setLiveMode(d.policy.lumaprints_enabled ? 'Lumaprints' : 'My studio')
       if (initial)
         setMode(initialMode || (d.policy.lumaprints_enabled ? 'lumaprints' : 'studio'))
@@ -125,7 +134,7 @@ export default function StudioProductEditor({
     [productId, initialMode],
   )
   useEffect(() => {
-    load(true).catch((e) => setMessage(e.message))
+    load(true).catch((e) => { setFailed(true); setMessage(e.message) }).finally(() => setBusy(false))
   }, [load])
   function update(id: string, patch: Partial<Offer>) {
     setProduct((p) =>
@@ -140,10 +149,16 @@ export default function StudioProductEditor({
     )
   }
   async function save() {
-    if (!product) return
+    if (!product || saving.current) return
+    saving.current = true
     setBusy(true)
     setMessage('')
+    setFailed(false)
     try {
+      for (const v of product.product_variants) {
+        if (v.variant_type !== 'original' && v.studio_is_active && (!v.medium || !v.width_in || !v.height_in))
+          throw new Error(`Set the material, width, and height for “${v.name}” before making it live. Add a studio print size if this provider option is incomplete.`)
+      }
       const shipping = (v: StudioFields) => ({
         studio_shipping_mode: v.studio_shipping_mode || null,
         studio_shipping_fee_cents: v.studio_shipping_fee_cents ?? null,
@@ -164,9 +179,9 @@ export default function StudioProductEditor({
             ...shipping(v),
             studio_price_cents:
               v.variant_type === 'original'
-                ? Math.round(Number(v.price) * 100)
+                ? (Number(v.price) > 0 ? Math.round(Number(v.price) * 100) : null)
                 : (v.studio_price_cents ?? null),
-            studio_is_active: !!v.studio_is_active,
+            studio_is_active: v.variant_type !== 'original' && !!v.studio_is_active,
             studio_only: !!v.studio_only,
             studio_source_approved:
               v.variant_type === 'original' || !!v.studio_source_approved,
@@ -179,8 +194,10 @@ export default function StudioProductEditor({
       await load()
       setMessage('Studio prices and shipping saved.')
     } catch (e) {
+      setFailed(true)
       setMessage(e instanceof Error ? e.message : 'Save failed')
     } finally {
+      saving.current = false
       setBusy(false)
     }
   }
@@ -208,7 +225,7 @@ export default function StudioProductEditor({
     })
   }
   return (
-    <div className="space-y-4">
+    <fieldset disabled={busy} className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-charcoal/10 bg-white p-4">
         <label className="font-body text-sm">
           Editing prices for{' '}
@@ -353,12 +370,13 @@ export default function StudioProductEditor({
                         </label>
                       )}
                     </div>
-                    {(v.new || v.studio_only) && (
+                    {(v.new || (v.studio_only && savedProduct?.product_variants.find(saved => saved.id === v.id)?.studio_only)) && v.variant_type !== 'original' && (
                       <div className="mb-3 grid gap-3 sm:grid-cols-2">
                         <label className="font-body text-sm">
                           Option name
                           <input
                             className={field}
+                            maxLength={120}
                             value={v.name}
                             onChange={(e) =>
                               update(v.id, { name: e.target.value })
@@ -387,6 +405,7 @@ export default function StudioProductEditor({
                             className={field}
                             type="number"
                             min="0.1"
+                            max="300"
                             step="0.05"
                             value={v.width_in ?? ''}
                             onChange={(e) =>
@@ -400,6 +419,7 @@ export default function StudioProductEditor({
                             className={field}
                             type="number"
                             min="0.1"
+                            max="300"
                             step="0.05"
                             value={v.height_in ?? ''}
                             onChange={(e) =>
@@ -414,7 +434,7 @@ export default function StudioProductEditor({
                     <div className="mb-3 max-w-xs">
                       <label className="font-body text-sm">
                         {v.variant_type === 'original'
-                          ? 'Original price (set in Base price above)'
+                          ? 'Original price (edit Base price in the product editor)'
                           : 'Selling price ($)'}
                         <input
                           className={field}
@@ -454,6 +474,7 @@ export default function StudioProductEditor({
                             Frame / finish
                             <input
                               className={field}
+                              maxLength={500}
                               value={String(v.studio_specs?.frame || '')}
                               onChange={(e) =>
                                 update(v.id, {
@@ -469,6 +490,7 @@ export default function StudioProductEditor({
                             Production source reference
                             <input
                               className={field}
+                              maxLength={500}
                               placeholder="Approved master in library, or file held by my printer"
                               value={String(v.studio_specs?.source || '')}
                               onChange={(e) =>
@@ -485,6 +507,7 @@ export default function StudioProductEditor({
                             Print specifications
                             <textarea
                               className={field}
+                              maxLength={2000}
                               value={String(v.studio_specs?.instructions || '')}
                               onChange={(e) =>
                                 update(v.id, {
@@ -514,6 +537,7 @@ export default function StudioProductEditor({
                             <input
                               type="checkbox"
                               checked={!!v.studio_only}
+                              disabled={!!v.new}
                               onChange={(e) =>
                                 update(v.id, { studio_only: e.target.checked })
                               }
@@ -522,6 +546,8 @@ export default function StudioProductEditor({
                             Always fulfill this option myself, even when
                             Lumaprints is on.
                           </label>
+                          {v.new && <p className="font-body text-sm text-charcoal/65">New studio sizes are fulfilled by you. They do not have a Lumaprints mapping.</p>}
+                          {!v.new && v.studio_only && !savedProduct?.product_variants.find(saved => saved.id === v.id)?.studio_only && <p className="font-body text-sm text-charcoal/65">Save this option as studio-only first. You can then edit its name, material, and dimensions.</p>}
                         </div>
                       </details>
                     )}
@@ -551,12 +577,12 @@ export default function StudioProductEditor({
       )}
       {message && (
         <p
-          role="status"
+          role={failed ? 'alert' : 'status'}
           className="rounded-md border border-charcoal/10 bg-cream p-3 font-body text-sm"
         >
           {message}
         </p>
       )}
-    </div>
+    </fieldset>
   )
 }

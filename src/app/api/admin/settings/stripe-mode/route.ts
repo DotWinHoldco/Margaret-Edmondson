@@ -43,8 +43,8 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
-  const body = (await request.json().catch(() => ({}))) as { testMode?: boolean }
-  if (typeof body.testMode !== 'boolean') {
+  const body = (await request.json().catch(() => ({}))) as { testMode?: boolean; updatedAt?: unknown }
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.testMode !== 'boolean') {
     return apiError('testMode must be a boolean.', 400, 'VALIDATION_FAILED')
   }
   if (body.testMode === false && !Object.values(readLaunchConnections(process.env).stripe.live).every(Boolean)) {
@@ -54,11 +54,20 @@ export async function PATCH(request: NextRequest) {
       'NOT_CONFIGURED',
     )
   }
-  const { error } = await auth.supabase
+  const { data: current, error: readError } = await auth.supabase
+    .from('site_settings').select('updated_at').eq('id', true).maybeSingle()
+  if (readError) return dbFail(readError, 'admin/settings/stripe-mode read')
+  if (!current) return apiError('Site settings row missing.', 500, 'SETTINGS_MISSING')
+  if (body.updatedAt !== undefined && body.updatedAt !== current.updated_at)
+    return apiError('Setup changed in another window. Refresh the guide before changing payment mode.', 409, 'SETTINGS_CHANGED')
+  let update = auth.supabase
     .from('site_settings')
     .update({ stripe_test_mode: body.testMode, updated_at: new Date().toISOString() })
     .eq('id', true)
+  update = current.updated_at === null ? update.is('updated_at', null) : update.eq('updated_at', current.updated_at)
+  const { data, error } = await update.select('id').maybeSingle()
   if (error) return dbFail(error, 'admin/settings/stripe-mode PATCH')
+  if (!data) return apiError('Setup changed in another window. Refresh the guide before changing payment mode.', 409, 'SETTINGS_CHANGED')
   clearStripeModeCache()
   return Response.json(payload(body.testMode))
 }

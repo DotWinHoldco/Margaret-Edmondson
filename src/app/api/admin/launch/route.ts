@@ -74,6 +74,8 @@ export async function PATCH(request: NextRequest) {
       notes?: unknown
       updatedAt?: unknown
     }
+    if (!body || typeof body !== 'object' || Array.isArray(body))
+      return apiError('Enter valid setup changes.', 400, 'VALIDATION_FAILED')
 
     const { data: current, error: readError } = await auth.supabase
       .from('site_settings').select(SELECT).eq('id', true).maybeSingle()

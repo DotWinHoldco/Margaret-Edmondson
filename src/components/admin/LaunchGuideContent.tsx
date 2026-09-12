@@ -5,6 +5,7 @@ import type { LaunchStepKey } from '@/lib/launch/steps'
 import type { LaunchState } from '@/lib/launch/types'
 import type { FulfillmentPolicy } from '@/lib/fulfillment/policy'
 import StudioProductEditor from './StudioProductEditor'
+import { useEditorState, type EditorStateChange } from './useEditorState'
 
 export const STEP_TITLES: Record<LaunchStepKey, string> = {
   studio_partner: 'Agree the plan with your contact',
@@ -40,10 +41,12 @@ function Note({ children }: { children: ReactNode }) {
 }
 
 /** Owner decisions are saved privately; these fields never configure a third-party integration. */
-function ContactSetup({ state, busy, save }: { state: LaunchState; busy: boolean; save: (notes: Record<string, string>) => Promise<void> }) {
+function ContactSetup({ state, busy, save, onEditorState }: { state: LaunchState; busy: boolean; save: (notes: Record<string, string>) => Promise<void>; onEditorState: EditorStateChange }) {
   const [name, setName] = useState(state.notes.studio_contact_name || '')
   const [contact, setContact] = useState(state.notes.studio_contact_method || '')
   const [arrangements, setArrangements] = useState(state.notes.studio_arrangements || '')
+  const dirty = name !== (state.notes.studio_contact_name || '') || contact !== (state.notes.studio_contact_method || '') || arrangements !== (state.notes.studio_arrangements || '')
+  useEditorState(dirty, false, onEditorState)
   return <div className="space-y-5">
     <p>You stay in charge of the customer and the order. Your contact can print, frame, pack, and ship for you. Agree the details together before offering a size or frame for sale.</p>
     <Checklist items={[
@@ -53,25 +56,30 @@ function ContactSetup({ state, busy, save }: { state: LaunchState; busy: boolean
       'Confirm who handles originals. An original already exists; it needs careful packing and shipping, and can only be sold once.',
     ]} />
     <form className="space-y-4" onSubmit={e => { e.preventDefault(); void save({ studio_contact_name: name, studio_contact_method: contact, studio_arrangements: arrangements }) }}>
+      <fieldset disabled={busy} className="space-y-4">
       <label className="block font-medium">Contact’s name<input required maxLength={200} className={field} value={name} onChange={e => setName(e.target.value)} /></label>
       <label className="block font-medium">How will you send them orders?<input required maxLength={1000} className={field} placeholder="Email, phone, or your agreed messaging method" value={contact} onChange={e => setContact(e.target.value)} /></label>
       <label className="block font-medium">Agreed costs, turnaround, and responsibilities<textarea required maxLength={4000} rows={5} className={field} placeholder="Record what you have agreed, including packaging, shipping, and handling problems." value={arrangements} onChange={e => setArrangements(e.target.value)} /></label>
       <p className="text-sm text-charcoal/65">These notes are for your admin team. Saving them does not send a message, invite your contact, or give them access to your account.</p>
       <button className={button} disabled={busy}>{busy ? 'Saving…' : 'Save contact plan and continue'}</button>
+      </fieldset>
     </form>
   </div>
 }
 
 export type ShippingChoice = Pick<FulfillmentPolicy, 'shipping_mode' | 'shipping_fee_cents' | 'lead_days' | 'ship_akhi'>
-function ShippingSetup({ policy, busy, save, originalsOnly = false }: { policy: FulfillmentPolicy; busy: boolean; save: (choice: ShippingChoice) => Promise<void>; originalsOnly?: boolean }) {
+function ShippingSetup({ policy, busy, save, onEditorState, originalsOnly = false }: { policy: FulfillmentPolicy; busy: boolean; save: (choice: ShippingChoice) => Promise<void>; onEditorState: EditorStateChange; originalsOnly?: boolean }) {
   const [mode, setMode] = useState(policy.shipping_mode)
   const [fee, setFee] = useState((policy.shipping_fee_cents / 100).toFixed(2))
   const [days, setDays] = useState(String(policy.lead_days))
   const [akhi, setAkhi] = useState(policy.ship_akhi)
+  const dirty = mode !== policy.shipping_mode || fee !== (policy.shipping_fee_cents / 100).toFixed(2) || days !== String(policy.lead_days) || akhi !== policy.ship_akhi
+  useEditorState(dirty, false, onEditorState)
   return <div className="space-y-5">
     {originalsOnly && <Note>Lumaprints handles eligible prints. Originals and any studio-only options still need your own shipping rates and production arrangements. These defaults apply to that self-fulfilled work.</Note>}
     <p>Choose how customers pay for shipping. Printing, framing, packing, and your earnings belong in the product price. There is no separate framing or handling bill at checkout.</p>
     <form className="space-y-5" onSubmit={e => { e.preventDefault(); void save({ shipping_mode: mode, shipping_fee_cents: Math.round(Number(fee) * 100), lead_days: Number(days), ship_akhi: akhi }) }}>
+      <fieldset disabled={busy} className="space-y-5">
       <fieldset className="grid gap-3 sm:grid-cols-2">
         <legend className="mb-2 font-semibold">Your default shipping option</legend>
         <label className={`cursor-pointer rounded-xl border-2 p-4 ${mode === 'included' ? 'border-teal bg-teal/5' : 'border-charcoal/15'}`}>
@@ -92,15 +100,19 @@ function ShippingSetup({ policy, busy, save, originalsOnly = false }: { policy: 
       <p>These are store defaults. In each product’s <strong>Studio prices &amp; shipping</strong>, you can override shipping for a large original or an expensive frame. Each print option can override the product too. Previously saved overrides take priority; review them before opening the shop.</p>
       <p className="text-sm text-charcoal/65">This saves the customer’s charge. You or your contact still buy the carrier’s label and pay the actual postage; the platform does not purchase labels.</p>
       <button className={button} disabled={busy}>{busy ? 'Saving…' : 'Save shipping and continue'}</button>
+      </fieldset>
     </form>
   </div>
 }
 
 /** The wizard edits the same studio price profile as the regular product editor. */
-function StudioPricing() {
+function StudioPricing({ onEditorState }: { onEditorState: EditorStateChange }) {
   const [products, setProducts] = useState<{ id: string; title: string }[]>([])
   const [selected, setSelected] = useState('')
   const [error, setError] = useState('')
+  const [editorState, setEditorState] = useState({ dirty: false, saving: false })
+  useEffect(() => { onEditorState(editorState) }, [editorState, onEditorState])
+  useEffect(() => () => { onEditorState({ dirty: false, saving: false }) }, [onEditorState])
   useEffect(() => {
     const controller = new AbortController()
     fetch('/api/admin/products', { signal: controller.signal }).then(async r => {
@@ -118,9 +130,9 @@ function StudioPricing() {
       <>For originals, open the product editor and set <strong>Base price</strong>, then save the product. Review the original’s shipping override. Keep sold originals unavailable; mark a physical return received before offering a refunded, returned original again.</>,
       'Check every active product, size, and frame. The copied starting prices are a starting point, not confirmation that they cover your contact’s costs.',
     ]} />
-    <label className="block font-semibold">Try setting a product’s studio prices<select className={field} value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose an active product</option>{products.map(p => <option value={p.id} key={p.id}>{p.title}</option>)}</select></label>
+    <label className="block font-semibold">Try setting a product’s studio prices<select disabled={editorState.dirty || editorState.saving} className={field} value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose an active product</option>{products.map(p => <option value={p.id} key={p.id}>{p.title}</option>)}</select></label>
     {error && <p role="alert" className="text-coral">{error}</p>}
-    {selected && <StudioProductEditor key={selected} productId={selected} initialMode="studio"><p><GuideLink href={`/admin/products/${selected}/edit`}>Open this product’s Lumaprints pricing controls</GuideLink></p></StudioProductEditor>}
+    {selected && <><p><GuideLink href={`/admin/products/${selected}/edit`}>Edit this product’s original price, photos, and availability</GuideLink></p><StudioProductEditor key={selected} productId={selected} initialMode="studio" onEditorState={setEditorState}><p><GuideLink href={`/admin/products/${selected}/edit`}>Open this product’s Lumaprints pricing controls</GuideLink></p></StudioProductEditor></>}
     <Note>Save each product before moving on. Mark this step complete only after reviewing all offers you plan to sell, including their shipping overrides.</Note>
   </div>
 }
@@ -156,18 +168,19 @@ function PaymentSetup({ state, busy, activateLivePayments }: { state: LaunchStat
 }
 
 /** Explain each owner decision next to the existing controls that save it. */
-export default function LaunchGuideContent({ step, state, policy, busy, saveContact, saveShipping, activateLivePayments }: {
+export default function LaunchGuideContent({ step, state, policy, busy, saveContact, saveShipping, activateLivePayments, onEditorState }: {
   step: LaunchStepKey; state: LaunchState; policy: FulfillmentPolicy; busy: boolean
   saveContact: (notes: Record<string, string>) => Promise<void>
   saveShipping: (choice: ShippingChoice) => Promise<void>
   activateLivePayments: () => Promise<void>
+  onEditorState: EditorStateChange
 }) {
-  if (step === 'studio_partner') return <ContactSetup state={state} busy={busy} save={saveContact} />
+  if (step === 'studio_partner') return <ContactSetup state={state} busy={busy} save={saveContact} onEditorState={onEditorState} />
   if (step === 'studio_shipping' || step === 'luma_shipping') return <>
     {step === 'luma_shipping' && <div className="mb-5 space-y-3"><p>For Lumaprints offers, open the product’s Lumaprints pricing area and choose <strong>Use shipping integration</strong>, <strong>Shipping included</strong>, or a <strong>Flat fee per item</strong>. Integration shipping uses the existing provider shipping rules; review the amount customers see, including Alaska and Hawaii.</p><p>If you choose an included price or flat fee, your selling price and shipping charge must still cover what Lumaprints bills you. Confirm the available destinations and delivery expectations before advertising them.</p></div>}
-    <ShippingSetup policy={policy} busy={busy} save={saveShipping} originalsOnly={step === 'luma_shipping'} />
+    <ShippingSetup policy={policy} busy={busy} save={saveShipping} onEditorState={onEditorState} originalsOnly={step === 'luma_shipping'} />
   </>
-  if (step === 'studio_prices') return <StudioPricing />
+  if (step === 'studio_prices') return <StudioPricing onEditorState={onEditorState} />
   if (step === 'stripe_account') return <PaymentSetup state={state} busy={busy} activateLivePayments={activateLivePayments} />
   if (step === 'studio_artwork' || step === 'crops') return <div className="space-y-5">
     <p>You know how each piece should look. Approve the artwork, crop, sizes, materials, and frames that customers will receive.</p>

@@ -110,6 +110,8 @@ export async function PATCH(
     )
       return apiError('Enter the flat shipping fee.', 400, 'INVALID_SHIPPING')
   for (const row of variants) {
+    if (row.new && !row.studio_only)
+      return apiError('New studio print sizes must use self-fulfillment.', 400, 'INVALID_PRINT')
     if (row.new && (!row.medium || !row.width_in || !row.height_in))
       return apiError(
         'New prints require material and dimensions.',
@@ -125,6 +127,17 @@ export async function PATCH(
         400,
         'PRINT_NOT_READY',
       )
+  }
+  // Read the real variant type: an original uses Base price and does not require print dimensions.
+  const { data: existing, error: readError } = await auth.supabase
+    .from('product_variants').select('id,variant_type').eq('product_id', id)
+  if (readError) return dbFail(readError)
+  for (const row of variants) {
+    const saved = existing.find(v => v.id === row.id)
+    if (!saved && !row.new)
+      return apiError('This print option changed. Reload the product before saving.', 409, 'OPTION_CHANGED')
+    if (row.studio_is_active && saved?.variant_type !== 'original' && (!row.medium || !row.width_in || !row.height_in))
+      return apiError(`Set the material and dimensions for “${row.name}” before making it live.`, 400, 'PRINT_NOT_READY')
   }
   const { error } = await auth.supabase.rpc('save_studio_product', {
     p_product_id: id,

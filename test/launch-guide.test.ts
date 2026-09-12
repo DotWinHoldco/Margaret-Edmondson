@@ -145,3 +145,29 @@ describe('actual store-opening gate', () => {
     expect(db.from).not.toHaveBeenCalled()
   })
 })
+
+
+describe('launch action input boundaries', () => {
+  it.each([null, [], 'wrong'])('rejects malformed settings objects without throwing (%j)', async body => {
+    const store = rowDatabase(baseRow())
+    for (const handler of [PATCH, gatePatch, stripePatch]) expect((await handler(request(body))).status).toBe(400)
+    expect(store.writes).toHaveLength(0)
+  })
+  it('rejects a stale launch review even if the new path is already complete', async () => {
+    const store = rowDatabase({ ...baseRow(), updated_at: 'newer', lumaprints_enabled: true, launch_checklist: completed(true) })
+    expect((await gatePatch(request({ enabled: false, updatedAt: baseRow().updated_at }))).status).toBe(409)
+    expect(store.writes).toHaveLength(0)
+  })
+  it('changes payment mode only for the version the owner reviewed', async () => {
+    const store = rowDatabase({ ...baseRow(), stripe_test_mode: true })
+    expect((await stripePatch(request({ testMode: false, updatedAt: 'stale' }))).status).toBe(409)
+    expect(store.writes).toHaveLength(0)
+    expect((await stripePatch(request({ testMode: false, updatedAt: baseRow().updated_at }))).status).toBe(200)
+    expect(store.row().stripe_test_mode).toBe(false)
+  })
+  it('does not overwrite a concurrent payment-mode update', async () => {
+    const store = rowDatabase(baseRow(), true)
+    expect((await stripePatch(request({ testMode: false }))).status).toBe(409)
+    expect(store.writes).toHaveLength(0)
+  })
+})
