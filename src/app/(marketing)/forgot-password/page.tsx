@@ -18,18 +18,18 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await resetPassword(email)
-
-    if (error) {
-      const friendly = resolveErrorMessage(error)
+    try {
+      const { error } = await resetPassword(email.trim())
+      if (error) throw error
+      setSent(true)
+      toast.success('Check your email for the next step.')
+    } catch (err) {
+      const friendly = resolveErrorMessage(err)
       setError(friendly)
       toast.error(friendly)
-    } else {
-      setSent(true)
-      toast.success('Reset link sent. Check your email.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-light text-charcoal">Reset Password</h1>
           <p className="mt-2 font-body text-sm text-charcoal/60">
-            Enter your email and I’ll send you a link to reset your password.
+            Enter your account email to request a password reset link.
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="font-display text-lg font-light text-charcoal mb-2">Check Your Email</h2>
               <p className="font-body text-sm text-charcoal/60 mb-6">
-                I sent a password reset link to <strong className="text-charcoal">{email}</strong>. Click the link in the email to set a new password.
+                If <strong className="text-charcoal">{email}</strong> has an account, you’ll receive a password reset link. Open the newest link in this same browser to set a new password.
               </p>
               <p className="font-body text-xs text-charcoal/40">
                 Did not get the email? Check your spam folder or{' '}
@@ -68,11 +68,14 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-body font-medium text-charcoal/70 mb-1">
+                <label htmlFor="reset-email" className="block text-xs font-body font-medium text-charcoal/70 mb-1">
                   Email address
                 </label>
                 <input
+                  id="reset-email"
                   type="email"
+                  autoComplete="email"
+                  disabled={loading}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -81,7 +84,7 @@ export default function ForgotPasswordPage() {
                 />
               </div>
 
-              {error && <p className="text-xs font-body text-coral">{error}</p>}
+              {error && <p role="alert" className="text-xs font-body text-coral">{error}</p>}
 
               <button
                 type="submit"

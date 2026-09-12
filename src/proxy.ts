@@ -29,6 +29,13 @@ async function gateCheck(
   if (
     pathname.startsWith('/gate') ||
     pathname.startsWith('/api/gate') ||
+    // Account recovery must remain reachable while the storefront is gated.
+    // These pages still rely on Supabase session verification and MFA.
+    pathname === '/login' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password' ||
+    pathname === '/auth/callback' ||
+    (pathname === '/' && request.nextUrl.searchParams.has('code')) ||
     // Machine-to-machine callbacks carry no gate cookie and must never be
     // rewritten to /gate — Stripe/Lumaprints/Printful/ShipStation/Resend
     // webhooks and Vercel cron jobs would otherwise receive the gate HTML.

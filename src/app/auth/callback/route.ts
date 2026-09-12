@@ -7,6 +7,7 @@ import { safeInternalPath } from '@/lib/navigation/safe-redirect'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const recovery = searchParams.get('type') === 'recovery'
   const redirect = searchParams.has('redirect')
     ? safeInternalPath(searchParams.get('redirect'), '/account')
     : null
@@ -30,9 +31,17 @@ export async function GET(request: Request) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      // The PKCE verifier records PASSWORD_RECOVERY even if the email redirect
+      // loses its query string. Recovery must precede normal role redirects.
+      // auth-js returns this extra field at runtime but its public response
+      // type omits it; narrow it without asserting a wider session shape.
+      const redirectType = 'redirectType' in data ? data.redirectType : null
+      if (recovery || redirectType === 'PASSWORD_RECOVERY' || redirectType === 'recovery') {
+        return NextResponse.redirect(`${origin}/reset-password`)
+      }
       // Create/update profile on successful auth
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -63,5 +72,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`)
+  return NextResponse.redirect(recovery
+    ? `${origin}/reset-password?error=invalid-link`
+    : `${origin}/login?error=auth`)
 }
