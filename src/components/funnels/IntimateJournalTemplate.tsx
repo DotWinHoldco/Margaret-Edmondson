@@ -11,6 +11,7 @@ import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
 import type { FunnelTemplateProps, VariantData } from './types'
 import PrintVariantPicker from '@/components/shop/PrintVariantPicker'
 import { printSizeLabel, printSizeCartLabel } from '@/lib/pricing/print-size-label'
+import { isPurchasableOriginal } from '@/lib/product-utils'
 
 const ease: Easing = [0.22, 1, 0.36, 1]
 
@@ -52,7 +53,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
   const heroImage = images[0]
   const detailImage = images[1] || images[0]
   const detailImage2 = images[2] || images[0]
-  const originalVariant = variants.find((v) => v.variant_type === 'original')
+  const originalVariant = variants.find((v) => v.variant_type === 'original' && v.is_active !== false)
   // Print gate mirrors the storefront ProductDetail: only offer prints when the
   // master file is print-ready and the variant is live (is_active +
   // is_lumaprints_available). Otherwise a print order would fail at LumaPrints.
@@ -66,7 +67,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
 
   const canvasPrints = printVariants.filter((v) => v.variant_type === 'canvas_print')
   const framedPrints = printVariants.filter((v) => v.variant_type === 'framed_canvas_print')
-  const originalSold = originalVariant && (originalVariant.inventory_count <= 0 || originalVariant.price <= 0)
+  const originalSold = originalVariant && (product.status === 'sold' || !isPurchasableOriginal(originalVariant))
 
   const fullImageRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress: imageProgress } = useScroll({ target: fullImageRef, offset: ['start end', 'end start'] })

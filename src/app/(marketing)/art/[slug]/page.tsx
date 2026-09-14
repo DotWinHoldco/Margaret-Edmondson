@@ -122,6 +122,7 @@ export default async function ArtFunnelPage(props: Props) {
       medium: product.medium as string | null,
       dimensions: product.dimensions as string | null,
       base_price: product.base_price as number,
+      status: product.status as string,
       is_original: product.is_original as boolean,
       prints_enabled: product.prints_enabled as boolean,
     },

@@ -9,10 +9,12 @@ export default function ProductRowActions({
   productId,
   title,
   status,
+  onRemoved,
 }: {
   productId: string
   title: string
   status: string
+  onRemoved: () => void
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -24,6 +26,7 @@ export default function ProductRowActions({
     try {
       await apiSend(`/api/admin/products/${productId}`, 'PATCH', { status: next })
       toast.success(next === 'archived' ? 'Product archived.' : 'Product restored.')
+      onRemoved()
       router.refresh()
     } catch (err) {
       toast.error(errorMessage(err))
@@ -43,7 +46,8 @@ export default function ProductRowActions({
     setPending('delete')
     try {
       await apiSend(`/api/admin/products/${productId}`, 'DELETE')
-      toast.success('Product deleted.')
+      toast.success('Product removed. You can restore it from Archived.')
+      onRemoved()
       router.refresh()
     } catch (err) {
       toast.error(errorMessage(err))
@@ -90,7 +94,7 @@ export default function ProductRowActions({
             ? 'Unarchive'
             : 'Archive'}
       </button>
-      <button
+      {!isArchived && <button
         type="button"
         onClick={handleDelete}
         disabled={pending !== null}
@@ -110,7 +114,7 @@ export default function ProductRowActions({
           />
         </svg>
         {pending === 'delete' ? 'Deleting...' : 'Delete'}
-      </button>
+      </button>}
     </>
   )
 }

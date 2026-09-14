@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import ProductRowActions from './ProductRowActions'
+import ProductTableRow from './ProductTableRow'
 import CategoryManager from './CategoryManager'
 import ArrangeCollection from './ArrangeCollection'
 import CategoryCell from './CategoryCell'
@@ -18,7 +18,7 @@ export default async function AdminProductsPage({
   searchParams: Promise<{ status?: string; q?: string }>
 }) {
   const { status, q } = await searchParams
-  // Admin list — service client so drafts/archived show (public RLS is active-only).
+  // Admin list includes drafts; archived products are available through their filter.
   const supabase = await createServiceClient()
 
   let query = supabase
@@ -28,6 +28,8 @@ export default async function AdminProductsPage({
 
   if (status && status !== 'all') {
     query = query.eq('status', status)
+  } else {
+    query = query.neq('status', 'archived')
   }
 
   if (q) {
@@ -99,7 +101,7 @@ export default async function AdminProductsPage({
               defaultValue={status || 'all'}
               className="rounded-lg border border-charcoal/15 bg-cream px-4 py-2 font-body text-sm text-charcoal focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All except archived</option>
               <option value="active">Active</option>
               <option value="draft">Draft</option>
               <option value="archived">Archived</option>
@@ -161,9 +163,11 @@ export default async function AdminProductsPage({
                         ) || product.product_images[0]
                       : null
                     return (
-                      <tr
-                        key={product.id}
-                        className="transition-colors hover:bg-charcoal/[0.02]"
+                      <ProductTableRow
+                        key={`${product.id}:${status || 'all'}:${product.status}`}
+                        productId={product.id}
+                        title={product.title}
+                        status={product.status}
                       >
                         <td className="px-4 py-3">
                           <div className="h-12 w-12 overflow-hidden rounded-lg border border-charcoal/10 bg-charcoal/5">
@@ -227,35 +231,7 @@ export default async function AdminProductsPage({
                               '--'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Link
-                              href={`/admin/products/${product.id}/edit`}
-                              className="inline-flex items-center rounded-md px-3 py-1.5 font-body text-xs font-medium text-teal transition-colors hover:bg-teal/10"
-                            >
-                              <svg
-                                className="mr-1 h-3.5 w-3.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                              Edit
-                            </Link>
-                            <ProductRowActions
-                              productId={product.id}
-                              title={product.title}
-                              status={product.status}
-                            />
-                          </div>
-                        </td>
-                      </tr>
+                      </ProductTableRow>
                     )
                   })
                 ) : (

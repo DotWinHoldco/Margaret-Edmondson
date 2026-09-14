@@ -214,7 +214,7 @@ export function validateCheckoutCatalog(
           `Only one original of "${product.title}" can be purchased.`,
         )
       }
-      if (variant.inventory_count !== null && variant.inventory_count <= 0) {
+      if (product.status === 'sold' || (variant.inventory_count !== null && variant.inventory_count <= 0)) {
         return validationError(
           409,
           'sold_out',

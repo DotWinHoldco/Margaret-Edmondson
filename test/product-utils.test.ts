@@ -44,4 +44,22 @@ describe('storefront product availability', () => {
       product_variants: [{ ...original, inventory_count: 0 }],
     })).toBeNull()
   })
+
+  it('hides disabled or unpriced originals while preserving the prints', () => {
+    for (const original of [
+      { variant_type: 'original', inventory_count: 1, price: 450, is_active: false },
+      { variant_type: 'original', inventory_count: 1, price: 0, is_active: true },
+    ]) {
+      const product = { status: 'active', is_original: true, prints_enabled: true,
+        master_artwork: READY_MASTER, product_variants: [PRINT, original] }
+      expect(availableOriginalPrice(product)).toBeNull()
+      expect(getProductBadge(product)?.text).toBe('Prints Available')
+    }
+  })
+
+  it('continues advertising ready prints after the original sells', () => {
+    expect(getProductBadge({ status: 'sold', is_original: true, prints_enabled: true,
+      master_artwork: READY_MASTER, product_variants: [PRINT,
+        { variant_type: 'original', inventory_count: 0, price: 450 }] })?.text).toBe('Prints Available')
+  })
 })

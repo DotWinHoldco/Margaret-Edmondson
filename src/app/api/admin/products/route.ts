@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (productError) {
+      if (productError.code === '23514' && productError.message.includes('Original artwork needs')) {
+        return apiError('Set a Base price greater than $0 and no more than $1,000,000 for the original.', 400, 'ORIGINAL_PRICE_REQUIRED')
+      }
       if (productError.code === '23505') {
         return apiError('A product with that slug already exists. Try a different title or slug.', 409, 'CONFLICT')
       }

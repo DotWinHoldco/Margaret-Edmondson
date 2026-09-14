@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { trackEvent } from '@/lib/meta/pixel'
-import { cheapestPrintPrice } from '@/lib/product-utils'
+import { cheapestPrintPrice, isPurchasableOriginal } from '@/lib/product-utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import WishlistButton from './WishlistButton'
 import PrintVariantPicker from './PrintVariantPicker'
@@ -508,10 +508,10 @@ export default function ProductDetail({
 
   // Derive variant groups
   const originalVariant = useMemo(
-    () => product.product_variants?.find((v) => v.variant_type === 'original'),
+    () => product.product_variants?.find((v) => v.variant_type === 'original' && v.is_active !== false),
     [product.product_variants]
   )
-  const originalAvailable = originalVariant && (originalVariant.inventory_count === null || originalVariant.inventory_count > 0)
+  const originalAvailable = product.status !== 'sold' && originalVariant && isPurchasableOriginal(originalVariant)
   const isPubliclyAvailable = (v: ProductVariant) =>
     v.is_active !== false && v.is_lumaprints_available !== false
   // Belt-and-suspenders for the Live gate: never offer print variants unless the
@@ -544,7 +544,7 @@ export default function ProductDetail({
       .map(([medium, variants]) => ({ medium, label: MEDIUM_GROUP_LABEL[medium] || medium, variants }))
   }, [printVariants])
 
-  const isSold = product.status === 'sold' || (!!originalVariant && !originalAvailable && printVariants.length === 0)
+  const isSold = printVariants.length === 0 && (product.status === 'sold' || (!!originalVariant && !originalAvailable))
   const hasPrints = printVariants.length > 0
   // A made-to-order commission example (e.g. Custom Portraits): active, no
   // purchasable variants, no prints, not an original for sale. Shown with a

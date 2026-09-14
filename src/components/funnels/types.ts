@@ -19,6 +19,7 @@ export interface FunnelData {
 }
 
 export interface ProductData {
+  status?: string
   id: string
   title: string
   slug: string

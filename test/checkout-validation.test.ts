@@ -182,5 +182,20 @@ describe('validateCheckoutCatalog', () => {
       .toMatchObject({ ok: false, error: { code: 'original_quantity_invalid' } })
     expect(validateCheckoutCatalog([item], [PRODUCT], [{ ...original, inventory_count: 0 }], []))
       .toMatchObject({ ok: false, error: { code: 'sold_out' } })
+    expect(validateCheckoutCatalog([item], [{ ...PRODUCT, status: 'sold' }], [original], []))
+      .toMatchObject({ ok: false, error: { code: 'sold_out' } })
+    expect(validateCheckoutCatalog([item], [PRODUCT], [{ ...original, is_active: false }], []))
+      .toMatchObject({ ok: false, error: { code: 'variant_unavailable' } })
+    expect(validateCheckoutCatalog(
+      [item, { productId: PRODUCT_ID, variantId: VARIANT_ID, quantity: 1 }],
+      [PRODUCT], [original, PRINT_VARIANT], [MEDIUM],
+    )).toMatchObject({ ok: true, data: [
+      { fulfillmentType: 'self_ship', price: 2200 },
+      { fulfillmentType: 'lumaprints', price: 125 },
+    ] })
+    expect(validateCheckoutCatalog(
+      [{ productId: PRODUCT_ID, variantId: VARIANT_ID, quantity: 1 }],
+      [{ ...PRODUCT, status: 'sold' }], [original, PRINT_VARIANT], [MEDIUM],
+    )).toMatchObject({ ok: true, data: [{ fulfillmentType: 'lumaprints', price: 125 }] })
   })
 })

@@ -22,13 +22,16 @@ interface AvailabilityProduct {
     | null
 }
 
+/** Originals must be enabled, priced, and still in stock to be offered. */
+export function isPurchasableOriginal(variant: AvailabilityVariant): boolean {
+  return variant.variant_type === 'original' && variant.is_active !== false &&
+    Number(variant.price) > 0 &&
+    (variant.inventory_count === null || variant.inventory_count > 0)
+}
+
 /** Price of the in-stock original variant, or null when no original is available. */
 export function availableOriginalPrice(product: AvailabilityProduct): number | null {
-  const original = product.product_variants?.find(
-    (variant) =>
-      variant.variant_type === 'original' &&
-      (variant.inventory_count === null || variant.inventory_count > 0),
-  )
+  const original = product.product_variants?.find(isPurchasableOriginal)
   return original && typeof original.price === 'number' ? original.price : null
 }
 
@@ -62,13 +65,11 @@ export function getProductBadge(product: {
   product_variants?: AvailabilityProduct['product_variants']
   master_artwork?: AvailabilityProduct['master_artwork']
 }) {
-  if (product.status === 'sold') return { text: 'Sold', color: 'bg-charcoal/70' }
-
-  const hasOriginal = product.product_variants?.some(
-    (v) => v.variant_type === 'original' && (v.inventory_count === null || v.inventory_count > 0)
-  ) ?? product.is_original
+  const hasOriginal = product.status !== 'sold' &&
+    (product.product_variants?.some(isPurchasableOriginal) ?? product.is_original)
 
   const hasPrints = hasPurchasablePrints(product)
+  if (product.status === 'sold' && !hasPrints) return { text: 'Sold', color: 'bg-charcoal/70' }
   if (hasOriginal && hasPrints) return { text: 'Original & Prints', color: 'bg-gold/90' }
   if (hasPrints) return { text: 'Prints Available', color: 'bg-teal/90' }
   if (hasOriginal) return { text: 'Original', color: 'bg-gold/90' }

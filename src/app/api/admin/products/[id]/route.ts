@@ -133,38 +133,47 @@ export async function PATCH(
   }
 
   // Snapshot the before state so we can write per-field audit rows.
-  const { data: before } = await supabase
+  const { data: before, error: beforeError } = await supabase
     .from('products')
     .select('id, category_id, title, slug, description_json, description_html, story_json, story_html, medium, dimensions, base_price, compare_at_price, fulfillment_type, lumaprints_product_config, printful_sync_product_id, status, is_original, is_featured, tags, seo_title, seo_description, created_at, updated_at, prints_enabled, margin_pct, funnel_eligible, default_margin_pct, master_artwork_id')
     .eq('id', id)
     .single()
+
+  if (beforeError?.code === 'PGRST116' || (!beforeError && !before)) {
+    return apiError('Product not found', 404, 'NOT_FOUND')
+  }
+  if (beforeError) return dbFail(beforeError, 'admin/products [id] PATCH lookup')
 
   if (hasProductChanges) {
     const { error: updateError } = await supabase
       .from('products')
       .update({ ...productFields, updated_at: new Date().toISOString() })
       .eq('id', id)
+    if (updateError?.code === '23514' && updateError.message.includes('Original artwork needs')) {
+      return apiError('Set a Base price greater than $0 and no more than $1,000,000 for the original.', 400, 'ORIGINAL_PRICE_REQUIRED')
+    }
     if (updateError) return dbFail(updateError, 'admin/products [id] PATCH update')
   }
 
   if (Array.isArray(variants)) {
     const incomingIds = new Set(variants.filter((v) => v.id).map((v) => v.id!))
-    // Only consider the simple (non-Lumaprints) rows for delete-by-omission.
-    // Print variants (medium not null) are managed entirely by the new
-    // VariantsTab and its dedicated API; the legacy save flow must not
-    // touch them.
+    // Original availability/pricing belongs to the atomic product trigger;
+    // print options belong to their dedicated editors. This legacy array must
+    // not overwrite either, including an original just created by this save.
     const { data: existingRows } = await supabase
       .from('product_variants')
-      .select('id, medium')
+      .select('id, medium, variant_type')
       .eq('product_id', id)
     const existingIds = new Set((existingRows || []).map((r) => r.id))
-    const simpleExistingIds = new Set((existingRows || []).filter((r) => !r.medium).map((r) => r.id))
+    const managedIds = new Set((existingRows || []).filter((r) => r.medium || r.variant_type === 'original').map((r) => r.id))
+    const simpleExistingIds = new Set([...existingIds].filter((eid) => !managedIds.has(eid)))
     const idsToDelete = [...simpleExistingIds].filter((eid) => !incomingIds.has(eid))
     if (idsToDelete.length > 0) {
       await supabase.from('product_variants').delete().in('id', idsToDelete)
     }
     for (let index = 0; index < variants.length; index++) {
       const v = variants[index]
+      if (v.id && managedIds.has(v.id)) continue
       const row = {
         name: v.name,
         price: v.price || 0,
@@ -177,18 +186,6 @@ export async function PATCH(
         await supabase.from('product_variants').insert({ ...row, product_id: id })
       }
     }
-  }
-
-  // Keep the Original variant's price in lock-step with products.base_price.
-  // For one-of-a-kind originals, base_price is the canonical "headline" price.
-  // If admin edits base_price, propagate to the matching original variant so
-  // the editor, the product list, and the product detail page never disagree.
-  if (productFields.base_price !== undefined) {
-    await supabase
-      .from('product_variants')
-      .update({ price: productFields.base_price })
-      .eq('product_id', id)
-      .eq('variant_type', 'original')
   }
 
   if (hasCategoryChanges) {
@@ -238,11 +235,16 @@ export async function DELETE(
   const { user } = auth
   const supabase = await createServiceClient()
 
-  const { data: before } = await supabase
+  const { data: before, error: beforeError } = await supabase
     .from('products')
     .select('status')
     .eq('id', id)
     .single()
+
+  if (beforeError?.code === 'PGRST116' || (!beforeError && !before)) {
+    return apiError('Product not found', 404, 'NOT_FOUND')
+  }
+  if (beforeError) return dbFail(beforeError, 'admin/products [id] DELETE lookup')
 
   const { error } = await supabase
     .from('products')

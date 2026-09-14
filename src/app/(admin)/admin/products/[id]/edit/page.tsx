@@ -873,7 +873,7 @@ export default function EditProductPage({
                     className="h-4 w-4 rounded border-charcoal/30 text-teal focus:ring-teal"
                   />
                   <span className="font-body text-sm text-charcoal">
-                    Original artwork
+                    Sell original artwork
                   </span>
                 </label>
 
@@ -1156,7 +1156,7 @@ export default function EditProductPage({
             <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
               <h2 className="font-display text-lg font-semibold text-charcoal">Original piece</h2>
               <p className="mt-1 font-body text-sm text-charcoal/60">
-                The original price is set by the <span className="font-medium text-charcoal">Base price</span> field above. Print sizes live in the variant builder below.
+                Enter the original’s price in <span className="font-medium text-charcoal">Base price</span>, then press Save Changes. Buyers can choose the one original or any live print size from this same listing. You ship the original; Lumaprints handles the prints when enabled. Turning off Sell original artwork removes only the original purchase option. Turning it back on does not restock an original that has sold.
               </p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-md bg-cream px-3 py-2">
                 <span className="font-body text-xs uppercase tracking-wider text-charcoal/60">Original price</span>
