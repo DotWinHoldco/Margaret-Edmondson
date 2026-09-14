@@ -52,6 +52,7 @@ export interface MasterPrintInfo {
   width_px: number | null
   height_px: number | null
   border_mode: 'full_bleed' | 'matte' | null
+  print_error?: string | null
   print_status: string | null
 }
 
@@ -64,7 +65,15 @@ interface Props {
   /** Gross-margin threshold for the green/amber colouring. */
   targetGrossMarginPct?: number
   /** Opens the master crop tool (wired by the editor). */
-  onEditCrop?: () => void
+  onEditCrop?: (aspectRatio?: number) => void
+}
+
+export const COMMON_PRINT_SIZES = ['5x7', '7x5', '8x10', '10x8', '8x8', '11x14', '14x11', '12x12', '12x16', '16x12', '16x20', '20x16', '16x16', '18x24', '24x18', '20x24', '24x20', '20x20', '24x30', '30x24'] as const
+
+/** Keep browser sizing aligned with loadBuilderContext; pending crops have stale dimensions. */
+export function builderPrintGeometry(master: MasterPrintInfo | null) {
+  const hasPrintMaster = master?.print_status === 'ready' && Boolean(master?.print_width_px && master?.print_height_px)
+  return { hasPrintMaster, printW: hasPrintMaster ? master!.print_width_px : master?.width_px ?? null, printH: hasPrintMaster ? master!.print_height_px : master?.height_px ?? null }
 }
 
 const TIER_NAME: Record<SizeTier, string> = { S: 'Small', M: 'Medium', L: 'Large' }
@@ -103,15 +112,13 @@ export default function VariantsTab({
   const [customModal, setCustomModal] = useState<{ medium: Medium; prefill?: { name: string; width_in: number; height_in: number } } | null>(null)
 
   // Print master geometry (prefers the cropped print master, falls back to the raw scan).
-  const printW = master?.print_width_px ?? master?.width_px ?? null
-  const printH = master?.print_height_px ?? master?.height_px ?? null
-  const hasPrintMaster = Boolean(master?.print_width_px && master?.print_height_px)
+  const { printW, printH, hasPrintMaster } = builderPrintGeometry(master)
   // A variant can only go Live once the print master is READY (cropped/processed).
   const masterReady = master?.print_status === 'ready'
   const aspect = printW && printH ? aspectFromMaster(printW, printH) : null
   const repDpi = 200 // canvas required DPI, used for the banner's max-size readout
   const maxPrintIn = printW && printH
-    ? { w: Math.floor(printW / repDpi), h: Math.floor(printH / repDpi) }
+    ? { w: Math.floor(printW / repDpi * 100) / 100, h: Math.floor(printH / repDpi * 100) / 100 }
     : null
 
   const reload = useCallback(async () => {
@@ -246,7 +253,8 @@ export default function VariantsTab({
   }
 
   // Configured mediums = those Lumaprints has priced (subcategory + sizes).
-  const sizeActionsDisabled = !printW || !printH
+  const cropProcessing = master?.print_status === 'pending' || master?.print_status === 'processing'
+  const sizeActionsDisabled = !printW || !printH || cropProcessing
 
   return (
     <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
@@ -273,6 +281,8 @@ export default function VariantsTab({
         </div>
       </div>
 
+      <p className="mb-4 text-xs leading-relaxed text-charcoal/65">A standard 16 × 20 print must have a 4:5 shape. A differently shaped file can produce a custom size such as 16 × 19.5. Use Add print size to select exact standard dimensions and prepare the right crop. Generate S/M/L follows the file’s shape with long sides of 12, 20, and 30 inches when supported.</p>
+      {cropProcessing && <p role="status" className="mb-4 rounded bg-amber-50 p-3 text-sm text-charcoal">Your new print file is processing. Wait until it is ready before adding sizes. Old crop dimensions will not be used.</p>}
       {/* Master banner */}
       <div className={`mb-5 rounded-md border px-4 py-3 ${hasPrintMaster || (printW && printH) ? 'border-charcoal/10 bg-charcoal/[0.03]' : 'border-amber-300 bg-amber-50'}`}>
         {printW && printH && aspect && maxPrintIn ? (
@@ -285,7 +295,7 @@ export default function VariantsTab({
               {master?.print_status && master.print_status !== 'none' ? ` · ${master.print_status}` : ''}
             </p>
             {onEditCrop && (
-              <button type="button" onClick={onEditCrop} className="shrink-0 rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors">
+              <button type="button" onClick={() => onEditCrop()} className="shrink-0 rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors">
                 {hasPrintMaster ? 'Edit crop' : 'Crop master'}
               </button>
             )}
@@ -296,7 +306,7 @@ export default function VariantsTab({
               No print-ready master yet — crop the master / set the print area before generating print sizes.
             </p>
             {onEditCrop && (
-              <button type="button" onClick={onEditCrop} className="shrink-0 rounded-md border border-amber-400 px-3 py-1.5 font-body text-[11px] font-medium text-amber-800 hover:bg-amber-100 transition-colors">
+              <button type="button" onClick={() => onEditCrop()} className="shrink-0 rounded-md border border-amber-400 px-3 py-1.5 font-body text-[11px] font-medium text-amber-800 hover:bg-amber-100 transition-colors">
                 Crop master
               </button>
             )}
@@ -330,7 +340,7 @@ export default function VariantsTab({
                     type="button"
                     disabled={sizeActionsDisabled || genBusy === m}
                     onClick={() => generateDefaults(m)}
-                    title={sizeActionsDisabled ? 'Crop the master first' : ''}
+                    title={cropProcessing ? 'Wait for the new print file to finish processing' : sizeActionsDisabled ? 'Crop the master first' : ''}
                     className={`rounded-md px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-40 ${
                       hasDefaults ? 'border border-charcoal/20 text-charcoal hover:bg-charcoal hover:text-cream' : 'bg-teal text-cream hover:bg-deep-teal'
                     }`}
@@ -341,10 +351,10 @@ export default function VariantsTab({
                     type="button"
                     disabled={sizeActionsDisabled}
                     onClick={() => setCustomModal({ medium: m })}
-                    title={sizeActionsDisabled ? 'Crop the master first' : ''}
+                    title={cropProcessing ? 'Wait for the new print file to finish processing' : sizeActionsDisabled ? 'Crop the master first' : ''}
                     className="font-body text-xs font-semibold uppercase tracking-wider text-teal hover:text-deep-teal transition-colors disabled:opacity-40"
                   >
-                    + Add custom size
+                    + Add print size
                   </button>
                 </div>
               )}
@@ -463,6 +473,7 @@ export default function VariantsTab({
           defaultMargin={defaultMargin}
           targetGrossMarginPct={targetGrossMarginPct}
           prefill={customModal.prefill}
+          onPrepareCrop={onEditCrop ? (ratio) => { setCustomModal(null); onEditCrop(ratio) } : undefined}
           onClose={() => setCustomModal(null)}
           onCreated={() => { setCustomModal(null); reload() }}
         />
@@ -496,6 +507,7 @@ function CustomSizeModal({
   prefill,
   onClose,
   onCreated,
+  onPrepareCrop,
 }: {
   productId: string
   medium: Medium
@@ -508,29 +520,33 @@ function CustomSizeModal({
   prefill?: { name: string; width_in: number; height_in: number }
   onClose: () => void
   onCreated: () => void
+  onPrepareCrop?: (aspectRatio: number) => void
 }) {
   const bounds = boundsForSubcategory(subcategoryId)
   const dpi = bounds.requiredDPI
   const { ratio, orientation } = aspectFromMaster(printW, printH)
-  const maxW = Math.floor(printW / dpi)
-  const maxH = Math.floor(printH / dpi)
-
-  // Seed: prefill, else a Medium-ish default (long edge 20").
-  const seed = useMemo(() => {
-    if (prefill && prefill.width_in > 0 && prefill.height_in > 0) {
-      return { w: prefill.width_in, h: prefill.height_in }
+  const maxW = Math.floor(printW / dpi * 100) / 100
+  const maxH = Math.floor(printH / dpi * 100) / 100
+  const initialStandard = orientation === 'landscape' ? '20x16' : '16x20'
+  const initialDimensions = initialStandard.split('x').map(Number)
+  const [sizeChoice, setSizeChoice] = useState(prefill ? 'custom' : initialStandard)
+  const [name, setName] = useState(prefill?.name ?? `${initialDimensions[0]} × ${initialDimensions[1]} in`)
+  const [nameEdited, setNameEdited] = useState(Boolean(prefill?.name))
+  const [widthIn, setWidthIn] = useState<number>(prefill?.width_in ?? initialDimensions[0])
+  const [heightIn, setHeightIn] = useState<number>(prefill?.height_in ?? initialDimensions[1])
+  function chooseSize(value: string) {
+    setSizeChoice(value)
+    if (value === 'custom') {
+      const height = partnerDimension(widthIn, 'width', ratio)
+      setHeightIn(height)
+      if (!nameEdited) setName(`${widthIn} × ${height} in`)
+      return
     }
-    if (orientation === 'portrait') {
-      const h = Math.min(20, maxH)
-      return { w: partnerDimension(h, 'height', ratio), h }
-    }
-    const w = Math.min(20, maxW)
-    return { w, h: partnerDimension(w, 'width', ratio) }
-  }, [prefill, orientation, ratio, maxW, maxH])
-
-  const [name, setName] = useState(prefill?.name ?? '')
-  const [widthIn, setWidthIn] = useState<number>(seed.w)
-  const [heightIn, setHeightIn] = useState<number>(seed.h)
+    const [width, height] = value.split('x').map(Number)
+    setWidthIn(width); setHeightIn(height)
+    setName(`${width} × ${height} in`)
+    setNameEdited(false)
+  }
   const [marginPct, setMarginPct] = useState<string>('')
   const [manualOverride, setManualOverride] = useState<string>('')
   const [useManual, setUseManual] = useState(false)
@@ -541,14 +557,14 @@ function CustomSizeModal({
   const toast = useToast()
 
   // Aspect-locked auto-fill — editing one dimension drives the other.
-  const setHeight = (h: number) => { setHeightIn(h); setWidthIn(partnerDimension(h, 'height', ratio)) }
-  const setWidth = (w: number) => { setWidthIn(w); setHeightIn(partnerDimension(w, 'width', ratio)) }
+  const setHeight = (h: number) => { const w = partnerDimension(h, 'height', ratio); setHeightIn(h); setWidthIn(w); if (!nameEdited) setName(`${w} × ${h} in`) }
+  const setWidth = (w: number) => { const h = partnerDimension(w, 'width', ratio); setWidthIn(w); setHeightIn(h); if (!nameEdited) setName(`${w} × ${h} in`) }
 
   const check = validateCustomSize({ widthIn, heightIn }, { ratio, bounds, printPx: { width: printW, height: printH }, dpi })
 
   // Debounced price preview after a size change.
   useEffect(() => {
-    if (!check.boundsOk || !check.resolutionOk) { setPreview(null); return }
+    if (!check.ok) { setPreview(null); setLoadingPrice(false); return }
     let cancelled = false
     setLoadingPrice(true)
     const t = setTimeout(async () => {
@@ -578,7 +594,7 @@ function CustomSizeModal({
       }
     }, 350)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [productId, medium, widthIn, heightIn, check.boundsOk, check.resolutionOk])
+  }, [productId, medium, widthIn, heightIn, check.ok])
 
   // Customer price recomputed locally when margin changes (over the landed cost).
   const landed = (preview?.cost_cents ?? 0) + (preview?.shipping_cents ?? 0)
@@ -645,23 +661,34 @@ function CustomSizeModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 p-4 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-lg bg-cream shadow-2xl">
         <div className="p-6 max-h-[80vh] overflow-y-auto">
-          <h2 className="font-display text-xl font-light text-charcoal">Add custom {mediumName} size</h2>
-          <p className="mt-1 font-body text-xs text-charcoal/60">Aspect-locked to the artwork ({ratio.toFixed(3)}, {orientation}).</p>
+          <h2 className="font-display text-xl font-light text-charcoal">Add {mediumName} print size</h2>
+          <p className="mt-1 font-body text-xs leading-relaxed text-charcoal/60">Choose a standard size for a common frame, or keep the shape of your artwork with a custom size. Standard sizes stay exactly as selected. If the file has a different shape, prepare and review its crop first.</p>
+          <label className="mt-4 block text-sm">Print size
+            <select aria-label="Print size" value={sizeChoice} onChange={event => chooseSize(event.target.value)} className="mt-1 block w-full rounded border border-charcoal/15 bg-white px-3 py-2">
+              {COMMON_PRINT_SIZES.map(size => <option key={size} value={size}>{size.replace('x', ' × ')} in</option>)}
+              <option value="custom">Custom — follow the artwork shape</option>
+            </select>
+          </label>
+          {sizeChoice !== 'custom' && !check.aspectOk && <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-charcoal">
+            <p>Your selected size is <strong>{widthIn} × {heightIn} inches</strong>. This file has a different shape. We will not change your selection to {widthIn} × {partnerDimension(widthIn, 'width', ratio)} or stretch the art. Crop the print file to match, or have a print professional prepare a file with a border at this exact size.</p>
+            {onPrepareCrop && <button type="button" onClick={() => onPrepareCrop(widthIn / heightIn)} className="mt-2 font-semibold text-teal underline">Prepare crop for {widthIn} × {heightIn}</button>}
+            <p className="mt-2">You will review the crop before saving. After it finishes processing, return here, choose this size again, and review its price. A change to a shared master can affect other print options.</p>
+          </div>}
 
           <label className="block mt-4">
             <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Variant name</span>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Life Size" className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
+            <input type="text" value={name} onChange={(e) => { setName(e.target.value); setNameEdited(true) }} placeholder="e.g. Life Size" className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
           </label>
 
           <div className="mt-4 flex items-end gap-2">
             <label className="block flex-1">
               <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Height (in)</span>
-              <input type="number" step={DEFAULT_SIZE_STEP} value={heightIn} onChange={(e) => setHeight(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
+              <input type="number" disabled={sizeChoice !== 'custom'} step={DEFAULT_SIZE_STEP} value={heightIn} onChange={(e) => setHeight(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
             </label>
-            <span className="pb-2.5 font-mono text-[11px] text-charcoal/50">🔒 {ratio.toFixed(3)}</span>
+            <span className="pb-2.5 font-mono text-[11px] text-charcoal/50">{sizeChoice === 'custom' ? `🔒 artwork shape ${ratio.toFixed(3)}` : 'Exact size'}</span>
             <label className="block flex-1">
               <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Width (in)</span>
-              <input type="number" step={DEFAULT_SIZE_STEP} value={widthIn} onChange={(e) => setWidth(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
+              <input type="number" disabled={sizeChoice !== 'custom'} step={DEFAULT_SIZE_STEP} value={widthIn} onChange={(e) => setWidth(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
             </label>
           </div>
 
@@ -669,7 +696,7 @@ function CustomSizeModal({
           <div className="mt-3 space-y-1 rounded-md bg-charcoal/[0.03] px-3 py-2">
             <Checkline ok={check.resolutionOk} text={check.resolutionOk ? `Master supports up to ${maxW}×${maxH} in` : `Too large — master supports up to ${maxW}×${maxH} in at ${dpi} DPI.`} />
             <Checkline ok={check.boundsOk} text={check.boundsOk ? `Within Lumaprints limits (${bounds.minW}–${bounds.maxW} × ${bounds.minH}–${bounds.maxH} in)` : check.reasons.find((r) => /exceeds|below/.test(r)) || 'Outside Lumaprints limits.'} />
-            <Checkline ok={check.aspectOk} text={check.aspectOk ? `Matches the artwork (${check.aspectDeltaPct.toFixed(1)}% off)` : `${check.aspectDeltaPct.toFixed(1)}% off the artwork's shape — adjust a dimension.`} />
+            <Checkline ok={check.aspectOk} text={check.aspectOk ? `Matches the artwork (${check.aspectDeltaPct.toFixed(1)}% off)` : `${check.aspectDeltaPct.toFixed(1)}% off the artwork’s shape — prepare the matching crop or choose a custom size.`} />
           </div>
 
           {/* Pricing panel */}

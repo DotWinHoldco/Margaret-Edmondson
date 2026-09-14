@@ -1,9 +1,27 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import sharp from 'sharp'
-import { applyMasterCrop } from '../scripts/lib/crop-transform.mjs'
+import { applyMasterCrop, applyMasterCropFile } from '../scripts/lib/crop-transform.mjs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 describe('master crop transform (Phase 1 worker)', () => {
+  it('processes files without resizing and rejects mismatched source dimensions', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'crop-test-'))
+    try {
+      const source = join(folder, 'source.tif')
+      const output = join(folder, 'print.png')
+      await sharp({ create: { width: 64, height: 80, channels: 3, background: '#ff0000' } }).tiff().toFile(source)
+      const options = { cropBox: { x: 0, y: 0, w: 1, h: 1 }, widthPx: 64, heightPx: 80, dpi: 300, verifyDimensions: true, timeoutSeconds: 10, limitInputPixels: 180_000_000 }
+      expect(await applyMasterCropFile(source, output, options, 100_000)).toMatchObject({ width: 64, height: 80 })
+      expect(await sharp(output).metadata()).toMatchObject({ width: 64, height: 80, format: 'png' })
+      await expect(applyMasterCropFile(source, join(folder, 'wrong.png'), { ...options, heightPx: 78 }, 100_000)).rejects.toThrow(/dimensions do not match/)
+      await expect(applyMasterCropFile(source, join(folder, 'too-large.png'), options, 1)).rejects.toThrow(/too large/)
+    } finally {
+      await rm(folder, { recursive: true, force: true })
+    }
+  })
   // Output is lossless PNG (not TIFF): the LumaPrints order API rejects TIFF
   // file URLs — sandbox-verified 2026-07-07. Source scans may still be TIFF.
   it('full_bleed: lossless PNG, exact crop dims, DPI preserved, original untouched', async () => {

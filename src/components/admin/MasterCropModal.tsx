@@ -14,10 +14,21 @@ export interface MasterCropTarget {
   title: string
   /** Web-resolution proxy to draw the crop rectangle on — NEVER the source TIFF. */
   proxyUrl: string
+  sourceWidthPx?: number | null
+  sourceHeightPx?: number | null
   crop_box?: { x: number; y: number; w: number; h: number } | null
   border_mode?: BorderMode | null
   border_color?: string | null
+  print_error?: string | null
   print_status?: string | null
+}
+
+/** Fit a standard source-pixel ratio into a scaled preview without distorting it. */
+export function centeredAspectCrop(width: number, height: number, ratio: number, sourceAspect: number): Rect {
+  const displayRatio = ratio * (width / height) / sourceAspect
+  const w = Math.min(width, height * displayRatio)
+  const h = w / displayRatio
+  return { x: (width - w) / 2, y: (height - h) / 2, w, h }
 }
 
 const MAX_W = 640
@@ -34,32 +45,44 @@ export default function MasterCropModal({
   master,
   onClose,
   onSaved,
+  initialAspectRatio,
 }: {
   master: MasterCropTarget
+  initialAspectRatio?: number
   onClose: () => void
   onSaved: (next: { print_status: string; border_mode: BorderMode; border_color: string }) => void
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const drag = useRef<{ mode: Mode; sx: number; sy: number; start: Rect } | null>(null)
 
+  const [lockedAspect, setLockedAspect] = useState(initialAspectRatio || 0)
+  const [sourceAspect, setSourceAspect] = useState(1)
+  const [previewMismatch, setPreviewMismatch] = useState(false)
   const [disp, setDisp] = useState<{ w: number; h: number } | null>(null)
   const [crop, setCrop] = useState<Rect | null>(null)
   const [borderMode, setBorderMode] = useState<BorderMode>(master.border_mode ?? 'full_bleed')
   const [borderColor, setBorderColor] = useState<string>(master.border_color ?? '#ffffff')
   const [saving, setSaving] = useState(false)
+  const [unsavedCrop, setUnsavedCrop] = useState(Boolean(initialAspectRatio))
   const [status, setStatus] = useState<string | null>(master.print_status ?? null)
   const [error, setError] = useState('')
   const toast = useToast()
+  useEffect(() => { setStatus(master.print_status ?? null) }, [master.print_status])
 
   const onLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const el = e.currentTarget
       const nw = el.naturalWidth
       const nh = el.naturalHeight
-      const r = Math.min(MAX_W / nw, MAX_H / nh, 1)
+      const availableWidth = Math.max(120, (el.closest('[role="dialog"]')?.clientWidth || MAX_W + 40) - 40)
+      const r = Math.min(Math.min(MAX_W, availableWidth) / nw, MAX_H / nh, 1)
       const w = Math.round(nw * r)
       const h = Math.round(nh * r)
       setDisp({ w, h })
+      const sourceRatio = master.sourceWidthPx && master.sourceHeightPx ? master.sourceWidthPx / master.sourceHeightPx : nw / nh
+      setSourceAspect(sourceRatio)
+      setPreviewMismatch(Boolean(master.sourceWidthPx && master.sourceHeightPx && Math.abs((nw / nh) / sourceRatio - 1) > 0.01))
+      if (initialAspectRatio) { setCrop(centeredAspectCrop(w, h, initialAspectRatio, sourceRatio)); return }
       // Seed from the saved crop_box (normalized → display px), else the full image.
       const cb = master.crop_box
       if (cb && cb.w > 0 && cb.h > 0) {
@@ -68,7 +91,7 @@ export default function MasterCropModal({
         setCrop({ x: 0, y: 0, w, h })
       }
     },
-    [master.crop_box],
+    [master.crop_box, master.sourceWidthPx, master.sourceHeightPx, initialAspectRatio],
   )
 
   const clamp = useCallback((rc: Rect, bw: number, bh: number): Rect => {
@@ -90,6 +113,7 @@ export default function MasterCropModal({
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag.current || !disp) return
+    setUnsavedCrop(true)
     const { mode, sx, sy, start } = drag.current
     const dx = e.clientX - sx
     const dy = e.clientY - sy
@@ -106,7 +130,18 @@ export default function MasterCropModal({
       if (h < MIN) { if (mode === 'nw' || mode === 'ne') y = start.y + start.h - MIN; h = MIN }
       next = { x, y, w, h }
     }
-    setCrop(clamp(next, disp.w, disp.h))
+    if (lockedAspect && mode !== 'move') {
+      const displayRatio = lockedAspect * (disp.w / disp.h) / sourceAspect
+      const left = mode === 'nw' || mode === 'sw'
+      const top = mode === 'nw' || mode === 'ne'
+      const anchorX = left ? start.x + start.w : start.x
+      const anchorY = top ? start.y + start.h : start.y
+      const maxW = Math.min(left ? anchorX : disp.w - anchorX, (top ? anchorY : disp.h - anchorY) * displayRatio)
+      const desired = Math.abs(dx) >= Math.abs(dy * displayRatio) ? start.w + (left ? -dx : dx) : (start.h + (top ? -dy : dy)) * displayRatio
+      const w = Math.min(maxW, Math.max(Math.min(MIN * Math.max(1, displayRatio), maxW), desired))
+      const h = w / displayRatio
+      setCrop({ x: left ? anchorX - w : anchorX, y: top ? anchorY - h : anchorY, w, h })
+    } else setCrop(clamp(next, disp.w, disp.h))
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -119,7 +154,7 @@ export default function MasterCropModal({
   }
 
   async function save() {
-    if (!crop || !disp) return
+    if (!crop || !disp || previewMismatch) return
     setSaving(true)
     setError('')
     try {
@@ -137,6 +172,7 @@ export default function MasterCropModal({
       )
       const next = data?.print_status || 'pending'
       setStatus(next)
+      setUnsavedCrop(false)
       toast.success('Print master queued for processing.')
       onSaved({ print_status: next, border_mode: borderMode, border_color: borderColor })
     } catch (err) {
@@ -162,18 +198,29 @@ export default function MasterCropModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" className="w-full max-w-2xl rounded-xl bg-cream shadow-2xl">
+      <div role="dialog" aria-modal="true" className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-xl bg-cream shadow-2xl">
         <div className="flex items-center justify-between border-b border-charcoal/10 p-4">
           <div>
             <h2 className="font-display text-lg font-semibold text-charcoal">Crop master / set print area</h2>
             <p className="font-body text-xs text-charcoal/55">{master.title}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-charcoal/50 hover:bg-charcoal/5 hover:text-charcoal">
+          <button type="button" aria-label="Close crop editor" onClick={onClose} className="rounded-md p-1.5 text-charcoal/50 hover:bg-charcoal/5 hover:text-charcoal">
             ✕
           </button>
         </div>
 
         <div className="flex flex-col items-center gap-3 p-5">
+          <label className="w-full font-body text-sm">Print shape
+            <select aria-label="Print shape" value={lockedAspect} onChange={event => {
+              const ratio = Number(event.target.value); setLockedAspect(ratio); setUnsavedCrop(true)
+              if (ratio && disp) setCrop(centeredAspectCrop(disp.w, disp.h, ratio, sourceAspect))
+            }} className="ml-3 rounded border border-charcoal/20 bg-white px-3 py-2">
+              <option value={0}>Free crop</option>
+              {[...new Set([initialAspectRatio, 4/5, 5/4, 5/7, 7/5, 11/14, 14/11, 3/4, 4/3, 1].filter((n): n is number => typeof n === 'number' && n > 0))].map(ratio => <option key={ratio} value={ratio}>{ratio === 4/5 ? '4:5 portrait — 8 × 10, 16 × 20' : ratio === 5/4 ? '5:4 landscape — 10 × 8, 20 × 16' : ratio === 1 ? 'Square' : `Locked shape ${ratio.toFixed(3)}`}</option>)}
+            </select>
+          </label>
+          {previewMismatch && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">This preview has a different shape from the original print file. It may already be cropped. Choose an uncropped preview of the same artwork before saving a print crop.</p>}
+          <p className="w-full text-xs leading-relaxed text-charcoal/65">The preview must show the same uncropped artwork as the original print file. The box shows the art that will remain. A locked shape keeps standard print proportions while you move or resize it. Review all edges before saving. Saving changes this master for every linked product; existing sizes must be checked again after processing.</p>
           <div
             ref={wrapRef}
             className="relative select-none touch-none"
@@ -190,6 +237,7 @@ export default function MasterCropModal({
               className="block"
               style={{ width: disp?.w, height: disp?.h }}
             />
+            {crop && disp && <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden"><div className="absolute" style={{ left: crop.x, top: crop.y, width: crop.w, height: crop.h, boxShadow: '0 0 0 9999px rgba(20,20,20,0.55)' }} /></div>}
             {crop && disp && (
               <div
                 className="absolute cursor-move"
@@ -198,7 +246,6 @@ export default function MasterCropModal({
                   top: crop.y,
                   width: crop.w,
                   height: crop.h,
-                  boxShadow: '0 0 0 9999px rgba(20,20,20,0.55)',
                   outline: '1px solid rgba(255,255,255,0.9)',
                 }}
                 onPointerDown={onPointerDown('move')}
@@ -218,14 +265,14 @@ export default function MasterCropModal({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setBorderMode('full_bleed')}
+                onClick={() => { setBorderMode('full_bleed'); setUnsavedCrop(true) }}
                 className={`flex-1 rounded-md border px-3 py-2 font-body text-xs font-medium transition-colors ${borderMode === 'full_bleed' ? 'border-teal bg-teal text-cream' : 'border-charcoal/20 text-charcoal hover:bg-charcoal/5'}`}
               >
                 Full bleed
               </button>
               <button
                 type="button"
-                onClick={() => setBorderMode('matte')}
+                onClick={() => { setBorderMode('matte'); setUnsavedCrop(true) }}
                 className={`flex-1 rounded-md border px-3 py-2 font-body text-xs font-medium transition-colors ${borderMode === 'matte' ? 'border-teal bg-teal text-cream' : 'border-charcoal/20 text-charcoal hover:bg-charcoal/5'}`}
               >
                 Matte border
@@ -234,7 +281,7 @@ export default function MasterCropModal({
                 <input
                   type="color"
                   value={borderColor}
-                  onChange={(e) => setBorderColor(e.target.value)}
+                  onChange={(e) => { setBorderColor(e.target.value); setUnsavedCrop(true) }}
                   aria-label="Matte color"
                   className="h-9 w-9 cursor-pointer rounded-md border border-charcoal/20 bg-white p-0.5"
                 />
@@ -243,17 +290,19 @@ export default function MasterCropModal({
             <p className="font-body text-[11px] text-charcoal/45">
               {borderMode === 'full_bleed'
                 ? 'Full bleed: the crop fills the print, edge to edge.'
-                : 'Matte: pad the crop to its exact aspect with a solid border so every size matches.'}
+                : 'Matte adds a border while keeping the selected crop shape. It does not fit an uncut image into a different frame shape.'}
             </p>
             {status && (
               <p className="font-body text-[11px] text-charcoal/55">
                 Print master: <span className="font-medium">{status}</span>
-                {status === 'pending' && ' — run the crop worker to generate the print file.'}
-                {status === 'ready' && ' — print-ready master generated.'}
+                {status === 'pending' && ' — queued for processing. Print sizes will be available when this file is ready.'}
+                {status === 'processing' && ' — creating the print file. You can leave this editor open; the size information refreshes automatically.'}
+                {status === 'ready' && (unsavedCrop ? ' — this is the previous saved file. Save crop to apply your new selection.' : ' — print-ready master generated. Close this window to add your print sizes.')}
               </p>
             )}
           </div>
 
+          {master.print_error && <p role="alert" className="text-sm text-coral">{master.print_error} Review the crop and save again to retry.</p>}
           {error && <p className="font-body text-xs text-coral text-center">{error}</p>}
         </div>
 
@@ -264,10 +313,10 @@ export default function MasterCropModal({
           <button
             type="button"
             onClick={save}
-            disabled={saving || !crop}
+            disabled={saving || !crop || previewMismatch || status === 'pending' || status === 'processing'}
             className="rounded-lg bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save crop & queue'}
+            {saving ? 'Saving…' : status === 'pending' || status === 'processing' ? 'Processing crop…' : 'Save crop'}
           </button>
         </div>
       </div>

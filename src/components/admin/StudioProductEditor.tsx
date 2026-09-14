@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MEDIUMS, mediumLabel } from '@/lib/pricing/mediums'
 import type { StudioFields } from '@/lib/fulfillment/policy'
@@ -103,15 +105,17 @@ export default function StudioProductEditor({
   productId,
   children,
   initialMode,
+  showSetupHelp = false,
   onEditorState,
 }: {
   productId: string
   children: ReactNode
   initialMode?: 'studio' | 'lumaprints'
+  showSetupHelp?: boolean
   onEditorState?: EditorStateChange
 }) {
   const [product, setProduct] = useState<Product | null>(null)
-  const [mode, setMode] = useState<'studio' | 'lumaprints'>('studio')
+  const [mode, setMode] = useState<'studio' | 'lumaprints'>(initialMode || 'studio')
   const [liveMode, setLiveMode] = useState('')
   const [busy, setBusy] = useState(true)
   const saving = useRef(false)
@@ -244,6 +248,7 @@ export default function StudioProductEditor({
       </div>
       {mode === 'lumaprints' ? (
         <>
+          {showSetupHelp && <section className="rounded-lg border border-teal/20 bg-teal/5 p-4 font-body text-sm leading-6"><h2 className="font-semibold text-teal">Your Lumaprints print options</h2><p className="mt-2">The Print sizes section below uses the available Lumaprints catalog. First add a product image, choose master artwork, and press Save Changes. Then crop the master, generate sizes, and review each price. A size can go Live only when the print master is ready.</p><p className="mt-2">If no materials or Generate S/M/L buttons appear, the Lumaprints catalog needs to be synced. The crop tool controls the print area and border; this step does not add a separate frame or mat picker.</p><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 font-medium text-teal"><a href="#product-images" className="underline">Add product images</a><a href="#product-master" className="underline">Choose master artwork</a><Link href="/admin/help/06-print-sizes-and-variants" className="underline">Print size setup guide</Link></div></section>}
           {children}
           {product && (
             <section className="rounded-xl border border-charcoal/10 bg-white p-5">

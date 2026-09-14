@@ -1,6 +1,6 @@
-// Master crop worker (Phase 1.3). Runs OUTSIDE the serverless runtime — an
-// operator/queue-triggered job (low volume makes a script acceptable; see the
-// build plan, Appendix A). For each master with print_status='pending' it:
+// Optional operator fallback for masters outside automatic processing limits.
+// Normal editor saves run automatically through the after()/cron worker.
+// For each selected master it:
 //   1. claims the row (-> 'processing'),
 //   2. streams the original out of print-masters (storage_path),
 //   3. extracts the normalized crop_box region (libvips reads the region without
@@ -98,8 +98,15 @@ async function processOne(m) {
     console.log(`SKIP ${label}: no crop_box`)
     return
   }
-  // Claim the row.
-  await sb.from('master_artworks').update({ print_status: 'processing', print_error: null }).eq('id', m.id)
+  // Compare-and-set claim shares ownership with the automatic worker.
+  const fence = (query) => m.print_requested_at
+    ? query.eq('print_requested_at', m.print_requested_at)
+    : query.is('print_requested_at', null)
+  const { data: claimed, error: claimError } = await fence(sb.from('master_artworks')
+    .update({ print_status: 'processing', print_error: null, updated_at: new Date().toISOString() })
+    .eq('id', m.id).eq('print_status', m.print_status)).select('id').maybeSingle()
+  if (claimError) throw claimError
+  if (!claimed) { console.log(`SKIP ${label}: another crop request owns this job`); return }
 
   try {
     // 1. Download the original (service role; bypasses RLS).
@@ -128,7 +135,7 @@ async function processOne(m) {
     const objectName = `print/${m.id}-${rev}.png`
     const via = await uploadOutput(outBuf, objectName, 'image/png')
 
-    await sb
+    await fence(sb
       .from('master_artworks')
       .update({
         print_storage_path: objectName,
@@ -138,14 +145,14 @@ async function processOne(m) {
         print_status: 'ready',
         print_error: null,
       })
-      .eq('id', m.id)
+      .eq('id', m.id).eq('print_status', 'processing'))
 
     console.log(
       `OK   ${label}: print ${outW}×${outH}${m.border_mode === 'matte' ? ' (matte)' : ''} @${dpi}dpi, ${(outBuf.length / 1e6).toFixed(1)}MB via ${via} → ${objectName}`,
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    await sb.from('master_artworks').update({ print_status: 'failed', print_error: msg.slice(0, 500) }).eq('id', m.id)
+    await fence(sb.from('master_artworks').update({ print_status: 'failed', print_error: msg.slice(0, 500) }).eq('id', m.id).eq('print_status', 'processing'))
     console.error(`FAIL ${label}: ${msg}`)
   }
 }
@@ -155,7 +162,7 @@ async function main() {
   const idArg = args.includes('--id') ? args[args.indexOf('--id') + 1] : null
   const all = args.includes('--all')
 
-  const cols = 'id, title, storage_path, crop_box, border_mode, border_color, width_px, height_px, dpi, print_status'
+  const cols = 'id, title, storage_path, crop_box, border_mode, border_color, width_px, height_px, dpi, print_status, print_requested_at'
   let query = sb.from('master_artworks').select(cols)
   if (idArg) query = query.eq('id', idArg)
   else if (all) query = query.not('crop_box', 'is', null)

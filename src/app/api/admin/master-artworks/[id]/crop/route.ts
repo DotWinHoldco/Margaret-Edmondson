@@ -1,6 +1,11 @@
 import { z } from 'zod'
+import { after } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiOk, apiError, parseBody, dbFail } from '@/lib/api/respond'
+import { processMasterCrop } from '@/lib/artwork/crop-worker'
+
+export const runtime = 'nodejs'
+export const maxDuration = 300
 
 const CropBody = z.object({
   crop_box: z.object({
@@ -20,9 +25,8 @@ const CropBody = z.object({
 // POST /api/admin/master-artworks/[id]/crop — admin only. Sets the print-ready
 // crop area for a master: writes the NORMALIZED crop rectangle (0..1 of the
 // original) + border mode/color and ENQUEUES a server-side crop job
-// (print_status='pending'). It never touches the (multi-hundred-MB) source file
-// in the request — the operator-run worker scripts/process-master-crop.mjs does
-// the libvips crop/pad + lossless re-encode and flips print_status to 'ready'.
+// (print_status='pending'). Next after() processes it after sending the response;
+// the protected cron recovers missed jobs. The original file is never replaced.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -66,7 +70,12 @@ export async function POST(
 
   if (error) return dbFail(error)
 
-  // Job queued. The worker is run out-of-band (operator/queue) — do NOT process
-  // the source file here. The editor polls GET …/master-artworks/[id] for status.
+  after(async () => {
+    try {
+      await processMasterCrop(auth.supabase, id, data.print_requested_at)
+    } catch (error) {
+      console.error('Automatic master crop failed:', error instanceof Error ? error.message : 'Unknown error')
+    }
+  })
   return apiOk({ ...data, queued: true })
 }

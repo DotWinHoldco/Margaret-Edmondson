@@ -28,6 +28,7 @@ interface MasterApiRow {
   crop_box?: { x: number; y: number; w: number; h: number } | null
   border_mode?: 'full_bleed' | 'matte' | null
   border_color?: string | null
+  print_error?: string | null
   print_status?: string | null
   print_storage_path?: string | null
   print_width_px?: number | null
@@ -48,6 +49,7 @@ function mapMaster(d: MasterApiRow) {
     border_mode: d.border_mode ?? null,
     border_color: d.border_color ?? null,
     print_status: d.print_status ?? null,
+    print_error: d.print_error ?? null,
     print_storage_path: d.print_storage_path ?? null,
     print_width_px: d.print_width_px ?? null,
     print_height_px: d.print_height_px ?? null,
@@ -211,10 +213,15 @@ function generateSlug(title: string): string {
 
 export default function EditProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{ setup?: string; profile?: string }>
 }) {
   const { id } = use(params)
+  const query = searchParams ? use(searchParams) : {}
+  const setupMode = query.setup === '1'
+  const setupProfile = query.profile === 'lumaprints' || query.profile === 'studio' || query.profile === 'printful' ? query.profile : undefined
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -266,13 +273,40 @@ export default function EditProductPage({
     crop_box?: { x: number; y: number; w: number; h: number } | null
     border_mode?: 'full_bleed' | 'matte' | null
     border_color?: string | null
-    print_status?: string | null
+    print_error?: string | null
+  print_status?: string | null
     print_storage_path?: string | null
     print_width_px?: number | null
     print_height_px?: number | null
   } | null>(null)
   const [showArtworkPicker, setShowArtworkPicker] = useState(false)
   const [showMasterCrop, setShowMasterCrop] = useState(false)
+  const [cropAspectRatio, setCropAspectRatio] = useState<number | undefined>()
+  const [cropRefreshError, setCropRefreshError] = useState('')
+  useEffect(() => {
+    const masterId = masterArtwork?.id
+    if (!masterId || !['pending', 'processing'].includes(masterArtwork?.print_status || '')) return
+    let cancelled = false
+    let failures = 0
+    let timer: ReturnType<typeof setTimeout>
+    async function refreshCrop() {
+      try {
+        const response = await fetch(`/api/admin/master-artworks/${masterId}`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!response.ok || !result.data) throw new Error('Could not refresh crop status.')
+        if (cancelled) return
+        failures = 0
+        setCropRefreshError('')
+        setMasterArtwork(mapMaster(result.data))
+      } catch {
+        if (!cancelled && ++failures >= 3) setCropRefreshError('Could not refresh crop status. Check your connection or reload this editor.')
+      }
+      if (!cancelled) timer = setTimeout(refreshCrop, 3000)
+    }
+    timer = setTimeout(refreshCrop, 1500)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [masterArtwork?.id, masterArtwork?.print_status])
+
 
   useEffect(() => {
     async function fetchData() {
@@ -593,6 +627,20 @@ export default function EditProductPage({
           Edit Product
         </h1>
 
+        {setupMode && (
+          <section aria-labelledby="product-setup-title" className="mb-8 rounded-xl border border-teal/20 bg-white p-5 font-body sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-teal">Draft created · Keep building</p>
+            <h2 id="product-setup-title" className="mt-2 font-display text-2xl font-semibold text-charcoal">Finish setting up your product</h2>
+            <p className="mt-3 text-sm leading-6 text-charcoal/65">Your product now has its own saved draft. Add its pictures and details here. Keep Status set to Draft until your prices and fulfillment are ready.</p>
+            <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <li><a href="#product-images" className="font-semibold text-teal underline underline-offset-4">1. Add product images</a><p className="mt-1 text-charcoal/60">Add the pictures customers see. A product picture is also needed for the print crop preview.</p></li>
+              <li><a href={setupProfile === 'lumaprints' ? '#product-master' : '#product-fulfillment'} className="font-semibold text-teal underline underline-offset-4">{setupProfile === 'lumaprints' ? '2. Choose and save master artwork' : '2. Check fulfillment details'}</a><p className="mt-1 text-charcoal/60">{setupProfile === 'lumaprints' ? 'Choose the print file, press Save Changes, then crop the master and set the print area.' : 'Check the selected provider and how this artwork will be made and shipped.'}</p></li>
+              <li><a href={setupProfile === 'printful' ? '#product-pricing' : '#product-print-options'} className="font-semibold text-teal underline underline-offset-4">3. Set pricing and product options</a><p className="mt-1 text-charcoal/60">{setupProfile === 'lumaprints' ? 'Lumaprints is selected below. Generate print sizes after the artwork and catalog are ready.' : setupProfile === 'studio' ? 'My studio is selected below. Set your selling prices, sizes, and shipping.' : 'Set the Base Price and verify the Printful product mapping before publishing.'}</p></li>
+              <li><a href="#product-publication" className="font-semibold text-teal underline underline-offset-4">4. Review and publish</a><p className="mt-1 text-charcoal/60">Check the details and each selling price. When everything is ready, choose Active and press Save Changes.</p></li>
+            </ol>
+          </section>
+        )}
+
         {error && (
           <div className="mb-6 rounded-lg border border-coral/30 bg-coral/10 p-4">
             <p className="font-body text-sm text-coral">{error}</p>
@@ -720,7 +768,7 @@ export default function EditProductPage({
                 )}
               </div>
 
-              <div>
+              <div id="product-publication" className="scroll-mt-8">
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
                   Status
                 </label>
@@ -782,7 +830,7 @@ export default function EditProductPage({
                 />
               </div>
 
-              <div>
+              <div id="product-fulfillment" className="scroll-mt-8">
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
                   Fulfillment Type <span className="text-coral">*</span>
                 </label>
@@ -851,7 +899,7 @@ export default function EditProductPage({
           </section>
 
           {/* Pricing */}
-          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
+          <section id="product-pricing" className="scroll-mt-8 rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
             <h2 className="mb-4 font-display text-lg font-semibold text-charcoal">
               Pricing
             </h2>
@@ -934,7 +982,7 @@ export default function EditProductPage({
           </section>
 
           {/* Images */}
-          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
+          <section id="product-images" className="scroll-mt-8 rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
             <h2 className="mb-4 font-display text-lg font-semibold text-charcoal">
               Images
             </h2>
@@ -1117,12 +1165,12 @@ export default function EditProductPage({
           {/* Artwork source — the mega-resolution master file Lumaprints
               prints from. Lives in the master-artworks library so one
               source artwork can back multiple SKUs. */}
-          <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
+          <section id="product-master" className="scroll-mt-8 rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-display text-lg font-semibold text-charcoal">Artwork source</h2>
                 <p className="mt-1 font-body text-sm text-charcoal/60">
-                  The mega-resolution master file Lumaprints prints from. Pick one from your library or upload a new file.
+                  The high-resolution file Lumaprints prints from. Choose a file from your library or upload one, then press Save Changes to attach it to this product before generating sizes. Add a product image above to unlock the crop preview.
                 </p>
               </div>
               <button
@@ -1151,7 +1199,7 @@ export default function EditProductPage({
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-charcoal/10 pt-3">
                     <button
                       type="button"
-                      onClick={() => setShowMasterCrop(true)}
+                      onClick={() => { setCropAspectRatio(undefined); setShowMasterCrop(true) }}
                       disabled={!(images.find((i) => i.is_primary)?.url ?? images[0]?.url)}
                       className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-40"
                     >
@@ -1194,7 +1242,12 @@ export default function EditProductPage({
             )}
           </section>
 
-          <StudioProductEditor productId={id}>
+          {cropRefreshError && <p role="status" className="text-sm text-coral">{cropRefreshError}</p>}
+          {masterArtwork?.print_status === 'failed' && masterArtwork.print_error && <p role="alert" className="rounded-lg border border-coral/30 p-4 font-body text-sm text-coral">{masterArtwork.print_error} Open Edit print crop and save again to retry.</p>}
+          <div id="product-print-options" className="scroll-mt-8">
+          {setupMode && setupProfile === 'printful' && fulfillmentType === 'printful' ? (
+            <section className="rounded-xl border border-charcoal/10 bg-white p-5 font-body"><h2 className="font-display text-xl">Printful product setup</h2><p className="mt-2 text-sm leading-6 text-charcoal/65">You selected Printful. Add your product images and Base Price above. Keep this draft unpublished until the Printful product and variant mapping is ready; this editor does not create that provider mapping.</p><a href="#product-fulfillment" className="mt-3 inline-block text-sm font-medium text-teal underline">Review Fulfillment Type</a></section>
+          ) : <StudioProductEditor productId={id} initialMode={setupProfile === 'lumaprints' || setupProfile === 'studio' ? setupProfile : undefined} showSetupHelp={setupMode}>
           <VariantsTab
             productId={id}
             productDefaultMargin={effectiveMargin}
@@ -1209,16 +1262,18 @@ export default function EditProductPage({
                     height_px: masterArtwork.height_px ?? null,
                     border_mode: masterArtwork.border_mode ?? null,
                     print_status: masterArtwork.print_status ?? null,
+            print_error: masterArtwork.print_error ?? null,
                   }
                 : null
             }
             onEditCrop={
               masterArtwork && (images.find((i) => i.is_primary)?.url ?? images[0]?.url)
-                ? () => setShowMasterCrop(true)
+                ? (aspectRatio?: number) => { setCropAspectRatio(aspectRatio); setShowMasterCrop(true) }
                 : undefined
             }
           />
-          </StudioProductEditor>
+          </StudioProductEditor>}
+          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-charcoal/10 pt-6">
@@ -1310,14 +1365,18 @@ export default function EditProductPage({
 
       {showMasterCrop && masterArtwork && (
         <MasterCropModal
+          initialAspectRatio={cropAspectRatio}
           master={{
             id: masterArtwork.id,
             title: masterArtwork.title,
             proxyUrl: images.find((i) => i.is_primary)?.url ?? images[0]?.url ?? '',
+            sourceWidthPx: masterArtwork.width_px,
+            sourceHeightPx: masterArtwork.height_px,
             crop_box: masterArtwork.crop_box ?? null,
             border_mode: masterArtwork.border_mode ?? null,
             border_color: masterArtwork.border_color ?? null,
             print_status: masterArtwork.print_status ?? null,
+            print_error: masterArtwork.print_error ?? null,
           }}
           onClose={() => setShowMasterCrop(false)}
           onSaved={(next) => {
