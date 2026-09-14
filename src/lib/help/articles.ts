@@ -29,7 +29,7 @@ export const helpArticles: HelpArticle[] = [
       'Fill in your business details first. A buyer needs to know who you are and how to reach you. Read article 2, then save the business information in Settings.',
       'Choose who makes and ships prints. Read article 3 before changing Use Lumaprints. Your own studio and Lumaprints have separate saved prices, so the choice affects what buyers can buy.',
       'Build one complete product. Add a clear title, useful description, pictures, price, and the sizes you can deliver. Keep its status Draft until you check it. Articles 4 through 8 walk through this.',
-      'Check the money. Learn margins in articles 9 and 10. Choose shipping in article 11. Set up sales tax in articles 12 and 13 before taking taxable orders.',
+      'Check the money. Learn markup and gross margin in articles 9 and 10. Choose shipping in article 11. Set up sales tax in articles 12 and 13 before taking taxable orders.',
       'Read your site like a new customer. Fix unclear words, open the product, choose a size, and check the cart. Use article 17 as your final shop check. Then use articles 18 through 20 for daily work.',
     ],
     extra: [{ title: 'Know where the creative tools moved', paragraphs: ['Open Pages → Design Assets to review homepage and funnel designs. Homepage designs and Sales funnels are separate sections on that page. The regular Pages editor still changes the words and images on your existing website pages.', 'Open Settings and expand Features built when you want to review the feature list. It stays collapsed until you need it. Use the communication area near the bottom of Dashboard for project messages and notes; the main dashboard space is for running the shop.'] }],
@@ -177,7 +177,7 @@ export const helpArticles: HelpArticle[] = [
   {
     slug: '09-understand-margins', title: 'Understand profit: studio prices, markup, and gross margin', group: '3. Price and collect correctly',
     summary: 'Follow easy dollar examples to see what the price settings do and what you really keep.',
-    screen: 'pricing.png', screenAlt: 'Pricing settings for the default markup and shipping quote ZIP codes.',
+    screen: 'pricing.png', screenAlt: 'Earlier pricing layout: the field shown here as Margin is now labeled Markup, with a linked Gross margin field beside it. Use the current controls and steps below.',
     tool: { label: 'Open the live pricing controls', href: '/admin/settings#pricing' },
     before: 'The field previously called Margin is now called Markup because it adds a percentage to cost. Gross margin sits beside it and shows the share of the selling price left after print cost and stored shipping. Edit either percentage and the other updates. This estimate does not include every business expense.',
     steps: [
@@ -213,7 +213,7 @@ export const helpArticles: HelpArticle[] = [
   {
     slug: '10-change-margins', title: 'Change margins for the shop, a category, or one size', group: '3. Price and collect correctly',
     summary: 'Use the right control, understand which setting wins, and verify the price afterward.',
-    screen: 'pricing.png', screenAlt: 'The Pricing section with paired markup and gross margin fields and Save Pricing Settings.',
+    screen: 'pricing.png', screenAlt: 'Earlier pricing layout: Margin has been renamed Markup, and a linked Gross margin field has been added. Save Pricing Settings remains the save button.',
     tool: { label: 'Change the shop default markup', href: '/admin/settings#pricing' },
     before: 'Read article 9 first. Markup (%) compares extra dollars with cost; Gross margin (%) compares those same dollars with the selling price. Write down one product’s current cost and price so you can compare after saving. Decide whether the change should affect many products or only one option.',
     steps: [
