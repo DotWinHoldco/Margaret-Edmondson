@@ -38,6 +38,10 @@ export interface ImageData {
 }
 
 export interface VariantData {
+  width_in?: number | null
+  height_in?: number | null
+  size_label?: string | null
+  size_tier?: 'S' | 'M' | 'L' | null
   fulfillment_type?: string
   shipping_mode?: 'included' | 'flat' | 'integration'
   shipping_fee_cents?: number

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { printSizeLabel } from '@/lib/pricing/print-size-label'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MEDIUMS, mediumLabel } from '@/lib/pricing/mediums'
@@ -357,7 +358,7 @@ export default function StudioProductEditor({
                       <h3 className="font-display text-lg">
                         {v.variant_type === 'original'
                           ? 'Original artwork'
-                          : v.name}
+                          : <><span className="block">{printSizeLabel(v).title}</span>{printSizeLabel(v).actualNote && <span className="block font-body text-[9px] font-normal leading-4 text-charcoal/70">{printSizeLabel(v).actualNote}</span>}</>}
                       </h3>
                       {v.variant_type !== 'original' && (
                         <label className="flex items-center gap-2 font-body text-sm">

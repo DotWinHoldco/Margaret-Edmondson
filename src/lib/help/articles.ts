@@ -115,12 +115,13 @@ export const helpArticles: HelpArticle[] = [
   },
   {
     slug: '06-print-sizes-and-variants', title: 'Create print sizes and make them live', group: '2. Build your catalog',
-    summary: 'Offer only sizes that fit your artwork and can be printed clearly.',
+    summary: 'Understand familiar size labels, check the exact print measurements, and offer sizes that print clearly.',
     screen: 'standard-print-size.png', screenAlt: 'Example print-size editor showing an exact 16 × 20 choice and guidance to prepare a matching crop when the artwork has a different shape.',
     tool: { label: 'Choose a product to edit', href: '/admin/products' },
     before: 'A variant is one choice of a product, such as a 12 × 16 paper print. Attach a ready master artwork first. Know which materials and sizes you want to offer.',
     steps: [
       'Open Products, edit the artwork, and choose Lumaprints under Editing prices for. Find the print options. Each material has its own group, so check paper and canvas separately.',
+      'Near-standard options show a familiar size on top and a small actual cropped size line directly below in the size column and storefront chooser. The smaller line gives the exact saved print measurements. Use it for framing. This display change does not resize the file or change the dimensions ordered from Lumaprints; an exact standard choice still needs a suitable prepared file.',
       'Review existing options before adding more. Read Label, Size, Cost, Margin %, Price, and Gross. Margin % is markup on print cost plus stored shipping cost. Use Generate S/M/L to suggest small, medium, and large sizes for a configured material. They follow your prepared master’s shape and the allowed size checks; they are not a list of guaranteed standard frame sizes. Read both dimensions before making an option live.',
       'Choose Add print size. Under Print size, select an exact option such as 16 × 20 in, or choose Custom — follow the artwork shape. A standard choice keeps its exact measurements. In Custom mode, changing one dimension updates the other to follow the master’s shape. Read both measurements and the size, resolution, and shape checks.',
       'If the exact size does not match your file’s shape, use Prepare crop for 16 × 20, or the button for your selected dimensions. In the crop tool, check Print shape. For a portrait 16 × 20, use 4:5 portrait — 8 × 10, 16 × 20. Move or resize the locked box and inspect every edge. The artwork outside the box will be removed.',

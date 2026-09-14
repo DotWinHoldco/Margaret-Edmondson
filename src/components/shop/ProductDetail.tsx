@@ -9,6 +9,8 @@ import { trackEvent } from '@/lib/meta/pixel'
 import { cheapestPrintPrice } from '@/lib/product-utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import WishlistButton from './WishlistButton'
+import PrintVariantPicker from './PrintVariantPicker'
+import { printSizeLabel, printSizeCartLabel } from '@/lib/pricing/print-size-label'
 
 /* ─── Types ─── */
 
@@ -52,13 +54,6 @@ const MEDIUM_GROUP_LABEL: Record<string, string> = {
   metal: 'Metal Print',
   peel_and_stick: 'Peel & Stick',
   rolled_canvas: 'Rolled Canvas',
-}
-
-// Customer-facing option label: real dimensions + the custom name when present.
-function variantOptionLabel(v: ProductVariant): string {
-  const dims = v.width_in != null && v.height_in != null ? `${v.width_in} × ${v.height_in} in` : ''
-  if (v.is_custom_size && v.name) return dims ? `${v.name} — ${dims}` : v.name
-  return v.name || dims // S/M/L default names already read "Small — 12 × 9 in"
 }
 
 interface PrintGroup {
@@ -403,11 +398,6 @@ function VariantSelector({
     return list
   }, [originalVariant, printGroups, isSold])
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const variant = allVariants.find((v) => v.id === e.target.value)
-    if (variant) onSelect(variant)
-  }
-
   const selectedVariant = allVariants.find((v) => v.id === selectedVariantId)
   const isPrint = !!selectedVariant?.medium
 
@@ -430,39 +420,15 @@ function VariantSelector({
         </p>
       )}
 
-      {/* The dropdown */}
       {allVariants.length > 0 && (
-        <select
-          value={selectedVariantId || ''}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-white border border-charcoal/15 rounded-sm font-body text-sm text-charcoal appearance-none focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal/30 transition-colors"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232C2C2C' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 12px center',
-            paddingRight: '40px',
-          }}
-        >
-          {/* Original group */}
-          {hasOriginal && !isSold && (
-            <optgroup label="Original">
-              <option value={originalVariant!.id}>
-                Original Artwork (1 of 1) &mdash; ${originalVariant!.price.toFixed(2)}
-              </option>
-            </optgroup>
-          )}
-
-          {/* One group per medium, sizes ordered by area */}
-          {printGroups.map((g) => (
-            <optgroup key={g.medium} label={g.label}>
-              {g.variants.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {variantOptionLabel(v)} &mdash; ${v.price.toFixed(2)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <PrintVariantPicker
+          value={selectedVariantId}
+          onSelect={(id) => { const variant = allVariants.find((v) => v.id === id); if (variant) onSelect(variant) }}
+          groups={[
+            ...(originalVariant && !isSold ? [{ label: 'Original', options: [{ id: originalVariant.id, title: 'Original Artwork (1 of 1)', actualNote: null, price: originalVariant.price }] }] : []),
+            ...printGroups.map((group) => ({ label: group.label, options: group.variants.map((variant) => ({ id: variant.id, ...printSizeLabel(variant), price: variant.price })) })),
+          ]}
+        />
       )}
 
       {/* Footnote */}
@@ -622,7 +588,7 @@ export default function ProductDetail({
         productId: product.id,
         variantId: selectedVariant.id,
         variantType: selectedVariant.variant_type || undefined,
-        title: `${product.title} — ${selectedVariant.name}`,
+        title: `${product.title} — ${selectedVariant.variant_type !== 'original' && selectedVariant.medium ? printSizeCartLabel(selectedVariant) : selectedVariant.name}`,
         image: images[0]?.url || '',
         price,
         quantity: 1,

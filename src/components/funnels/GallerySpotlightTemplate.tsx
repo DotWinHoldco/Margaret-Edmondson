@@ -8,7 +8,9 @@ import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { sanitizeHtml } from '@/lib/sanitize'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
-import type { FunnelTemplateProps } from './types'
+import type { FunnelTemplateProps, VariantData } from './types'
+import PrintVariantPicker from '@/components/shop/PrintVariantPicker'
+import { printSizeLabel, printSizeCartLabel } from '@/lib/pricing/print-size-label'
 
 const ease: Easing = [0.22, 1, 0.36, 1]
 
@@ -57,7 +59,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
   const offerRef = useRef<HTMLElement>(null)
   const scrollToOffer = () => offerRef.current?.scrollIntoView({ behavior: 'smooth' })
 
-  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string; fulfillment_type?: string; shipping_mode?: 'included' | 'flat' | 'integration'; shipping_fee_cents?: number }) => {
+  const handleAddToCart = (variant: VariantData) => {
     // Funnel analytics: count the add-to-cart for this funnel. (D-4)
     fetch(`/api/funnels/${funnel.id}/track`, {
       method: 'POST',
@@ -70,7 +72,7 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
         productId: product.id,
         variantId: variant.id,
         variantType: variant.variant_type,
-        title: `${product.title} — ${variant.name}`,
+        title: `${product.title} — ${variant.variant_type === 'original' ? variant.name : printSizeCartLabel(variant)}`,
         image: heroImage?.url || '',
         price: variant.price,
         quantity: 1,
@@ -366,32 +368,16 @@ export default function GallerySpotlightTemplate({ funnel, product, images, vari
                     </p>
 
                     <div className="mt-6">
-                      <label className="block font-body text-sm text-charcoal/60 mb-2">Select Size & Style</label>
-                      <select
+
+                      <PrintVariantPicker
+                        inlineMenu
                         value={selectedPrintVariant}
-                        onChange={(e) => setSelectedPrintVariant(e.target.value)}
-                        className="w-full border border-charcoal/20 rounded-sm px-4 py-3 font-body text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-teal/40"
-                      >
-                        <option value="">Choose an option...</option>
-                        {canvasPrints.length > 0 && (
-                          <optgroup label="Canvas Print">
-                            {canvasPrints.map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.name} — ${v.price.toLocaleString()}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {framedPrints.length > 0 && (
-                          <optgroup label="Framed Canvas Print">
-                            {framedPrints.map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.name} — ${v.price.toLocaleString()}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
+                        onSelect={setSelectedPrintVariant}
+                        groups={[
+                          { label: 'Canvas Print', options: canvasPrints.map((v) => ({ id: v.id, ...printSizeLabel(v), price: v.price })) },
+                          { label: 'Framed Canvas Print', options: framedPrints.map((v) => ({ id: v.id, ...printSizeLabel(v), price: v.price })) },
+                        ].filter((group) => group.options.length > 0)}
+                      />
                     </div>
 
                     <button

@@ -16,6 +16,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { useCart } from '@/lib/cart/context'
+import CartItemTitle from '@/components/shared/CartItemTitle'
 import { readFunnelAttribution } from '@/lib/funnels/attribution'
 import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 
@@ -472,7 +473,7 @@ function OrderSummary({ intent, promoCode }: { intent: IntentResponse; promoCode
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm text-charcoal leading-snug truncate">{item.title}</p>
+                  <p className="font-body text-sm text-charcoal leading-snug"><CartItemTitle title={item.title} /></p>
                   <p className="font-body text-xs text-charcoal/50">Qty {item.quantity}</p>
                 </div>
                 <p className="font-body text-sm text-charcoal whitespace-nowrap tabular-nums">

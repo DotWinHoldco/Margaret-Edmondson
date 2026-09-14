@@ -8,7 +8,9 @@ import type { Easing } from 'framer-motion'
 import { useCart } from '@/lib/cart/context'
 import { sanitizeHtml } from '@/lib/sanitize'
 import AdaptiveArtwork from '@/components/shared/AdaptiveArtwork'
-import type { FunnelTemplateProps } from './types'
+import type { FunnelTemplateProps, VariantData } from './types'
+import PrintVariantPicker from '@/components/shop/PrintVariantPicker'
+import { printSizeLabel, printSizeCartLabel } from '@/lib/pricing/print-size-label'
 
 const ease: Easing = [0.22, 1, 0.36, 1]
 
@@ -73,7 +75,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
   const offerRef = useRef<HTMLElement>(null)
   const scrollToOffer = () => offerRef.current?.scrollIntoView({ behavior: 'smooth' })
 
-  const handleAddToCart = (variant: { id: string; name: string; price: number; variant_type: string; fulfillment_type?: string; shipping_mode?: 'included' | 'flat' | 'integration'; shipping_fee_cents?: number }) => {
+  const handleAddToCart = (variant: VariantData) => {
     // Funnel analytics: count the add-to-cart for this funnel. (D-4)
     fetch(`/api/funnels/${funnel.id}/track`, {
       method: 'POST',
@@ -86,7 +88,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
         productId: product.id,
         variantId: variant.id,
         variantType: variant.variant_type,
-        title: `${product.title} — ${variant.name}`,
+        title: `${product.title} — ${variant.variant_type === 'original' ? variant.name : printSizeCartLabel(variant)}`,
         image: heroImage?.url || '',
         price: variant.price,
         quantity: 1,
@@ -225,15 +227,17 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
       <section className="bg-cream py-24 md:py-32">
         <div className="max-w-6xl mx-auto px-6">
           {/* Full-width artwork image with parallax */}
-          {heroImage && (
-            <Reveal>
-              <div ref={fullImageRef} className="relative w-full rounded-sm overflow-hidden shadow-2xl mb-16">
-                <motion.div style={{ y: imageY }} className="relative w-full">
-                  <AdaptiveArtwork src={heroImage.url} alt={product.title} mode="morph" maxHeight="70vh" />
-                </motion.div>
-              </div>
-            </Reveal>
-          )}
+          <div ref={fullImageRef}>
+            {heroImage && (
+              <Reveal>
+                <div className="relative w-full rounded-sm overflow-hidden shadow-2xl mb-16">
+                  <motion.div style={{ y: imageY }} className="relative w-full">
+                    <AdaptiveArtwork src={heroImage.url} alt={product.title} mode="morph" maxHeight="70vh" />
+                  </motion.div>
+                </div>
+              </Reveal>
+            )}
+          </div>
 
           {/* Story text */}
           <div className="max-w-2xl mx-auto">
@@ -382,28 +386,16 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
                     </p>
 
                     <div className="mt-6">
-                      <label className="block font-body text-sm text-charcoal/50 mb-2">Choose your size</label>
-                      <select
+
+                      <PrintVariantPicker
+                        inlineMenu
                         value={selectedPrintVariant}
-                        onChange={(e) => setSelectedPrintVariant(e.target.value)}
-                        className="w-full border border-charcoal/15 rounded-sm px-4 py-3 font-body text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-teal/30"
-                      >
-                        <option value="">Select size & style...</option>
-                        {canvasPrints.length > 0 && (
-                          <optgroup label="Canvas Print">
-                            {canvasPrints.map((v) => (
-                              <option key={v.id} value={v.id}>{v.name} — ${v.price.toLocaleString()}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {framedPrints.length > 0 && (
-                          <optgroup label="Framed Canvas">
-                            {framedPrints.map((v) => (
-                              <option key={v.id} value={v.id}>{v.name} — ${v.price.toLocaleString()}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
+                        onSelect={setSelectedPrintVariant}
+                        groups={[
+                          { label: 'Canvas Print', options: canvasPrints.map((v) => ({ id: v.id, ...printSizeLabel(v), price: v.price })) },
+                          { label: 'Framed Canvas', options: framedPrints.map((v) => ({ id: v.id, ...printSizeLabel(v), price: v.price })) },
+                        ].filter((group) => group.options.length > 0)}
+                      />
                     </div>
 
                     <button

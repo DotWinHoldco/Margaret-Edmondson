@@ -1,6 +1,7 @@
 'use client'
 
 import { useCart } from '@/lib/cart/context'
+import CartItemTitle from '@/components/shared/CartItemTitle'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -74,7 +75,7 @@ export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-body text-sm font-medium truncate">{item.title}</h3>
+                          <h3 className="font-body text-sm font-medium leading-snug"><CartItemTitle title={item.title} /></h3>
                           <p className="text-sm text-charcoal/60 font-body mt-0.5">
                             ${item.price.toFixed(2)}
                           </p>

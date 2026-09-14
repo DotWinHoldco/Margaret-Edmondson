@@ -7,7 +7,7 @@ import { helpArticles } from '@/lib/help/articles'
 export const featuresBuilt = [
   {
     title: 'Shop and artwork',
-    description: 'Add original art and prints, organize products, manage sizes and prices, and choose product photos. Buyers can use a saved cart and Stripe checkout that checks product prices again before payment.',
+    description: 'Start products as drafts in the full editor, choose exact print sizes and reviewed crops, and manage photos and prices. Near-standard options show familiar sizes with exact measurements underneath. Buyers can use a saved cart and Stripe checkout that checks product prices again before payment.',
     links: [{ label: 'Products', href: '/admin/products' }, { label: 'Media library', href: '/admin/media' }],
   },
   {

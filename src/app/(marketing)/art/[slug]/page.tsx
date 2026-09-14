@@ -133,6 +133,10 @@ export default async function ArtFunnelPage(props: Props) {
     variants: variants.map((v) => ({
       id: v.id as string,
       name: v.name as string,
+      width_in: v.width_in as number | null,
+      height_in: v.height_in as number | null,
+      size_label: v.size_label as string | null,
+      size_tier: v.size_tier as 'S' | 'M' | 'L' | null,
       price: v.price as number,
       variant_type: v.variant_type as string,
       inventory_count: v.inventory_count as number,

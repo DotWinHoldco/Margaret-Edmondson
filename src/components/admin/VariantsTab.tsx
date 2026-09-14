@@ -16,6 +16,7 @@ import {
   type SizeTier,
 } from '@/lib/pricing/size-tiers'
 import { boundsForSubcategory } from '@/lib/pricing/subcategory-bounds'
+import { printSizeLabel } from '@/lib/pricing/print-size-label'
 
 export interface MediumCatalogEntry {
   medium: Medium
@@ -383,6 +384,7 @@ export default function VariantsTab({
                       const hasManual = v.manual_price_override_cents != null
                       const gm = grossMarginPct(price, cost, ship)
                       const gmColor = gm <= 0 ? 'text-coral' : gm < targetGrossMarginPct ? 'text-amber-600' : 'text-teal'
+                      const sizeDisplay = printSizeLabel(v)
                       return (
                         <tr key={v.id} className={!v.is_active ? 'bg-charcoal/[0.015]' : ''}>
                           <td className="px-3 py-2">
@@ -412,8 +414,9 @@ export default function VariantsTab({
                             />
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap">
-                            {v.width_in != null && v.height_in != null ? `${v.width_in} × ${v.height_in} in` : v.size_label}
+                            {sizeDisplay.dimensions}
                             <span className="ml-1.5 inline-block rounded-full bg-charcoal/8 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-charcoal/55">{v.size_tier || 'Custom'}</span>
+                            {sizeDisplay.actualNote && <span className="block text-[9px] leading-4 text-charcoal/70">{sizeDisplay.actualNote}</span>}
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap" title={`base ${fmtCents(cost)} + shipping ${fmtCents(ship)}`}>
                             {cost + ship > 0 ? fmtCents(cost + ship) : <span className="text-amber-600">Set cost</span>}

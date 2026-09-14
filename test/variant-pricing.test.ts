@@ -77,6 +77,19 @@ describe('resolveMarginPct', () => {
     expect(resolveMarginPct(null, null, 65)).toBe(65)
   })
 
+  it('keeps an inherited zero shop markup at cost instead of doubling the preview price', () => {
+    const shopMarkup = resolveMarginPct(null, 0, 100)
+    const productMarkup = resolveMarginPct(null, null, shopMarkup)
+    expect(productMarkup).toBe(0)
+    expect(customerPriceCents({
+      lumaprints_cost_cents: 1500,
+      shipping_cost_cents: 500,
+      margin_override_pct: null,
+      manual_price_override_cents: null,
+    }, productMarkup)).toBe(2000)
+    expect(resolveMarginPct(null, Number.NaN, 100)).toBe(100)
+  })
+
   it('treats NaN as missing', () => {
     expect(resolveMarginPct(Number.NaN, null, 65)).toBe(65)
   })

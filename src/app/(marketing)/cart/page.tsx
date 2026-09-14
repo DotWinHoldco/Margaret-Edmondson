@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useCart } from '@/lib/cart/context'
+import CartItemTitle from '@/components/shared/CartItemTitle'
 import Image from 'next/image'
 import Link from 'next/link'
 import { track } from '@/lib/meta/track'
@@ -253,7 +254,7 @@ export default function CartPage() {
 
                   <div className="flex flex-1 flex-col justify-between min-w-0">
                     <div>
-                      <h3 className="font-body text-base font-medium text-charcoal leading-snug">{item.title}</h3>
+                      <h3 className="font-body text-base font-medium text-charcoal leading-snug"><CartItemTitle title={item.title} /></h3>
                       <p className="mt-1 font-body text-sm text-charcoal/55">{formatUsd(item.price)} each</p>
                     </div>
                     <div className="mt-3 flex items-center gap-3">

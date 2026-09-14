@@ -14,6 +14,7 @@ import CropModal from '@/components/admin/CropModal'
 import MasterCropModal from '@/components/admin/MasterCropModal'
 import StudioProductEditor from '@/components/admin/StudioProductEditor'
 import type { Medium } from '@/lib/pricing/mediums'
+import { resolveMarginPct } from '@/lib/pricing/variant-pricing'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 
@@ -436,10 +437,11 @@ export default function EditProductPage({
   // Effective markup the variants actually use: product override → category → site → 100.
   const _selectedCategory = categories.find((c) => c.id === categoryId)
   const _ownMargin = productMarginOverride.trim() === '' ? null : Number(productMarginOverride)
-  const effectiveMargin =
-    (_ownMargin != null && Number.isFinite(_ownMargin) ? _ownMargin : null) ??
-    (_selectedCategory?.default_margin_pct != null ? Number(_selectedCategory.default_margin_pct) : null) ??
-    (siteDefaultMargin || 100)
+  const effectiveMargin = resolveMarginPct(
+    _ownMargin,
+    _selectedCategory?.default_margin_pct != null ? Number(_selectedCategory.default_margin_pct) : null,
+    resolveMarginPct(null, siteDefaultMargin, 100),
+  )
   const marginInheritedFrom =
     _ownMargin != null ? null : _selectedCategory?.default_margin_pct != null ? `${_selectedCategory.name} category` : 'site default'
 
