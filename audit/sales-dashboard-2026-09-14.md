@@ -15,6 +15,7 @@
 - Fifteen reporting tests cover date boundaries, DST, leap dates, offset timestamps, included and separate tax, full and partial refund handling, historical states, unknown/invalid records, pagination beyond 1,000 rows, admin authorization, invalid periods, and database failures.
 - Browser checks cover all three mutually exclusive choices, save results, Off disclosure behavior, all five reporting periods, CSV download and file contents, empty reports, failure/retry behavior, and delayed-response handling.
 - Sample report: two orders total $208.25; tax is $15.87; sales before tax are $192.38; average order is $104.13. A full refund of the $108.25 order removes $8.25 tax, leaving $7.62 net recorded tax.
+- Release commit `1276ec7` deployed successfully to `https://www.artbyme.studio`. Live Chrome checks confirmed the authenticated report loads, the 90-day filter uses the expected dates, all three tax choices appear with no old switches, and the settings link scrolls to the tax tracker after loading. The updated help article and screenshot were also checked.
 
 ## Accounting basis
 
