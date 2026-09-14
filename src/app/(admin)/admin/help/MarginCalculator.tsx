@@ -10,7 +10,7 @@ export default function MarginCalculator() {
   const [markup, setMarkup] = useState('100')
   const [manual, setManual] = useState(false)
   const [manualPrice, setManualPrice] = useState('50')
-  const values = [print, shipping, markup, ...(manual ? [manualPrice] : [])]
+  const values = [print, shipping, ...(manual ? [manualPrice] : [markup])]
   const valid = values.every((value) => value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1000000)
   const cost = Math.round(Number(print) * 100)
   const ship = Math.round(Number(shipping) * 100)

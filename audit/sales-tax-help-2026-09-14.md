@@ -16,6 +16,8 @@ Reviewed September 14, 2026.
 - Full test suite: 458 passed, 7 skipped. Twenty-seven tax tests cover calculations, configuration, shipping/address checks, activation and checkout routes, and receipt amounts/disclosures.
 - Tax control browser checks: both modes save with sample ready settings; incomplete registration blocks activation; state search, modal focus, Escape, and focus return work.
 - Documentation audit: twenty unique articles; every referenced screenshot exists and is a valid PNG. Screenshots avoid buyer data. The tax controls screenshot is labeled as sample settings.
+- Adversarial review checked all twenty guides against source controls and routes. Corrected required studio print approval, size generation, silent variant autosave, shipment fields, and checkout limits. Originals are explicitly exempt from print-file approval. Corrected calculator validation so manual prices ignore an unused blank markup field.
+- Browser help verification passed: full-text search, empty-result recovery, automatic pricing ($20 + $5 cost at 100% markup gives $50 price, $25 gross profit, 50% gross margin), and a $40 manual price ($15 gross profit, 37.5% gross margin). No browser console errors were reported.
 - Database migration applied and its non-null default-false columns verified. Live collection remains disabled; no state permit or Stripe registration was invented or created.
 
 ## Operational limits
