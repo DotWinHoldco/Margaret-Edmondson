@@ -270,7 +270,7 @@ export default function SalesTaxSection() {
             <button type="button" onClick={save} disabled={saving || !dirty} className={buttonClass}>{saving ? 'Saving…' : 'Save sales tax'}</button>
             {dirty && !saving && <span className="text-charcoal/55">You have unsaved changes.</span>}
             <Link className={linkClass} href="/admin/help/12-sales-tax-and-nexus">Read the full sales tax guide</Link>
-            <Link className={linkClass} href="/admin/sales#sales-tax">Open sales dashboard and tax tracker</Link>
+            <Link className={linkClass} href="/admin#sales-tax">Open sales dashboard and tax tracker</Link>
           </div>
           {message && <p role={message.error ? 'alert' : 'status'} className={message.error ? 'text-coral' : 'text-teal'}>{message.text}</p>}
         </div>

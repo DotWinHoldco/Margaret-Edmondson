@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import SettingsClient from './SettingsClient'
+import FeaturesBuilt from '@/components/admin/FeaturesBuilt'
 
 export const metadata: Metadata = {
   title: 'Settings',
@@ -18,6 +19,7 @@ export default function SettingsPage() {
       </div>
 
       <SettingsClient />
+      <FeaturesBuilt />
     </div>
   )
 }

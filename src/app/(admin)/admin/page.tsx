@@ -1,18 +1,17 @@
-import Link from 'next/link'
-import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
+import DashboardOverview from '@/components/admin/DashboardOverview'
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import ProjectHubClient from './ProjectHubClient'
 
 export const metadata: Metadata = {
-  title: 'Project Hub',
+  title: 'Dashboard',
 }
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
 
   // Fetch all initial data in parallel
-  const [feedbackResult, workRequestsResult, notesResult, funnelsResult] = await Promise.all([
+  const [feedbackResult, workRequestsResult, notesResult] = await Promise.all([
     supabase
       .from('feedback_items')
       .select('*, feedback_comments(id), feedback_audit_log(id, action, old_value, new_value, created_at)')
@@ -25,10 +24,6 @@ export default async function AdminDashboard() {
       .from('project_notes')
       .select('*, project_note_comments(id)')
       .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('artwork_funnels')
-      .select('id, slug, template, is_published, views_count, add_to_cart_count, purchase_count, product_id, products(title, slug)')
       .order('created_at', { ascending: false }),
   ])
 
@@ -54,28 +49,13 @@ export default async function AdminDashboard() {
     project_note_comments: undefined,
   }))
 
-  const funnels = (funnelsResult.data || []).map((item) => ({
-    id: item.id as string,
-    slug: item.slug as string,
-    template: item.template as string,
-    is_published: item.is_published as boolean,
-    views_count: (item.views_count || 0) as number,
-    add_to_cart_count: (item.add_to_cart_count || 0) as number,
-    purchase_count: (item.purchase_count || 0) as number,
-    product_title: ((item.products as unknown as { title: string }) || {}).title || 'Unknown',
-    product_slug: ((item.products as unknown as { slug: string }) || {}).slug || '',
-  }))
-
   return (
     <>
-      {/* Quick fulfillment controls; the shared admin layout hosts the launch guide. */}
-      <div className="mx-auto mb-6 max-w-7xl px-4 pt-6"><FulfillmentSettings compact /></div>
-      <div className="mx-auto mb-6 max-w-7xl px-4"><Link href="/admin/sales" className="block rounded-xl border border-teal/20 bg-white p-5 font-body transition-colors hover:bg-teal/5"><span className="block text-lg font-semibold text-teal">Open your sales dashboard →</span><span className="mt-1 block text-sm text-charcoal/65">See sales, recent orders, and the sales tax to set aside by state.</span></Link></div>
+      <DashboardOverview />
       <ProjectHubClient
         initialFeedback={feedbackItems}
         initialWorkRequests={workRequests}
         initialNotes={notes}
-        initialFunnels={funnels}
       />
     </>
   )

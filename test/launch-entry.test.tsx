@@ -12,6 +12,8 @@ vi.mock('next/link', () => ({ default: (props: AnchorHTMLAttributes<HTMLAnchorEl
 vi.mock('@/components/admin/RichTextEditor', () => ({ default: () => null }))
 vi.mock('@/components/admin/SharedFilesModal', () => ({ default: () => null }))
 import ProjectHubClient from '@/app/(admin)/admin/ProjectHubClient'
+import DashboardOverview from '@/components/admin/DashboardOverview'
+import { buildTaxReport } from '@/lib/tax/reporting'
 import LaunchSequence from '@/components/admin/LaunchSequence'
 import WelcomePage from '@/app/welcome/page'
 
@@ -31,7 +33,11 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', storage())
   vi.stubGlobal('sessionStorage', storage())
   window.history.replaceState({}, '', '/admin')
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.includes('fulfillment-settings') ? { policy, inFlight: 0 } : launch)))
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.includes('/api/admin/tax-report')) return Response.json(buildTaxReport([], [], ['TX'], '30d', new Date('2026-09-14T18:00:00Z')))
+    if (url.includes('fulfillment-settings')) return Response.json({ policy, inFlight: 0 })
+    return Response.json(launch)
+  }))
   // Happy DOM does not model the browser top layer; the browser fixture verifies it visually.
   vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function (this: HTMLDialogElement) { this.setAttribute('open', '') })
   vi.spyOn(HTMLDialogElement.prototype, 'close').mockImplementation(function (this: HTMLDialogElement) { this.removeAttribute('open') })
@@ -41,7 +47,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 describe('admin login landing and current launch guide', () => {
   it.each(['fresh browser', 'legacy dismissal'])('keeps the real dashboard and guide together for a %s', async (scenario) => {
     if (scenario === 'legacy dismissal') localStorage.setItem('artbyme_welcome_dismissed', 'permanent')
-    render(<><ProjectHubClient initialFeedback={[]} initialWorkRequests={[]} initialNotes={[]} /><LaunchSequence /></>)
+    render(<><DashboardOverview /><ProjectHubClient initialFeedback={[]} initialWorkRequests={[]} initialNotes={[]} /><LaunchSequence /></>)
     await screen.findByRole('dialog', { name: 'Your website is built, Margaret.' })
     expect(screen.getByRole('button', { name: 'Explore Lumaprints setup' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'Walk me through self-fulfillment' })).toBeDefined()
@@ -49,7 +55,18 @@ describe('admin login landing and current launch guide', () => {
     expect(router.push).not.toHaveBeenCalled()
     expect(sessionStorage.getItem('artbyme_entered_from_welcome')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Close launch guide for this visit' }))
-    expect(screen.getByRole('heading', { name: 'Welcome, Margaret' })).toBeDefined()
+    await screen.findByRole('region', { name: 'Sales overview' })
+    expect(screen.getAllByRole('heading', { name: /A little clarity.*More room to create/ })).toHaveLength(1)
+    expect(screen.getByRole('heading', { name: 'Your sales at a glance' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'Sales tax tracker' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'Your studio, within reach' })).toBeDefined()
+    for (const name of ['Feedback', 'Work Requests', 'Project Notes']) {
+      expect(screen.getByRole('heading', { name })).toBeDefined()
+    }
+    for (const name of ['Welcome, Margaret', 'Homepage Designs', 'Your Sales Funnels', 'PASTOR Sales Funnels', 'Platform Features Built']) {
+      expect(screen.queryByRole('heading', { name })).toBeNull()
+    }
+    expect(screen.getByRole('link', { name: 'Design assets' }).getAttribute('href')).toBe('/admin/pages/design-assets')
     fireEvent.click(screen.getByRole('button', { name: 'Launch guide' }))
     await waitFor(() => expect(screen.getByRole('dialog', { name: 'Your website is built, Margaret.' })).toBeDefined())
     expect(router.replace).not.toHaveBeenCalled()

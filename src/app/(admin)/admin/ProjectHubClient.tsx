@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Link from 'next/link'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import SharedFilesModal, { type SharedEntity } from '@/components/admin/SharedFilesModal'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -64,76 +63,13 @@ interface ProjectNote {
   updated_at: string
 }
 
-interface Funnel {
-  id: string
-  slug: string
-  template: string
-  is_published: boolean
-  views_count: number
-  add_to_cart_count: number
-  purchase_count: number
-  product_title: string
-  product_slug: string
-}
-
 interface Props {
   initialFeedback: FeedbackItem[]
   initialWorkRequests: WorkRequest[]
   initialNotes: ProjectNote[]
-  initialFunnels?: Funnel[]
 }
 
 // ─── Constants ────────────────────────────────────────────────────────
-const HOMEPAGE_VARIANTS = [
-  {
-    number: 1,
-    name: 'Gallery Immersion',
-    path: '/',
-    accent: 'bg-[#F5F0E8]',
-    accentBorder: 'border-[#F5F0E8]',
-    description: 'Warm minimalism with parallax hero, featured grid, and block-based CMS.',
-  },
-  {
-    number: 2,
-    name: 'Studio Energy',
-    path: '/v2',
-    accent: 'bg-coral',
-    accentBorder: 'border-coral',
-    description: 'Bold editorial magazine layout with torn-edge dividers and coral accents.',
-  },
-  {
-    number: 3,
-    name: 'Immersive Collage',
-    path: '/v3',
-    accent: 'bg-olive',
-    accentBorder: 'border-olive',
-    description: 'Textured maximalism with stamp frames, washi tape, and collage aesthetics.',
-  },
-  {
-    number: 4,
-    name: 'Kinetic Gallery',
-    path: '/v4',
-    accent: 'bg-charcoal',
-    accentBorder: 'border-charcoal',
-    description: 'Dark cinematic experience with horizontal scroll gallery and spotlit artwork.',
-  },
-  {
-    number: 5,
-    name: 'Editorial Canvas',
-    path: '/v5',
-    accent: 'bg-gold',
-    accentBorder: 'border-gold',
-    description: 'Magazine masthead with oversized typography and clip-path image reveals.',
-  },
-  {
-    number: 6,
-    name: 'Living Studio',
-    path: '/v6',
-    accent: 'bg-teal',
-    accentBorder: 'border-teal',
-    description: 'Playful paint splashes, polaroid cards, draggable carousel, and sketchbook sections.',
-  },
-]
 
 const FEEDBACK_CATEGORIES: { value: string; label: string }[] = [
   { value: 'love', label: 'I Love This' },
@@ -252,163 +188,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700',
 }
 
-const FEATURES_DATA = [
-  {
-    title: 'Shop & Ecommerce',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-      </svg>
-    ),
-    items: [
-      'Product catalog with 36 artworks across 5 collections',
-      'Canvas print ordering with 8 sizes (8x10 to 30x40)',
-      'Frame add-on option for all print sizes',
-      '65% margin pricing engine (automatic from Lumaprints wholesale costs)',
-      'Original artwork purchasing (1-of-1 with sold tracking)',
-      'Dynamic product pages with hover zoom, lightbox, thumbnail gallery',
-      'Variant dropdown with Original / Print / Framed separation',
-      'Shopping cart with persistent state',
-      'Stripe checkout with server-side price validation',
-      'Order management in admin panel',
-    ],
-  },
-  {
-    title: 'Fulfillment & Integrations',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
-    ),
-    items: [
-      'Lumaprints integration (canvas prints, automatic order routing)',
-      'Printful integration (merchandise, apparel)',
-      'ShipStation integration (self-shipped originals, label generation)',
-      'Automated fulfillment routing (orders auto-route to correct provider)',
-      'Webhook handlers for tracking updates from all 3 providers',
-      'Fulfillment retry system for failed submissions',
-    ],
-  },
-  {
-    title: 'Art Classes / LMS',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-      </svg>
-    ),
-    items: [
-      'Course creation and management',
-      'Module and lesson organization',
-      'Video lesson support',
-      'Student enrollment (free or paid via Stripe)',
-      'Lesson progress tracking with video resume',
-      'Discussion / comments per lesson',
-    ],
-  },
-  {
-    title: 'Content Management',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-      </svg>
-    ),
-    items: [
-      'Page builder for custom pages (About, Privacy, Terms, etc.)',
-      'Blog with full CRUD editor',
-      'FAQ management with categories',
-      'Testimonial management with featured toggle',
-      'Site content editor for page-level text swaps',
-      'Block-based section management',
-    ],
-  },
-  {
-    title: 'Commission Portal',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" />
-      </svg>
-    ),
-    items: [
-      'Commission request form (multi-step)',
-      'Commission tracking with status pipeline',
-      'Message thread between artist and client',
-      'Admin commission management',
-    ],
-  },
-  {
-    title: 'Marketing & Analytics',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-      </svg>
-    ),
-    items: [
-      'Newsletter subscriber management',
-      'Email template system',
-      'Abandoned cart automation (3-step sequence)',
-      'Meta Pixel (client-side) + Conversions API (server-side)',
-      'Promo code system',
-    ],
-  },
-  {
-    title: 'Admin Panel',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-      </svg>
-    ),
-    items: [
-      'Dashboard with revenue summary',
-      'Product CRUD with variant management',
-      'Order management with status tracking',
-      'Customer management',
-      'Commission management',
-      'Class / LMS management',
-      'Blog editor',
-      'Page builder',
-      'Email campaign management',
-      'FAQ & Testimonials',
-      'Subscriber management',
-      'Settings with integration status',
-      'Promo codes',
-    ],
-  },
-  {
-    title: 'PASTOR Sales Funnels',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46" />
-      </svg>
-    ),
-    items: [
-      '3 PASTOR sales funnel templates (Gallery Spotlight, Intimate Journal, Bold Showcase)',
-      'Dedicated single-artwork landing pages at /art/[slug]',
-      'Full PASTOR copywriting framework: Problem → Amplify → Story → Transformation → Offer → Risk Reversal',
-      'Cart integration with variant selection on funnel pages',
-      'Admin funnel builder: create, edit, publish funnels per artwork',
-      'Analytics per funnel: views, add-to-cart, purchases',
-      'SEO-optimized with custom OG images per funnel',
-      'Ken Burns hero animations, parallax, scroll reveals',
-    ],
-  },
-  {
-    title: 'Design & Frontend',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-      </svg>
-    ),
-    items: [
-      '6 unique homepage designs',
-      'Responsive across all devices',
-      'Framer Motion animations throughout',
-      '7 custom font families',
-      'Warm gallery-editorial aesthetic',
-      'Artwork-first product pages',
-    ],
-  },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -425,15 +204,6 @@ function formatTimestamp(date: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(date))
-}
-
-function todayFormatted() {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date())
 }
 
 // ─── Section Header ───────────────────────────────────────────────────
@@ -529,17 +299,10 @@ function CommentThread({
 }
 
 // ─── Main Component ───────────────────────────────────────────────────
-const TEMPLATE_LABELS: Record<string, { label: string; accent: string }> = {
-  gallery_spotlight: { label: 'Gallery Spotlight', accent: 'bg-charcoal' },
-  intimate_journal: { label: 'Intimate Journal', accent: 'bg-gold' },
-  bold_showcase: { label: 'Bold Showcase', accent: 'bg-coral' },
-}
-
 export default function ProjectHubClient({
   initialFeedback,
   initialWorkRequests,
   initialNotes,
-  initialFunnels = [],
 }: Props) {
   // ── State ───────────────────────────────────────────────────────────
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(initialFeedback)
@@ -557,7 +320,6 @@ export default function ProjectHubClient({
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null)
   const [expandedWork, setExpandedWork] = useState<string | null>(null)
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
-  const [expandedFeature, setExpandedFeature] = useState<number | null>(null)
 
   // Comments cache
   const [feedbackComments, setFeedbackComments] = useState<Record<string, Comment[]>>({})
@@ -629,16 +391,15 @@ export default function ProjectHubClient({
 
   const toast = useToast()
 
-  // The admin layout owns launch onboarding; the dashboard never redirects away.
-  // Keep the optional project-hub tutorial available only through its explicit URL.
-  const [tutorialStep, setTutorialStep] = useState<number | null>(null)
+  // A design preview can bring the owner here with the feedback topic selected.
   useEffect(() => {
-    // Start the optional tutorial when explicitly requested.
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('tutorial') === '1' && !localStorage.getItem('artbyme_tutorial_hidden')) {
-      setTutorialStep(0)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
+    const page = new URLSearchParams(window.location.search).get('feedbackPage')
+    if (!page || !PAGES_AND_FEATURES.includes(page)) return
+    const frame = window.requestAnimationFrame(() => {
+      setFbPage(page)
+      feedbackRef.current?.scrollIntoView({ block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [])
 
   // ── Fetch comments ──────────────────────────────────────────────────
@@ -949,12 +710,6 @@ export default function ProjectHubClient({
     }
   }
 
-  // ── Open feedback with page pre-filled ──────────────────────────────
-  function openFeedbackForVariant(variantNumber: number) {
-    setFbPage(`Homepage V${variantNumber}`)
-    feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
   // ── Load comments on expand ─────────────────────────────────────────
   useEffect(() => {
     if (expandedFeedback && !feedbackComments[expandedFeedback]) {
@@ -974,488 +729,14 @@ export default function ProjectHubClient({
     }
   }, [expandedNote]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const TUTORIAL_STEPS = [
-    {
-      title: 'Welcome to Your Dashboard!',
-      emoji: '👋',
-      body: "This is your ArtByME command center. Let's take a quick look at the most important things to explore first.",
-      cta: "Let's go",
-    },
-    {
-      title: '6 Homepage Designs',
-      emoji: '🏠',
-      body: 'Scroll down to the "Homepage Designs" section. You\'ll see six unique homepage variants — click "View Live" on each one to see it in action. Take your time with each design and think about which direction feels most like you.',
-      cta: 'Got it',
-    },
-    {
-      title: 'Your Artwork Funnels',
-      emoji: '🎨',
-      body: 'Below the homepage designs, you\'ll find your Artwork Funnels. Each funnel is a dedicated, story-driven sales page built around one piece of your art. There are 3 template styles — Gallery Spotlight, Intimate Journal, and Bold Showcase — and each piece of art is matched to the template that fits it best. Click any funnel to see it live!',
-      cta: 'Next',
-    },
-    {
-      title: 'Share Your Feedback',
-      emoji: '💬',
-      body: 'At the bottom of this dashboard, you\'ll find the Feedback section. After you\'ve explored the homepage designs and funnels, use this section to tell us what you love, what you\'d change, and which direction speaks to you. We\'ll take it from there!',
-      cta: 'Start exploring',
-    },
-  ]
-
-  function dismissTutorial(permanent = false) {
-    if (permanent) {
-      localStorage.setItem('artbyme_tutorial_hidden', '1')
-    }
-    setTutorialStep(null)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   // ── Render ──────────────────────────────────────────────────────────
   return (
     <div className="max-w-6xl mx-auto">
-      {/* ── Tutorial Modal ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {tutorialStep !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            style={{ background: 'rgba(44,44,44,0.55)', backdropFilter: 'blur(6px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) dismissTutorial(false) }}
-          >
-            <motion.div
-              key={tutorialStep}
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -12 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-cream rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-            >
-              {/* Progress bar */}
-              <div className="flex gap-1.5 px-6 pt-5">
-                {TUTORIAL_STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                      i <= tutorialStep! ? 'bg-teal' : 'bg-charcoal/10'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <div className="px-6 pt-5 pb-6">
-                <div className="text-4xl mb-3">{TUTORIAL_STEPS[tutorialStep!].emoji}</div>
-                <h3 className="font-display text-xl font-semibold text-charcoal mb-2">
-                  {TUTORIAL_STEPS[tutorialStep!].title}
-                </h3>
-                <p className="font-body text-sm text-charcoal/60 leading-relaxed mb-6">
-                  {TUTORIAL_STEPS[tutorialStep!].body}
-                </p>
-
-                {tutorialStep! < TUTORIAL_STEPS.length - 1 ? (
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => dismissTutorial(false)}
-                      className="font-body text-xs text-charcoal/30 hover:text-charcoal/50 transition-colors"
-                    >
-                      Skip tutorial
-                    </button>
-                    <div className="flex items-center gap-3">
-                      <span className="font-body text-xs text-charcoal/30">
-                        {tutorialStep! + 1} / {TUTORIAL_STEPS.length}
-                      </span>
-                      <button
-                        onClick={() => setTutorialStep(tutorialStep! + 1)}
-                        className="rounded-lg bg-teal px-5 py-2.5 font-body text-sm font-medium text-white hover:bg-deep-teal transition-colors"
-                      >
-                        {TUTORIAL_STEPS[tutorialStep!].cta}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => dismissTutorial(false)}
-                      className="w-full rounded-lg bg-teal px-5 py-2.5 font-body text-sm font-medium text-white hover:bg-deep-teal transition-colors"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={() => dismissTutorial(true)}
-                      className="w-full rounded-lg bg-charcoal/5 px-5 py-2 font-body text-xs text-charcoal/40 hover:bg-charcoal/10 transition-colors"
-                    >
-                      Close &amp; don&apos;t show again
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Section 1: Welcome Header ──────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-12"
-      >
-        <h1 className="font-hand text-4xl lg:text-5xl text-charcoal mb-2">
-          Welcome, Margaret
-        </h1>
-        <p className="font-body text-charcoal/40 text-sm mb-3">{todayFormatted()}</p>
-        <p className="font-body text-charcoal/60 text-base leading-relaxed max-w-2xl">
-          This is your ArtByME project dashboard — your central hub for reviewing the platform,
-          sharing feedback, and requesting changes. Everything you need is right here.
-        </p>
-        <div className="mt-4">
-          <Link
-            href="/admin/orders"
-            className="inline-flex items-center gap-2 rounded-lg bg-charcoal/5 px-4 py-2 font-body text-sm text-charcoal/60 hover:bg-charcoal/10 hover:text-charcoal transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-            </svg>
-            View Analytics Dashboard
-          </Link>
-        </div>
-      </motion.div>
-
-      {/* ── Section 2: Homepage Variants Gallery ───────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="mb-16"
-      >
-        <SectionHeader
-          title="Homepage Designs"
-          subtitle="Six unique visions for your homepage. View each one live and share your thoughts."
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {HOMEPAGE_VARIANTS.map((v, i) => (
-            <motion.div
-              key={v.number}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15 + i * 0.06 }}
-              className="group bg-white rounded-xl border border-charcoal/8 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-            >
-              {/* Accent bar */}
-              <div className={`h-2 ${v.accent}`} />
-              <div className="p-5">
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="font-body text-xs font-semibold text-charcoal/30 uppercase tracking-wider">
-                    V{v.number}
-                  </span>
-                  <h3 className="font-display text-lg font-semibold text-charcoal">
-                    {v.name}
-                  </h3>
-                </div>
-                <p className="font-body text-sm text-charcoal/50 leading-relaxed mb-5">
-                  {v.description}
-                </p>
-                <div className="flex gap-2">
-                  <a
-                    href={v.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-teal/8 px-3 py-2 font-body text-sm font-medium text-teal hover:bg-teal/15 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
-                    View Live
-                  </a>
-                  <button
-                    onClick={() => openFeedbackForVariant(v.number)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gold/8 px-3 py-2 font-body text-sm font-medium text-gold hover:bg-gold/15 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                    </svg>
-                    Give Feedback
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* ── Section 2b: Live Funnels ─────────────────────────────── */}
-      {initialFunnels.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.12 }}
-          className="mb-16"
-        >
-          <SectionHeader
-            title="Your Sales Funnels"
-            subtitle={`${initialFunnels.length} funnel${initialFunnels.length !== 1 ? 's' : ''} created. Each is a dedicated landing page for selling a single artwork.`}
-          />
-          <div className="space-y-3">
-            {initialFunnels.map((funnel, i) => {
-              const tmpl = TEMPLATE_LABELS[funnel.template] || { label: funnel.template, accent: 'bg-charcoal' }
-              return (
-                <motion.div
-                  key={funnel.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
-                  className="flex items-center gap-4 bg-white rounded-xl border border-charcoal/8 p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* Template accent */}
-                  <div className={`w-1.5 h-12 rounded-full ${tmpl.accent} flex-shrink-0`} />
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-display text-base font-semibold text-charcoal truncate">
-                        {funnel.product_title}
-                      </h3>
-                      {funnel.is_published ? (
-                        <span className="flex-shrink-0 px-2 py-0.5 bg-teal/10 text-teal text-[10px] font-body font-semibold uppercase tracking-wider rounded-full">
-                          Live
-                        </span>
-                      ) : (
-                        <span className="flex-shrink-0 px-2 py-0.5 bg-charcoal/5 text-charcoal/40 text-[10px] font-body font-semibold uppercase tracking-wider rounded-full">
-                          Draft
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 font-body text-xs text-charcoal/40">
-                      <span>{tmpl.label} template</span>
-                      <span>&middot;</span>
-                      <span>/art/{funnel.slug}</span>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="hidden sm:flex items-center gap-4 text-center flex-shrink-0">
-                    <div>
-                      <p className="font-body text-sm font-semibold text-charcoal">{funnel.views_count}</p>
-                      <p className="font-body text-[10px] text-charcoal/40 uppercase tracking-wider">Views</p>
-                    </div>
-                    <div>
-                      <p className="font-body text-sm font-semibold text-teal">{funnel.add_to_cart_count}</p>
-                      <p className="font-body text-[10px] text-charcoal/40 uppercase tracking-wider">Carts</p>
-                    </div>
-                    <div>
-                      <p className="font-body text-sm font-semibold text-gold">{funnel.purchase_count}</p>
-                      <p className="font-body text-[10px] text-charcoal/40 uppercase tracking-wider">Sales</p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {funnel.is_published && (
-                      <a
-                        href={`/art/${funnel.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg bg-teal/8 px-3 py-2 font-body text-xs font-medium text-teal hover:bg-teal/15 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                        View
-                      </a>
-                    )}
-                    <Link
-                      href={`/admin/funnels/${funnel.id}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-charcoal/5 px-3 py-2 font-body text-xs font-medium text-charcoal/60 hover:bg-charcoal/10 transition-colors"
-                    >
-                      Edit
-                    </Link>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-          <div className="mt-4">
-            <Link
-              href="/admin/funnels/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-gold/10 px-4 py-2.5 font-body text-sm font-medium text-gold hover:bg-gold/20 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Create New Funnel
-            </Link>
-          </div>
-        </motion.section>
-      )}
-
-      {/* ── Section 2c: PASTOR Sales Funnels ──────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
-        className="mb-16"
-      >
-        <SectionHeader
-          title="PASTOR Sales Funnels"
-          subtitle="Dedicated single-artwork landing pages using the PASTOR copywriting framework. Each funnel tells a complete story from problem to purchase."
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-          {[
-            {
-              name: 'Gallery Spotlight',
-              description: 'Cinematic, dark, immersive. Full-screen artwork with dramatic lighting, parallax effects, and Ken Burns hero animation. Best for large, striking pieces.',
-              accent: 'bg-charcoal',
-              textColor: 'text-charcoal',
-            },
-            {
-              name: 'Intimate Journal',
-              description: 'Warm, editorial, journal-like. Feels like reading an artist\'s letter. Torn-paper textures, handwritten accents, generous typography. Best for pieces with rich stories.',
-              accent: 'bg-gold',
-              textColor: 'text-gold',
-            },
-            {
-              name: 'Bold Showcase',
-              description: 'High-energy, vibrant, contemporary. Bold typography, color blocking from the artwork, fast-paced. Best for colorful, dynamic pieces.',
-              accent: 'bg-coral',
-              textColor: 'text-coral',
-            },
-          ].map((template, i) => (
-            <motion.div
-              key={template.name}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 + i * 0.06 }}
-              className="bg-white rounded-xl border border-charcoal/8 overflow-hidden shadow-sm"
-            >
-              <div className={`h-2 ${template.accent}`} />
-              <div className="p-5">
-                <h3 className={`font-display text-lg font-semibold ${template.textColor} mb-2`}>
-                  {template.name}
-                </h3>
-                <p className="font-body text-sm text-charcoal/50 leading-relaxed mb-4">
-                  {template.description}
-                </p>
-                <div className="flex items-center gap-2 text-xs font-body text-charcoal/40">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46" />
-                  </svg>
-                  PASTOR: Problem → Amplify → Story → Transformation → Offer → Risk Reversal
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/admin/funnels"
-            className="inline-flex items-center gap-2 rounded-lg bg-teal px-4 py-2.5 font-body text-sm font-medium text-cream hover:bg-deep-teal transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-            </svg>
-            Manage Funnels
-          </Link>
-          <Link
-            href="/admin/funnels/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-gold/10 px-4 py-2.5 font-body text-sm font-medium text-gold hover:bg-gold/20 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Create New Funnel
-          </Link>
-        </div>
-      </motion.section>
-
-      {/* ── Section 3: Platform Features Built ─────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="mb-16"
-      >
-        <SectionHeader
-          title="Platform Features Built"
-          subtitle="A comprehensive look at everything that has been developed for ArtByME."
-        />
-
-        {/* Stats strip */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-4 py-3 bg-charcoal/[0.03] rounded-lg border border-charcoal/6">
-          {[
-            { value: '39', label: 'Public Pages' },
-            { value: '46', label: 'Admin Pages' },
-            { value: '15', label: 'Sales Funnels' },
-            { value: '143', label: 'API Routes' },
-            { value: '58k+', label: 'Lines of Code' },
-          ].map((stat) => (
-            <div key={stat.label} className="flex items-baseline gap-1.5">
-              <span className="font-display text-lg font-bold text-charcoal">{stat.value}</span>
-              <span className="font-body text-xs text-charcoal/40 uppercase tracking-wider">{stat.label}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {FEATURES_DATA.map((section, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-xl border border-charcoal/8 overflow-hidden"
-            >
-              <button
-                onClick={() => setExpandedFeature(expandedFeature === idx ? null : idx)}
-                className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-charcoal/[0.02] transition-colors"
-              >
-                <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center shrink-0 text-gold">
-                  {section.icon}
-                </div>
-                <span className="font-display text-base font-semibold text-charcoal flex-1">
-                  {section.title}
-                </span>
-                <span className="font-body text-xs text-charcoal/30 mr-2">
-                  {section.items.length} features
-                </span>
-                <motion.svg
-                  animate={{ rotate: expandedFeature === idx ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-5 h-5 text-charcoal/30 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </motion.svg>
-              </button>
-              <AnimatePresence>
-                {expandedFeature === idx && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-5 pb-4">
-                      <ul className="space-y-2 border-t border-charcoal/6 pt-3">
-                        {section.items.map((item, j) => (
-                          <li key={j} className="flex items-start gap-2.5">
-                            <svg className="w-4 h-4 text-teal mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                            </svg>
-                            <span className="font-body text-sm text-charcoal/70 leading-relaxed">{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-        </div>
-      </motion.section>
+      <header className="mb-8 border-t border-charcoal/10 pt-8">
+        <p className="font-body text-xs font-semibold uppercase tracking-widest text-teal">Work together</p>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-charcoal">Feedback, requests, and notes</h2>
+        <p className="mt-2 font-body text-sm leading-6 text-charcoal/60">Share an idea, request a change, or keep important notes and files with your project.</p>
+      </header>
 
       {/* ── Section 4: Feedback Tool ───────────────────────────────── */}
       <motion.section
