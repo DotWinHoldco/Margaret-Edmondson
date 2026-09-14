@@ -975,7 +975,7 @@ export default function EditProductPage({
                   )}
                 </div>
                 <p className="mt-1 font-body text-xs text-charcoal/40">
-                  Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. Customer price = (Lumaprints cost + worst-case CONUS shipping) × (1 + margin / 100). 100% = 2× landed cost.
+                  Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. This percentage is markup: the extra amount added to your cost. Example: $15 printing + $5 stored shipping = $20 cost. A 100% markup adds another $20, so $20 cost + $20 markup = a $40 selling price. That leaves $20 before taxes, payment fees, and other expenses; the gross margin is 50% because $20 is half of the $40 price.
                 </p>
               </div>
             </div>
