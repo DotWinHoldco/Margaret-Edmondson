@@ -557,7 +557,9 @@ function PricingSettingsSection() {
         This default sets the markup for automatic Lumaprints prices. Add print cost and the stored shipping allowance, then add your markup. My studio uses the final selling prices you enter in each product.
       </p>
       <div className="mb-5 rounded-lg border border-teal/15 bg-teal/5 p-4 font-body text-sm leading-6">
-        <p><strong>Easy example:</strong> $15 printing + $5 shipping = $20 cost. A 100% markup adds $20, making the selling price $40. You have $20 left before other expenses. That is a 50% gross margin because $20 is half of the $40 sale.</p>
+        <p><strong>Start with your costs:</strong> $15 printing + $5 shipping = $20. A percent means “out of 100.” Turn 100% markup into a number: 100 ÷ 100 = 1. Find the extra dollars: $20 × 1 = $20. Add them to the original cost: $20 + $20 = $40 selling price.</p>
+        <p className="mt-2"><strong>Where does “1 + markup ÷ 100” fit?</strong> The first 1 keeps one copy of your cost. The markup adds another share: 1 + (100 ÷ 100) = 1 + 1 = 2. Two copies of $20 make $40.</p>
+        <p className="mt-2"><strong>Find gross margin:</strong> $40 price − $20 costs = $20 gross profit. Divide profit by the selling price: $20 ÷ $40 = 0.5. Multiply by 100: 0.5 × 100 = 50% gross margin, before other expenses.</p>
         <p className="mt-2 text-charcoal/70">A category, product, or size can override this default. A manual selling price wins over every markup. The Gross column does not subtract order discounts, included tax, payment fees, or your other business costs.</p>
         <Link href="/admin/help/09-understand-margins" className="mt-3 inline-block font-semibold text-teal underline underline-offset-4">Read the full margin guide and try the calculator →</Link>
         <Link href="/admin/help/10-change-margins" className="mt-2 block text-teal underline underline-offset-4">See which price setting wins and how to change it →</Link>

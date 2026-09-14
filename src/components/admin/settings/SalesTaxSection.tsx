@@ -103,15 +103,28 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
           <div className="rounded-sm border border-teal/20 bg-white p-4">
             <h4 className="font-semibold text-teal">Sales tax included · Separate switch off</h4>
             <p>The price already holds the tax. Imagine a box with the art money and the tax money inside it. For an example rate of 8.25%, a $108.25 price contains $100 for the sale and $8.25 for tax. The buyer pays $108.25 before any shipping. You set aside the $8.25 for the state.</p>
-            <p className="mt-2">To find the art portion, divide $108.25 by 1.0825. That gives $100. Subtract $100 from $108.25 to find the $8.25 tax. Do not take 8.25% of $108.25; that would count tax on the tax.</p>
+            <ol className="mt-2 list-decimal space-y-2 pl-5">
+              <li>Turn the example rate into a number: 8.25 ÷ 100 = 0.0825.</li>
+              <li>Add the original sale’s share: 1 + 0.0825 = 1.0825. The 1 means the whole amount before tax. The 0.0825 means the extra tax share.</li>
+              <li>Work backward from the total: $108.25 ÷ 1.0825 = $100 in sales before tax.</li>
+              <li>Find the tax inside the total: $108.25 − $100 = $8.25. Set aside that $8.25 for the state. The $100 still has to cover your costs and fees.</li>
+            </ol>
+            <p className="mt-2">The rate applies to the sale before tax. Multiplying a tax-included total by 8.25% would also apply the rate to the tax already inside it. That is why we divide first.</p>
             <p className="mt-2">Texas requires a written notice and prominent display when tax is included. The store uses this statement for Texas:</p>
             <blockquote className="mt-2 border-l-2 border-teal pl-3 font-medium">Texas state and local sales and use tax is included in the sales price.</blockquote>
           </div>
           <div className="rounded-sm border border-charcoal/15 bg-white p-4">
             <h4 className="font-semibold text-teal">Sales tax separate · Separate switch on</h4>
             <p>The item price comes first. Tax is added at checkout when it applies. At the same example rate, a $100 item has $8.25 in tax, so the buyer pays $108.25 before shipping. The tax line shows the extra amount.</p>
+            <ol className="mt-2 list-decimal space-y-2 pl-5">
+              <li>Turn the rate into a number: 8.25 ÷ 100 = 0.0825.</li>
+              <li>Multiply the $100 item price by that number: $100 × 0.0825 = $8.25 tax.</li>
+              <li>Add the tax: $100 + $8.25 = $108.25 paid by the buyer.</li>
+              <li>Set aside $8.25 for the state. You have $100 in sales before your business costs and fees.</li>
+            </ol>
           </div>
           <p>Changing the switch does not rewrite product prices. A $100 product stays priced at $100. Included mode takes the tax out of that $100; separate mode adds the tax on top. Review your prices and profit before switching.</p>
+          <p>Compare the same $100 listed price at our example rate: separate tax makes the buyer pay $108.25. Included tax keeps the buyer’s total at $100, with $100 ÷ 1.0825 = about $92.38 for sales and $100 − $92.38 = about $7.62 for tax. These examples leave out shipping and discounts. Actual checkout calculates those too.</p>
           <p>The 8.25% rate is only a math example. Texas has a 6.25% state tax and up to 2% in local tax. Your actual rate depends on the sale and applicable local rules. Stripe uses your tax setup and the buyer’s full delivery address; this store does not apply a single rate to every Texas order. <a className={linkClass} href="https://comptroller.texas.gov/taxes/sales/" target="_blank" rel="noopener noreferrer">Read Texas sales tax basics</a>.</p>
         </section>
         <section className="space-y-2">

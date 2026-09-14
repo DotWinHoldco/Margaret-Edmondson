@@ -26,6 +26,20 @@ export default function MarginCalculator() {
       <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={manual} onChange={(event) => setManual(event.target.checked)} className="h-4 w-4 accent-teal" />Try a manual selling price instead</label>
       {manual && <label htmlFor="help-manual-price" className="mt-4 block text-sm">Manual price ($)<input id="help-manual-price" type="number" min="0" max="1000000" step="0.01" value={manualPrice} onChange={(event) => setManualPrice(event.target.value)} className="mt-2 block w-full max-w-xs rounded-lg border border-charcoal/20 bg-white px-3 py-2" /></label>}
       <div className="mt-5" aria-live="polite" aria-atomic="true">
+        {valid && <div className="mb-5 rounded-lg bg-white p-4 text-sm leading-7">
+          <h3 className="font-semibold">Follow every step</h3>
+          <ol className="mt-2 list-decimal space-y-2 pl-5">
+            <li>Add your costs: {money(cost)} printing + {money(ship)} shipping = {money(cost + ship)}.</li>
+            {manual ? <li>You chose a manual price of {money(price)}. The markup field is not used to set this price.</li> : <>
+              <li>Percent means “out of 100.” Turn your markup into a number: {Number(markup)} ÷ 100 = {Number(markup) / 100}.</li>
+              <li>Find the extra dollars: {money(cost + ship)} × {Number(markup) / 100} = {money(Math.round((cost + ship) * Number(markup) / 100))}.</li>
+              <li>Add those dollars to your cost: {money(cost + ship)} + {money(Math.round((cost + ship) * Number(markup) / 100))} = {money(price)} selling price. Dollar amounts round to cents.</li>
+              <li>The short formula combines those steps: 1 + ({Number(markup)} ÷ 100) = {1 + Number(markup) / 100}. The 1 keeps your original cost; the other part adds your markup.</li>
+            </>}
+            <li>Subtract counted costs: {money(price)} − {money(cost + ship)} = {money(price - cost - ship)} gross profit, before other expenses.</li>
+            {price > 0 && <li>Divide gross profit by selling price, then multiply by 100: {money(price - cost - ship)} ÷ {money(price)} × 100 = {gross.toFixed(1)}% gross margin.</li>}
+          </ol>
+        </div>}
         {valid ? <><dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[
           ['Landed cost', money(cost + ship)], ['Selling price', money(price)], ['Gross profit', money(price - cost - ship)], ['Gross margin', price > 0 ? `${gross.toFixed(1)}%` : '—'],
         ].map(([label, value]) => <div key={label} className="rounded-lg bg-white p-3"><dt className="text-xs text-charcoal/65">{label}</dt><dd className="mt-1 text-xl font-semibold text-teal">{value}</dd></div>)}</dl><p className="mt-3 text-sm leading-6">{money(price)} selling price − {money(cost)} printing − {money(ship)} shipping = {money(price - cost - ship)} before other expenses.{price <= 0 ? ' Gross margin needs a selling price above zero.' : ` That is ${gross.toFixed(1)}% of the selling price.`}</p></> : <p className="rounded-lg bg-white p-4 text-sm">Enter a number from 0 to 1,000,000 in each field to see the example.</p>}

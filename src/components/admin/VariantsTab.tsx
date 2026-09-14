@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import { apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
@@ -253,8 +254,9 @@ export default function VariantsTab({
         <div>
           <h2 className="font-display text-lg font-semibold text-charcoal">Print sizes</h2>
           <p className="mt-1 font-body text-xs text-charcoal/50">
-            Customer price = (Lumaprints cost + shipping) × (1 + margin / 100). Drafts aren&apos;t shown on the site until flipped Live.
+            Add printing and stored shipping to find your cost. Margin % is the markup you add to that cost. For a $20 cost at 50% markup: 50 ÷ 100 = 0.5; $20 × 0.5 = $10 extra; $20 + $10 = $30 selling price. Drafts aren&apos;t shown on the site until flipped Live.
           </p>
+          <Link href="/admin/help/09-understand-margins" className="mt-2 inline-block text-xs text-teal underline">See every pricing step and try the calculator →</Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-body text-xs text-charcoal/50">
@@ -425,7 +427,7 @@ export default function VariantsTab({
                           </td>
                           <td
                             className={`px-3 py-2 font-body text-sm font-medium ${gmColor}`}
-                            title={`Gross margin = profit ÷ price (the share of each sale that's profit). It's the same deal as the Margin %, just measured on the sale price instead of cost: a 100% markup = 50% gross, 110% markup = ~52% gross.`}
+                            title="Subtract print and stored shipping costs from the price. Divide what remains by the selling price, then multiply by 100. Example: $40 − $20 = $20 gross profit; $20 ÷ $40 = 0.5; 0.5 × 100 = 50% gross margin, before other expenses."
                           >
                             {Math.round(gm)}%
                           </td>
@@ -705,12 +707,12 @@ function CustomSizeModal({
               <span className="font-display text-lg font-semibold text-charcoal">{fmtCents(computedPrice)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-body text-[11px] text-charcoal/50" title="Profit ÷ price. 100% markup = 50% gross; 110% markup = ~52% gross.">Gross margin</span>
+              <span className="font-body text-[11px] text-charcoal/50" title="$40 price − $20 costs = $20 gross profit. $20 ÷ $40 = 0.5. 0.5 × 100 = 50% gross margin, before other expenses.">Gross margin</span>
               <span className={`font-body text-xs font-medium ${gmColor}`}>{Math.round(gm)}%</span>
             </div>
             {useManual && landed > 0 && (
               <div className="flex items-center justify-between">
-                <span className="font-body text-[11px] text-charcoal/50">Implied margin</span>
+                <span className="font-body text-[11px] text-charcoal/50" title="The markup that would produce this manual price: extra dollars ÷ counted costs × 100.">Equivalent markup</span>
                 <span className="font-body text-[11px] text-charcoal/55">{Math.round((computedPrice / landed - 1) * 100)}%</span>
               </div>
             )}
