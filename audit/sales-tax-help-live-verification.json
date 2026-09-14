@@ -1,0 +1,122 @@
+[
+  {
+    "image": "/help/screenshots/dashboard.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/01-start-here",
+    "steps": 6,
+    "title": "Start here: your path to opening the shop"
+  },
+  {
+    "image": "/help/screenshots/pricing.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/09-understand-margins",
+    "steps": 7,
+    "title": "Understand profit: studio prices, markup, and gross margin"
+  },
+  {
+    "image": "/help/screenshots/sales-tax.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/12-sales-tax-and-nexus",
+    "steps": 7,
+    "title": "Sales tax and nexus: included or added separately"
+  },
+  {
+    "image": "/help/screenshots/pages.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/14-edit-page-words",
+    "steps": 7,
+    "title": "Make a small wording change on a page"
+  },
+  {
+    "image": "/help/screenshots/settings-business.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/02-business-details",
+    "steps": 6,
+    "title": "Add your business name and contact details"
+  },
+  {
+    "image": "/help/screenshots/product-fulfillment.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/03-choose-fulfillment",
+    "steps": 6,
+    "title": "Choose Lumaprints or fulfill orders yourself"
+  },
+  {
+    "image": "/help/screenshots/media.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/04-upload-artwork",
+    "steps": 6,
+    "title": "Upload artwork: display pictures and print files"
+  },
+  {
+    "image": "/help/screenshots/product-editor.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/05-add-product",
+    "steps": 7,
+    "title": "Add your first product, step by step"
+  },
+  {
+    "image": "/help/screenshots/variants.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/06-print-sizes-and-variants",
+    "steps": 7,
+    "title": "Create print sizes and make them live"
+  },
+  {
+    "image": "/help/screenshots/product-fulfillment.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/07-self-fulfilled-products",
+    "steps": 8,
+    "title": "Set up originals and prints from your studio"
+  },
+  {
+    "image": "/help/screenshots/products.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/08-organize-collections",
+    "steps": 6,
+    "title": "Organize products into useful categories"
+  },
+  {
+    "image": "/help/screenshots/pricing.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/10-change-margins",
+    "steps": 7,
+    "title": "Change margins for the shop, a category, or one size"
+  },
+  {
+    "image": "/help/screenshots/shipping.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/11-shipping-and-profit",
+    "steps": 6,
+    "title": "Choose shipping and protect your profit"
+  },
+  {
+    "image": "/help/screenshots/sales-tax.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/13-texas-sales-tax-setup",
+    "steps": 7,
+    "title": "Set up Texas sales tax for Margaret’s studio"
+  },
+  {
+    "image": "/help/screenshots/page-editor.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/15-add-and-publish-page",
+    "steps": 7,
+    "title": "Undo a page change and restore a saved version"
+  },
+  {
+    "image": "/help/screenshots/media.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/16-update-storefront-images",
+    "steps": 6,
+    "title": "Change website pictures and product photos"
+  },
+  {
+    "image": "/help/screenshots/storefront.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/17-test-your-store",
+    "steps": 7,
+    "title": "Check your shop before the first customer buys"
+  },
+  {
+    "image": "/help/screenshots/orders.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/18-manage-orders",
+    "steps": 7,
+    "title": "Read an order and handle a customer question"
+  },
+  {
+    "image": "/help/screenshots/order-detail.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/19-fulfill-and-track-orders",
+    "steps": 7,
+    "title": "Make, pack, ship, and track an order"
+  },
+  {
+    "image": "/help/screenshots/dashboard.png?dpl=dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15",
+    "path": "/admin/help/20-daily-business-routine",
+    "steps": 7,
+    "title": "Run your art business with a simple daily routine"
+  }
+]

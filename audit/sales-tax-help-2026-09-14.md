@@ -19,6 +19,8 @@ Reviewed September 14, 2026.
 - Adversarial review checked all twenty guides against source controls and routes. Corrected required studio print approval, size generation, silent variant autosave, shipment fields, and checkout limits. Originals are explicitly exempt from print-file approval. Corrected calculator validation so manual prices ignore an unused blank markup field.
 - Browser help verification passed: full-text search, empty-result recovery, automatic pricing ($20 + $5 cost at 100% markup gives $50 price, $25 gross profit, 50% gross margin), and a $40 manual price ($15 gross profit, 37.5% gross margin). No browser console errors were reported.
 - Database migration applied and its non-null default-false columns verified. Live collection remains disabled; no state permit or Stripe registration was invented or created.
+- Final corrected source also passed `npm run build-check` with GREEN status. Release commit `9646674` was deployed and promoted at 18:48 UTC to ArtByMe.Studio (Vercel deployment `dpl_2TdAWPCYVVR9AFVVW7mNC8XCHs15`).
+- Post-deployment Chrome verification: all twenty article routes rendered their headings, numbered steps, and screenshot references. Live index search, automatic and manual calculator examples, sales tax settings, nexus modal, and registration links were checked. The production readiness panel reports live mode and no active state registrations. See `sales-tax-help-live-verification.json` for the twenty-route record.
 
 ## Operational limits
 
