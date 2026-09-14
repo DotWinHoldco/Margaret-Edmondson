@@ -1,3 +1,4 @@
+import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { getEmailFromLine } from '@/lib/settings/accessor'
@@ -69,6 +70,7 @@ export async function sendOrderConfirmation(
   items: OrderItem[],
   total: number,
   orderUrl?: string,
+  tax?: { amount: number; included: boolean; state: string },
 ) {
   const itemRows = items
     .map(
@@ -99,12 +101,14 @@ export async function sendOrderConfirmation(
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
+          ${tax && tax.amount > 0 ? `<tr><td colspan="2" style="padding: 8px 0; text-align: right; font-size: 14px;">${tax.included ? 'Sales tax included (already in prices)' : 'Sales tax'}</td><td style="text-align: right; font-size: 14px;">$${tax.amount.toFixed(2)}</td></tr>` : ''}
           <tr>
             <td colspan="2" style="padding: 12px 0; text-align: right; font-weight: 700; font-size: 14px;">Total</td>
             <td style="padding: 12px 0; text-align: right; font-weight: 700; font-size: 16px; color: #3A7D7B;">$${total.toFixed(2)}</td>
           </tr>
         </tfoot>
       </table>
+      ${tax?.included && tax.state.toUpperCase() === 'TX' ? `<p style="font-size: 12px; color: #666;">${TEXAS_TAX_INCLUDED_STATEMENT}</p>` : ''}
     </div>
     ${orderUrl ? ctaButton(orderUrl, 'View your order') : ''}
     ${orderUrl ? `<p style="text-align: center; color: #888; font-size: 12px; line-height: 1.6; margin-top: 4px;">

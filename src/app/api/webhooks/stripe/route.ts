@@ -1,3 +1,4 @@
+import { paidTotalMatches } from '@/lib/tax/config'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
 import { snapshotOrderItem } from '@/lib/checkout/snapshot'
 import type { ValidatedCheckoutItem } from '@/lib/checkout/validation'
@@ -844,6 +845,7 @@ export async function handleCheckoutCompleted(
         subtotal: subtotalCents / 100,
         shipping_cost: shippingCents / 100,
         tax: taxCents / 100,
+        tax_included: false,
         discount: discountCents / 100,
         total: (session.amount_total || 0) / 100,
         promo_code: session.metadata.promo_code || null,
@@ -972,7 +974,8 @@ export async function handleCheckoutCompleted(
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
   const addressProblem = await shippingProblem(supabase, session.id, cartItems, session.shipping_details?.address)
-  const reconciled = hasItems && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  const totalMatches = !v2 || paidTotalMatches(subtotalCents, discountCents, shippingCents, taxCents, false, session.amount_total || 0)
+  const reconciled = hasItems && totalMatches && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
   if (!reconciled) {
     const { error: holdError } = await supabase.from('orders').update({ fulfillment_hold_reason: addressProblem || 'The paid total and purchased items need review.' }).eq('id', orderId as string)
     if (holdError) throw holdError
@@ -994,7 +997,7 @@ export async function handleCheckoutCompleted(
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.
-    const reason = addressProblem || (!hasItems
+    const reason = addressProblem || (!totalMatches ? 'The paid amount does not match the recorded subtotal, discount, shipping, and sales tax. Review the payment before production.' : null) || (!hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
       : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`)
     await notifyOrderNeedsAttention(orderId as string, [reason])
@@ -1072,7 +1075,7 @@ export async function handleCheckoutCompleted(
         // P1-3: the public order page works for guests (keyed by the Stripe id),
         // so it is a real "track your order" link, not a login wall.
         const orderUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${session.id}`
-        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl)
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl, { amount: taxCents / 100, included: false, state: session.shipping_details?.address?.state || '' })
       } catch (err) {
         console.error('Order confirmation email failed:', err)
       }
@@ -1232,6 +1235,7 @@ async function handleElementsPaymentSucceeded(
         subtotal: subtotalCents / 100,
         shipping_cost: shippingCents / 100,
         tax: taxCents / 100,
+        tax_included: md.tax_included === '1',
         discount: discountCents / 100,
         total: totalCents / 100,
         promo_code: md.promo_code || null,
@@ -1352,7 +1356,8 @@ async function handleElementsPaymentSucceeded(
   )
   const hasItems = (persistedItems?.length ?? 0) > 0
   const addressProblem = await shippingProblem(supabase, pi.id, cartItems, pi.shipping?.address)
-  const reconciled = hasItems && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
+  const totalMatches = md.tax_enabled == null || paidTotalMatches(subtotalCents, discountCents, shippingCents, taxCents, md.tax_included === '1', totalCents)
+  const reconciled = hasItems && totalMatches && !addressProblem && Math.abs(lineSumCents - reconcileTargetCents) <= 1
   if (!reconciled) {
     const { error: holdError } = await supabase.from('orders').update({ fulfillment_hold_reason: addressProblem || 'The paid total and purchased items need review.' }).eq('id', orderId as string)
     if (holdError) throw holdError
@@ -1374,7 +1379,7 @@ async function handleElementsPaymentSucceeded(
   } else {
     // Charged-but-divergent: do NOT submit to fulfillment. Alert the studio
     // owner with the specifics so it can be resolved manually before shipping.
-    const reason = addressProblem || (!hasItems
+    const reason = addressProblem || (!totalMatches ? 'The paid amount does not match the recorded subtotal, discount, shipping, and sales tax. Review the payment before production.' : null) || (!hasItems
       ? 'This paid order has NO line items — the cart was empty or unreadable when payment completed. Do not ship; investigate before fulfilling or refunding.'
       : `Line-item total $${(lineSumCents / 100).toFixed(2)} does not match the charged merchandise subtotal $${(reconcileTargetCents / 100).toFixed(2)} — the cart may have changed after checkout. Verify before fulfilling.`)
     await notifyOrderNeedsAttention(orderId as string, [reason])
@@ -1450,7 +1455,7 @@ async function handleElementsPaymentSucceeded(
         // P1-3: the public order page works for guests (keyed by the PaymentIntent
         // id), so it is a real "track your order" link, not a login wall.
         const orderUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${pi.id}`
-        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl)
+        await sendOrderConfirmation(buyerEmail, orderId as string, emailItems, orderTotal, orderUrl, { amount: taxCents / 100, included: md.tax_included === '1', state: pi.shipping?.address?.state || '' })
       } catch (err) {
         console.error('Order confirmation email failed:', err)
       }

@@ -50,6 +50,7 @@ export interface SiteSettings {
 
   // Tax Configuration
   tax_enabled: boolean | null
+  tax_included: boolean | null
   tax_rate_pct: number | null
   tax_nexus_states: string[] | null
 
@@ -99,6 +100,7 @@ export const SITE_SETTINGS_COLUMNS = [
   'shipping_origin_state',
   'free_shipping_threshold_cents',
   'tax_enabled',
+  'tax_included',
   'tax_rate_pct',
   'tax_nexus_states',
   'seo_title',
@@ -141,6 +143,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   free_shipping_threshold_cents: null,
 
   tax_enabled: false,
+  tax_included: false,
   tax_rate_pct: null,
   tax_nexus_states: null,
 

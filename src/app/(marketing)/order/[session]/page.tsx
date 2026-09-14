@@ -34,6 +34,7 @@ type Order = {
   subtotal: number | null
   shipping_cost: number | null
   tax: number | null
+  tax_included: boolean | null
   discount: number | null
   total: number | null
   promo_code: string | null
@@ -66,7 +67,7 @@ async function loadOrder(sessionId: string): Promise<Order | null> {
     const { data, error } = await svc
       .from('orders')
       .select(
-        'id, order_number, email, status, subtotal, shipping_cost, tax, discount, total, promo_code, shipping_address, created_at, order_items(id, quantity, unit_price, purchase_spec, fulfillment_status, product:products(title), variant:product_variants(name))',
+        'id, order_number, email, status, subtotal, shipping_cost, tax, tax_included, discount, total, promo_code, shipping_address, created_at, order_items(id, quantity, unit_price, purchase_spec, fulfillment_status, product:products(title), variant:product_variants(name))',
       )
       // Embedded (Payment Elements) orders are keyed by payment intent id;
       // hosted Checkout orders by session id. The param tells us which.
@@ -202,7 +203,7 @@ export default async function OrderConfirmationPage(props: {
             ) : null}
             {tax > 0 ? (
               <div className="flex justify-between text-charcoal/70">
-                <dt>Tax</dt>
+                <dt>{order.tax_included ? 'Sales tax included' : 'Sales tax'}</dt>
                 <dd>{money(tax)}</dd>
               </div>
             ) : null}

@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useToast } from '@/components/shared/toast/ToastProvider'
@@ -9,6 +11,7 @@ import EmailConfigSection from '@/components/admin/settings/EmailConfigSection'
 import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
 import SocialLinksSection from '@/components/admin/settings/SocialLinksSection'
 import SiteConfigSection from '@/components/admin/settings/SiteConfigSection'
+import SalesTaxSection from '@/components/admin/settings/SalesTaxSection'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +55,7 @@ export default function SettingsClient() {
       <SiteAccessSection />
       <StripeModeSection />
       <PricingSettingsSection />
+      <SalesTaxSection />
       <BusinessInfoSection />
       <EmailConfigSection />
       <SocialLinksSection />
@@ -540,18 +544,24 @@ function PricingSettingsSection() {
 
   if (loading) {
     return (
-      <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+      <div id="pricing" className="scroll-mt-6 rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
         <p className="font-body text-sm text-charcoal/40">Loading pricing settings...</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
+    <div id="pricing" className="scroll-mt-6 rounded-sm border border-charcoal/10 bg-white p-6 shadow-sm">
       <h2 className="font-display text-xl font-semibold text-charcoal mb-2">Pricing</h2>
-      <p className="font-body text-xs text-charcoal/50 mb-5">
-        Site-wide default markup. Variant prices are <code>(wholesale + worst-case CONUS shipping) × (1 + margin% / 100)</code> — margin applies to the full landed cost (100% = 2× of cost + shipping). This is the lowest-priority default — a category, product, or variant margin overrides it. Shipping is included for contiguous US; AK and HI are surcharged at checkout.
+      <p className="font-body text-sm leading-6 text-charcoal/70 mb-3">
+        This default sets the markup for automatic Lumaprints prices. Add print cost and the stored shipping allowance, then add your markup. My studio uses the final selling prices you enter in each product.
       </p>
+      <div className="mb-5 rounded-lg border border-teal/15 bg-teal/5 p-4 font-body text-sm leading-6">
+        <p><strong>Easy example:</strong> $15 printing + $5 shipping = $20 cost. A 100% markup adds $20, making the selling price $40. You have $20 left before other expenses. That is a 50% gross margin because $20 is half of the $40 sale.</p>
+        <p className="mt-2 text-charcoal/70">A category, product, or size can override this default. A manual selling price wins over every markup. The Gross column does not subtract order discounts, included tax, payment fees, or your other business costs.</p>
+        <Link href="/admin/help/09-understand-margins" className="mt-3 inline-block font-semibold text-teal underline underline-offset-4">Read the full margin guide and try the calculator →</Link>
+        <Link href="/admin/help/10-change-margins" className="mt-2 block text-teal underline underline-offset-4">See which price setting wins and how to change it →</Link>
+      </div>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -570,7 +580,7 @@ function PricingSettingsSection() {
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
             </div>
-            <p className="mt-1 font-body text-xs text-charcoal/30">Used when a product and its category have no override.</p>
+            <p className="mt-1 font-body text-xs text-charcoal/30">Markup, not gross margin. Used when the size, product, and category have no markup override.</p>
           </div>
           <div>
             <label className="block font-body text-sm font-medium text-charcoal mb-1.5">

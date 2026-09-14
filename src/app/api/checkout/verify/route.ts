@@ -1,3 +1,4 @@
+import { getCheckoutTaxConfig, calculateCheckoutTax } from '@/lib/tax/server'
 // dotwin-allow:public-write — verifies a payment capability before confirmation. Authored by DotWin.
 import { z } from 'zod'
 import { getStripe } from '@/lib/stripe'
@@ -19,6 +20,8 @@ const Input = z.object({
     zip: z.string().regex(/^\d{5}(-\d{4})?$/),
     state: z.string().max(2),
     city: z.string().max(100),
+    line1: z.string().trim().max(200).optional(),
+    line2: z.string().trim().max(200).optional(),
   }),
 })
 // Check the payment capability, current catalog, and actual destination immediately before confirmation.
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
     const service = await createServiceClient()
     const { data: snapshot, error } = await service
       .from('checkout_snapshots')
-      .select('items,policy_version,surcharge_cents')
+      .select('items,policy_version,surcharge_cents,subtotal_cents,discount_cents')
       .eq('payment_ref', paymentId)
       .single()
     if (error || !snapshot)
@@ -92,14 +95,23 @@ export async function POST(request: Request) {
       throw new Error(
         'Shipping changed for this address. Return to your cart and calculate shipping with this ZIP code.',
       )
+    const config = await getCheckoutTaxConfig()
+    const taxQuote = await calculateCheckoutTax(stripe, config, destination, snapshot.subtotal_cents, snapshot.discount_cents, shipping)
+    const changed = intent.amount !== taxQuote.total || Number(intent.metadata.tax_cents) !== taxQuote.tax || (intent.metadata.tax_included === '1') !== taxQuote.taxIncluded
+    await stripe.paymentIntents.update(paymentId, {
+      amount: taxQuote.total,
+      ...(taxQuote.calculationId || intent.metadata.tax_calculation_id ? { hooks: { inputs: { tax: { calculation: taxQuote.calculationId || '' } } } } : {}),
+      metadata: { tax_cents: String(taxQuote.tax), tax_included: taxQuote.taxIncluded ? '1' : '0', tax_enabled: config.tax_enabled ? '1' : '0', tax_calculation_id: taxQuote.calculationId || '' },
+    })
     const { error: updateError } = await service
       .from('checkout_snapshots')
       .update({
-        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi },
+        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi, tax_enabled: config.tax_enabled === true },
+        tax_cents: taxQuote.tax,
       })
       .eq('payment_ref', paymentId)
     if (updateError) throw updateError
-    return Response.json({ ok: true })
+    return Response.json({ ok: true, changed, summary: taxQuote })
   } catch (e) {
     return apiError(
       e instanceof Error ? e.message : 'Could not verify checkout.',

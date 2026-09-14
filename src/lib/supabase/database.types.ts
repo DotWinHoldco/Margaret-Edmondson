@@ -2503,6 +2503,7 @@ export type Database = {
           stripe_payment_intent_id: string | null
           subtotal: number
           tax: number | null
+          tax_included: boolean
           total: number
           updated_at: string | null
         }
@@ -2527,6 +2528,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal: number
           tax?: number | null
+          tax_included?: boolean
           total: number
           updated_at?: string | null
         }
@@ -2551,6 +2553,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal?: number
           tax?: number | null
+          tax_included?: boolean
           total?: number
           updated_at?: string | null
         }
@@ -3495,6 +3498,7 @@ export type Database = {
           studio_shipping_fee_cents: number
           studio_shipping_mode: string
           tax_enabled: boolean | null
+          tax_included: boolean
           tax_nexus_states: string[] | null
           tax_rate_pct: number | null
           updated_at: string
@@ -3544,6 +3548,7 @@ export type Database = {
           studio_shipping_fee_cents?: number
           studio_shipping_mode?: string
           tax_enabled?: boolean | null
+          tax_included?: boolean
           tax_nexus_states?: string[] | null
           tax_rate_pct?: number | null
           updated_at?: string
@@ -3593,6 +3598,7 @@ export type Database = {
           studio_shipping_fee_cents?: number
           studio_shipping_mode?: string
           tax_enabled?: boolean | null
+          tax_included?: boolean
           tax_nexus_states?: string[] | null
           tax_rate_pct?: number | null
           updated_at?: string

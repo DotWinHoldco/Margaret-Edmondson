@@ -1,3 +1,5 @@
+import { getTaxReadiness, getCheckoutTaxConfig } from '@/lib/tax/server'
+import { normalizeNexusStates } from '@/lib/tax/config'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiFail, dbFail } from '@/lib/api/respond'
 import {
@@ -38,6 +40,7 @@ const TEXT_FIELDS = [
 
 const BOOL_FIELDS = [
   'tax_enabled',
+  'tax_included',
   'announcement_bar_enabled',
   'maintenance_mode',
   'printful_enabled',
@@ -55,7 +58,7 @@ const NUMERIC_FIELDS = ['tax_rate_pct'] as const
 const STRING_ARRAY_FIELDS = ['tax_nexus_states'] as const
 
 // GET /api/admin/settings — read integration status and site settings; admin only.
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const integrations = INTEGRATION_KEYS.map(({ key, label }) => ({
       label,
@@ -80,6 +83,7 @@ export async function GET() {
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL || '',
       globalSettings: globalContent || null,
       settings,
+      ...(request.nextUrl.searchParams.get('taxReadiness') === '1' ? { taxReadiness: await getTaxReadiness(settings.tax_nexus_states || []) } : {}),
     })
   } catch (err) {
     return apiFail(err, { context: 'admin/settings GET' })
@@ -106,7 +110,8 @@ export async function PATCH(request: NextRequest) {
 
     for (const field of BOOL_FIELDS) {
       if (field in body) {
-        updates[field] = Boolean(body[field])
+        if (typeof body[field] !== 'boolean') return apiError(`${field} must be true or false.`, 400, 'VALIDATION_FAILED')
+        updates[field] = body[field]
       }
     }
 
@@ -142,17 +147,16 @@ export async function PATCH(request: NextRequest) {
 
     for (const field of STRING_ARRAY_FIELDS) {
       if (field in body) {
-        const v = body[field]
-        if (Array.isArray(v)) {
-          updates[field] = v.map((x) => String(x).trim()).filter(Boolean)
-        } else if (v === '' || v == null) {
-          updates[field] = null
-        } else {
-          updates[field] = String(v)
-            .split(',')
-            .map((x) => x.trim())
-            .filter(Boolean)
-        }
+        try { updates[field] = normalizeNexusStates(body[field] ?? []) }
+        catch (error) { return apiError(error instanceof Error ? error.message : 'Invalid nexus states.', 400, 'VALIDATION_FAILED') }
+      }
+    }
+    if (['tax_enabled', 'tax_included', 'tax_nexus_states'].some(field => field in body)) {
+      const current = await getCheckoutTaxConfig()
+      const next = { ...current, ...updates }
+      if (next.tax_enabled === true) {
+        const readiness = await getTaxReadiness(next.tax_nexus_states as string[] || [])
+        if (!readiness.ready) return apiError(readiness.message, 400, 'TAX_SETUP_REQUIRED')
       }
     }
 
@@ -193,7 +197,7 @@ export async function PATCH(request: NextRequest) {
     clearSettingsCache()
     const settings: SiteSettings = await getSiteSettings()
 
-    return Response.json({ success: true, settings })
+    return Response.json({ success: true, settings, taxReadiness: await getTaxReadiness(settings.tax_nexus_states || []) })
   } catch (err) {
     return apiFail(err, { context: 'admin/settings PATCH' })
   }

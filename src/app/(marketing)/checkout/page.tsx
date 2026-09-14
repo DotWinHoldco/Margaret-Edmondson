@@ -17,6 +17,7 @@ import {
 } from '@stripe/react-stripe-js'
 import { useCart } from '@/lib/cart/context'
 import { readFunnelAttribution } from '@/lib/funnels/attribution'
+import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 
 // NEXT_PUBLIC_* vars are inlined at build time — reference both literally and
 // pick at runtime based on the mode the server resolved from site settings.
@@ -67,7 +68,7 @@ interface IntentResponse {
   items: Array<{productId:string;variantId:string;title:string;quantity:number;price:number}>
   amountCents: number
   mode: 'test' | 'live'
-  summary: { subtotal: number; discount: number; surcharge: number; tax: number; total: number }
+  summary: { subtotal: number; discount: number; surcharge: number; tax: number; taxIncluded?: boolean; taxState?: string | null; total: number }
   /** Present only when the server slid the cart token's expiry forward. */
   cartToken?: string
 }
@@ -106,11 +107,12 @@ function formatUsd(cents: number): string {
 // Checkout when intent creation is unavailable.
 export default function CheckoutPage() {
   const { state, setCartToken } = useCart()
-  const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [phase, setPhase] = useState<'loading' | 'ready' | 'error' | 'address'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
   const [intent, setIntent] = useState<IntentResponse | null>(null)
   const [handoff, setHandoff] = useState<Handoff | null>(null)
   const [email, setEmail] = useState('')
+  const [shippingAddress, setShippingAddress] = useState<{ country: 'US'; zip: string; state: string; city: string; line1: string; line2: string } | null>(null)
   const [expressLoading, setExpressLoading] = useState(false)
   const [expressError, setExpressError] = useState('')
   const requested = useRef(false)
@@ -138,10 +140,10 @@ export default function CheckoutPage() {
       cartToken: state.cartToken,
       promoCode: h.promoCode || undefined,
       shippingSurchargeLabel: h.surchargeLabel || undefined,
-      destination: { country: 'US', zip: h.zip },
+      destination: shippingAddress || { country: 'US', zip: h.zip },
       funnelId: readFunnelAttribution() || undefined,
     }
-  }, [handoff, state.items, state.email, state.cartToken])
+  }, [handoff, state.items, state.email, state.cartToken, shippingAddress])
 
   // Create the PaymentIntent once the cart has hydrated from localStorage.
   useEffect(() => {
@@ -154,12 +156,13 @@ export default function CheckoutPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(buildCheckoutBody()),
         })
-        let data: Partial<IntentResponse> & { error?: string } = {}
+        let data: Partial<IntentResponse> & { error?: string; code?: string } = {}
         try {
           data = await res.json()
         } catch {
           /* non-JSON body */
         }
+        if (data.code === 'tax_address_required') { setPhase('address'); return }
         if (!res.ok || !data.clientSecret || !data.summary) {
           throw new Error(data.error || `Could not start checkout (HTTP ${res.status}).`)
         }
@@ -216,6 +219,26 @@ export default function CheckoutPage() {
   }
 
   const stripeJs = intent ? getStripeJs(intent.mode) : null
+
+  if (phase === 'address') return (
+    <div className="min-h-screen bg-cream px-4 py-14">
+      <form className="mx-auto max-w-lg rounded-lg border border-charcoal/10 bg-white p-8" onSubmit={event => {
+        event.preventDefault()
+        const data = new FormData(event.currentTarget)
+        setShippingAddress({ country: 'US', zip: String(data.get('zip')).trim(), state: String(data.get('state')).trim().toUpperCase(), city: String(data.get('city')).trim(), line1: String(data.get('line1')).trim(), line2: String(data.get('line2')).trim() })
+        requested.current = false
+        setPhase('loading')
+      }}>
+        <h1 className="font-display text-3xl">Where should we send your art?</h1>
+        <p className="my-4 text-sm text-charcoal/70">We use your shipping address to calculate sales tax before you pay. Tax applies only in states where the studio collects it. You can review the full total next.</p>
+        {[
+          ['line1', 'Street address', 'shipping address-line1'], ['line2', 'Apartment or unit (optional)', 'shipping address-line2'], ['city', 'City', 'shipping address-level2'], ['state', 'State (2 letters, such as TX)', 'shipping address-level1'], ['zip', 'ZIP code', 'shipping postal-code'],
+        ].map(([name, label, autocomplete]) => <label key={name} className="my-3 block text-sm">{label}<input name={name} autoComplete={autocomplete} required={name !== 'line2'} defaultValue={name === 'zip' ? handoff?.zip : ''} maxLength={name === 'state' ? 2 : 200} pattern={name === 'state' ? '[a-zA-Z]{2}' : name === 'zip' ? '[0-9]{5}(-[0-9]{4})?' : undefined} className="mt-1 block w-full rounded border border-charcoal/20 px-3 py-2" /></label>)}
+        <button className="mt-5 w-full rounded bg-teal px-4 py-3 text-white" type="submit">Review order and payment</button>
+        <Link href="/cart" className="mt-4 block text-center text-sm text-teal">Back to cart</Link>
+      </form>
+    </div>
+  )
 
   if (phase === 'loading') {
     return (
@@ -297,7 +320,7 @@ export default function CheckoutPage() {
             stripe={stripeJs}
             options={{ clientSecret: intent.clientSecret, appearance, fonts: elementsFonts }}
           >
-            <CheckoutForm email={email} setEmail={setEmail} totalCents={intent.summary.total} clientSecret={intent.clientSecret} />
+            <CheckoutForm email={email} setEmail={setEmail} totalCents={intent.summary.total} clientSecret={intent.clientSecret} shippingAddress={shippingAddress} onSummary={summary => setIntent(current => current ? { ...current, amountCents: summary.total, summary } : current)} />
           </Elements>
 
           <OrderSummary intent={intent} promoCode={handoff?.promoCode || ''} />
@@ -312,11 +335,15 @@ function CheckoutForm({
   setEmail,
   totalCents,
   clientSecret,
+  shippingAddress,
+  onSummary,
 }: {
   email: string
   setEmail: (v: string) => void
   totalCents: number
   clientSecret: string
+  shippingAddress: { country: 'US'; zip: string; state: string; city: string; line1: string; line2: string } | null
+  onSummary: (summary: IntentResponse['summary']) => void
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -336,9 +363,16 @@ function CheckoutForm({
     const address = await elements.getElement('address')?.getValue()
     if (!address?.complete) {setPayError('Complete your shipping address.');setSubmitting(false);return}
     try {
-      const response = await fetch('/api/checkout/verify', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientSecret, destination:{country:address.value.address.country,zip:address.value.address.postal_code,state:address.value.address.state,city:address.value.address.city}})})
+      const response = await fetch('/api/checkout/verify', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientSecret, destination:{country:address.value.address.country,zip:address.value.address.postal_code,state:address.value.address.state,city:address.value.address.city,line1:address.value.address.line1,line2:address.value.address.line2 || ''}})})
       const result = await response.json()
       if(!response.ok) throw new Error(result.error||'Please review your cart before paying.')
+      if (result.summary) onSummary(result.summary)
+      if (result.changed) {
+        await elements.fetchUpdates()
+        setPayError('Your sales tax and total have been updated for this address. Review the total, then press Pay again.')
+        setSubmitting(false)
+        return
+      }
     } catch(e) {setPayError(e instanceof Error?e.message:'Could not verify your order.');setSubmitting(false);return}
     const { error } = await stripe.confirmPayment({
       elements,
@@ -377,7 +411,7 @@ function CheckoutForm({
 
       <h2 className="mt-7 font-display text-xl font-light text-charcoal">Shipping</h2>
       <div className="mt-1 mb-4 w-10 h-px bg-gold" />
-      <AddressElement options={{ mode: 'shipping', allowedCountries: ['US'] }} />
+      <AddressElement options={{ mode: 'shipping', allowedCountries: ['US'], ...(shippingAddress ? { defaultValues: { address: { country: 'US', postal_code: shippingAddress.zip, state: shippingAddress.state, city: shippingAddress.city, line1: shippingAddress.line1, line2: shippingAddress.line2 } } } : {}) }} />
 
       <h2 className="mt-7 font-display text-xl font-light text-charcoal">Payment</h2>
       <div className="mt-1 mb-4 w-10 h-px bg-gold" />
@@ -468,7 +502,7 @@ function OrderSummary({ intent, promoCode }: { intent: IntentResponse; promoCode
           </div>
           {summary.tax > 0 && (
             <div className="flex justify-between">
-              <dt className="text-charcoal/60">Tax</dt>
+              <dt className="text-charcoal/60">{summary.taxIncluded ? 'Sales tax included' : 'Sales tax'}</dt>
               <dd className="text-charcoal tabular-nums">{formatUsd(summary.tax)}</dd>
             </div>
           )}
@@ -481,6 +515,7 @@ function OrderSummary({ intent, promoCode }: { intent: IntentResponse; promoCode
           </span>
         </div>
 
+        {summary.taxIncluded && <p className="mt-4 text-xs leading-relaxed text-charcoal/65">Sales tax is included where applicable. {summary.taxState === 'TX' ? TEXAS_TAX_INCLUDED_STATEMENT : ''} No extra sales tax is added to the displayed prices.</p>}
         <p className="mt-5 flex items-center justify-center gap-2 font-body text-xs text-charcoal/55">
           <svg className="h-3.5 w-3.5 text-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path

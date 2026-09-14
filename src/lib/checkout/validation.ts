@@ -30,7 +30,7 @@ const checkoutRequestSchema = z.object({
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(64).nullable(),
   ),
-  destination: z.object({ country: z.literal('US'), zip: z.string().regex(/^\d{5}(-\d{4})?$/), state: z.string().max(2).optional(), city: z.string().max(100).optional() }).optional(),
+  destination: z.object({ country: z.literal('US'), zip: z.string().regex(/^\d{5}(-\d{4})?$/), state: z.string().max(2).optional(), city: z.string().max(100).optional(), line1: z.string().trim().max(200).optional(), line2: z.string().trim().max(200).optional() }).optional(),
   shippingSurchargeLabel: z.preprocess(
     (value) => value === '' || value == null ? null : value,
     z.string().trim().max(120).nullable(),

@@ -16,7 +16,7 @@ import { captureProductionSources } from '@/lib/checkout/snapshot'
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
-import { getSiteSettings } from '@/lib/settings/accessor'
+import { getCheckoutTaxConfig, calculateCheckoutTax } from '@/lib/tax/server'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
@@ -142,23 +142,14 @@ export async function POST(request: Request) {
       appliedCodeText = validation.code.code
     }
 
-    // Sales tax from settings: flat tax_rate_pct on the discounted merchandise
-    // subtotal. Fail-soft — an unreadable setting must never block checkout.
-    let taxCents = 0
-    try {
-      const settings = await getSiteSettings()
-      const taxRatePct = Number(settings.tax_rate_pct)
-      if (settings.tax_enabled === true && Number.isFinite(taxRatePct) && taxRatePct > 0) {
-        const computed = Math.round(
-          Math.max(0, subtotalCents - discountCents) * (taxRatePct / 100)
-        )
-        if (Number.isFinite(computed) && computed > 0) taxCents = computed
-      }
-    } catch (err) {
-      console.error('Tax calculation skipped:', err)
+    const taxConfig = await getCheckoutTaxConfig()
+    if (taxConfig.tax_enabled && (!destination.state || !destination.line1 || !destination.city)) {
+      return jsonError('Enter your shipping address to calculate sales tax.', 400, 'tax_address_required')
     }
-
-    const totalCents = Math.max(0, subtotalCents - discountCents) + surchargeCents + taxCents
+    const stripe = await getStripe()
+    const taxQuote = await calculateCheckoutTax(stripe, taxConfig, destination, subtotalCents, discountCents, surchargeCents)
+    const taxCents = taxQuote.tax
+    const totalCents = taxQuote.total
     if (totalCents < 50) {
       // Stripe minimum charge is $0.50 — punt sub-minimum totals to express checkout.
       return jsonError(
@@ -170,10 +161,10 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email ? String(email).toLowerCase().trim() : ''
 
-    const stripe = await getStripe()
     const intent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency: 'usd',
+      ...(taxQuote.calculationId ? { hooks: { inputs: { tax: { calculation: taxQuote.calculationId } } } } : {}),
       automatic_payment_methods: { enabled: true },
       receipt_email: normalizedEmail || undefined,
       metadata: {
@@ -189,6 +180,9 @@ export async function POST(request: Request) {
         discount_cents: String(discountCents),
         surcharge_cents: String(surchargeCents),
         tax_cents: String(taxCents),
+        tax_included: taxQuote.taxIncluded ? '1' : '0',
+        tax_enabled: taxConfig.tax_enabled ? '1' : '0',
+        tax_calculation_id: taxQuote.calculationId || '',
       },
     })
 
@@ -234,7 +228,7 @@ export async function POST(request: Request) {
         cart_id: cartId || null,
         items: validatedItems,
         policy_version: policy.version,
-        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi },
+        shipping_destination: { ...destination, ship_akhi: policy.ship_akhi, tax_enabled: taxConfig.tax_enabled === true },
         subtotal_cents: subtotalCents,
         discount_cents: discountCents,
         surcharge_cents: surchargeCents,
@@ -298,6 +292,8 @@ export async function POST(request: Request) {
         discount: discountCents,
         surcharge: surchargeCents,
         tax: taxCents,
+        taxIncluded: taxQuote.taxIncluded,
+        taxState: taxQuote.taxState,
         total: totalCents,
       },
       ...(presentedCart?.renewedToken ? { cartToken: presentedCart.renewedToken } : {}),

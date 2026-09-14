@@ -7,7 +7,8 @@ import Providers from '@/components/shared/Providers'
 import NewsletterPopup from '@/components/marketing/NewsletterPopup'
 import PixelScript from '@/components/marketing/PixelScript'
 import { createClient } from '@/lib/supabase/server'
-import { getAnnouncementBar, isMaintenanceMode } from '@/lib/settings/accessor'
+import { getAnnouncementBar, isMaintenanceMode, getSiteSettings } from '@/lib/settings/accessor'
+import SalesTaxDisclosure, { type SalesTaxDisplay } from '@/components/shared/SalesTaxDisclosure'
 
 // The marketing chrome renders live, settings-driven state (announcement bar,
 // maintenance mode) per request. Site settings are now read via the service-role
@@ -27,11 +28,16 @@ export default async function MarketingLayout({
     text: null,
   }
   let maintenance = false
+  let tax: SalesTaxDisplay = { enabled: false, included: false, states: [] }
   try {
-    ;[announcement, maintenance] = await Promise.all([
+    const [announcementValue, maintenanceValue, settings] = await Promise.all([
       getAnnouncementBar(),
       isMaintenanceMode(),
+      getSiteSettings(),
     ])
+    announcement = announcementValue
+    maintenance = maintenanceValue
+    tax = { enabled: settings.tax_enabled === true, included: settings.tax_included === true, states: settings.tax_nexus_states ?? [] }
   } catch {
     announcement = { enabled: false, text: null }
     maintenance = false
@@ -98,10 +104,10 @@ export default async function MarketingLayout({
           <div className="mt-16 lg:mt-20 bg-teal px-4 py-2 text-center font-body text-sm text-cream">
             {announcement.text}
           </div>
-          <main>{children}</main>
+          <main><SalesTaxDisclosure tax={tax} />{children}</main>
         </>
       ) : (
-        <main className="pt-16 lg:pt-20">{children}</main>
+        <main className="pt-16 lg:pt-20"><SalesTaxDisclosure tax={tax} />{children}</main>
       )}
       {maintenance && isAdmin && (
         <div className="fixed bottom-4 left-4 z-[60] rounded-full bg-charcoal/90 px-3 py-1.5 font-body text-xs text-cream shadow-lg">
@@ -109,7 +115,7 @@ export default async function MarketingLayout({
         </div>
       )}
       <Footer />
-      <CartDrawer />
+      <CartDrawer tax={tax} />
       <NewsletterPopup />
     </Providers>
   )

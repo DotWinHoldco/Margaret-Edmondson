@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 
-export default function CartDrawer() {
+export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included: boolean; states: string[] } }) {
   const { state, dispatch, subtotal, itemCount } = useCart()
 
   return (
@@ -128,7 +128,9 @@ export default function CartDrawer() {
                   <span className="font-semibold">${subtotal.toFixed(2)}</span>
                 </div>
                 <p className="text-xs text-charcoal/40 font-body">
-                  Shipping and taxes calculated at checkout
+                  {tax?.enabled && tax.included
+                    ? `Sales tax included for taxable orders delivered to ${tax.states.join(', ')}. Shipping confirmed at checkout.`
+                    : 'Shipping and applicable sales tax confirmed at checkout.'}
                 </p>
                 <Link
                   href="/cart"

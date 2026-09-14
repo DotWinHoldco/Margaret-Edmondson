@@ -6,6 +6,16 @@ import { createBrowserClient } from '@supabase/ssr'
 
 const navItems = [
   {
+    label: 'Help & Guides',
+    href: '/admin/help',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1v-14c-3-1-6-1-9 1Zm0 0v14" />
+      </svg>
+    ),
+    mobileOrder: 7,
+  },
+  {
     label: 'Dashboard',
     href: '/admin',
     icon: (
@@ -308,14 +318,14 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
+                className={`flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-colors ${
                   active
                     ? 'text-teal'
                     : 'text-cream/50 hover:text-cream'
                 }`}
               >
                 {item.icon}
-                <span className="text-[10px] font-body">{item.label}</span>
+                <span className="text-[10px] font-body text-center">{item.href === '/admin/help' ? 'Help' : item.label}</span>
               </Link>
             )
           })}

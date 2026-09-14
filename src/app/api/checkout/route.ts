@@ -7,7 +7,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
-import { getSiteSettings } from '@/lib/settings/accessor'
+import { getCheckoutTaxConfig } from '@/lib/tax/server'
 import { validateDiscountCode } from '@/lib/discounts/validate'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { parseCheckoutRequest, validateAndPriceCheckoutItems } from '@/lib/checkout/validation'
@@ -138,9 +138,11 @@ export async function POST(request: Request) {
       discountCents=Math.min(validation.amountOffCents,subtotalCents)
       appliedCodeId=validation.code.id||null;appliedCodeText=validation.code.code
     }
-    const settings=await getSiteSettings()
-    const taxRatePct=Number(settings.tax_rate_pct)
-    const taxCents=settings.tax_enabled===true&&Number.isFinite(taxRatePct)&&taxRatePct>0?Math.round(Math.max(0,subtotalCents-discountCents)*taxRatePct/100):0
+    const taxConfig = await getCheckoutTaxConfig()
+    // Stripe-hosted shipping addresses can change after a quote. Use the address-
+    // verified on-site flow whenever seller-collected sales tax is configured.
+    if (taxConfig.tax_enabled) return jsonError('Please use the on-site checkout so we can calculate sales tax for your shipping address.', 409, 'on_site_checkout_required')
+    const taxCents = 0
 
     // Base URL for Stripe redirect/image URLs. Normalize NEXT_PUBLIC_SITE_URL
     // (tolerate a missing scheme or trailing slash); fall back to the request
@@ -200,7 +202,6 @@ export async function POST(request: Request) {
       }]
     }
 
-    if(taxCents>0)sessionParams.line_items?.push({price_data:{currency:'usd',product_data:{name:`Sales tax (${taxRatePct}%)`},unit_amount:taxCents},quantity:1})
     if((sessionParams.line_items?.length||0)>100)return jsonError('Please use the on-site checkout for this cart.',409,'on_site_checkout_required')
 
     const stripe = await getStripe()

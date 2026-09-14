@@ -267,7 +267,7 @@ export default async function AdminOrderDetailPage(
                 )}
                 {order.tax != null && order.tax > 0 && (
                   <div className="flex justify-between">
-                    <dt className="font-body text-sm text-charcoal/60">Tax</dt>
+                    <dt className="font-body text-sm text-charcoal/60">{order.tax_included ? 'Sales tax included' : 'Sales tax'}</dt>
                     <dd className="font-body text-sm text-charcoal">
                       {formatCurrency(order.tax)}
                     </dd>
