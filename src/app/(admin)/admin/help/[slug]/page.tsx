@@ -28,6 +28,7 @@ export default async function HelpArticlePage({ params }: Props) {
           <h1 className="mt-3 max-w-4xl font-display text-3xl font-semibold leading-tight sm:text-4xl">{article.title}</h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-charcoal/70">{article.summary}</p>
           <Link href={article.tool.href} className="mt-5 inline-flex rounded-lg bg-teal px-5 py-3 text-sm font-semibold text-white hover:bg-deep-teal">{article.tool.label} ↗</Link>
+          {article.relatedTools && <div className="mt-3 flex flex-wrap gap-3">{article.relatedTools.map(tool => <Link key={tool.href} href={tool.href} className="inline-flex rounded-lg border border-teal/25 px-4 py-2 text-sm font-semibold text-teal hover:bg-teal/5">{tool.label} ↗</Link>)}</div>}
         </header>
         <nav aria-label="On this page" className="mb-8 flex flex-wrap gap-x-5 gap-y-2 rounded-lg border border-charcoal/10 bg-white px-5 py-4 text-sm text-teal">
           <a href="#before-you-start" className="hover:underline">Before you start</a><a href="#steps" className="hover:underline">Step by step</a><a href="#example" className="hover:underline">Examples</a><a href="#check" className="hover:underline">Check your work</a><a href="#troubleshooting" className="hover:underline">If something goes wrong</a>

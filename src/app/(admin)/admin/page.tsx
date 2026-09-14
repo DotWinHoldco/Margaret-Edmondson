@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
@@ -69,6 +70,7 @@ export default async function AdminDashboard() {
     <>
       {/* Quick fulfillment controls; the shared admin layout hosts the launch guide. */}
       <div className="mx-auto mb-6 max-w-7xl px-4 pt-6"><FulfillmentSettings compact /></div>
+      <div className="mx-auto mb-6 max-w-7xl px-4"><Link href="/admin/sales" className="block rounded-xl border border-teal/20 bg-white p-5 font-body transition-colors hover:bg-teal/5"><span className="block text-lg font-semibold text-teal">Open your sales dashboard →</span><span className="mt-1 block text-sm text-charcoal/65">See sales, recent orders, and the sales tax to set aside by state.</span></Link></div>
       <ProjectHubClient
         initialFeedback={feedbackItems}
         initialWorkRequests={workRequests}

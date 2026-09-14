@@ -36,6 +36,16 @@ const navItems = [
     mobileOrder: 2,
   },
   {
+    label: 'Sales dashboard',
+    href: '/admin/sales',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-4 2-4-2-3 2V5a2 2 0 0 1 2-2Zm1 5h8M8 12h3m-3 4h3m4-4h1m-1 4h1" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
     label: 'Orders',
     href: '/admin/orders',
     icon: (

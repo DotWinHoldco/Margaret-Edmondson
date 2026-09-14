@@ -42,29 +42,6 @@ interface SettingsResponse {
 const linkClass = 'font-medium text-teal underline decoration-teal/40 underline-offset-4 hover:text-deep-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal'
 const buttonClass = 'rounded-sm bg-teal px-5 py-2.5 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal disabled:cursor-not-allowed disabled:opacity-50'
 
-function TaxSwitch({ id, checked, onChange, disabled, label }: {
-  id: string
-  checked: boolean
-  onChange: (value: boolean) => void
-  disabled: boolean
-  label: string
-}) {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="switch"
-      aria-label={label}
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal disabled:cursor-not-allowed disabled:opacity-40 ${checked ? 'bg-teal' : 'bg-charcoal/30'}`}
-    >
-      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
-    </button>
-  )
-}
-
 function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement | null> }) {
   return (
     <dialog
@@ -93,7 +70,7 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
             <li><strong>Get your state permit.</strong> For Texas, open the <a className={linkClass} href="https://comptroller.texas.gov/taxes/permit/" target="_blank" rel="noopener noreferrer">Texas Comptroller sales tax registration page</a> and choose the permit application. Have your business details ready. The Comptroller lists the documents you need. Selecting Texas here does not apply for a permit.</li>
             <li><strong>Set up Stripe Tax.</strong> In the Stripe account connected to this store, confirm your business address and tax settings. Open <a className={linkClass} href="https://dashboard.stripe.com/tax/locations" target="_blank" rel="noopener noreferrer">Stripe Tax locations</a>, add your registration, and use its real start date. The registration must be active in the same Stripe mode your store uses. A test registration does not prepare live sales.</li>
             <li><strong>Choose your states below.</strong> Select the states where you have a collection duty and the required active registrations. For Margaret, start with Texas once the permit and Stripe registration are ready. Follow each additional state’s registration rules before selecting it.</li>
-            <li><strong>Choose how prices show tax.</strong> Turn on Sales tax enabled. Leave Sales tax separate off to include tax in your prices, or turn it on to add tax at checkout. Press Save sales tax.</li>
+            <li><strong>Choose how prices show tax.</strong> Select Include tax in my prices or Add tax at checkout, then press Save sales tax. Off collects no tax through this setting. Only one choice can be selected.</li>
             <li><strong>Check a checkout.</strong> Use Stripe test mode to try a delivery address in a selected state and one outside it. Try each pricing mode. Confirm the tax line and final total before taking live orders. Test mode and live mode need their own Stripe setup.</li>
           </ol>
           <p>See <a className={linkClass} href="https://docs.stripe.com/tax/registering" target="_blank" rel="noopener noreferrer">Stripe’s registration instructions</a> for the current dashboard steps.</p>
@@ -101,7 +78,7 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
         <section className="space-y-3">
           <h3 className="font-display text-xl font-semibold">3. Pick one of two ways to collect</h3>
           <div className="rounded-sm border border-teal/20 bg-white p-4">
-            <h4 className="font-semibold text-teal">Sales tax included · Separate switch off</h4>
+            <h4 className="font-semibold text-teal">Include tax in my prices</h4>
             <p>The price already holds the tax. Imagine a box with the art money and the tax money inside it. For an example rate of 8.25%, a $108.25 price contains $100 for the sale and $8.25 for tax. The buyer pays $108.25 before any shipping. You set aside the $8.25 for the state.</p>
             <ol className="mt-2 list-decimal space-y-2 pl-5">
               <li>Turn the example rate into a number: 8.25 ÷ 100 = 0.0825.</li>
@@ -114,7 +91,7 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
             <blockquote className="mt-2 border-l-2 border-teal pl-3 font-medium">Texas state and local sales and use tax is included in the sales price.</blockquote>
           </div>
           <div className="rounded-sm border border-charcoal/15 bg-white p-4">
-            <h4 className="font-semibold text-teal">Sales tax separate · Separate switch on</h4>
+            <h4 className="font-semibold text-teal">Add tax at checkout</h4>
             <p>The item price comes first. Tax is added at checkout when it applies. At the same example rate, a $100 item has $8.25 in tax, so the buyer pays $108.25 before shipping. The tax line shows the extra amount.</p>
             <ol className="mt-2 list-decimal space-y-2 pl-5">
               <li>Turn the rate into a number: 8.25 ÷ 100 = 0.0825.</li>
@@ -123,7 +100,7 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
               <li>Set aside $8.25 for the state. You have $100 in sales before your business costs and fees.</li>
             </ol>
           </div>
-          <p>Changing the switch does not rewrite product prices. A $100 product stays priced at $100. Included mode takes the tax out of that $100; separate mode adds the tax on top. Review your prices and profit before switching.</p>
+          <p>Changing your tax choice does not rewrite product prices. A $100 product stays priced at $100. Included mode takes the tax out of that $100; separate mode adds the tax on top. Review your prices and profit before changing modes.</p>
           <p>Compare the same $100 listed price at our example rate: separate tax makes the buyer pay $108.25. Included tax keeps the buyer’s total at $100, with $100 ÷ 1.0825 = about $92.38 for sales and $100 − $92.38 = about $7.62 for tax. These examples leave out shipping and discounts. Actual checkout calculates those too.</p>
           <p>The 8.25% rate is only a math example. Texas has a 6.25% state tax and up to 2% in local tax. Your actual rate depends on the sale and applicable local rules. Stripe uses your tax setup and the buyer’s full delivery address; this store does not apply a single rate to every Texas order. <a className={linkClass} href="https://comptroller.texas.gov/taxes/sales/" target="_blank" rel="noopener noreferrer">Read Texas sales tax basics</a>.</p>
         </section>
@@ -135,7 +112,7 @@ function NexusHelp({ dialogRef }: { dialogRef: React.RefObject<HTMLDialogElement
         <section className="space-y-2">
           <h3 className="font-display text-xl font-semibold">5. Keep the tax money separate</h3>
           <p>Tax is money you collect for the state. It is not your profit. Product costs, shipping costs, payment fees, discounts, and any included tax all reduce the money you keep.</p>
-          <p>Saving these settings does not file a tax return, pay the state, or cancel a tax permit. Keep your sales records, follow the filing schedule assigned to your business, and send the tax to the right tax office. Turning this switch off also does not end your legal duty to collect.</p>
+          <p>Saving these settings does not file a tax return, pay the state, or cancel a tax permit. Keep your sales records, follow the filing schedule assigned to your business, and send the tax to the right tax office. Choosing Off also does not end your legal duty to collect.</p>
           <p><a className={linkClass} href="https://comptroller.texas.gov/taxes/sales/faq/collection.php" target="_blank" rel="noopener noreferrer">Texas tax collection and included-price rules</a> · <Link className={linkClass} href="/admin/help/12-sales-tax-and-nexus" onClick={() => dialogRef.current?.close()}>Full sales tax article</Link> · <Link className={linkClass} href="/admin/help/13-texas-sales-tax-setup" onClick={() => dialogRef.current?.close()}>Texas setup checklist</Link></p>
         </section>
       </div>
@@ -185,6 +162,7 @@ export default function SalesTaxSection() {
   }, [retry])
 
   const dirty = saved !== JSON.stringify([enabled, included, [...states].sort()])
+  const mode = !enabled ? 'off' : included ? 'included' : 'separate'
   const shownStates = STATES.filter(([code, name]) => `${code} ${name}`.toLowerCase().includes(search.toLowerCase().trim()))
 
   async function refreshReadiness() {
@@ -240,18 +218,22 @@ export default function SalesTaxSection() {
         <div className="mt-5 font-body text-sm"><p role="alert" className="text-coral">{loadError}</p><button type="button" onClick={() => setRetry(retry + 1)} className={`${buttonClass} mt-3`}>Try again</button></div>
       ) : (
         <div className="mt-6 space-y-5 font-body text-sm text-charcoal">
-          <div className="flex items-center justify-between gap-4 rounded-sm border border-charcoal/15 p-4">
-            <div><label htmlFor="tax-enabled" className="font-semibold">Sales tax enabled</label><p className="mt-1 text-charcoal/65">{enabled ? 'Collect applicable tax for delivery states selected below.' : 'Off. This store does not collect sales tax through these settings.'}</p></div>
-            <TaxSwitch id="tax-enabled" checked={enabled} onChange={setEnabled} disabled={saving} label="Sales tax enabled" />
-          </div>
-          <div className="flex items-center justify-between gap-4 rounded-sm border border-charcoal/15 p-4">
-            <div><label htmlFor="tax-separate" className="font-semibold">Sales tax separate</label><p className="mt-1 text-charcoal/65">{included ? 'Off · Sales tax included. Applicable tax comes out of the listed price.' : 'On · Sales tax is added to the listed price at checkout.'}</p></div>
-            <TaxSwitch id="tax-separate" checked={!included} onChange={(value) => setIncluded(!value)} disabled={saving} label="Sales tax separate" />
-          </div>
+          <fieldset disabled={saving} className="space-y-3">
+            <legend className="mb-2 font-semibold">How should sales tax be collected?</legend>
+            <p className="text-charcoal/65">Choose one option, select your nexus states below, then save.</p>
+            {[
+              { value: 'off', label: 'Off', description: 'Do not collect sales tax through these settings.' },
+              { value: 'included', label: 'Include tax in my prices', description: 'Applicable tax comes out of the listed price. No extra sales tax is added at checkout.' },
+              { value: 'separate', label: 'Add tax at checkout', description: 'Applicable tax is added above the listed price before the buyer pays.' },
+            ].map(option => <label key={option.value} className={`flex cursor-pointer items-start gap-3 rounded-sm border p-4 ${mode === option.value ? 'border-teal bg-teal/5' : 'border-charcoal/15'}`}>
+              <input type="radio" name="sales-tax-mode" value={option.value} checked={mode === option.value} onChange={() => { setEnabled(option.value !== 'off'); if (option.value !== 'off') setIncluded(option.value === 'included'); setMessage(null) }} aria-label={option.label} className="mt-1 h-4 w-4 shrink-0 accent-teal" />
+              <span><span className="block font-semibold">{option.label}</span><span className="mt-1 block text-charcoal/65">{option.description}</span></span>
+            </label>)}
+          </fieldset>
           <div className="rounded-sm bg-cream p-4 text-sm leading-6">
-            <p className="font-semibold">{enabled ? included ? 'Selected mode: Sales tax included' : 'Selected mode: Sales tax added at checkout' : 'Collection is off. Your choices below can be saved for later.'}</p>
-            <p className="mt-1">{included ? 'Example only: a $108.25 price at an 8.25% rate includes $100 for the sale and $8.25 for tax.' : 'Example only: a $100 price at an 8.25% rate becomes $108.25 at checkout.'} Shipping is excluded from these examples. Actual rates are calculated by Stripe.</p>
-            {included && states.includes('TX') && <p className="mt-2 border-l-2 border-teal pl-3">Texas state and local sales and use tax is included in the sales price.</p>}
+            <p className="font-semibold">{dirty ? 'Preview after saving: ' : 'Saved tax setting: '}{!enabled ? 'Off' : included ? 'Include tax in my prices' : 'Add tax at checkout'}</p>
+            {!enabled ? <p className="mt-1">No sales tax is collected with Off selected. Your nexus states can stay saved for later.</p> : <p className="mt-1">{included ? 'Example only: a $100 listed price at an 8.25% rate contains about $92.38 in sales and $7.62 in tax. The buyer pays $100.' : 'Example only: a $100 listed price at an 8.25% rate has $8.25 tax added. The buyer pays $108.25.'} Shipping is excluded from these examples. Actual rates are calculated by Stripe.</p>}
+            {enabled && included && states.includes('TX') && <p className="mt-2 border-l-2 border-teal pl-3">Texas state and local sales and use tax is included in the sales price.</p>}
           </div>
           <fieldset disabled={saving} className="space-y-3">
             <legend className="font-semibold">States where your business has nexus</legend>
@@ -288,6 +270,7 @@ export default function SalesTaxSection() {
             <button type="button" onClick={save} disabled={saving || !dirty} className={buttonClass}>{saving ? 'Saving…' : 'Save sales tax'}</button>
             {dirty && !saving && <span className="text-charcoal/55">You have unsaved changes.</span>}
             <Link className={linkClass} href="/admin/help/12-sales-tax-and-nexus">Read the full sales tax guide</Link>
+            <Link className={linkClass} href="/admin/sales#sales-tax">Open sales dashboard and tax tracker</Link>
           </div>
           {message && <p role={message.error ? 'alert' : 'status'} className={message.error ? 'text-coral' : 'text-teal'}>{message.text}</p>}
         </div>
