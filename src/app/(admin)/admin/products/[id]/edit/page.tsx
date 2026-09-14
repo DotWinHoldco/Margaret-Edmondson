@@ -17,6 +17,7 @@ import type { Medium } from '@/lib/pricing/mediums'
 import { resolveMarginPct } from '@/lib/pricing/variant-pricing'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
+import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
 
 interface MasterApiRow {
   id: string
@@ -260,6 +261,7 @@ export default function EditProductPage({
   const [printVariants, setPrintVariants] = useState<PrintVariant[]>([])
   // Product's OWN markup % override as a string ('' = inherit category → site).
   const [productMarginOverride, setProductMarginOverride] = useState<string>('')
+  const [productMarkupValid, setProductMarkupValid] = useState(true)
   const [mediumCatalog, setMediumCatalog] = useState<MediumCatalogEntry[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [masterArtworkId, setMasterArtworkId] = useState<string | null>(null)
@@ -446,6 +448,7 @@ export default function EditProductPage({
     _ownMargin != null ? null : _selectedCategory?.default_margin_pct != null ? `${_selectedCategory.name} category` : 'site default'
 
   async function refreshPricing() {
+    if (!productMarkupValid) return
     setRefreshing(true)
     setRefreshMsg(null)
     try {
@@ -472,6 +475,7 @@ export default function EditProductPage({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!productMarkupValid) { setError('Enter a valid markup or gross margin before saving.'); return }
     setSaving(true)
     setError(null)
 
@@ -949,34 +953,31 @@ export default function EditProductPage({
 
               <div className="sm:col-span-2">
                 <label className="mb-1 block font-body text-sm font-medium text-charcoal">
-                  Default margin (%)
+                  Default print pricing
                 </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative w-44">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={productMarginOverride}
-                      placeholder={`${effectiveMargin} (inherited)`}
-                      onChange={(e) => setProductMarginOverride(e.target.value)}
-                      className="w-full rounded-lg border border-charcoal/15 bg-cream py-2.5 pl-4 pr-8 font-body text-sm text-charcoal placeholder:text-charcoal/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-body text-sm text-charcoal/50">%</span>
-                  </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <MarkupMarginFields
+                    value={productMarginOverride}
+                    inheritedMarkup={effectiveMargin}
+                    onChange={setProductMarginOverride}
+                    onValidityChange={setProductMarkupValid}
+                    maxMarkup={1000}
+                    labelPrefix="Product default"
+                  />
                   <button
                     type="button"
                     onClick={refreshPricing}
-                    disabled={refreshing}
+                    disabled={refreshing || !productMarkupValid}
                     className="rounded-md border border-charcoal/15 bg-cream px-3 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5 disabled:opacity-50"
                   >
-                    {refreshing ? 'Refreshing…' : 'Save margin + refresh prices'}
+                    {refreshing ? 'Refreshing…' : 'Save markup + refresh prices'}
                   </button>
                   {refreshMsg && (
                     <span className="font-body text-xs text-charcoal/60">{refreshMsg}</span>
                   )}
                 </div>
-                <p className="mt-1 font-body text-xs text-charcoal/40">
+                <PricingRelationship markupPct={effectiveMargin} />
+                <p className="mt-1 font-body text-xs text-charcoal/60">
                   Leave blank to inherit{marginInheritedFrom ? ` the ${marginInheritedFrom} (${effectiveMargin}%)` : ''}; enter a number to override it for this product. A variant can still override per-size. This percentage is markup: the extra amount added to your cost. Example: $15 printing + $5 stored shipping = $20 cost. A 100% markup adds another $20, so $20 cost + $20 markup = a $40 selling price. That leaves $20 before taxes, payment fees, and other expenses; the gross margin is 50% because $20 is half of the $40 price.
                 </p>
               </div>
@@ -1287,7 +1288,7 @@ export default function EditProductPage({
             </Link>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !productMarkupValid}
               className="inline-flex items-center rounded-lg bg-teal px-6 py-2.5 font-body text-sm font-medium text-cream transition-colors hover:bg-deep-teal disabled:opacity-50"
             >
               {saving ? (

@@ -11,9 +11,9 @@ export const featuresBuilt = [
     links: [{ label: 'Products', href: '/admin/products' }, { label: 'Media library', href: '/admin/media' }],
   },
   {
-    title: 'Prices, margins, and sales tax',
+    title: 'Markup, gross margin, and sales tax',
     description: 'Set studio prices or cost-based markup, with shop, category, product, and size settings. Choose tax included in the price or added separately, and select nexus states. Tax collection checks your Stripe Tax setup.',
-    links: [{ label: 'Pricing settings', href: '/admin/settings#pricing' }, { label: 'Sales tax settings', href: '/admin/settings#sales-tax' }, { label: 'Margin guide', href: '/admin/help/09-understand-margins' }],
+    links: [{ label: 'Pricing settings', href: '/admin/settings#pricing' }, { label: 'Sales tax settings', href: '/admin/settings#sales-tax' }, { label: 'Markup and gross margin guide', href: '/admin/help/09-understand-margins' }],
   },
   {
     title: 'Sales dashboard and orders',
@@ -52,7 +52,7 @@ export const featuresBuilt = [
   },
   {
     title: 'Help and business settings',
-    description: `${helpArticles.length} illustrated help articles walk through setup, products, margins, tax, page edits, and daily work. Settings also hold business details, site options, and connection status.`,
+    description: `${helpArticles.length} illustrated help articles walk through setup, products, markup, gross margin, tax, page edits, and daily work. Settings also hold business details, site options, and connection status.`,
     links: [{ label: 'Help and guides', href: '/admin/help' }, { label: 'Start here', href: '/admin/help/01-start-here' }],
   },
 ] as const

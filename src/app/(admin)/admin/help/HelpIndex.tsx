@@ -31,7 +31,7 @@ export default function HelpIndex() {
       </div>
       <div>
         <label htmlFor="help-search" className="mb-2 block text-sm font-semibold">Find an answer</label>
-        <input id="help-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try sales tax, shipping, margin, or edit a page" className="w-full rounded-lg border border-charcoal/20 bg-white px-4 py-3 text-base outline-none focus:border-teal focus:ring-2 focus:ring-teal/20" />
+        <input id="help-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try sales tax, shipping, markup, gross margin, or edit a page" className="w-full rounded-lg border border-charcoal/20 bg-white px-4 py-3 text-base outline-none focus:border-teal focus:ring-2 focus:ring-teal/20" />
         <p className="mt-2 text-sm text-charcoal/60" role="status">{articles.length} of 20 guides{query.trim() ? ' match your search' : ' · about one task per guide'}</p>
       </div>
       {groups.map((group) => <section key={group} aria-label={group}>

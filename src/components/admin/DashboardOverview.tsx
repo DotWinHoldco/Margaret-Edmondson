@@ -6,8 +6,8 @@ const shortcuts = [
   { title: 'Products', href: '/admin/products', description: 'Your art, ready to sell.', icon: 'M4 4h16v16H4z M4 15l5-5 4 4 3-3 4 4', links: [['Add a product', '/admin/products/new'], ['Manage products', '/admin/products']] },
   { title: 'Orders', href: '/admin/orders?view=all', description: 'Keep every delivery moving.', icon: 'M4 7l8-4 8 4v10l-8 4-8-4z M4 7l8 4 8-4 M12 11v10', links: [['All orders', '/admin/orders?view=all'], ['Studio queue', '/admin/orders?view=studio']] },
   { title: 'Pages', href: '/admin/pages', description: 'Make your website feel like you.', icon: 'M4 4h16v16H4z M4 9h16 M9 9v11', links: [['Edit wording', '/admin/pages'], ['Design assets', '/admin/pages/design-assets']] },
-  { title: 'Settings', href: '/admin/settings', description: 'Set the rules for your business.', icon: 'M4 7h16 M4 17h16 M8 4v6 M16 14v6', links: [['Sales tax', '/admin/settings#sales-tax'], ['Margins & pricing', '/admin/settings#pricing']] },
-  { title: 'Documentation', href: '/admin/help', description: 'Clear steps, from setup to your next sale.', icon: 'M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1z M12 6v14', links: [['Read the guides', '/admin/help'], ['Understand margins', '/admin/help/09-understand-margins']] },
+  { title: 'Settings', href: '/admin/settings', description: 'Set the rules for your business.', icon: 'M4 7h16 M4 17h16 M8 4v6 M16 14v6', links: [['Sales tax', '/admin/settings#sales-tax'], ['Markup & gross margin', '/admin/settings#pricing']] },
+  { title: 'Documentation', href: '/admin/help', description: 'Clear steps, from setup to your next sale.', icon: 'M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1z M12 6v14', links: [['Read the guides', '/admin/help'], ['Markup & gross margin', '/admin/help/09-understand-margins']] },
   { title: 'Customers', href: '/admin/customers', description: 'Stay close to your collectors.', icon: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2', links: [['Customer directory', '/admin/customers'], ['Email tools', '/admin/email']] },
 ] as const
 

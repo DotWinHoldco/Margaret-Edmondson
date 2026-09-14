@@ -2,16 +2,18 @@
 
 import { useState } from 'react'
 import { customerPriceCents, grossMarginPct } from '@/lib/pricing/variant-pricing'
+import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
 
 const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 export default function MarginCalculator() {
   const [print, setPrint] = useState('15')
   const [shipping, setShipping] = useState('5')
   const [markup, setMarkup] = useState('100')
+  const [pairValid, setPairValid] = useState(true)
   const [manual, setManual] = useState(false)
   const [manualPrice, setManualPrice] = useState('50')
   const values = [print, shipping, ...(manual ? [manualPrice] : [markup])]
-  const valid = values.every((value) => value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1000000)
+  const valid = (manual || pairValid) && values.every((value) => value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1000000)
   const cost = Math.round(Number(print) * 100)
   const ship = Math.round(Number(shipping) * 100)
   const price = valid ? customerPriceCents({ lumaprints_cost_cents: cost, shipping_cost_cents: ship, margin_override_pct: null, manual_price_override_cents: manual ? Math.round(Number(manualPrice) * 100) : null }, Number(markup)) : 0
@@ -20,12 +22,17 @@ export default function MarginCalculator() {
     <section className="rounded-xl border border-teal/25 bg-teal/5 p-5 sm:p-7" aria-labelledby="margin-calculator-title">
       <h2 id="margin-calculator-title" className="font-display text-2xl font-semibold">Try the math with your own numbers</h2>
       <p className="mt-2 text-sm leading-6 text-charcoal/70">This learning calculator changes no shop settings. It uses the same cost-plus math as automatic Lumaprints prices. It does not subtract tax, discounts, payment fees, or your other expenses.</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        {[{ id: 'help-print-cost', label: 'Print cost ($)', value: print, set: setPrint }, { id: 'help-shipping-cost', label: 'Stored shipping cost ($)', value: shipping, set: setShipping }, { id: 'help-markup', label: 'Markup (%)', value: markup, set: setMarkup }].map((field) => <label key={field.id} htmlFor={field.id} className="text-sm font-medium">{field.label}<input id={field.id} type="number" min="0" max="1000000" step="0.01" disabled={manual && field.id === 'help-markup'} value={field.value} onChange={(event) => field.set(event.target.value)} className="mt-2 block w-full rounded-lg border border-charcoal/20 bg-white px-3 py-2 disabled:opacity-40" /></label>)}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {[{ id: 'help-print-cost', label: 'Print cost ($)', value: print, set: setPrint }, { id: 'help-shipping-cost', label: 'Stored shipping cost ($)', value: shipping, set: setShipping }].map((field) => <label key={field.id} htmlFor={field.id} className="text-sm font-medium">{field.label}<input id={field.id} type="number" min="0" max="1000000" step="0.01" value={field.value} onChange={(event) => field.set(event.target.value)} className="mt-2 block w-full rounded-lg border border-charcoal/20 bg-white px-3 py-2 disabled:opacity-40" /></label>)}
       </div>
+      <div className="mt-4">
+        {manual ? <dl className="grid grid-cols-2 gap-4 text-sm"><div><dt>Markup (%)</dt><dd className="mt-2 rounded-lg border border-charcoal/20 bg-white px-3 py-2">{valid && cost + ship > 0 ? `${((price - cost - ship) / (cost + ship) * 100).toFixed(2)}%` : '—'}</dd></div><div><dt>Gross margin (%)</dt><dd className="mt-2 rounded-lg border border-charcoal/20 bg-white px-3 py-2">{valid && price > 0 ? `${gross.toFixed(2)}%` : '—'}</dd></div></dl> : <MarkupMarginFields value={markup} onChange={setMarkup} onValidityChange={setPairValid} maxMarkup={1000000} />}
+      </div>
+      {!manual && cost + ship <= 0 && <p className="mt-2 text-sm text-charcoal/70">Add a printing or shipping cost above $0 to calculate profit percentages for this example. The paired settings describe the relationship for a positive cost; a $0 selling price has no gross margin.</p>}
       <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={manual} onChange={(event) => setManual(event.target.checked)} className="h-4 w-4 accent-teal" />Try a manual selling price instead</label>
       {manual && <label htmlFor="help-manual-price" className="mt-4 block text-sm">Manual price ($)<input id="help-manual-price" type="number" min="0" max="1000000" step="0.01" value={manualPrice} onChange={(event) => setManualPrice(event.target.value)} className="mt-2 block w-full max-w-xs rounded-lg border border-charcoal/20 bg-white px-3 py-2" /></label>}
       <div className="mt-5" aria-live="polite" aria-atomic="true">
+        {valid && <PricingRelationship landedCostCents={cost + ship} priceCents={price} markupPct={Number(markup)} />}
         {valid && <div className="mb-5 rounded-lg bg-white p-4 text-sm leading-7">
           <h3 className="font-semibold">Follow every step</h3>
           <ol className="mt-2 list-decimal space-y-2 pl-5">
@@ -36,7 +43,7 @@ export default function MarginCalculator() {
               <li>Add those dollars to your cost: {money(cost + ship)} + {money(Math.round((cost + ship) * Number(markup) / 100))} = {money(price)} selling price. Dollar amounts round to cents.</li>
               <li>The short formula combines those steps: 1 + ({Number(markup)} ÷ 100) = {1 + Number(markup) / 100}. The 1 keeps your original cost; the other part adds your markup.</li>
             </>}
-            <li>Subtract counted costs: {money(price)} − {money(cost + ship)} = {money(price - cost - ship)} gross profit, before other expenses.</li>
+            <li>Subtract your costs: {money(price)} − {money(cost + ship)} = {money(price - cost - ship)} gross profit, before other expenses.</li>
             {price > 0 && <li>Divide gross profit by selling price, then multiply by 100: {money(price - cost - ship)} ÷ {money(price)} × 100 = {gross.toFixed(1)}% gross margin.</li>}
           </ol>
         </div>}

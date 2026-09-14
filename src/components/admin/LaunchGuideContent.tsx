@@ -20,7 +20,7 @@ export const STEP_TITLES: Record<LaunchStepKey, string> = {
   luma_billing: 'Set up Lumaprints billing',
   crops: 'Approve your print files and crops',
   prices: 'Review your Lumaprints selling prices',
-  margins: 'Understand printing costs and your margin',
+  margins: 'Understand costs, markup, and gross margin',
   luma_shipping: 'Review print and original shipping',
   luma_workflow: 'Know how Lumaprints orders are handled',
   luma_test_order: 'Rehearse the Lumaprints order path',
@@ -217,11 +217,11 @@ export default function LaunchGuideContent({ step, state, policy, busy, saveCont
     <p><GuideLink href="https://dashboard.lumaprints.com">Open Lumaprints billing</GuideLink></p>
   </div>
   if (step === 'prices' || step === 'margins') return <div className="space-y-5">
-    <p>{step === 'prices' ? 'The starting prices are already populated. Your job is to decide what each original and print should sell for, then save those decisions.' : 'Review both the total amount a customer pays and the costs of fulfilling that order. Margin controls help calculate prices; they are not a guarantee of your take-home earnings.'}</p>
+    <p>{step === 'prices' ? 'The starting prices are already populated. Your job is to decide what each original and print should sell for, then save those decisions.' : 'Review both the total amount a customer pays and the costs of fulfilling that order. Markup and gross margin fields show two ways to set the same price. Gross profit is the selling price minus printing and stored shipping, before other expenses.'}</p>
     <Checklist items={[
       <>Open <GuideLink href="/admin/products">Products</GuideLink>, choose a piece, and select its <strong>Lumaprints</strong> pricing profile.</>,
       'Set an original’s price in Base price and save the product. In the print-size table, review each size and frame; use its price override when you want to charge an exact amount.',
-      'Automatic pricing can inherit a default from site settings, category, product, or an individual size. A more specific override takes priority. Check the displayed cost, price, and margin before saving; a saved manual price can override the automatic calculation.',
+      'Automatic pricing can inherit a default from site settings, category, product, or an individual size. A more specific override takes priority. Check the displayed cost, price, markup, and gross margin before saving; a saved manual price can override the automatic calculation.',
       'Include production, framing where offered, applicable shipping, payment fees, and the earnings you want to keep. Review whether customer shipping is included or charged separately so you do not accidentally count it twice.',
       'Refresh provider costs and prices when needed, then inspect the final storefront amounts. Keep unavailable sizes inactive. Studio prices remain independent if you change fulfillment later.',
     ]} />

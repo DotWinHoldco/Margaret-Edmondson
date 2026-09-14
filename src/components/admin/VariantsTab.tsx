@@ -17,6 +17,7 @@ import {
 } from '@/lib/pricing/size-tiers'
 import { boundsForSubcategory } from '@/lib/pricing/subcategory-bounds'
 import { printSizeLabel } from '@/lib/pricing/print-size-label'
+import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
 
 export interface MediumCatalogEntry {
   medium: Medium
@@ -263,13 +264,13 @@ export default function VariantsTab({
         <div>
           <h2 className="font-display text-lg font-semibold text-charcoal">Print sizes</h2>
           <p className="mt-1 font-body text-xs text-charcoal/50">
-            Add printing and stored shipping to find your cost. Margin % is the markup you add to that cost. For a $20 cost at 50% markup: 50 ÷ 100 = 0.5; $20 × 0.5 = $10 extra; $20 + $10 = $30 selling price. Drafts aren&apos;t shown on the site until flipped Live.
+            Add printing and stored shipping to find your cost. Markup is the extra amount you add to that cost. Gross margin is the share of the selling price left after that cost. Edit either percentage and the other updates. For a $20 cost at 50% markup: 50 ÷ 100 = 0.5; $20 × 0.5 = $10 extra; $20 + $10 = $30 selling price. Drafts aren&apos;t shown on the site until flipped Live.
           </p>
           <Link href="/admin/help/09-understand-margins" className="mt-2 inline-block text-xs text-teal underline">See every pricing step and try the calculator →</Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-body text-xs text-charcoal/50">
-            Default margin <strong className="text-charcoal/80">{defaultMargin}%</strong>
+            Default markup <strong className="text-charcoal/80">{defaultMargin}%</strong>
           </span>
           <button
             type="button"
@@ -364,11 +365,11 @@ export default function VariantsTab({
             {genMsg[m] && <p className="mb-2 font-body text-[11px] text-deep-teal">{genMsg[m]}</p>}
 
             {rows.length > 0 && (
-              <div className="rounded-md border border-charcoal/10 overflow-hidden">
+              <div className="rounded-md border border-charcoal/10 overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-charcoal/[0.03]">
                     <tr>
-                      {['Live', 'Label', 'Size', 'Cost', 'Margin %', 'Price', 'Gross', ''].map((h, i) => (
+                      {['Live', 'Label', 'Size', 'Cost', 'Markup / Gross margin', 'Price', 'Gross profit', ''].map((h, i) => (
                         <th key={i} className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">{h}</th>
                       ))}
                     </tr>
@@ -382,6 +383,7 @@ export default function VariantsTab({
                         defaultMargin,
                       )
                       const hasManual = v.manual_price_override_cents != null
+                      const hasKnownCost = v.lumaprints_cost_cents != null
                       const gm = grossMarginPct(price, cost, ship)
                       const gmColor = gm <= 0 ? 'text-coral' : gm < targetGrossMarginPct ? 'text-amber-600' : 'text-teal'
                       const sizeDisplay = printSizeLabel(v)
@@ -424,14 +426,20 @@ export default function VariantsTab({
                               <span className="block text-[9px] text-charcoal/35">as of {new Date(v.last_priced_at).toLocaleDateString()}</span>
                             )}
                           </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              value={v.margin_override_pct ?? ''}
-                              placeholder={String(defaultMargin)}
-                              onChange={(e) => onMarginChange(v.id, e.target.value === '' ? null : Number(e.target.value))}
-                              className="w-16 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
-                            />
+                          <td className="min-w-56 px-3 py-2">
+                            {hasManual && (!hasKnownCost || cost + ship <= 0) ? (
+                              <p className="text-xs text-charcoal/65">Set costs to calculate markup and gross margin.</p>
+                            ) : <MarkupMarginFields
+                              key={`${v.id}-${hasManual ? 'manual' : 'automatic'}`}
+                              value={hasManual ? String((price / (cost + ship) - 1) * 100) : v.margin_override_pct == null ? '' : String(v.margin_override_pct)}
+                              inheritedMarkup={defaultMargin}
+                              onChange={(value) => { if (!hasManual) onMarginChange(v.id, value === '' ? null : Number(value)) }}
+                              readOnly={hasManual}
+                              labelPrefix={v.name || v.id}
+                              compact
+                            />}
+                            {hasManual && <p className="mt-1 text-[10px] text-charcoal/65">Manual price is fixed. Clear its price override to edit percentages.</p>}
+                            {(!hasManual || hasKnownCost) && <details className="mt-1"><summary className="cursor-pointer font-body text-[11px] text-teal">See price math</summary><PricingRelationship landedCostCents={hasKnownCost ? cost + ship : undefined} priceCents={price} markupPct={v.margin_override_pct ?? defaultMargin} /></details>}
                           </td>
                           <td className="px-3 py-2 font-body text-sm font-medium text-charcoal whitespace-nowrap">
                             {fmtCents(price)}
@@ -440,9 +448,9 @@ export default function VariantsTab({
                           </td>
                           <td
                             className={`px-3 py-2 font-body text-sm font-medium ${gmColor}`}
-                            title="Subtract print and stored shipping costs from the price. Divide what remains by the selling price, then multiply by 100. Example: $40 − $20 = $20 gross profit; $20 ÷ $40 = 0.5; 0.5 × 100 = 50% gross margin, before other expenses."
+                            title="Gross profit is the selling price minus printing and stored shipping costs, before payment fees, taxes, and other expenses."
                           >
-                            {Math.round(gm)}%
+                            {hasKnownCost ? fmtCents(price - cost - ship) : '—'}
                           </td>
                           <td className="px-3 py-2 text-right whitespace-nowrap">
                             <button
@@ -551,6 +559,7 @@ function CustomSizeModal({
     setNameEdited(false)
   }
   const [marginPct, setMarginPct] = useState<string>('')
+  const [markupValid, setMarkupValid] = useState(true)
   const [manualOverride, setManualOverride] = useState<string>('')
   const [useManual, setUseManual] = useState(false)
   const [preview, setPreview] = useState<{ cost_cents?: number; shipping_cents?: number; price_cents?: number; gross_margin_pct?: number; error?: string } | null>(null)
@@ -608,7 +617,9 @@ function CustomSizeModal({
   const gm = grossMarginPct(computedPrice, preview?.cost_cents ?? 0, preview?.shipping_cents ?? 0)
   const gmColor = gm <= 0 ? 'text-coral' : gm < targetGrossMarginPct ? 'text-amber-600' : 'text-teal'
 
-  const blocked = !check.ok || loadingPrice
+  const manualPriceValid = manualOverride.trim() !== '' && Number.isFinite(Number(manualOverride)) && Number(manualOverride) >= 0
+  const pricingValid = useManual ? manualPriceValid : markupValid
+  const blocked = !check.ok || loadingPrice || !pricingValid
   const blockingReason = !check.boundsOk
     ? check.reasons.find((r) => /exceeds|below/.test(r))
     : !check.resolutionOk
@@ -619,6 +630,7 @@ function CustomSizeModal({
 
   async function save(publish: boolean) {
     if (!name.trim()) { setError('Give the size a name.'); return }
+    if (!pricingValid) { setError('Enter valid pricing before saving.'); return }
     if (!check.ok) { setError(blockingReason || 'Fix the size before saving.'); return }
     setSaving(true)
     setError(null)
@@ -718,34 +730,40 @@ function CustomSizeModal({
               <p className="font-body text-xs text-charcoal/40">Enter a valid size to price it.</p>
             )}
 
-            <div className="mt-3 flex items-center gap-2">
-              <label className="font-body text-[11px] uppercase tracking-wider text-charcoal/60">Margin %</label>
-              <input type="number" value={marginPct} disabled={useManual} onChange={(e) => setMarginPct(e.target.value)} placeholder={String(defaultMargin)} className="w-20 rounded border border-charcoal/15 px-2 py-1 font-body text-sm disabled:opacity-50" />
-              <label className="ml-auto flex items-center gap-1.5 font-body text-[11px] text-charcoal/60">
-                <input type="checkbox" checked={useManual} onChange={(e) => setUseManual(e.target.checked)} /> Manual price
+            <div className="mt-3 space-y-2">
+              {useManual && (!manualPriceValid || landed <= 0) ? <p className="text-xs text-charcoal/65">{!manualPriceValid ? 'Enter a valid manual price to calculate percentages.' : 'Set costs to calculate markup and gross margin.'}</p> : <MarkupMarginFields
+                key={useManual ? 'manual' : 'automatic'}
+                value={useManual ? String((computedPrice / landed - 1) * 100) : marginPct}
+                inheritedMarkup={defaultMargin}
+                onChange={setMarginPct}
+                onValidityChange={useManual ? undefined : setMarkupValid}
+                readOnly={useManual}
+                disabled={useManual && !manualPriceValid}
+                labelPrefix="Print size"
+                compact
+              />}
+              <label className="flex items-center gap-1.5 font-body text-[11px] text-charcoal/60">
+                <input type="checkbox" checked={useManual} onChange={(e) => { setUseManual(e.target.checked); if (e.target.checked && manualOverride === '') setManualOverride((computedPrice / 100).toFixed(2)) }} /> Manual price
               </label>
+              {useManual && <p className="text-[10px] text-charcoal/65">Percentages describe this fixed manual price. Turn off Manual price to edit percentages.</p>}
             </div>
             {useManual && (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="font-body text-[11px] text-charcoal/50">$</span>
-                <input type="number" step="0.01" value={manualOverride} onChange={(e) => setManualOverride(e.target.value)} className="w-28 rounded border border-charcoal/15 px-2 py-1 font-body text-sm" />
-              </div>
+              <label className="mt-2 flex items-center gap-2 font-body text-[11px] text-charcoal/65">
+                Manual price ($)
+                <input aria-label="Manual price ($)" type="number" min="0" step="0.01" value={manualOverride} onChange={(e) => setManualOverride(e.target.value)} className="w-28 rounded border border-charcoal/15 px-2 py-1 font-body text-sm" />
+              </label>
             )}
+            {pricingValid && (!useManual || preview?.cost_cents != null) && <PricingRelationship landedCostCents={preview?.cost_cents == null ? undefined : landed} priceCents={computedPrice} markupPct={effMargin} />}
 
             <div className="mt-3 flex items-center justify-between border-t border-charcoal/10 pt-2">
               <span className="font-body text-xs text-charcoal/60">Customer price</span>
-              <span className="font-display text-lg font-semibold text-charcoal">{fmtCents(computedPrice)}</span>
+              <span className="font-display text-lg font-semibold text-charcoal">{pricingValid ? fmtCents(computedPrice) : '—'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-body text-[11px] text-charcoal/50" title="$40 price − $20 costs = $20 gross profit. $20 ÷ $40 = 0.5. 0.5 × 100 = 50% gross margin, before other expenses.">Gross margin</span>
-              <span className={`font-body text-xs font-medium ${gmColor}`}>{Math.round(gm)}%</span>
+              <span className={`font-body text-xs font-medium ${gmColor}`}>{pricingValid && computedPrice > 0 ? `${Math.round(gm)}%` : '—'}</span>
             </div>
-            {useManual && landed > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="font-body text-[11px] text-charcoal/50" title="The markup that would produce this manual price: extra dollars ÷ counted costs × 100.">Equivalent markup</span>
-                <span className="font-body text-[11px] text-charcoal/55">{Math.round((computedPrice / landed - 1) * 100)}%</span>
-              </div>
-            )}
+
           </div>
 
           {error && <p className="mt-3 font-body text-xs text-coral">{error}</p>}
@@ -754,8 +772,8 @@ function CustomSizeModal({
         <div className="flex items-center justify-end gap-3 border-t border-charcoal/10 bg-white/40 p-4 rounded-b-lg">
           {blocked && blockingReason && <span className="mr-auto font-body text-[11px] text-coral">{blockingReason}</span>}
           <button type="button" onClick={onClose} className="rounded-sm px-4 py-2 font-body text-sm text-charcoal/70 hover:text-charcoal">Cancel</button>
-          <button type="button" disabled={saving || !check.ok} onClick={() => save(true)} className="rounded-sm border border-teal px-4 py-2 font-body text-sm font-medium text-teal hover:bg-teal/5 disabled:opacity-40">Save &amp; Publish</button>
-          <button type="button" disabled={saving || (!check.boundsOk || !check.resolutionOk || !check.aspectOk)} onClick={() => save(false)} className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-40">{saving ? 'Saving…' : 'Save as Draft'}</button>
+          <button type="button" disabled={saving || !check.ok || !pricingValid} onClick={() => save(true)} className="rounded-sm border border-teal px-4 py-2 font-body text-sm font-medium text-teal hover:bg-teal/5 disabled:opacity-40">Save &amp; Publish</button>
+          <button type="button" disabled={saving || !pricingValid || (!check.boundsOk || !check.resolutionOk || !check.aspectOk)} onClick={() => save(false)} className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-40">{saving ? 'Saving…' : 'Save as Draft'}</button>
         </div>
       </div>
     </div>

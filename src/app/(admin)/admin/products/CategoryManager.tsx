@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
+import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
 
 interface Cat {
   id: string
@@ -21,23 +22,31 @@ export default function CategoryManager() {
   const [loading, setLoading] = useState(false)
   const [newName, setNewName] = useState('')
   const [newMargin, setNewMargin] = useState('')
+  const [newPricingValid, setNewPricingValid] = useState(true)
+  const [shopMarkup, setShopMarkup] = useState<number | undefined>()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
   async function load() {
     setLoading(true)
     try {
-      const data = await apiFetch<{ categories?: Cat[] }>('/api/admin/categories', { cache: 'no-store' })
-      setCats(data?.categories || [])
-    } catch {
-      /* leave the current list in place on a transient load failure */
+      const [categories, pricing] = await Promise.allSettled([
+        apiFetch<{ categories?: Cat[] }>('/api/admin/categories', { cache: 'no-store' }),
+        apiFetch<{ default_margin_pct: number | null }>('/api/admin/pricing/settings', { cache: 'no-store' }),
+      ])
+      if (categories.status === 'fulfilled') setCats(categories.value?.categories || [])
+      else setErr(errorMessage(categories.reason))
+      if (pricing.status === 'fulfilled') setShopMarkup(Number(pricing.value.default_margin_pct ?? 100))
+      else setErr(errorMessage(pricing.reason))
+    } catch (error) {
+      setErr(errorMessage(error))
     }
     setLoading(false)
   }
   function openModal() { setErr(''); setOpen(true); load() }
 
   async function create() {
-    if (!newName.trim()) return
+    if (!newName.trim() || !newPricingValid) return
     setBusy(true); setErr('')
     try {
       await apiSend('/api/admin/categories', 'POST', {
@@ -65,7 +74,7 @@ export default function CategoryManager() {
     }
   }
   async function del(id: string, name: string, count: number) {
-    if (!window.confirm(`Delete "${name}"?${count > 0 ? ` Its ${count} product(s) will become uncategorized and inherit the site-wide margin.` : ''}`)) return
+    if (!window.confirm(`Delete "${name}"?${count > 0 ? ` Its ${count} product(s) will become uncategorized and inherit the shop markup.` : ''}`)) return
     try {
       await apiSend(`/api/admin/categories/${id}`, 'DELETE')
       toast.success('Category deleted.')
@@ -88,11 +97,11 @@ export default function CategoryManager() {
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-charcoal/40 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" className="my-10 w-full max-w-2xl rounded-xl bg-cream shadow-2xl">
+          <div role="dialog" aria-modal="true" className="my-10 w-full max-w-4xl rounded-xl bg-cream shadow-2xl">
             <div className="flex items-center justify-between border-b border-charcoal/10 p-5">
               <div>
                 <h2 className="font-display text-xl font-semibold text-charcoal">Categories</h2>
-                <p className="font-body text-xs text-charcoal/55">Each category sets a default margin that overrides the site-wide default and is overridden by product &amp; variant margins.</p>
+                <p className="font-body text-xs text-charcoal/65">Set markup or gross margin for a category. Leave both blank to use the shop default. A product or size can have its own setting.</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-charcoal/50 hover:bg-charcoal/5 hover:text-charcoal">✕</button>
             </div>
@@ -101,19 +110,19 @@ export default function CategoryManager() {
               {loading ? (
                 <p className="font-body text-sm text-charcoal/40">Loading…</p>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-charcoal/10">
+                <div className="overflow-x-auto rounded-lg border border-charcoal/10">
                   <table className="w-full">
                     <thead className="bg-charcoal/[0.03]">
                       <tr>
                         <th className="px-3 py-2 text-left font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/50">Category</th>
-                        <th className="px-3 py-2 text-left font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/50">Default margin %</th>
+                        <th className="px-3 py-2 text-left font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/50">Markup / Gross margin</th>
                         <th className="px-3 py-2 text-left font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/50">Products</th>
                         <th className="px-3 py-2"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-charcoal/5">
                       {cats.map((c) => (
-                        <CategoryRow key={c.id} cat={c} onSave={saveRow} onDelete={del} />
+                        <CategoryRow key={c.id} cat={c} shopMarkup={shopMarkup} onSave={saveRow} onDelete={del} />
                       ))}
                     </tbody>
                   </table>
@@ -125,16 +134,14 @@ export default function CategoryManager() {
                 <p className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wider text-charcoal/50">Add a category</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Name" className="flex-1 min-w-[160px] rounded-md border border-charcoal/15 bg-white px-3 py-2 font-body text-sm" />
-                  <div className="relative w-32">
-                    <input value={newMargin} onChange={(e) => setNewMargin(e.target.value)} type="number" min="0" placeholder="inherit" className="w-full rounded-md border border-charcoal/15 bg-white px-3 py-2 pr-7 font-body text-sm" />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-charcoal/40">%</span>
-                  </div>
-                  <button type="button" disabled={busy || !newName.trim()} onClick={create} className="rounded-md bg-teal px-4 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50">
+                  <MarkupMarginFields value={newMargin} inheritedMarkup={shopMarkup} onChange={setNewMargin} onValidityChange={setNewPricingValid} compact labelPrefix="New category" />
+                  <button type="button" disabled={busy || !newName.trim() || !newPricingValid} onClick={create} className="rounded-md bg-teal px-4 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50">
                     {busy ? 'Adding…' : 'Add'}
                   </button>
                 </div>
                 {err && <p className="mt-2 font-body text-xs text-coral">{err}</p>}
               </div>
+              <div className="mt-4"><PricingRelationship /></div>
             </div>
           </div>
         </div>
@@ -145,10 +152,12 @@ export default function CategoryManager() {
 
 function CategoryRow({
   cat,
+  shopMarkup,
   onSave,
   onDelete,
 }: {
   cat: Cat
+  shopMarkup?: number
   onSave: (id: string, patch: { name?: string; default_margin_pct?: number | null }) => void
   onDelete: (id: string, name: string, count: number) => void
 }) {
@@ -166,22 +175,13 @@ function CategoryRow({
         />
       </td>
       <td className="px-3 py-2">
-        <div className="relative w-28">
-          <input
-            type="number"
-            min="0"
-            value={margin}
-            placeholder="inherit"
-            onChange={(e) => setMargin(e.target.value)}
-            onBlur={() => {
-              const next = margin.trim() === '' ? null : Number(margin)
+        <MarkupMarginFields value={margin} inheritedMarkup={shopMarkup} onChange={setMargin} labelPrefix={cat.name} compact
+            onCommit={(value) => {
+              const next = value.trim() === '' ? null : Number(value)
               const cur = cat.default_margin_pct ?? null
               if (next !== cur) onSave(cat.id, { default_margin_pct: next })
             }}
-            className="w-full rounded border border-charcoal/15 bg-white px-2 py-1 pr-6 font-body text-sm"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-charcoal/40">%</span>
-        </div>
       </td>
       <td className="px-3 py-2 font-body text-sm text-charcoal/60">{cat.product_count ?? 0}</td>
       <td className="px-3 py-2 text-right">
