@@ -8,6 +8,29 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #p0-discovery — Phase 0: LumaPrints catalog snapshot + probe matrix (sandbox), plan rev 3
+
+- **Date:** 2026-09-16
+- **Module:** scripts/catalog-snapshot.mjs · scripts/verify-catalog-geometry.mjs · scripts/lib/lumaprints-probe-client.mjs · src/lib/catalog/walk.ts · /api/admin/lumaprints/snapshot · fixtures/lumaprints/ · audit/FULL-CATALOG-BUILD-PLAN.md
+- **Category:** discovery + verification harness (no behavior change for customers; one new read-only admin route)
+- **Summary:** Walked the full sandbox catalog (7 categories, 50 subcategories, 58 requests, 0 429s,
+  ≤25 req/min) into `fixtures/lumaprints/catalog.us.api-sandbox.lumaprints.com.2026-09-16.json`
+  and scored it against plan §2 (`coverage.*.md`: 0 missing, 5 EXTRA rows). Ran the 16-probe
+  matrix (`PROBES.md`: 6 PASS / 10 FINDING / 0 FAIL / 0 SKIPPED; 3 sandbox orders
+  10000339584–6 on store 82222). Findings folded into plan rev 3: framed paper = 25 frame-profile
+  subcategories with paper as an OPTION; paper bleed is BLOCKED (API expects a shrunken/negative
+  image); pricing enforces no bounds/glass ceiling/easel whitelist/mat-colour dependency (rules
+  engine is the only gate); `[]` options resolve to Image Wrap / 0.25in bleed (never send it);
+  mats keep the submitted PRINT size; fractional inches work everywhere; frame deltas are
+  size-invariant, mat deltas are not; framed paper is non-additive (whole-config pricing);
+  `GET /orders` 404s right after a 201 (poll); hex never echoes. Added `src/lib/catalog/walk.ts`
+  + admin GET `/api/admin/lumaprints/snapshot?category=` (requireAdmin, read-only, paced,
+  resumable) because production API keys are Vercel-sensitive and unpullable — the production
+  snapshot is captured through the deployed app (follow-up PR: `--assemble` + `--diff`).
+- **Verify:** `npm run build-check` GREEN (13/13 required gates) · `npx vitest run test/catalog` 1 file / 8 tests pass, 0 skipped · `npx tsc --noEmit` 0 · eslint 0 · full suite 65 files / 550 pass / 7 skipped (pre-existing).
+- **Ops:** Vercel env split — sensitive production LumaPrints pair now targets production only (values untouched); preview carries the rotated sandbox pair + sandbox base URL + Supabase public vars. `main` fast-forwarded to the live commit 67d5054 (was 21 commits behind the CLI-promoted branch); git-triggered production deploy READY.
+
+
 ### [2026-08-06T08:20:51.152Z] #build-check
 Status: green
 Verified: 13/13 required gates
