@@ -1,10 +1,23 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-06-28 (Payment E2E remediation — Phases 0 + 1 shipped + deployed; Phases 2–5 pending)
+Last updated: 2026-09-16 (Full LumaPrints catalog program — P0 discovery done; P1 next)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
+
+> **Current truth (2026-09-16) — FULL LUMAPRINTS CATALOG PROGRAM STARTED (plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3; P0 done).**
+> Trunk: `main` fast-forwarded to the live commit 67d5054 (production had been running the CLI-promoted
+> Codex branch `DotWin-cx/sales-tax-help`; `main` was 21 commits behind). Phase branches `catalog/p<N>-*` →
+> PR → merge to `main` → git-triggered production deploy (productionBranch=main, verified READY).
+> Env: Vercel LumaPrints production pair (sensitive, unpullable) targets production ONLY; preview =
+> rotated sandbox pair + `LUMAPRINTS_BASE_URL` sandbox + Supabase public vars. Local `.env.luma` =
+> sandbox. Production-key operations run inside the deployed app behind `requireAdmin` (aal2).
+> P0 (this entry): sandbox catalog snapshot + 16-probe matrix in `fixtures/lumaprints/` (see
+> BUILD_LOG `#p0-discovery`); plan §2/§4.1/ADR-3/ADR-4/§7.1/§8/§9 revised to recorded facts.
+> NEXT: P0 follow-up (production snapshot via `/api/admin/lumaprints/snapshot` + id diff) → P1 schema
+> + sync v2. Storefront flag stays OFF until V6.1 parity is cents-exact. Live-fire guard owed before
+> any Stripe test purchase: router must never submit `stripe_mode='test'` orders to a non-sandbox host.
 
 > **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**
 > The password gate is now DB-driven: `site_settings.gate_enabled/gate_password/gate_secret/
