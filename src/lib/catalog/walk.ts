@@ -15,7 +15,12 @@
 // invocation; the walk takes a deadline and returns `incomplete` + `nextOffset`
 // instead of being killed mid-flight.
 
-import { getCategories, getSubcategories, getSubcategoryOptions } from '@/lib/integrations/lumaprints'
+import {
+  getCategories,
+  getSubcategories,
+  getSubcategoryOptions,
+  LumaprintsDisabledError,
+} from '@/lib/integrations/lumaprints'
 
 /** One selectable option inside a group, verbatim from the provider. */
 export interface CatalogOptionItem {
@@ -39,7 +44,8 @@ export interface CatalogSubcategory {
   maximumHeight: string | number
   requiredDPI?: number
   optionGroups: CatalogOptionGroup[]
-  optionsError?: { status?: number; message: string }
+  // Never the provider's message text: this shape is assembled into a committed fixture.
+  optionsError?: { status?: number; code: 'OPTIONS_LOOKUP_FAILED' }
 }
 
 /** A category and the subcategories walked for it. */
@@ -86,7 +92,8 @@ export function catalogHost(): string {
   try {
     return new URL(base).hostname
   } catch {
-    return base
+    // Never echo the raw env value: a malformed base URL could carry userinfo.
+    return 'unknown-host'
   }
 }
 
@@ -176,6 +183,21 @@ export async function walkCategory(
     .map(normaliseCategory)
     .find((c) => c.id === Number(categoryId))
 
+  // Unknown category: answer from the category list alone (one request), so an
+  // invalid id never costs a second provider call.
+  if (!category) {
+    return {
+      host: catalogHost(),
+      capturedAt: new Date().toISOString(),
+      requestCount: pacer.count,
+      wallMs: pacer.elapsed,
+      incomplete: false,
+      nextOffset: null,
+      subcategoryCount: 0,
+      category: { id: Number(categoryId), name: '', subcategories: [] },
+    }
+  }
+
   await pacer.next()
   const rawSubs = await getSubcategories(categoryId)
   const subsRaw = (Array.isArray(rawSubs) ? rawSubs : []) as Array<Record<string, unknown>>
@@ -197,8 +219,13 @@ export async function walkCategory(
     try {
       optionGroups = normaliseGroups(await getSubcategoryOptions(asNumber(s.subcategoryId)))
     } catch (err) {
-      const e = err as { status?: number; message?: string }
-      optionsError = { status: e?.status, message: e?.message ?? 'option lookup failed' }
+      // The kill switch is a stop, not a per-row error: surface it to the caller.
+      if (err instanceof LumaprintsDisabledError) throw err
+      const e = err as { status?: number }
+      optionsError = {
+        ...(typeof e?.status === 'number' ? { status: e.status } : {}),
+        code: 'OPTIONS_LOOKUP_FAILED',
+      }
     }
     subcategories.push({
       subcategoryId: asNumber(s.subcategoryId),

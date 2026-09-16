@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiFail, apiOk } from '@/lib/api/respond'
 import { catalogHost, walkCategories, walkCategory } from '@/lib/catalog/walk'
+import { LumaprintsDisabledError } from '@/lib/integrations/lumaprints'
 
 /**
  * Read-only capture of the live print-catalog structure, one category per call.
@@ -70,6 +71,9 @@ export async function GET(request: NextRequest) {
       category: walked.category,
     })
   } catch (err) {
+    if (err instanceof LumaprintsDisabledError) {
+      return apiError('Print provider is paused by the fulfillment policy', 503, 'LUMAPRINTS_UNAVAILABLE')
+    }
     return apiFail(err, { status: 502, code: 'LUMA_FAIL', context: `admin/lumaprints/snapshot host=${catalogHost()}` })
   }
 }

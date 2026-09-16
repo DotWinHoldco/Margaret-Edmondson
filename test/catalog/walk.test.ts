@@ -10,6 +10,7 @@ const getSubcategoryOptions = vi.hoisted(() => vi.fn())
 const calls = vi.hoisted(() => [] as Array<{ fn: string; at: number }>)
 
 vi.mock('@/lib/integrations/lumaprints', () => ({
+  LumaprintsDisabledError: class LumaprintsDisabledError extends Error {},
   getCategories: (...args: unknown[]) => {
     calls.push({ fn: 'getCategories', at: Date.now() })
     return getCategories(...args)
@@ -25,6 +26,7 @@ vi.mock('@/lib/integrations/lumaprints', () => ({
 }))
 
 import { catalogHost, walkCategories, walkCategory } from '@/lib/catalog/walk'
+import { LumaprintsDisabledError } from '@/lib/integrations/lumaprints'
 
 const CATEGORIES = [
   { id: 101, name: 'Canvas' },
@@ -129,8 +131,33 @@ describe('catalog walk — shape', () => {
     const result = await walkCategory(103, { minIntervalMs: 0 })
     expect(result.category.subcategories).toHaveLength(3)
     expect(result.category.subcategories[0].optionGroups).toEqual([])
-    expect(result.category.subcategories[0].optionsError).toEqual({ status: 502, message: 'boom' })
+    expect(result.category.subcategories[0].optionsError).toEqual({ status: 502, code: 'OPTIONS_LOOKUP_FAILED' })
     expect(result.category.subcategories[1].optionGroups).toEqual(OPTION_GROUPS)
+    // Provider error text never reaches the payload (it is assembled into a committed fixture).
+    expect(JSON.stringify(result)).not.toContain('boom')
+  })
+
+  it('answers an unknown category from the category list with a single request', async () => {
+    const result = await walkCategory(999, { minIntervalMs: 0 })
+    expect(result.requestCount).toBe(1)
+    expect(getSubcategories).not.toHaveBeenCalled()
+    expect(result.category).toEqual({ id: 999, name: '', subcategories: [] })
+    expect(result.subcategoryCount).toBe(0)
+  })
+
+  it('stops the walk when the provider kill switch trips instead of recording rows', async () => {
+    getSubcategoryOptions.mockRejectedValueOnce(new LumaprintsDisabledError())
+    await expect(walkCategory(103, { minIntervalMs: 0 })).rejects.toBeInstanceOf(LumaprintsDisabledError)
+  })
+
+  it('never echoes a malformed base URL (which could carry userinfo) as the host', () => {
+    vi.stubEnv('LUMAPRINTS_BASE_URL', 'https://key:secret@host:notaport')
+    expect(catalogHost()).toBe('unknown-host')
+    expect(catalogHost()).not.toContain('secret')
+    vi.unstubAllEnvs()
+    vi.stubEnv('LUMAPRINTS_BASE_URL', 'https://us.api-sandbox.lumaprints.com/api')
+    expect(catalogHost()).toBe('us.api-sandbox.lumaprints.com')
+    vi.unstubAllEnvs()
   })
 
   it('reports incomplete with a resume offset when the time budget runs out', async () => {
