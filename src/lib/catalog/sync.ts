@@ -713,6 +713,20 @@ async function stepFinalize(ctx: ChunkContext, cursor: SyncCursor): Promise<Sync
     return { stage: 'done' }
   }
 
+  // Mass-tombstone guard: a truncated or empty walk (a provider outage answering
+  // with an empty index, a category dropped from the listing) must never switch the
+  // whole catalog off. Refuse to finalize when this run saw fewer than half the
+  // subcategories the host already knows; the run fails loudly and the next run
+  // starts over. Half is a floor for a walk that partially failed, not a tolerance
+  // for real removals: a genuine catalog change moves a few rows, not dozens.
+  const known = (await ctx.store.listSubcategories(ctx.host)).filter((r) => !r.removed_from_api).length
+  const walked = new Set(cursor.subcategoryIds ?? []).size
+  if (known > 0 && walked * 2 < known) {
+    throw new Error(
+      `Refusing to tombstone: this run saw ${walked} of ${known} known subcategories on ${ctx.host}`,
+    )
+  }
+
   // "Seen in this run" is `last_seen_at >= the run's start`, which is the one
   // predicate that survives a run split across invocations.
   const since = ctx.run.started_at

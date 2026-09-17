@@ -495,6 +495,42 @@ describe('catalog sync v2 — merge, never reset', () => {
   })
 })
 
+describe('catalog sync v2 — mass-tombstone guard', () => {
+  let store: MemoryCatalogStore
+
+  beforeEach(async () => {
+    store = createMemoryCatalogStore()
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+  })
+
+  it('fails the run instead of tombstoning the catalog when the provider index comes back empty', async () => {
+    const before = store.dump()
+    expect(before.subcategories.filter((s) => s.removed_from_api)).toHaveLength(0)
+
+    state.catalog.categories = []
+    const run = await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    expect(run.status).toBe('failed')
+    expect(run.error).toMatch(/Refusing to tombstone: this run saw 0 of 50/)
+
+    const after = store.dump()
+    expect(after.subcategories.filter((s) => s.removed_from_api)).toHaveLength(0)
+    expect(after.groups.filter((g) => g.removed_from_api)).toHaveLength(0)
+    expect(after.options.filter((o) => o.removed_from_api)).toHaveLength(0)
+    // The live bootstrap set is untouched by the failed run.
+    expect(after.subcategories.filter((s) => s.enabled).map((s) => s.subcategory_id).sort()).toEqual([101002, 102002])
+  })
+
+  it('still tombstones a handful of genuine removals (under the half-catalog floor)', async () => {
+    const cat103 = state.catalog.categories.find((c) => c.id === 103)!
+    cat103.subcategories = cat103.subcategories.filter((s) => s.subcategoryId !== 103009)
+    const run = await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    expect(run.status).toBe('completed')
+    const gone = store.dump().subcategories.find((s) => s.subcategory_id === 103009)!
+    expect(gone.removed_from_api).toBe(true)
+    expect(gone.enabled).toBe(false)
+  })
+})
+
 describe('catalog sync v2 — chunked and resumable', () => {
   it('reaches the same catalog whether it runs in one chunk or many', async () => {
     const oneShot = createMemoryCatalogStore()
