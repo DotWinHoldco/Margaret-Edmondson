@@ -155,7 +155,7 @@ function FitsChips({
           <span
             key={subcategory.id}
             title={fits ? `fits ${subcategory.display_label}` : `does not fit ${subcategory.display_label}`}
-            className={`inline-block max-w-[11rem] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[9px] ${
+            className={`inline-block max-w-[8rem] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[9px] ${
               fits ? 'bg-teal/15 text-deep-teal' : 'bg-charcoal/8 text-charcoal/45'
             }`}
           >
@@ -605,7 +605,7 @@ export default function VariantsTab({
                               type="text"
                               defaultValue={v.name ?? (v.size_tier ? TIER_NAME[v.size_tier] : '')}
                               onBlur={(e) => { if (e.target.value.trim() && e.target.value !== v.name) onNameChange(v.id, e.target.value) }}
-                              className="w-40 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
+                              className="w-36 rounded border border-charcoal/15 px-2 py-1 font-body text-sm"
                             />
                           </td>
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap">
