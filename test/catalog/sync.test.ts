@@ -598,6 +598,43 @@ describe('catalog sync v2 — transient provider conditions', () => {
     expect(resumed.stats.transientFailures).toBe(0)
   })
 
+  it('keeps the progress a chunk committed before the throttle hit', async () => {
+    // Categories and the first subcategory lists succeed, then the provider throttles the
+    // options lookups: the saved cursor must point at the options stage, not back at the start.
+    const store = createMemoryCatalogStore()
+    let optionCalls = 0
+    const client: CatalogProviderClient = {
+      getCategories: () => liveProviderClient.getCategories(),
+      getSubcategories: (id: number) => liveProviderClient.getSubcategories(id),
+      getSubcategoryOptions: async (id: number) => {
+        optionCalls += 1
+        if (optionCalls <= 2) {
+          throw new errors.LumaprintsApiError(429, '{"statusCode":429,"message":"ThrottlerException: Too Many Requests"}')
+        }
+        return liveProviderClient.getSubcategoryOptions(id)
+      },
+      getProductsCost: (items: Parameters<CatalogProviderClient['getProductsCost']>[0]) => liveProviderClient.getProductsCost(items),
+    }
+    const paused = await startCatalogSync(store, client, { host: HOST, ...FAST, maxRequests: 12 })
+    expect(paused.status).toBe('running')
+    expect(paused.stats.transientFailures).toBe(1)
+    expect(paused.cursor.stage).toBe('options')
+    expect(paused.cursor.subcategoryIndex ?? 0).toBe(0)
+    expect(paused.stats.requests).toBe(9)
+    expect(store.dump().subcategories).toHaveLength(50)
+
+    // The second options lookup is throttled too: a second consecutive transient, same cursor.
+    const resumed = await continueCatalogSync(store, client, paused.id, { ...FAST, maxRequests: 12 })
+    expect(resumed.status).toBe('running')
+    expect(resumed.stats.transientFailures).toBe(2)
+    expect(resumed.cursor.stage).toBe('options')
+    expect(resumed.cursor.subcategoryIndex ?? 0).toBe(0)
+
+    const going = await continueCatalogSync(store, client, paused.id, { ...FAST, maxRequests: 12 })
+    expect(going.stats.transientFailures).toBe(0)
+    expect((going.cursor.subcategoryIndex ?? 0) > 0).toBe(true)
+  })
+
   it('fails the run only after five consecutive transient chunks, never on a 400', async () => {
     const store = createMemoryCatalogStore()
     const client = throttledClient(99)
