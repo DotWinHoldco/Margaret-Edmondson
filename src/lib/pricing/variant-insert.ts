@@ -14,6 +14,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Medium } from '@/lib/pricing/mediums'
 import type { MediumConfig } from '@/lib/pricing/medium-config'
+import type { Catalog } from '@/lib/catalog/types'
+import { loadCatalog } from '@/lib/catalog/load'
+import { subcategoryRefForMedium } from '@/lib/catalog/availability'
+import { quoteDefaultConfiguration } from '@/lib/pricing/quote'
 import { getCachedPrice, refreshCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 
@@ -46,8 +50,13 @@ export interface PricedVariantArgs {
   aspect_ratio?: number | null
   /** Custom display name; defaults to "{size_label} — {medium}". */
   name?: string
-  /** true → force a live re-price (refreshCachedPrice) instead of the cache. */
+  /** true → force a live re-price instead of the cache. */
   refresh?: boolean
+  /**
+   * The full catalog tree, when the caller is pricing several rows. Omitted, one is
+   * loaded per row; a bulk caller should load it once and pass it here.
+   */
+  catalog?: Catalog
 }
 
 /**
@@ -81,12 +90,44 @@ export async function buildPricedVariantRow(
 
   let cost_cents = 0
   let shipping_cents = 0
+  // What the fulfillment snapshot freezes. The quote engine returns the normalized
+  // default set (sorted, defaults filled for every group); the legacy config's pinned
+  // list is the fallback for a family the catalog has not been synced for yet.
+  let option_ids: number[] = cfg.option_ids
   try {
-    const price = refresh
-      ? await refreshCachedPrice(supabase, medium, size_label, zips)
-      : await getCachedPrice(supabase, medium, size_label, zips)
-    cost_cents = price.cost_cents
-    shipping_cents = price.shipping_cents
+    const catalog = args.catalog ?? (await loadCatalog(supabase, { includeDisabled: true }))
+    const subcategoryRef = subcategoryRefForMedium(catalog, medium, cfg.subcategory_id)
+    if (subcategoryRef) {
+      // The default configuration of the medium's subcategory: the same numbers the
+      // configurator quotes with no options touched, through one cache and one set
+      // of geometry rules.
+      const quote = await quoteDefaultConfiguration(
+        supabase,
+        { productId: product_id, subcategoryRef, widthIn: width_in, heightIn: height_in },
+        { catalog, zips, refresh, marginPct: productDefaultMargin },
+      )
+      if (quote.available && quote.selection) {
+        cost_cents = quote.costCents
+        shipping_cents = quote.shippingCents
+        option_ids = quote.selection.optionIds
+      } else {
+        console.warn(
+          'buildPricedVariantRow: configuration not sellable',
+          medium,
+          size_label,
+          quote.violations.map((violation) => violation.code).join(','),
+        )
+      }
+    } else {
+      // A family whose catalog rows have not been synced for this host yet still has
+      // to price, so the legacy medium-level cache stays as the single fallback.
+      console.warn('buildPricedVariantRow: no catalog subcategory for medium, using the legacy price path', medium)
+      const price = refresh
+        ? await refreshCachedPrice(supabase, medium, size_label, zips)
+        : await getCachedPrice(supabase, medium, size_label, zips)
+      cost_cents = price.cost_cents
+      shipping_cents = price.shipping_cents
+    }
   } catch (e) {
     console.warn('buildPricedVariantRow: failed to price', medium, size_label, e)
   }
@@ -134,7 +175,7 @@ export async function buildPricedVariantRow(
     fulfillment_metadata: {
       size: size_label,
       lumaprints_subcategory_id: cfg.subcategory_id,
-      lumaprints_option_ids: cfg.option_ids,
+      lumaprints_option_ids: option_ids,
     },
   }
 }

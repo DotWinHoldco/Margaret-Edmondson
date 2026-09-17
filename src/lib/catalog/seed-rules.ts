@@ -13,8 +13,8 @@
 // Pure functions only: no I/O, no provider calls, no database.
 
 import type { Medium } from '@/lib/pricing/mediums'
-import { canonicalGroupKey, DEPENDENT_GROUPS } from '@/lib/catalog/keys'
-import type { DisplayKind, Geometry, PricingMode, Swatch } from '@/lib/catalog/types'
+import { canonicalGroupKey, DEPENDENT_GROUPS } from './keys'
+import type { DisplayKind, Geometry, PricingMode, Swatch } from './types'
 
 /** The minimum an option must carry for these rules to run. */
 export interface NamedOption {

@@ -8,6 +8,10 @@ import { loadBuilderContext } from '@/lib/pricing/builder-context'
 import { validateCustomSize } from '@/lib/pricing/size-tiers'
 import { priceCustomVariant } from '@/lib/pricing/lumaprints-cache'
 import { pricingErrorCode } from '@/lib/pricing/pricing-errors'
+import { loadCatalog } from '@/lib/catalog/load'
+import { subcategoryRefForMedium } from '@/lib/catalog/availability'
+import { quoteDefaultConfiguration } from '@/lib/pricing/quote'
+import { grossMarginPct } from '@/lib/pricing/variant-pricing'
 
 const Body = z.object({
   medium: z.enum(MEDIUMS as unknown as [Medium, ...Medium[]]),
@@ -28,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const ctxRes = await loadBuilderContext(auth.supabase, product_id, medium)
   if (!ctxRes.ok) return apiError(ctxRes.message, ctxRes.status, ctxRes.code)
-  const { printW, printH, ratio, bounds, dpi } = ctxRes.ctx
+  const { printW, printH, ratio, bounds, dpi, cfg } = ctxRes.ctx
 
   const check = validateCustomSize(
     { widthIn: width_in, heightIn: height_in },
@@ -49,13 +53,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const price = await priceCustomVariant(auth.supabase, { productId: product_id, medium, widthIn: width_in, heightIn: height_in })
+    const catalog = await loadCatalog(auth.supabase, { includeDisabled: true })
+    const subcategoryRef = subcategoryRefForMedium(catalog, medium, cfg.subcategory_id)
+    if (!subcategoryRef) {
+      // The catalog has no row for this family yet: keep the legacy live price so the
+      // builder still works on a host that has not been synced.
+      const price = await priceCustomVariant(auth.supabase, { productId: product_id, medium, widthIn: width_in, heightIn: height_in })
+      return apiOk({
+        ...base,
+        cost_cents: price.cost_cents,
+        shipping_cents: price.shipping_cents,
+        price_cents: price.customerPrice_cents,
+        gross_margin_pct: Number(price.grossMarginPct.toFixed(1)),
+      })
+    }
+
+    // Price the default configuration of that subcategory through the quote engine:
+    // the same cost, freight and markup the storefront will show for this size.
+    const quote = await quoteDefaultConfiguration(
+      auth.supabase,
+      { productId: product_id, subcategoryRef, widthIn: width_in, heightIn: height_in },
+      { catalog },
+    )
+    if (!quote.available) {
+      // The geometry rules refused the configuration. The provider would have priced
+      // it anyway (P4), which is exactly the sale that 406s after payment.
+      return apiOk({
+        ...base,
+        error_code: 'SIZE_OUT_OF_BOUNDS',
+        error: quote.violations[0]?.message ?? friendlyMessage('SIZE_OUT_OF_BOUNDS'),
+      })
+    }
     return apiOk({
       ...base,
-      cost_cents: price.cost_cents,
-      shipping_cents: price.shipping_cents,
-      price_cents: price.customerPrice_cents,
-      gross_margin_pct: Number(price.grossMarginPct.toFixed(1)),
+      cost_cents: quote.costCents,
+      shipping_cents: quote.shippingCents,
+      price_cents: quote.priceCents,
+      gross_margin_pct: Number(grossMarginPct(quote.priceCents, quote.costCents, quote.shippingCents).toFixed(1)),
     })
   } catch (err) {
     const code = pricingErrorCode(err)
