@@ -17,13 +17,22 @@ describe('familiar print labels are display only', () => {
     expect(input.width_in).toBe(15.85)
     expect(printSizeCartLabel(input)).toBe('Medium — 16 × 20 in (actual cropped size: 15.85 × 20 in)')
   })
-  it('respects both edge thresholds, including 2.5% for larger prints, without distant snapping', () => {
+  it('shows the familiar size within an inch or 10% per edge, and never an odd size on the site', () => {
     expect(printSizeLabel({ width_in: 15.5, height_in: 20 }).dimensions).toBe('16 × 20 in')
-    expect(printSizeLabel({ width_in: 15.499, height_in: 20 }).isApproximate).toBe(false)
+    // A 6.7% crop drift on one edge still reads as the familiar size (the owner's rule).
+    expect(printSizeLabel({ width_in: 16, height_in: 21.35 })).toMatchObject({ dimensions: '16 × 20 in', actualNote: '(actual cropped size: 16 × 21.35 in)' })
     expect(printSizeLabel({ width_in: 29.25, height_in: 40 }).dimensions).toBe('30 × 40 in')
-    expect(printSizeLabel({ width_in: 29.249, height_in: 40 }).isApproximate).toBe(false)
-    expect(printSizeLabel({ width_in: 9, height_in: 20 }).dimensions).toBe('9 × 20 in')
+    expect(printSizeLabel({ width_in: 27, height_in: 40 }).dimensions).toBe('30 × 40 in')
+    // Past the tolerance there is no familiar size: the nearest whole inch, with the note.
+    expect(printSizeLabel({ width_in: 26.9, height_in: 40 })).toMatchObject({ dimensions: '27 × 40 in', actualNote: '(actual cropped size: 26.9 × 40 in)' })
+    expect(printSizeLabel({ width_in: 14.95, height_in: 30 })).toMatchObject({ dimensions: '15 × 30 in', isApproximate: true })
+    expect(printSizeLabel({ width_in: 4.1, height_in: 12 })).toMatchObject({ dimensions: '4 × 12 in', isApproximate: true })
+    // Whole inches with no familiar size stay exactly as they are, with no note.
+    expect(printSizeLabel({ width_in: 9, height_in: 20 })).toMatchObject({ dimensions: '10 × 20 in', isApproximate: true })
+    expect(printSizeLabel({ width_in: 7, height_in: 30 })).toMatchObject({ dimensions: '7 × 30 in', actualNote: null })
     expect(printSizeLabel({ width_in: 16, height_in: 20 }).actualNote).toBeNull()
+    // Orientation is preserved when the familiar size is chosen.
+    expect(printSizeLabel({ width_in: 21.35, height_in: 16 }).dimensions).toBe('20 × 16 in')
   })
   it('retains custom names without duplicate dimensions and handles legacy missing dimensions', () => {
     expect(printSizeLabel({ width_in: 15.85, height_in: 20, name: 'Collector edition — 15.85x20 in' }).title).toBe('Collector edition — 16 × 20 in')

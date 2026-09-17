@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #size-labels — Familiar sizes only on the site: the label tolerance widens to an inch or 10% per edge, else the nearest whole inch
+
+- **Date:** 2026-09-17
+- **Module:** src/lib/pricing/print-size-label.ts (`tolerance`, `wholeInch`) · test/print-size-label.test.tsx · docs/size-labels-and-margaret-guide-2026-09-14.md
+- **Category:** storefront presentation (R0); pricing, fulfillment and variant identity untouched
+- **Summary:** Owner's rule: a small crop or edit must never surface an odd size on the site. A print within one inch or 10% per edge of a familiar size shows that size (16 × 21.35 reads 16 × 20); anything farther shows the nearest whole inch (14.95 × 30 reads 15 × 30); the 9px `(actual cropped size: …)` note travels underneath whenever the label rounded; whole-inch sizes with no familiar neighbour stay exact with no note. Same module feeds the storefront picker, the configurator size chips, cart and checkout titles and the admin size column. The admin "Add print size" dialog is unchanged: choosing 16 × 20 there still means an exact 16 × 20 crop.
+- **Verify:** test/print-size-label (thresholds, whole-inch fallback, orientation) · funnel + shop + cart + orders suites green · full suite before merge.
+
 ## #full-catalog #orchestration — session 33beeda3: P3–P9 shipped to production (door closed), report GO, human gates remain
 
 - **Date:** 2026-09-17

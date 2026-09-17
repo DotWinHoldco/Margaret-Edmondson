@@ -14,18 +14,36 @@ interface SizeInput {
   size_tier?: 'S' | 'M' | 'L' | null
 }
 
+/**
+ * How far a real edge may sit from a familiar size and still be shown as that size:
+ * the greater of one inch or 10% of the familiar edge. The owner's rule (2026-09-17):
+ * a small crop or edit must never surface an odd size on the site. The real size
+ * always travels underneath as the 9px note, and nothing here touches what is priced
+ * or printed.
+ */
+function tolerance(edge: number): number {
+  return Math.max(1, edge * 0.1)
+}
+
+/** 21.35 -> 21, 14.95 -> 15: the clean size a shopper reads when no familiar size is near. */
+function wholeInch(edge: number): number {
+  return Math.max(1, Math.round(edge))
+}
+
 export function printSizeLabel(value: SizeInput) {
   const w = Number(value.width_in), h = Number(value.height_in)
   const valid = Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
   if (!valid) return { dimensions: value.size_label || '', title: value.name || value.size_label || 'Print', actualNote: null, isApproximate: false }
   const candidates = STANDARD_SIZES.flatMap(([a, b]) => a === b ? [[a, b]] : [[a, b], [b, a]])
     .filter(([a, b]) => (w === h || a === b || Math.sign(w - h) === Math.sign(a - b))
-      && Math.abs(w - a) <= Math.max(0.5, a * 0.025) + 1e-9
-      && Math.abs(h - b) <= Math.max(0.5, b * 0.025) + 1e-9)
+      && Math.abs(w - a) <= tolerance(a) + 1e-9
+      && Math.abs(h - b) <= tolerance(b) + 1e-9)
     .sort(([a, b], [c, d]) =>
-      Math.max(Math.abs(w - a) / Math.max(0.5, a * 0.025), Math.abs(h - b) / Math.max(0.5, b * 0.025))
-      - Math.max(Math.abs(w - c) / Math.max(0.5, c * 0.025), Math.abs(h - d) / Math.max(0.5, d * 0.025)))
-  const [displayW, displayH] = candidates[0] || [w, h]
+      Math.max(Math.abs(w - a) / tolerance(a), Math.abs(h - b) / tolerance(b))
+      - Math.max(Math.abs(w - c) / tolerance(c), Math.abs(h - d) / tolerance(d)))
+  // A familiar size when one is near enough; otherwise the nearest whole inch, so a
+  // fractional crop never reads as 14.95 × 30 on a product page.
+  const [displayW, displayH] = candidates[0] || [wholeInch(w), wholeInch(h)]
   const isApproximate = Math.abs(displayW - w) > 1e-9 || Math.abs(displayH - h) > 1e-9
   const dimensions = `${displayW} × ${displayH} in`
   // Keep personal names and Small/Medium/Large; remove only an old dimension fragment.

@@ -1,6 +1,8 @@
 # Familiar print sizes and Margaret's guide
 
-Near-standard print dimensions now show the familiar size first and a separate 9px line such as `(actual cropped size: 15.6 × 20 in)`. This is presentation only: saved dimensions, variant IDs, prices, artwork pixels, and Lumaprints production dimensions remain unchanged. Exact standard sizes omit the redundant note; distant custom sizes remain exact. Each edge must be within the greater of half an inch or 2.5% of the candidate standard dimension. Orientation is preserved.
+Near-standard print dimensions show the familiar size first and a separate 9px line such as `(actual cropped size: 15.6 × 20 in)`. This is presentation only: saved dimensions, variant IDs, prices, artwork pixels, and Lumaprints production dimensions remain unchanged. Exact standard sizes omit the redundant note. Orientation is preserved.
+
+**Rule since 2026-09-17 (owner's decision: a small crop or edit must never surface an odd size on the site).** Each edge may sit within the greater of one inch or 10% of the familiar dimension (it was half an inch or 2.5%). When no familiar size is that close, the label is the nearest whole inch (14.95 × 30 reads 15 × 30) with the same actual-size note. A whole-inch size with no familiar neighbour stays exactly as it is.
 
 The shared presentation covers the Lumaprints size column, studio variant headings, storefront chooser, all three funnel templates, and newly added cart/checkout titles. Editable saved names remain intact. Existing cart titles retain their original wording.
 
