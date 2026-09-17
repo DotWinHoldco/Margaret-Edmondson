@@ -890,8 +890,11 @@ async function runChunk(
     console.error('[catalog-sync] chunk failed:', cls, err instanceof Error ? err.message : err)
     const consecutive = (run.stats.transientFailures ?? 0) + 1
     if (isTransientSyncError(cls) && consecutive < MAX_TRANSIENT_FAILURES) {
-      // Transient: keep the cursor where it was; the run stays running for the next tick.
+      // Transient: keep the progress the chunk already committed (`cursor` is advanced only
+      // after a step's writes succeeded), so the retry resumes at the failed step instead
+      // of replaying the whole chunk against a provider that is already throttling us.
       const paused = await store.updateRun(run.id, {
+        cursor,
         stats: {
           ...addStats(run.stats, { ...emptyStats(), requests: budget.requests, chunks: 1 }),
           transientFailures: consecutive,
