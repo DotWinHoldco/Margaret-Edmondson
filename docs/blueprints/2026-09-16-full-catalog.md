@@ -135,9 +135,10 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   production incidents found and fixed by the exit run itself: provider throttle → transient chunks
   (#4, #6); provider 50-item batch cap → batched defaults probe (#5). Bootstrap corrected to the five
   live mediums (#7). Agents used: 2 executors (+2 resumes), 1 security-reviewer.
-- P2 (147c1ba, in review): contracts quote-types.ts by the architect; ONE security-reviewer pass over the
+- P2 (147c1ba..6c40404, PR #8): contracts quote-types.ts by the architect; ONE security-reviewer pass over the
   public quote route + engine: 3 blocking (dark-door gate + fulfillment budget reserve; wholesale delta
-  leak via labels; variant overrides dropped) + 4 should-fix + notes → corrective round in progress.
+  leak via labels; variant overrides dropped) + 4 should-fix + notes → all closed in one corrective round
+  (two executors + 2 resumes). build-check GREEN, 817 tests, V6.1 parity 834/834 on production.
 ## Proof
 
 <!-- walks walked (date, device, by whom) · probe records · ledger read after deploy -->
@@ -148,7 +149,13 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   94,96,146,148] / [39] on the five live subcategories; live RLS proof (anon 42501 on every write, runs
   unreadable, `has_table_privilege(authenticated, INSERT|UPDATE|DELETE)` false on all four tables);
   V6.1 parity 834/834 (`audit/catalog-verification/V6.1.md`).
+- P2 exit (2026-09-17): V6.1 parity 834/834 on production (`audit/catalog-verification/V6.1.md`); V2 sandbox
+  sweep 190 requests / 0 x 429 with additivity 12/12 and 25/25 engine glass-ceiling assertions; F35/F36/F37
+  recorded (sandbox drops rows at random in long sweeps) — the strict production run is owed to V7.2.
 
 ## Close
 
 <!-- #orchestration BUILD_LOG entry + usage: line from usage-report --write -->
+- Session 15e819c2 handoff (2026-09-17): BUILD_LOG `#orchestration` entry carries the printed line
+  `usage: agents=8 turns=1592 out_k=2471 cache_read_M=508 architect_share=64% denied=1 sig=cf02fb37`. Status stays `executing`; P3–P9 open.
+

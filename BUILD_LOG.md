@@ -8,6 +8,26 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #orchestration — session 15e819c2 handoff: P0–P2 landed, session usage ceiling reached
+
+- **Date:** 2026-09-17
+- **Blueprint:** docs/blueprints/2026-09-16-full-catalog.md (Status: executing) · plan audit/FULL-CATALOG-BUILD-PLAN.md rev 3
+- **Landed:** PRs #1 #2 (P0/P0b), #3 #4 #5 #6 #7 (P1 + follow-ups), #8 (P2), #9 (V2 sweep artifacts only; its message over-claimed receipts, corrected by #10) — all merged to main, production deploys READY per merge. Phases P3–P9 NOT started.
+- **Agents:** 6 executor spawns (+6 resumes), 3 security-reviewer passes, 0 refuters, 0 lens rounds; rework rounds: P0 1, P1 1, P2 1 (each a single corrective round from the security pass). Governor: blueprint budget 12 exhausted at P2; a session-bound override (+12, reason recorded) covered 4 messages and was removed at this handoff. The session then reached the machine usage ceiling (output tokens) → closed inline; resume in a fresh session.
+- **usage: agents=8 turns=1592 out_k=2471 cache_read_M=508 architect_share=64% denied=1 sig=cf02fb37**
+- **Live proof pointers:** production sync run bf79e8ce (catalog_sync_runs), dry run 1f4b624a (0 diffs), V6.1 parity audit/catalog-verification/V6.1.md (834/834), RLS live proof in #p1-schema-sync.
+- **Owed to the next session (in order):** V2 sweep F37 classification + `--strict` (scripts only) and a green full sandbox run; P3 admin catalog manager (toggles via aal2-checked SECURITY DEFINER RPCs + audit table), VariantsTab v2, offer-coverage generator; P4 configurator + preview (flag OFF in prod); P5 money path — FIRST unit: a router guard so a Stripe test-mode order never reaches a non-sandbox LumaPrints host; P6 fulfillment; P7 order surfaces; P8 cleanup + help articles; P9 report + GO checklist. Two human gates remain at the end.
+
+## #full-catalog #p2-pricing-engine — Phase 2: rules engine, configuration quote engine, dark public quote route, verification harness
+
+- **Date:** 2026-09-17
+- **Module:** src/lib/catalog rules/selection/availability/assemble · src/lib/pricing quote/quote-cache/quote-types · migration 20260917000200 · admin variant-insert/refresh/price-preview · /api/products/[id]/print-quote · scripts/verify-catalog-pricing.ts (+ register-ts.mjs, verification-report.ts) · audit/catalog-verification/
+- **Category:** pricing engine v2 (money path adjacent; public route dark) — R2/S
+- **Summary:** ADR-4 rules engine enforces everything the provider does not (bounds, orientation-aware glass ceiling incl. No Mat, easel whitelist, mat-colour dependency, required groups, blocked options, hex) with customer copy from a frozen safe set. Quote engine: cache v2 keyed (subcategory_ref, width, height, price_key_hash); additive subcategories price default + one swap per enabled option in ONE batch and compose deltas as whole-row differences (provider price is base-only); framed paper prices whole configurations (F26 confirmed at scale: 2 of 41 recorded configs additive); shipping memoized per class; stale-serve; variant margin/manual overrides honoured (manual price locks the default configuration); never an empty option set. Admin variant pricing paths run through the engine with proven legacy parity; refresh stops on a busy provider. Public route: 404 while print_configurator_enabled is false, 60/min/IP, fulfillment reserve of 8 slots, variant-only sizes, no cost/shipping/deltas in the payload. Security pass: 3 blocking + 4 should-fix closed in one round.
+- **Verify:** build-check GREEN (14/14 incl. build) · vitest 81 files / 817 passed / 7 skipped (pre-existing) · V6.1 parity on production 834/834 GREEN · V2 sandbox sweep 190 requests, 0 x 429: additivity 12/12 on canvas/framed canvas/metal, 25/25 engine glass-ceiling assertions, F35 (Canvas Finish never echoed); sandbox drops rows at random in long sweeps (F36/F37) — residual-drop classification + strict production run owed.
+- **Migration:** 20260917000200 applied to production via Supabase MCP; types regenerated.
+
+
 ## #full-catalog #p1-schema-sync — Phase 1: catalog v2 schema, chunked sync, loader, provider budget — LIVE on production
 
 - **Date:** 2026-09-17
