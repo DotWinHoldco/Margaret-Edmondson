@@ -261,4 +261,8 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   (7 executors, 1 security reviewer counted as reviewer, 1 as verifier; 0 refuters; 2 corrective rounds, both by the
   architect). Status stays `executing` for the human gates only: V7.2 dashboard comparison, V7.5 billing address,
   V7.9 real QC order, FLAG flip + per-medium enablement with margin sign-off.
+- Same-day owner follow-ups after the close (all merged and live): #15 admin guidance + door state on Print Catalog /
+  Print Coverage; #16 + #17 product editor at the admin width, sizes tables measured to fit on production; #18 the
+  Settings "Print configurator" switch (the FLAG gate is now the owner's own click; the storefront copy of the gate stays
+  Site access). #14 (label tolerance widening) withdrawn by the owner. Handoff written to STATE.md and memory.
 
