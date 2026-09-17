@@ -1,35 +1,40 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-17 15:20 UTC (Full LumaPrints catalog program — P3–P9 shipped + owner follow-ups #15–#18 live; production dark behind the new Settings switch; report GO; human gates owed)
+Last updated: 2026-09-17 17:30 UTC (door OPEN since 16:06 UTC; print-quote resilience + slug redirects + crop revert live at c7c89d7; storage upload cap and dependency audit owed to people)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-17 15:20 UTC, session 33beeda3 handoff) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P9 SHIPPED AND LIVE (dark). main = b290ccf (PRs #11–#13, #15–#18), production deploy READY at that SHA, door CLOSED via the new Settings switch. Verification report GO; only the human gates remain.**
-> After the P9 close, four owner-driven follow-ups merged the same day: #15 Print Catalog / Print Coverage carry a guidance note
-> with the switch order and the live door state; #16 + #17 the product editor uses the full admin width and every sizes table
-> fits without a sideways scroll (measured on production); #18 Settings → "Print configurator" on/off card (admin-only
-> GET/PATCH `/api/admin/settings/print-configurator`), so the launch flip is the owner's own click. A proposal to widen the
-> familiar-size label tolerance was WITHDRAWN (#14): the half-inch / 2.5% rule stands by the owner's decision.
-> HOW THE OWNER GOES LIVE: Print Catalog → switch on print types / groups / options and pick defaults → Print Coverage →
-> "Generate missing sizes" (business call: which print types) → Settings → Print configurator ON → (later) Site access OFF.
-> Owed to people: Supabase redirect allowlist `https://*-dotwinholdcos-projects.vercel.app/**` (preview Google sign-in);
-> V7.2 dashboard comparison of the five recorded costs; V7.5 billing address + card on the production LumaPrints account;
-> V7.9 real QC order; per-medium margins (§11); the two 2% margin overrides and five duplicate variant groups; a Print
-> Catalog screenshot for help article 06a. Nothing is owed to code before the flip.
-> Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 · blueprint `docs/blueprints/2026-09-16-full-catalog.md` (Status: executing;
-> Examine carries both security-pass receipts, all findings closed). Production DB now holds migrations 20260917100000
-> (catalog admin RPCs), 20260917110000 (order_items.line_hash + solid_color_hex, 4-column upsert key) and 20260917120000
-> (pricing cache + audit log aal2-only for browser roles, swatch image_path CHECK); the RPC guards were live-proven.
-> Storefront: `print_configurator_enabled=false` on production; Vercel PREVIEW carries `PRINT_CONFIGURATOR_FORCE=on`
-> (production ignores it by code), so every PR preview opens the configurator. The preview sits behind the site password
-> gate: the P4 walk needs the gate password typed once in the browser (owed).
-> Verify at fe1a802: build-check GREEN (15/15 incl. build) · vitest 102 files / 1012 passed / 7 pre-existing skips ·
-> V6.1 parity on production 834/834 GREEN. In flight / owed: V2 --strict sandbox sweep, V4 sandbox order suite (8 orders),
-> the generated `audit/CATALOG-VERIFICATION-REPORT.md`, the preview walk, V7.2 (five configurations through the admin
-> sellable check on production vs the provider dashboard) and V7.8 (production PDP = legacy picker, prices at parity).
-> Human gates unchanged: V7.9 real production QC order; FLAG flip + per-medium enablement with margin sign-off (§11).
+> **Current truth (2026-09-17 17:30 UTC, session e37c5a7c) — THE CONFIGURATOR DOOR IS OPEN (owner flipped it 16:06 UTC; site password gate still ON). main = c7c89d7 (PR #20), production deploy READY at that SHA. Blueprint `docs/blueprints/2026-09-17-print-quote-resilience.md` (closed); the catalog program blueprint `2026-09-16-full-catalog.md` is closed too — its human gates live here, not in a unit.**
+> What broke when the door opened, and what now stands: (1) "Our print partner is busy" on every print page within a minute
+> was OUR key-wide request budget refusing public quotes on a 7-row price cache (LumaPrints never called). Now a pricing
+> warmer prices every offered print type × size before a shopper asks — cron `/api/cron/pricing-warm` every 5 min, leased,
+> paced one size per 25 s under a reserve that keeps shopper slots, plus "Price sizes now" and a readiness line on the
+> Settings card (`GET/POST /api/admin/catalog/warm`); cache life 72 h; a stale answer never ships with free freight; a budget
+> refusal carries its window reset (`retryAfterMs`, `Retry-After`) and the page retries along a one-minute ladder ("Checking
+> the price…") before any error copy; the log names the refusing class. Surface today: 197 sizes; cold fill ≈ 100 minutes
+> from the first tick after this deploy — watch `missing` fall on the Settings card. (2) `/shop/art/think-again` 404'd because
+> the slug was renamed 09-14 and the homepage tile snapshotted it: `product_slug_redirects` (trigger on every rename, readable
+> only while the product is sellable; six old slugs backfilled) → 308 on the product page; featured tiles take slug/title from
+> the live row. (3) Print-master crops: a failed re-crop no longer un-shelves the product (the previous print file stays in
+> service, the failure is recorded), the upload error names the storage answer + size, and "Revert to original" in the crop
+> editor (`POST /api/admin/master-artworks/[id]/crop/revert`) always restores the uncropped master. Keepsake (failed 09-15)
+> and The Dual (failed 09-17) were restored to `ready` on their previous files.
+> OWED TO PEOPLE (in order): (a) Supabase dashboard → Project Settings → Storage → raise the upload file size limit (default
+> 50 MB caps every bucket; The Dual's crop is a 62 MP PNG, Keepsake's 130 MP; the bucket itself allows 500 MB) — then re-save
+> those two crops; (b) the CI `Dependency audit` step is red on every main run today: Next.js image-optimization RCE advisory
+> (GHSA-2xp9-vwfh-vxw4, needs next@16.3.5), sharp < 0.35.4, sanitize-html — a dependency unit of its own, soon; (c) the
+> catalog program's human gates unchanged: V7.2 dashboard cost comparison, V7.5 billing address + card on the production
+> LumaPrints account, V7.9 real QC order, per-medium margins (§11), the two 2% overrides and five duplicate variant groups,
+> a Print Catalog screenshot for help article 06a, the Supabase redirect allowlist for preview Google sign-in. Framed canvas
+> offers only the 1.25in Black frame today: Oak/Walnut are switched off in Print Catalog; the 0.75in and 1.50in print types
+> (white, silver, gold, barnwood, espresso, maple) are off entirely.
+> Production DB migrations added today: 20260917130000 (`product_slug_redirects` + trigger + backfill) and 20260917140000
+> (sellable-only read policy, `search_path=''`). Known pre-existing gap, not touched: `sold` products are invisible to
+> anonymous readers (products policy is `status='active'` only), so a sold original's page and redirect 404 for shoppers.
+> Verify at c7c89d7: build-check GREEN (15/15) · vitest 116 files / 1078 passed / 7 pre-existing skips · security pass 11
+> findings, 8 fixed, 3 refuted with live evidence (blueprint Examine).
 > Owner flags: two Live variants carry a 2% margin override (Flower Power 20x20 paper, Think Again 12x9 canvas);
 > production has 5 duplicate (product, medium, size) variant groups (clean before adding the unique index);
 > a Print Catalog screenshot for the new help article is owed.
@@ -209,9 +214,9 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 ## Current Build Status
 
 Status: green
-Last verified: 2026-08-06T08:20:51.152Z
+Last verified: 2026-09-17T17:28:33.294Z
 Last command: build-check --green
-Gates passed: 13/13 required
+Gates passed: 14/14 required
 Failing gates: none
 Unrun required gates: none
 <!-- dotwin:build-status:end -->

@@ -3,7 +3,7 @@
 Authored by DotWin
 
 Format: v2
-Status: executing
+Status: closed
 Radius: R2
 Budget: agents ≤ 3 · forks ≤ 0 · rounds ≤ 1 · ultracode: off
 Examine: default
@@ -77,10 +77,12 @@ and RLS, a cron route, an admin route, the public product page.
 
 ## Security contract
 
-- Table `product_slug_redirects`: RLS on; SELECT for anon + authenticated (old slugs are public
-  URLs); no INSERT/UPDATE/DELETE grant for browser roles; writes only by the trigger function
-  (`security definer`, `set search_path = public`) and the service role. Transaction owner: the
-  trigger. No PII.
+- Table `product_slug_redirects`: RLS on; SELECT for anon + authenticated only while the
+  product is sellable (`exists (… p.status in ('active','sold'))`, hardening migration
+  20260917140000 after the security pass — old slugs are public URLs, but a draft's working
+  slug is not); no INSERT/UPDATE/DELETE grant for browser roles; writes only by the trigger
+  function (`security definer`, `set search_path = ''`, every reference schema-qualified) and
+  the service role. Transaction owner: the trigger. No PII.
 - Routes: cron behind `requireCron` (fail-closed); admin behind `requireAdmin` (aal2). The warm
   pass runs as the service role and reads only catalog/product/variant/cache rows.
 - Doors: none new. Kill switch `site_settings.lumaprints_enabled` still stops every provider
@@ -151,4 +153,35 @@ and RLS, a cron route, an admin route, the public product page.
 
 ## Proof
 
-(walks + probe record appended at close)
+Production deploy `dpl_8Ubb5NVuSxU2ir5d5WpGqJEMHA5u` READY at 17:24 UTC, `githubCommitSha` c7c89d7 = main HEAD,
+aliases www.artbyme.studio / artbyme.studio. Walked in the owner's browser (the site password gate answers anonymous
+requests first, so curl sees the gate, not the page):
+
+1. `/shop/art/think-again` → lands on `/shop/art/think-again-paintin-the-ass`, title "Think Again (Paintin' the Ass) |
+   ArtByME". ✔ (Six old slugs are in `product_slug_redirects`; a future rename is recorded by the trigger.)
+2. Homepage Featured tile links to `/shop/art/think-again-paintin-the-ass`. ✔
+3. Warmer: first cron tick at 17:25:03 UTC on the new deployment logged `[pricing-warm] priced {"target":"canvas 101002
+   8x8","need":"missing"}` and three more within two minutes; `GET /api/admin/catalog/warm` at 17:27 answered
+   `{"surface":201,"fresh":17,"stale":0,"missing":184,"expiringSoon":0,"lastWarmedAt":"2026-09-17T17:26:38Z"}`. ✔
+   (Cold fill continues at ~10 sizes per five-minute pass; the Settings card shows `missing` falling.)
+4. Print master: Keepsake and The Dual read `print_status = 'ready'` on their previous files (one-time update, 17:14 UTC);
+   the crop editor's "Revert to original" and the revert route ship in this deploy (route tests 3/3). The oversize-upload
+   root cause is an owner dashboard change (Close).
+5. No `[print-quote] provider unavailable` line on the new deployment during the walk.
+
+Probe: `npm run probe` is not a script in this repo (the runner is `npm run build-check`); the Vercel log lines above
+are the ledger.
+
+## Close
+
+- Closed 2026-09-17 17:35 UTC (session e37c5a7c). PR #20 → main c7c89d7 (commits d875cde build, 381e930 hardening,
+  05c7722 crop unit), production READY at that SHA. Agents: 1 security-reviewer (the correctness reviewer was refused by
+  the governor: the catalog program blueprint was still `executing`; closed here). Rework: 2 rounds, both by the
+  architect (runner: one route intent comment + one component test on the old behaviour; security pass: 8 fixes).
+  `usage: agents=1 turns=462 out_k=2219 cache_read_M=136 architect_share=98% denied=1 sig=a5bf4b61`
+  (printed by `usage-report.py --session e37c5a7c`; `--write` could not target this repo because the session's cwd is `~`).
+- Owed to people: (1) Supabase dashboard → Project Settings → Storage → raise the upload file size limit (every crop that
+  ever uploaded is < 48 MB; The Dual's is a 62 MP PNG, Keepsake's 130 MP; the bucket allows 500 MB, the project cap does
+  not) — then re-save those two crops; (2) the CI `Dependency audit` step is red on every main run today (Next.js
+  GHSA-2xp9-vwfh-vxw4 → next@16.3.5; sharp < 0.35.4; sanitize-html) — its own dependency unit; (3) `sold` products are
+  invisible to anonymous readers by the pre-existing products policy — a product decision before any change.
