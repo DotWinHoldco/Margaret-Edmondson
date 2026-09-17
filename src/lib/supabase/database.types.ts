@@ -456,6 +456,48 @@ export type Database = {
           },
         ]
       }
+      catalog_sync_runs: {
+        Row: {
+          api_host: string
+          cursor: Json
+          diff: Json | null
+          dry_run: boolean
+          error: string | null
+          finished_at: string | null
+          id: string
+          started_at: string
+          stats: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_host: string
+          cursor?: Json
+          diff?: Json | null
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          stats?: Json
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          api_host?: string
+          cursor?: Json
+          diff?: Json | null
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          stats?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           default_margin_pct: number | null
@@ -2059,6 +2101,133 @@ export type Database = {
         }
         Relationships: []
       }
+      lumaprints_option_groups: {
+        Row: {
+          acknowledged_at: string | null
+          api_group_name: string
+          customer_visible: boolean
+          depends_hidden_when: Json | null
+          depends_on_group: string | null
+          display_kind: string
+          display_label: string
+          enabled: boolean
+          first_seen_at: string
+          group_key: string
+          id: string
+          last_seen_at: string
+          removed_from_api: boolean
+          required: boolean
+          sort_order: number
+          subcategory_ref: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          api_group_name: string
+          customer_visible?: boolean
+          depends_hidden_when?: Json | null
+          depends_on_group?: string | null
+          display_kind?: string
+          display_label: string
+          enabled?: boolean
+          first_seen_at?: string
+          group_key: string
+          id?: string
+          last_seen_at?: string
+          removed_from_api?: boolean
+          required?: boolean
+          sort_order?: number
+          subcategory_ref: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          api_group_name?: string
+          customer_visible?: boolean
+          depends_hidden_when?: Json | null
+          depends_on_group?: string | null
+          display_kind?: string
+          display_label?: string
+          enabled?: boolean
+          first_seen_at?: string
+          group_key?: string
+          id?: string
+          last_seen_at?: string
+          removed_from_api?: boolean
+          required?: boolean
+          sort_order?: number
+          subcategory_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lumaprints_option_groups_subcategory_ref_fkey"
+            columns: ["subcategory_ref"]
+            isOneToOne: false
+            referencedRelation: "lumaprints_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lumaprints_options: {
+        Row: {
+          acknowledged_at: string | null
+          api_option_name: string
+          display_label: string
+          enabled: boolean
+          first_seen_at: string
+          geometry: Json | null
+          group_ref: string
+          id: string
+          is_default: boolean
+          last_seen_at: string
+          option_id: number
+          provider_default: boolean
+          removed_from_api: boolean
+          sort_order: number
+          swatch: Json | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          api_option_name: string
+          display_label: string
+          enabled?: boolean
+          first_seen_at?: string
+          geometry?: Json | null
+          group_ref: string
+          id?: string
+          is_default?: boolean
+          last_seen_at?: string
+          option_id: number
+          provider_default?: boolean
+          removed_from_api?: boolean
+          sort_order?: number
+          swatch?: Json | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          api_option_name?: string
+          display_label?: string
+          enabled?: boolean
+          first_seen_at?: string
+          geometry?: Json | null
+          group_ref?: string
+          id?: string
+          is_default?: boolean
+          last_seen_at?: string
+          option_id?: number
+          provider_default?: boolean
+          removed_from_api?: boolean
+          sort_order?: number
+          swatch?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lumaprints_options_group_ref_fkey"
+            columns: ["group_ref"]
+            isOneToOne: false
+            referencedRelation: "lumaprints_option_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lumaprints_pricing_cache: {
         Row: {
           cost_cents: number
@@ -2088,6 +2257,92 @@ export type Database = {
           size_label?: string
         }
         Relationships: []
+      }
+      lumaprints_subcategories: {
+        Row: {
+          acknowledged_at: string | null
+          api_host: string
+          customer_note: string | null
+          description: string | null
+          display_label: string
+          enabled: boolean
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          last_synced_at: string | null
+          max_glass_h_in: number | null
+          max_glass_w_in: number | null
+          max_height_in: number
+          max_width_in: number
+          medium: string
+          min_height_in: number
+          min_width_in: number
+          name: string
+          pricing_mode: string
+          removed_from_api: boolean
+          required_dpi: number
+          sort_order: number
+          subcategory_id: number
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          api_host: string
+          customer_note?: string | null
+          description?: string | null
+          display_label: string
+          enabled?: boolean
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          last_synced_at?: string | null
+          max_glass_h_in?: number | null
+          max_glass_w_in?: number | null
+          max_height_in: number
+          max_width_in: number
+          medium: string
+          min_height_in: number
+          min_width_in: number
+          name: string
+          pricing_mode?: string
+          removed_from_api?: boolean
+          required_dpi: number
+          sort_order?: number
+          subcategory_id: number
+        }
+        Update: {
+          acknowledged_at?: string | null
+          api_host?: string
+          customer_note?: string | null
+          description?: string | null
+          display_label?: string
+          enabled?: boolean
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          last_synced_at?: string | null
+          max_glass_h_in?: number | null
+          max_glass_w_in?: number | null
+          max_height_in?: number
+          max_width_in?: number
+          medium?: string
+          min_height_in?: number
+          min_width_in?: number
+          name?: string
+          pricing_mode?: string
+          removed_from_api?: boolean
+          required_dpi?: number
+          sort_order?: number
+          subcategory_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lumaprints_subcategories_medium_fkey"
+            columns: ["medium"]
+            isOneToOne: false
+            referencedRelation: "lumaprints_mediums"
+            referencedColumns: ["medium"]
+          },
+        ]
       }
       master_artworks: {
         Row: {
