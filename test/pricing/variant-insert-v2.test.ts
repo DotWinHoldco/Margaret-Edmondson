@@ -267,6 +267,7 @@ function createDb() {
       let orderColumn: string | null = null
       let ascending = true
       let take: number | null = null
+      let window: { from: number; to: number } | null = null
       const run = () => {
         const rows = tables[table] ?? (tables[table] = [])
         if (mode === 'insert') {
@@ -288,6 +289,7 @@ function createDb() {
           out = out.sort((a, b) => (String(a[column]) < String(b[column]) ? (ascending ? -1 : 1) : ascending ? 1 : -1))
         }
         if (take !== null) out = out.slice(0, take)
+        if (window) out = out.slice(window.from, window.to + 1)
         return { data: out, error: null }
       }
       const one = () => ({
@@ -315,6 +317,11 @@ function createDb() {
         },
         limit: (n: number) => {
           take = n
+          return builder
+        },
+        // The catalog loader pages every read.
+        range: (from: number, to: number) => {
+          window = { from, to }
           return builder
         },
         delete: () => {

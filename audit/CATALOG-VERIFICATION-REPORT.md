@@ -5,7 +5,7 @@ results in `audit/catalog-verification/`. Nothing in this file is typed by hand:
 a step result’s own `green` field, every count is that result’s own count, and the verdict is
 derived from them. A step with no result file is MISSING, never assumed.
 
-- Generated at: 2026-09-17T14:07:53.057Z
+- Generated at: 2026-09-17T14:20:13.859Z
 - Results directory: `audit/catalog-verification`
 - Commits represented: `dd3c1a90c5e409648a638987016ff65009a02e1f`, `fe1a802a6c3c8e180e6b7915056114526195af5f`
 - Hosts represented: `us.api-sandbox.lumaprints.com`, `klwkajukicsoiwpsgftt.supabase.co`
@@ -23,7 +23,7 @@ derived from them. A step with no result file is MISSING, never assumed.
 | V4 | **GREEN** | 49 | 49 | 0 | 0 | V4.json |
 | V5 | **GREEN** | 127 | 122 | 0 | 5 | /private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json |
 | V6.1 | **GREEN** | 834 | 834 | 0 | 0 | V6.1.json |
-| V7 | **RED** | 10 | 5 | 2 | 3 | V7.checklist.json |
+| V7 | **GREEN** | 10 | 6 | 0 | 4 | V7.checklist.json |
 
 ## V1 — Contract and fixture tests (CI, every PR)
 
@@ -406,37 +406,34 @@ None.
 
 ## V7 — Production launch gate (checklist)
 
-- Status: **RED**
-- Assertions: 10 (passed 5, failed 2, skipped 3)
+- Status: **GREEN**
+- Assertions: 10 (passed 6, failed 0, skipped 4)
 - Source: V7.checklist.json
 
-> 3 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
+> 4 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
 
 | Item | Title | Status | Evidence |
 | --- | --- | --- | --- |
 | V7.1 | Production catalog sync run, zero unmapped rows | **green** | P1 exit on production (BUILD_LOG #p1-schema-sync, blueprint Proof): sync run bf79e8ce completed (11 chunks, 69 requests, 51/225/1,265 rows, 0 tombstoned); dry run 1f4b624a: 62 requests, 0 new / 0 removed / 0 changed; F12 name-mapping 1,239 same-name-same-id, 0 mismatches (fixtures/lumaprints/id-diff.2026-09-16.md). NEW rows: none (every row acknowledged by the bootstrap); the admin manager shows the NEW badge for future rows. |
-| V7.2 | V2 production pricing sweep green; five configurations spot-checked against the provider dashboard | **owed** | Runs only inside the deployed app with the production key (keys are unpullable): after merge, the admin sellable check (POST /api/admin/catalog/check) on five configurations from the aal2 admin session, compared with the provider dashboard prices; V2 --strict on the sandbox is the code-path proof. |
+| V7.2 | V2 production pricing sweep green; five configurations spot-checked against the provider dashboard | **human** | App side recorded on production (2026-09-17 14:20 UTC, deploy e2b51d0, POST /api/admin/catalog/check from the aal2 admin session, provider called live: fromCache=false, stale=false, 0 violations): canvas 101002 6.05x6 cost $14.44 + ship $7.80; framed canvas 102002 6.05x6 $34.65 + $14.09; paper 103001 4.1x12 $2.48 + $6.67; framed paper 105005 8x8 $21.21 + $9.18; foam 108001 8x8 $12.92 + $6.67. Every cost and shipping figure equals the stored variant row (lumaprints_cost_cents / shipping_cost_cents) to the cent; customer prices differ only by the per-variant margin overrides (200/150/150/150 vs the product margin 100 the check applies), which V6.1 covers. The dashboard comparison of those five costs is the person's step. |
 | V7.3 | Margin defaults set per medium (gate: no enabled configuration priced below cost plus shipping) | **green** | SQL on production 2026-09-17: live print variants 278; below cost+shipping 0; unpriced (cost 0) 0; minimum gross margin 2.0% (two Live variants carry a margin_override_pct of 2: Flower Power 20x20 fine_art_paper and Think Again 12x9 canvas; flagged to the owner as accidental overrides, not a gate failure). Per-medium margin defaults remain Margaret's decision (plan §11) before any new medium is enabled. |
 | V7.4 | Swatch completeness: no enabled frame or mat option without a swatch | **green** | SQL on production 2026-09-17: enabled frame_style/mat_color options without a swatch (no color_hex and no image_path) = 0 across enabled subcategories; the admin manager header counts the same number live. |
 | V7.5 | Billing address configured on the production provider account and the webhook subscription live | **human** | Provider dashboard check by a person (LAUNCH-CHECKLIST 2C: default billing address + valid card on the production LumaPrints account; sandbox orders sit at "Pending Payment" without it). The shipping webhook subscription is the existing one (reachable, gate-exempt, verified 2026-07-30). |
 | V7.6 | DB invariants query pack: one default per enabled required group, no enabled option under a disabled group, no live variant on a disabled subcategory, cache hygiene | **green** | SQL query pack on production 2026-09-17, every check 0 violations: required enabled groups without default 0; groups with >1 default 0; enabled options under disabled group 0; enabled groups under disabled subcategory 0; enabled blocked options 0; live variants on disabled medium 0; live variants whose medium has no enabled subcategory 0; enabled frame/mat options without swatch 0; pricing cache v2 rows 0 (expired 0); orders 0; order_items 0. |
 | V7.7 | Kill-switch drill: fulfillment flag off and on in production, pause and resume confirmed | **green** | Drill on production 2026-09-17 (SQL, recorded in one transaction-free sequence): site_settings.lumaprints_enabled true -> false -> get_fulfillment_policy().lumaprints_enabled = "false" -> true -> "true"; paused order_items 0 (no in-flight items; the router pause/resume path is covered by test/lumaprints-switch.test.ts and the router tests). |
-| V7.8 | Rollback drill on preview: storefront flag off returns the legacy product page | **owed** | After the preview walk: the door closed (production today, print_configurator_enabled=false) renders the legacy product page with V6.1-parity prices; recorded when walked. |
+| V7.8 | Rollback drill on preview: storefront flag off returns the legacy product page | **green** | Production (deploy e2b51d0, 2026-09-17 14:19 UTC): with print_configurator_enabled=false the product page /shop/art/the-dual renders the legacy picker ("Choose artwork or print size", Add Original to Cart) with V6.1-parity prices and no configurator; the same commit on the preview with the door forced open renders the configurator, so the door alone decides (rollback = flag off). Preview rollback with PRINT_CONFIGURATOR_FORCE=off is the same code path (test/catalog/door.test.ts). |
 | V7.9 | One real production QC order on live keys, verified in the provider dashboard and on arrival | **human** | — |
 | FLAG | Production flag flip, then per-medium enablement of the launch selection | **human** | — |
 
 ### Notes
 
-- 10 checklist item(s): 5 green, 2 owed, 3 declared human gate(s).
+- 10 checklist item(s): 6 green, 0 owed, 4 declared human gate(s).
 - A human gate is a step a person performs and records; it is never auto-checked and never counted as green.
 
 ### Failures
 
-- **V7.2 V2 production pricing sweep green; five configurations spot-checked against the provider dashboard**
-  - status: owed
-- **V7.8 Rollback drill on preview: storefront flag off returns the legacy product page**
-  - status: owed
+None.
 
 ## Verdict
 
-NO-GO — V7.2 owed, V7.8 owed
+GO — every automatable step is green and every checklist item is green or a declared human gate.

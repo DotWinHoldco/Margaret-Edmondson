@@ -168,6 +168,7 @@ function fakeClient(): SupabaseClient {
   return {
     from(table: string) {
       const filters: Filter[] = []
+      let window: { from: number; to: number } | null = null
       const builder = {
         select: () => builder,
         eq: (column: string, value: unknown) => {
@@ -178,6 +179,13 @@ function fakeClient(): SupabaseClient {
           filters.push({ op: 'in', column, value })
           return builder
         },
+        // The loader pages every read (`order` + `range`); the fixture is far below a
+        // page, so a window simply returns the filtered rows.
+        order: () => builder,
+        range: (from: number, to: number) => {
+          window = { from, to }
+          return builder
+        },
         then: <T>(onfulfilled: (value: { data: Row[]; error: null }) => T) => {
           let rows = TABLES[table] ?? []
           for (const filter of filters) {
@@ -186,6 +194,7 @@ function fakeClient(): SupabaseClient {
                 ? rows.filter((row) => row[filter.column] === filter.value)
                 : rows.filter((row) => (filter.value as unknown[]).includes(row[filter.column]))
           }
+          if (window) rows = rows.slice(window.from, window.to + 1)
           return Promise.resolve({ data: rows, error: null }).then(onfulfilled)
         },
       }
