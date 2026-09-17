@@ -1,0 +1,3950 @@
+{
+  "step": "V2",
+  "title": "Full-matrix sandbox pricing sweep (additivity + glass-ceiling edge)",
+  "startedAt": "2026-09-17T02:22:04.543Z",
+  "finishedAt": "2026-09-17T02:32:07.056Z",
+  "commit": "147c1ba54db5d2342ffdef1eeb8a5a8fe4ef43de",
+  "host": "us.api-sandbox.lumaprints.com",
+  "counts": {
+    "assertions": 8032,
+    "passed": 6735,
+    "failed": 273,
+    "skipped": 1024
+  },
+  "failures": [
+    {
+      "assertion": "105011 11x14 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "11x14",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 14x11 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "14x11",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 16x20 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "16x20",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 24x18 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "24x18",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 24x36 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "24x36",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 36x24 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "36x24",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 65 (1.0 inch on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 65
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 65 (1.0 inch on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 65
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 65 (1.0 inch on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 65
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 67 (2.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 67
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 67 (2.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 67
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 67 (2.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 67
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 68 (2.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 68
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 68 (2.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 68
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 68 (2.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 68
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 69 (3.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 69
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 69 (3.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 69
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 70 (3.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 70
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 70 (3.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 70
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 71 (4.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 71
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105011 20x16 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "20x16",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105011 40x30 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "40x30",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105011 8x8 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105011,
+        "size": "8x8",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105015 8x8 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "8x8",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105015 20x16 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "20x16",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105015 40x30 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105015,
+        "size": "40x30",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105019 20x16 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "20x16",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105019 40x30 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "40x30",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105019 40x30 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "40x30",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105019 20x16 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "20x16",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105019 40x30 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "40x30",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105019 20x16 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "20x16",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105019 40x30 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "40x30",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105019 8x8 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105019,
+        "size": "8x8",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105020 10x8 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "10x8",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 12x12 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "12x12",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 11x14 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "11x14",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 14x11 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "14x11",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 16x12 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "16x12",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 16x16 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "16x16",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 20x20 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x20",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 18x24 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "18x24",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 24x18 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "24x18",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 30x24 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "30x24",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 24x36 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "24x36",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 30x30 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "30x30",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 30x40 default set prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "30x40",
+        "options": [
+          64,
+          74,
+          83,
+          94,
+          96,
+          146,
+          148
+        ]
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 65 (1.0 inch on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 65
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 65 (1.0 inch on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 65
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 66 (1.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 66
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 66 (1.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 66
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 67 (2.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 67
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 67 (2.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 67
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 68 (2.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 68
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 68 (2.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 68
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 69 (3.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 69
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 69 (3.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 69
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 70 (3.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 70
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 70 (3.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 70
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 70 (3.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 70
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 71 (4.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 71
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 71 (4.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 71
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 71 (4.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 71
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 72 (4.5 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 72
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 73 (5.0 inches on each side) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 73
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 75 (Hot Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 75
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 76 (Cold Press Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 76
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 77 (Metallic Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 77
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 78 (Semi-Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 78
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 79 (Glossy Photo Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 79
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 82 (Somerset Velvet Fine Art Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 82
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 156 (Canvas) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 156
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 93 (Sawtooth Hanger installed on frame) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 93
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105020 20x16 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "20x16",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105020 40x30 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "40x30",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105020 8x8 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105020,
+        "size": "8x8",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 135 (Corner Sawtooth Installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 135
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 223 (Three-point Security Hardware installed) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 223
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 95 (Kraft Paper) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 95
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 97 (White with Black Core) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 97
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 98 (Smooth Black) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 98
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 99 (Antique White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 99
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 101 (Dawn Grey) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 101
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 102 (Cream) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 102
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 103 (Sand) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 103
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 104 (Off White) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 104
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 105 (Pearl) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 105
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 106 (Silver Florentine) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 106
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 107 (French Blue) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 107
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 108 (Indigo) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 108
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 109 (Sauterne) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 109
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 110 (Moss Point Green) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 110
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 147 (No Glass) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 147
+      }
+    },
+    {
+      "assertion": "105024 8x8 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "8x8",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105024 20x16 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "20x16",
+        "optionId": 149
+      }
+    },
+    {
+      "assertion": "105024 40x30 option 149 (Loose Mounted) prices",
+      "detail": "not priced after a retry: success:false with no message (row present, price undefined)",
+      "context": {
+        "subcategoryId": 105024,
+        "size": "40x30",
+        "optionId": 149
+      }
+    }
+  ],
+  "notes": [
+    "SKIPPED (256): 105016 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)",
+    "SKIPPED (256): 105017 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)",
+    "SKIPPED (256): 105025 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)",
+    "SKIPPED (256): 105026 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)",
+    "RECORDED (not asserted, F26): 105001 8x8 NOT additive — base 2057 + deltas [2038, 95, 241, 157, 0, 0, 0] = 4588; api 5321",
+    "RECORDED (not asserted, F26): 105001 36x24 NOT additive — base 6890 + deltas [4798, 1282, 151, 232, 0, 0, 0] = 13353; api 16118",
+    "RECORDED (not asserted, F26): 105002 8x8 NOT additive — base 2057 + deltas [2038, 95, 241, 157, 0, 0, 0] = 4588; api 5321",
+    "RECORDED (not asserted, F26): 105002 36x24 NOT additive — base 6890 + deltas [4798, 1282, 151, 232, 0, 0, 0] = 13353; api 16118",
+    "RECORDED (not asserted, F26): 105003 8x8 NOT additive — base 2057 + deltas [2038, 95, 241, 157, 0, 0, 0] = 4588; api 5321",
+    "RECORDED (not asserted, F26): 105003 36x24 NOT additive — base 6890 + deltas [4798, 1282, 151, 232, 0, 0, 0] = 13353; api 16118",
+    "RECORDED (not asserted, F26): 105005 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105005 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105006 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105006 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105007 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105007 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105008 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105008 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105009 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105009 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105010 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105010 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105011 40x30 additive — base 8981 + deltas [4568, 0] = 13549; api 13549",
+    "RECORDED (not asserted, F26): 105012 8x8 NOT additive — base 2121 + deltas [2117, 95, 241, 157, 0, 0, 0] = 4731; api 5464",
+    "RECORDED (not asserted, F26): 105012 40x30 NOT additive — base 8981 + deltas [5570, 1780, 132, 264, 0, 0, 0] = 16727; api 20123",
+    "RECORDED (not asserted, F26): 105013 8x8 NOT additive — base 3424 + deltas [3698, 95, 241, 157, 0, 0, 0] = 7615; api 8348",
+    "RECORDED (not asserted, F26): 105013 40x30 NOT additive — base 14678 + deltas [7151, 1780, 132, 264, 0, 0, 0] = 24005; api 27401",
+    "RECORDED (not asserted, F26): 105015 8x8 NOT additive — base 3966 + deltas [4357, 95, 241, 157, 0, 0] = 8816; api 9549",
+    "RECORDED (not asserted, F26): 105015 40x30 NOT additive — base 17053 + deltas [7809, 1780, 132, 264, 0] = 27038; api 30434",
+    "RECORDED (not asserted, F26): 105018 8x8 NOT additive — base 3841 + deltas [4205, 95, 241, 157, 0, 0, 0] = 8539; api 9272",
+    "RECORDED (not asserted, F26): 105018 40x30 NOT additive — base 16507 + deltas [7658, 1780, 132, 264, 0, 0, 0] = 26341; api 29737",
+    "RECORDED (not asserted, F26): 105019 8x8 NOT additive — base 3841 + deltas [4205, 95, 241, 157, 0, 0] = 8539; api 9272",
+    "RECORDED (not asserted, F26): 105019 40x30 NOT additive — base 16507 + deltas [7658, 1780, 132, 264, 0, 0] = 26341; api 29737",
+    "RECORDED (not asserted, F26): 105020 8x8 additive — base 4102 + deltas [0, 0, 0] = 4102; api 4102",
+    "RECORDED (not asserted, F26): 105020 40x30 NOT additive — base 17646 + deltas [4339, 0, 0, 0] = 21985; api 22944",
+    "RECORDED (not asserted, F26): 105022 8x8 NOT additive — base 2230 + deltas [2229, 95, 241, 157, 0, 0, 0] = 4952; api 5685",
+    "RECORDED (not asserted, F26): 105022 40x30 NOT additive — base 9455 + deltas [5638, 1780, 132, 264, 0, 0, 0] = 17269; api 20665",
+    "RECORDED (not asserted, F26): 105023 8x8 NOT additive — base 3261 + deltas [3480, 95, 241, 157, 0, 0, 0] = 7234; api 7967",
+    "RECORDED (not asserted, F26): 105023 40x30 NOT additive — base 13966 + deltas [6890, 1780, 132, 264, 0, 0, 0] = 23032; api 26428",
+    "RECORDED (not asserted, F26): 105024 8x8 NOT additive — base 2122 + deltas [2117, 95, 241] = 4575; api 4930",
+    "RECORDED (not asserted, F26): 105024 40x30 NOT additive — base 8980 + deltas [5570, 1780, -269, 0] = 16061; api 18740",
+    "RECORDED (not asserted, F26): 105027 8x8 NOT additive — base 2360 + deltas [2387, 95, 241, 157, 0, 0, 0] = 5240; api 5973",
+    "RECORDED (not asserted, F26): 105027 40x30 NOT additive — base 10025 + deltas [5797, 1780, 132, 264, 0, 0, 0] = 17998; api 21394",
+    "RECORDED (not asserted, F26): 105028 8x8 NOT additive — base 2360 + deltas [2387, 95, 241, 157, 0, 0, 0] = 5240; api 5973",
+    "RECORDED (not asserted, F26): 105028 40x30 NOT additive — base 10025 + deltas [5797, 1780, 132, 264, 0, 0, 0] = 17998; api 21394",
+    "RECORDED: 105001 36x24 print + 5in mat (glass 46 x 34in, bounds 36 x 24in) — provider priced $116.88. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105002 36x24 print + 5in mat (glass 46 x 34in, bounds 36 x 24in) — provider priced $116.88. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105003 36x24 print + 5in mat (glass 46 x 34in, bounds 36 x 24in) — provider priced $116.88. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105005 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105006 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105007 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105008 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105009 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105010 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105011 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105012 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105013 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $328.73. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105015 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $369.24. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105016 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $288.23. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105017 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $288.23. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105018 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $359.92. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105019 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $359.92. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105020 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $379.36. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105022 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $238.75. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105023 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $315.71. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105024 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $231.52. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105025 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $246.86. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105026 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $248.49. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105027 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $248.49. The provider enforces nothing geometric (P4/F31).",
+    "RECORDED: 105028 60x40 print + 5in mat (glass 70 x 50in, bounds 60 x 40in) — provider priced $248.49. The provider enforces nothing geometric (P4/F31).",
+    "FINDING F36: 105016 \"1.125w x 0.75h Slimwoods Black Silver Frame\" UNPRICEABLE (this environment) — 0 of 23 in-bounds default-set sizes priced on us.api-sandbox.lumaprints.com, even after a retry. Provider's answer: success:false with no message (row present, price undefined). Its option and configuration assertions were SKIPPED, not failed; verify this profile on the production host before enabling it.",
+    "FINDING F36: 105017 \"1.125w x 0.75h Slimwoods Black Gold Frame\" UNPRICEABLE (this environment) — 0 of 23 in-bounds default-set sizes priced on us.api-sandbox.lumaprints.com, even after a retry. Provider's answer: success:false with no message (row present, price undefined). Its option and configuration assertions were SKIPPED, not failed; verify this profile on the production host before enabling it.",
+    "FINDING F36: 105025 \"1.625w x 1.375h Matte Black Frame\" UNPRICEABLE (this environment) — 0 of 23 in-bounds default-set sizes priced on us.api-sandbox.lumaprints.com, even after a retry. Provider's answer: success:false with no message (row present, price undefined). Its option and configuration assertions were SKIPPED, not failed; verify this profile on the production host before enabling it.",
+    "FINDING F36: 105026 \"1w x 2.25h Matte Black Frame\" UNPRICEABLE (this environment) — 0 of 23 in-bounds default-set sizes priced on us.api-sandbox.lumaprints.com, even after a retry. Provider's answer: success:false with no message (row present, price undefined). Its option and configuration assertions were SKIPPED, not failed; verify this profile on the production host before enabling it.",
+    "FINDING F35: 101001 Canvas Finish option ids [212, 213] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 101002 Canvas Finish option ids [259] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 101003 Canvas Finish option ids [212, 213] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 101005 Canvas Finish option ids [212, 213] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 102001 Canvas Finish option ids [212, 213] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 102002 Canvas Finish option ids [259] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 102003 Canvas Finish option ids [212, 213] are accepted by pricing but never echoed; cannot be verified through pricing. Exempt from the echo assertion, not a failure.",
+    "RETRY: 2031 item(s) came back unpriced on the first pass and 1351 priced on a later pass. Only the 680 still unpriced at the end were judged. Passes: pass1 retry 1: asked 2031, priced 720 · pass1 retry 2: asked 1311, priced 631.",
+    "Provider budget headers over 190 response(s): x-ratelimit-remaining min 31, last 35.",
+    "Default option sets came from src/lib/catalog/seed-rules.ts (pickSeededDefault), keyed on provider NAMES and never [] (an empty array resolves to Image Wrap / 0.25in bleed — P15).",
+    "Sizes outside a subcategory's published bounds are documented drops, not failures (see the per-subcategory table)."
+  ],
+  "tables": [
+    {
+      "title": "Per subcategory",
+      "columns": [
+        "subcategory",
+        "medium",
+        "sizes priced",
+        "options priced",
+        "additive ok/total",
+        "recorded (105)",
+        "glass-ceiling edge",
+        "sizes dropped (out of bounds)"
+      ],
+      "rows": [
+        [
+          108001,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108002,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108003,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108005,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108006,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108007,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108009,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          108010,
+          "foam_mounted_fine_art_paper",
+          22,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          101001,
+          "canvas",
+          22,
+          8,
+          "2/2",
+          0,
+          "n/a",
+          "30x40"
+        ],
+        [
+          101002,
+          "canvas",
+          23,
+          2,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          101003,
+          "canvas",
+          23,
+          9,
+          "2/2",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          101005,
+          "canvas",
+          23,
+          6,
+          "2/2",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          102001,
+          "framed_canvas",
+          23,
+          32,
+          "2/2",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          102002,
+          "framed_canvas",
+          23,
+          4,
+          "2/2",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          102003,
+          "framed_canvas",
+          23,
+          14,
+          "2/2",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103001,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103002,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103003,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103005,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103006,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103007,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          103009,
+          "fine_art_paper",
+          23,
+          3,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          105001,
+          "framed_fine_art_paper",
+          18,
+          35,
+          "0/2",
+          2,
+          "provider priced $116.88",
+          "24x30 24x36 30x40 30x30 40x30"
+        ],
+        [
+          105002,
+          "framed_fine_art_paper",
+          18,
+          35,
+          "0/2",
+          2,
+          "provider priced $116.88",
+          "24x30 24x36 30x40 30x30 40x30"
+        ],
+        [
+          105003,
+          "framed_fine_art_paper",
+          18,
+          35,
+          "0/2",
+          2,
+          "provider priced $116.88",
+          "24x30 24x36 30x40 30x30 40x30"
+        ],
+        [
+          105005,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105006,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105007,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105008,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105009,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105010,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105011,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "1/1",
+          1,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105012,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105013,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $328.73",
+          "none"
+        ],
+        [
+          105015,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $369.24",
+          "none"
+        ],
+        [
+          105016,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/0",
+          0,
+          "provider priced $288.23",
+          "none"
+        ],
+        [
+          105017,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/0",
+          0,
+          "provider priced $288.23",
+          "none"
+        ],
+        [
+          105018,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $359.92",
+          "none"
+        ],
+        [
+          105019,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $359.92",
+          "none"
+        ],
+        [
+          105020,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "1/2",
+          2,
+          "provider priced $379.36",
+          "none"
+        ],
+        [
+          105022,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $238.75",
+          "none"
+        ],
+        [
+          105023,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $315.71",
+          "none"
+        ],
+        [
+          105024,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $231.52",
+          "none"
+        ],
+        [
+          105025,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/0",
+          0,
+          "provider priced $246.86",
+          "none"
+        ],
+        [
+          105026,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/0",
+          0,
+          "provider priced $248.49",
+          "none"
+        ],
+        [
+          105027,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $248.49",
+          "none"
+        ],
+        [
+          105028,
+          "framed_fine_art_paper",
+          23,
+          35,
+          "0/2",
+          2,
+          "provider priced $248.49",
+          "none"
+        ],
+        [
+          106001,
+          "metal",
+          23,
+          5,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ],
+        [
+          106002,
+          "metal",
+          16,
+          5,
+          "0/0",
+          0,
+          "n/a",
+          "8x10 24x30 24x36 30x40 8x8 30x30 40x30"
+        ],
+        [
+          107001,
+          "peel_and_stick",
+          23,
+          0,
+          "0/0",
+          0,
+          "n/a",
+          "none"
+        ]
+      ]
+    },
+    {
+      "title": "Not priceable in this environment (F36)",
+      "columns": [
+        "subcategory",
+        "medium",
+        "name",
+        "in-bounds sizes tried",
+        "assertions skipped",
+        "provider's answer"
+      ],
+      "rows": [
+        [
+          105016,
+          "framed_fine_art_paper",
+          "1.125w x 0.75h Slimwoods Black Silver Frame",
+          23,
+          256,
+          "success:false with no message (row present, price undefined)"
+        ],
+        [
+          105017,
+          "framed_fine_art_paper",
+          "1.125w x 0.75h Slimwoods Black Gold Frame",
+          23,
+          256,
+          "success:false with no message (row present, price undefined)"
+        ],
+        [
+          105025,
+          "framed_fine_art_paper",
+          "1.625w x 1.375h Matte Black Frame",
+          23,
+          256,
+          "success:false with no message (row present, price undefined)"
+        ],
+        [
+          105026,
+          "framed_fine_art_paper",
+          "1w x 2.25h Matte Black Frame",
+          23,
+          256,
+          "success:false with no message (row present, price undefined)"
+        ]
+      ]
+    },
+    {
+      "title": "Whole-configuration additivity",
+      "columns": [
+        "subcategory",
+        "size",
+        "groups",
+        "base $",
+        "predicted $",
+        "api $",
+        "diff $",
+        "verdict",
+        "treatment"
+      ],
+      "rows": [
+        [
+          101001,
+          "8x8",
+          3,
+          "14.61",
+          "23.69",
+          "23.69",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          101001,
+          "40x30",
+          3,
+          "66.85",
+          "75.93",
+          "75.93",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          101003,
+          "8x8",
+          4,
+          "18.57",
+          "30.66",
+          "30.66",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          101003,
+          "40x30",
+          4,
+          "60.29",
+          "86.69",
+          "86.69",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          101005,
+          "8x8",
+          3,
+          "7.28",
+          "7.28",
+          "7.28",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          101005,
+          "40x30",
+          3,
+          "32.83",
+          "32.83",
+          "32.83",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102001,
+          "8x8",
+          4,
+          "38.48",
+          "77.58",
+          "77.58",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102001,
+          "40x30",
+          4,
+          "101.07",
+          "246.90",
+          "246.90",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102002,
+          "8x8",
+          2,
+          "36.58",
+          "36.58",
+          "36.58",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102002,
+          "40x30",
+          2,
+          "94.87",
+          "94.87",
+          "94.87",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102003,
+          "8x8",
+          5,
+          "45.59",
+          "56.08",
+          "56.08",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          102003,
+          "40x30",
+          5,
+          "122.76",
+          "147.56",
+          "147.56",
+          "0.00",
+          "additive",
+          "asserted"
+        ],
+        [
+          105001,
+          "8x8",
+          7,
+          "20.57",
+          "45.88",
+          "53.21",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105001,
+          "36x24",
+          7,
+          "68.90",
+          "133.53",
+          "161.18",
+          "27.65",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105002,
+          "8x8",
+          7,
+          "20.57",
+          "45.88",
+          "53.21",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105002,
+          "36x24",
+          7,
+          "68.90",
+          "133.53",
+          "161.18",
+          "27.65",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105003,
+          "8x8",
+          7,
+          "20.57",
+          "45.88",
+          "53.21",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105003,
+          "36x24",
+          7,
+          "68.90",
+          "133.53",
+          "161.18",
+          "27.65",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105005,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105005,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105006,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105006,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105007,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105007,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105008,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105008,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105009,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105009,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105010,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105010,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105011,
+          "40x30",
+          2,
+          "89.81",
+          "135.49",
+          "135.49",
+          "0.00",
+          "additive",
+          "recorded (F26)"
+        ],
+        [
+          105012,
+          "8x8",
+          7,
+          "21.21",
+          "47.31",
+          "54.64",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105012,
+          "40x30",
+          7,
+          "89.81",
+          "167.27",
+          "201.23",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105013,
+          "8x8",
+          7,
+          "34.24",
+          "76.15",
+          "83.48",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105013,
+          "40x30",
+          7,
+          "146.78",
+          "240.05",
+          "274.01",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105015,
+          "8x8",
+          6,
+          "39.66",
+          "88.16",
+          "95.49",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105015,
+          "40x30",
+          5,
+          "170.53",
+          "270.38",
+          "304.34",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105018,
+          "8x8",
+          7,
+          "38.41",
+          "85.39",
+          "92.72",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105018,
+          "40x30",
+          7,
+          "165.07",
+          "263.41",
+          "297.37",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105019,
+          "8x8",
+          6,
+          "38.41",
+          "85.39",
+          "92.72",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105019,
+          "40x30",
+          6,
+          "165.07",
+          "263.41",
+          "297.37",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105020,
+          "8x8",
+          3,
+          "41.02",
+          "41.02",
+          "41.02",
+          "0.00",
+          "additive",
+          "recorded (F26)"
+        ],
+        [
+          105020,
+          "40x30",
+          4,
+          "176.46",
+          "219.85",
+          "229.44",
+          "9.59",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105022,
+          "8x8",
+          7,
+          "22.30",
+          "49.52",
+          "56.85",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105022,
+          "40x30",
+          7,
+          "94.55",
+          "172.69",
+          "206.65",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105023,
+          "8x8",
+          7,
+          "32.61",
+          "72.34",
+          "79.67",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105023,
+          "40x30",
+          7,
+          "139.66",
+          "230.32",
+          "264.28",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105024,
+          "8x8",
+          3,
+          "21.22",
+          "45.75",
+          "49.30",
+          "3.55",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105024,
+          "40x30",
+          4,
+          "89.80",
+          "160.61",
+          "187.40",
+          "26.79",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105027,
+          "8x8",
+          7,
+          "23.60",
+          "52.40",
+          "59.73",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105027,
+          "40x30",
+          7,
+          "100.25",
+          "179.98",
+          "213.94",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105028,
+          "8x8",
+          7,
+          "23.60",
+          "52.40",
+          "59.73",
+          "7.33",
+          "NOT additive",
+          "recorded (F26)"
+        ],
+        [
+          105028,
+          "40x30",
+          7,
+          "100.25",
+          "179.98",
+          "213.94",
+          "33.96",
+          "NOT additive",
+          "recorded (F26)"
+        ]
+      ]
+    }
+  ],
+  "meta": {
+    "snapshot": "fixtures/lumaprints/catalog.us.api-sandbox.lumaprints.com.2026-09-16.json",
+    "snapshotCapturedAt": "2026-09-16T23:28:07.895Z",
+    "subcategories": [
+      108001,
+      108002,
+      108003,
+      108005,
+      108006,
+      108007,
+      108009,
+      108010,
+      101001,
+      101002,
+      101003,
+      101005,
+      102001,
+      102002,
+      102003,
+      103001,
+      103002,
+      103003,
+      103005,
+      103006,
+      103007,
+      103009,
+      105001,
+      105002,
+      105003,
+      105005,
+      105006,
+      105007,
+      105008,
+      105009,
+      105010,
+      105011,
+      105012,
+      105013,
+      105015,
+      105016,
+      105017,
+      105018,
+      105019,
+      105020,
+      105022,
+      105023,
+      105024,
+      105025,
+      105026,
+      105027,
+      105028,
+      106001,
+      106002,
+      107001
+    ],
+    "sizes": [
+      "small",
+      "mid",
+      "max"
+    ],
+    "itemsPriced": 4212,
+    "itemsRetried": 2031,
+    "itemsRecoveredByRetry": 1351,
+    "unpriceableSubcategories": [
+      105016,
+      105017,
+      105025,
+      105026
+    ],
+    "requestsEstimated": 107,
+    "requestsSent": 190,
+    "peakPerRolling60s": 25,
+    "wallMs": 602507
+  },
+  "green": false,
+  "durationMs": 602513,
+  "generatedAt": "2026-09-17T02:32:07.112Z"
+}
