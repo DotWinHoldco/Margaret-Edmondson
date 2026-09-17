@@ -7,13 +7,16 @@
 
 import type { Metadata } from 'next'
 import CatalogManager from '@/components/admin/catalog/CatalogManager'
+import DoorNotice from '@/components/admin/catalog/DoorNotice'
+import { readConfiguratorDoorState } from '@/lib/catalog/door-state'
 
 export const metadata: Metadata = {
   title: 'Print Catalog',
 }
 
 /** The Print Catalog manager page: mediums, subcategories, option groups and options. */
-export default function CatalogPage() {
+export default async function CatalogPage() {
+  const door = await readConfiguratorDoorState()
   return (
     <div className="space-y-6">
       <div>
@@ -21,6 +24,10 @@ export default function CatalogPage() {
         <p className="mt-1 font-body text-sm text-charcoal/60">
           Choose what the print configurator offers, and check that a configuration still sells
         </p>
+      </div>
+
+      <div className="max-w-3xl">
+        <DoorNotice screen="catalog" door={door} />
       </div>
 
       <CatalogManager />
