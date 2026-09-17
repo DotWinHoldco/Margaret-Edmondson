@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import {
   checkoutLineKey,
   parseCheckoutRequest,
+  printTypeSellable,
   validateCheckoutCatalog,
   type CheckoutMediumRecord,
   type CheckoutProductRecord,
@@ -257,5 +258,29 @@ describe('validateCheckoutCatalog with configured lines', () => {
     const noMaster: CheckoutProductRecord = { ...PRODUCT, master_artwork: { print_status: 'pending', print_storage_path: null, print_width_px: null, print_height_px: null } }
     const result = validateCheckoutCatalog([configured], [noMaster], [PRINT_VARIANT], [MEDIUM], POLICY, quotesFor([{ item: configured, result: quote() }]))
     expect(result).toMatchObject({ ok: false, error: { code: 'variant_unfulfillable' } })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// A size is sold only in the print types of its family the owner has not unticked
+// (2026-09-17): the rule checkout applies before quoting a configured line.
+// ---------------------------------------------------------------------------
+
+describe('printTypeSellable', () => {
+  const canvas125 = { medium: 'canvas', subcategory_id: 101002 }
+  const canvas150 = { medium: 'canvas', subcategory_id: 101003 }
+  const framed125 = { medium: 'framed_canvas', subcategory_id: 102002 }
+
+  it('sells a size in every print type of its family until the owner unticks one', () => {
+    expect(printTypeSellable(PRINT_VARIANT, canvas125)).toBe(true)
+    expect(printTypeSellable(PRINT_VARIANT, canvas150)).toBe(true)
+    expect(printTypeSellable({ ...PRINT_VARIANT, excluded_subcategory_ids: [101003] }, canvas150)).toBe(false)
+    expect(printTypeSellable({ ...PRINT_VARIANT, excluded_subcategory_ids: [101003] }, canvas125)).toBe(true)
+  })
+
+  it('never sells a size in another family, and leaves an unknown print type to the engine', () => {
+    expect(printTypeSellable(PRINT_VARIANT, framed125)).toBe(false)
+    expect(printTypeSellable({ ...PRINT_VARIANT, medium: null }, framed125)).toBe(true)
+    expect(printTypeSellable(PRINT_VARIANT, null)).toBe(true)
   })
 })

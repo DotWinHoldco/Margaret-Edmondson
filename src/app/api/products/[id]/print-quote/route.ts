@@ -48,7 +48,8 @@ import { z } from 'zod'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { apiFail } from '@/lib/api/respond'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getFullCatalogCached } from '@/lib/catalog/load'
+import { getFullCatalogCached, findSubcategory } from '@/lib/catalog/load'
+import { variantSoldIn } from '@/components/shop/PrintConfigurator/catalog-view'
 import { isConfiguratorOpen } from '@/lib/catalog/door'
 import { loadPublicPrintReadiness } from '@/lib/products/print-readiness'
 import { LumaprintsDisabledError } from '@/lib/integrations/lumaprints'
@@ -139,11 +140,14 @@ interface VariantRow {
   id: string
   product_id: string | null
   is_active: boolean | null
+  medium: string | null
   width_in: number | null
   height_in: number | null
   /** Pricing overrides that belong to THIS variant; the engine applies them. */
   margin_override_pct: number | null
   manual_price_override_cents: number | null
+  /** Print types this size is NOT sold in (the owner's per-size veto). */
+  excluded_subcategory_ids: number[] | null
 }
 
 const numberOrNull = (value: unknown): number | null => {
@@ -217,14 +221,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const variantResult = await service
       .from('product_variants')
-      .select('id, product_id, is_active, width_in, height_in, margin_override_pct, manual_price_override_cents')
+      .select('id, product_id, is_active, medium, width_in, height_in, margin_override_pct, manual_price_override_cents, excluded_subcategory_ids')
       .eq('id', body.variantId)
       .maybeSingle()
     if (variantResult.error) return apiFail(variantResult.error, { code: 'DATABASE_ERROR', context: 'print-quote variant' })
     const variant = variantResult.data as VariantRow | null
     // A variant of another product is a 404, not a 403: answering differently would
     // confirm that the id exists somewhere in the catalog.
-    if (!variant || variant.product_id !== productId || variant.is_active !== true) {
+    // A print size has a medium; a row without one (an original, a studio item) is not
+    // something this route prices, whatever its dimensions say.
+    if (!variant || variant.product_id !== productId || variant.is_active !== true || !variant.medium) {
+      return fail(404, 'not_found', NOT_FOUND_COPY)
+    }
+    // The cached full tree: one memoized read per request and one revalidating cache
+    // entry per host, instead of four table reads per keystroke on the configurator.
+    const catalog = await getFullCatalogCached()
+    // Only a print type this size is sold in. The product page offers a size under the
+    // print types of its family the owner has not unticked; a body naming any other
+    // (another family, or a depth unticked on the product page) is a size we do not
+    // sell, and answers like one that does not exist. A print type the tree does not
+    // know is left to the engine, which refuses it as unavailable.
+    const requested = findSubcategory(catalog, body.subcategoryRef)
+    if (requested && (requested.medium !== variant.medium || !variantSoldIn(variant, requested.subcategory_id))) {
       return fail(404, 'not_found', NOT_FOUND_COPY)
     }
     const widthIn = Number(variant.width_in)
@@ -232,10 +250,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!Number.isFinite(widthIn) || !Number.isFinite(heightIn) || widthIn <= 0 || heightIn <= 0) {
       return fail(404, 'not_found', NOT_FOUND_COPY)
     }
-
-    // The cached full tree: one memoized read per request and one revalidating cache
-    // entry per host, instead of four table reads per keystroke on the configurator.
-    const catalog = await getFullCatalogCached()
 
     // The engine's provider calls happen inside this wrapper, so every slot they take
     // is taken under the public reserve and refused before fulfillment's share is gone.

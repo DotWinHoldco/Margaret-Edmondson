@@ -98,6 +98,10 @@ interface RelatedProduct {
   lead_days?: number
   is_lumaprints_available?: boolean
     price?: number
+    /** Print types this size is NOT sold in (the owner's per-size veto on the product page). */
+    excluded_subcategory_ids?: number[] | null
+    /** Carries the print type the stored price was computed for. */
+    fulfillment_metadata?: { lumaprints_subcategory_id?: number | string | null } | null
   }>
   master_artwork?:
     | { print_status: string | null; print_storage_path: string | null }

@@ -26,14 +26,17 @@ export const MEDIUMS = [
 
 export type Medium = (typeof MEDIUMS)[number]
 
+// Family names only. The depth (0.75 / 1.25 / 1.50 in) is a print type UNDER the family,
+// switched on per depth in Print Catalog; a family label that named one depth (as these
+// did from June, when the store sold exactly one) read as a claim about every row below it.
 const MEDIUM_LABELS: Record<Medium, string> = {
-  canvas: 'Canvas (1.25" stretched)',
-  framed_canvas: 'Framed Canvas (1.25")',
+  canvas: 'Canvas',
+  framed_canvas: 'Framed Canvas',
   fine_art_paper: 'Fine Art Paper',
   framed_fine_art_paper: 'Framed Fine Art Paper',
   foam_mounted_fine_art_paper: 'Foam-Mounted Fine Art Paper',
-  metal: 'Metal',
-  peel_and_stick: 'Peel & Stick',
+  metal: 'Metal Print',
+  peel_and_stick: 'Peel & Stick Print',
   rolled_canvas: 'Rolled Canvas',
 }
 

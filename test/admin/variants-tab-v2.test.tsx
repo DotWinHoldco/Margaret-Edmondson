@@ -10,7 +10,7 @@
 // state and the Live gate observable from one fixture.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
@@ -181,14 +181,49 @@ describe('variants tab sections follow the print catalog', () => {
     expect(canvas).toHaveTextContent('Largest print at 300 DPI: 16 × 20 in (limited by Canvas 0.75 in)')
   })
 
-  it('chips each size against every print type of its medium', () => {
+  it('chips each size against every print type of its medium: a switch where it is sold, a grey chip where it cannot fit', () => {
     show()
     const canvas = screen.getByTestId('medium-canvas')
     const row = within(canvas).getAllByRole('row')[1]
-    expect(within(row).getByTitle('fits Canvas 1.25 in')).toHaveTextContent('Canvas 1.25 in')
+    const soldIn = within(row).getByRole('switch', { name: 'Sold in Canvas 1.25 in' })
+    expect(soldIn).toHaveAttribute('aria-checked', 'true')
+    expect(soldIn).toHaveTextContent('Canvas 1.25 in')
     expect(within(row).getByTitle('does not fit Canvas 0.75 in')).toHaveTextContent('Canvas 0.75 in')
     expect(within(row).queryByText('Not sellable')).not.toBeInTheDocument()
     expect(within(canvas).getByRole('checkbox')).toBeEnabled()
+  })
+
+  it('lets the owner untick a print type for one size, saves the veto, and says when nothing sells the size', async () => {
+    show([variant({ id: 'canvas-large', medium: 'canvas' })])
+    const canvas = screen.getByTestId('medium-canvas')
+    const row = within(canvas).getAllByRole('row')[1]
+    fireEvent.click(within(row).getByRole('switch', { name: 'Sold in Canvas 1.25 in' }))
+
+    // The chip flips at once and the only fitting print type is now unticked.
+    expect(within(row).getByRole('switch', { name: 'Sold in Canvas 1.25 in' })).toHaveAttribute('aria-checked', 'false')
+    expect(within(row).getByText('Not sold in any print type')).toBeInTheDocument()
+
+    // The debounced save sends exactly the exclusion list to the variant route.
+    await waitFor(
+      () => {
+        const call = vi.mocked(fetch).mock.calls.find((c) => String(c[0]) === '/api/admin/variants/canvas-large')
+        expect(call).toBeDefined()
+        expect(call?.[1]).toMatchObject({ method: 'PATCH' })
+        expect(JSON.parse(String(call?.[1]?.body))).toEqual({ excluded_subcategory_ids: [101002] })
+      },
+      { timeout: 2000 },
+    )
+
+    // Ticking it again clears the veto.
+    fireEvent.click(within(row).getByRole('switch', { name: 'Sold in Canvas 1.25 in' }))
+    expect(within(row).getByRole('switch', { name: 'Sold in Canvas 1.25 in' })).toHaveAttribute('aria-checked', 'true')
+    expect(within(row).queryByText('Not sold in any print type')).not.toBeInTheDocument()
+  })
+
+  it('names the family in the section title, never one print type', () => {
+    show()
+    expect(within(screen.getByTestId('medium-canvas')).getByRole('heading', { level: 3 })).toHaveTextContent(/^Canvas/)
+    expect(within(screen.getByTestId('medium-fine_art_paper')).getByRole('heading', { level: 3 })).toHaveTextContent(/^Fine Art Paper/)
   })
 
   it('marks a size no print type takes as not sellable and blocks its Live toggle', () => {

@@ -49,7 +49,7 @@ const MASTER_NOT_READY = 'The print master is not ready — crop the master firs
 
 // Explicit column lists (house rule: never select('*')).
 const PRODUCT_COLS = 'id, title, slug, master_artwork_id'
-const VARIANT_COLS = 'id, product_id, medium, width_in, height_in, is_active, is_lumaprints_available'
+const VARIANT_COLS = 'id, product_id, medium, width_in, height_in, is_active, is_lumaprints_available, excluded_subcategory_ids'
 const MASTER_COLS = 'id, print_status, print_width_px, print_height_px'
 
 interface ProductRow {
@@ -67,6 +67,8 @@ interface VariantRow {
   height_in: number | null
   is_active: boolean
   is_lumaprints_available: boolean | null
+  /** Print types this size is NOT sold in; the report never counts it for them. */
+  excluded_subcategory_ids?: number[] | null
 }
 
 interface MasterRow {

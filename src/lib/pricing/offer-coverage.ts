@@ -77,6 +77,8 @@ export interface CoverageCellVariant {
   width_in: number | null
   height_in: number | null
   is_active: boolean
+  /** Print types this size is NOT sold in (the owner's per-size veto); not counted for them. */
+  excluded_subcategory_ids?: number[] | null
 }
 
 export interface CoverageCellInput {
@@ -128,6 +130,8 @@ export function coverageCell(input: CoverageCellInput): CoverageCellResult {
     const widthIn = Number(variant.width_in)
     const heightIn = Number(variant.height_in)
     if (!Number.isFinite(widthIn) || !Number.isFinite(heightIn) || widthIn <= 0 || heightIn <= 0) continue
+    // A size the owner unticked for this print type is not offered in it, however well it fits.
+    if (variant.excluded_subcategory_ids?.some((id) => Number(id) === subcategory.subcategory_id)) continue
     if (!sizeFits(subcategory, { widthIn, heightIn }, master)) continue
     fits += 1
     if (variant.is_active === true) live += 1

@@ -50,6 +50,8 @@ export interface Variant {
   is_active: boolean
   is_lumaprints_available: boolean
   last_priced_at: string | null
+  /** Print types (provider subcategory ids) this size is NOT sold in; the "Sold in" chips. */
+  excluded_subcategory_ids?: number[] | null
 }
 
 export interface MasterPrintInfo {
@@ -127,21 +129,31 @@ function fittingSubcategories(
 }
 
 /**
- * One chip per sellable print type of the medium: green where the size can be
- * ordered, grey with the reason in the title where it cannot, and a single red chip
- * when nothing takes it (which is also what blocks the Live toggle).
+ * "Sold in": one chip per switched-on print type of the family. Green = the size is
+ * sold in that print type; outlined = the owner unticked it for this size; grey = the
+ * print type cannot take the size (bounds, DPI, shape), with the reason in the title.
+ * With `onToggle` the green/outlined chips are buttons; without it (a size that does not
+ * exist yet) they only report. A single red chip says nothing sells the size at all,
+ * which is also what blocks the Live toggle.
  */
 function FitsChips({
   subcategories,
   size,
   master,
+  excluded = [],
+  onToggle,
 }: {
   subcategories: CatalogSubcategory[]
   size: { widthIn: number; heightIn: number } | null
   master: MasterPx
+  /** Provider subcategory ids the owner unticked for this size. */
+  excluded?: readonly number[]
+  /** Called with the next exclusion list when a chip is clicked. */
+  onToggle?: (nextExcluded: number[]) => void
 }) {
   if (subcategories.length === 0) return <span className="font-body text-[10px] text-charcoal/35">—</span>
   const fitting = new Set(fittingSubcategories(subcategories, size, master).map((s) => s.id))
+  const soldIn = subcategories.filter((s) => fitting.has(s.id) && !excluded.includes(s.subcategory_id))
   return (
     <div className="flex flex-wrap items-center gap-1">
       {fitting.size === 0 && (
@@ -149,18 +161,49 @@ function FitsChips({
           Not sellable
         </span>
       )}
+      {fitting.size > 0 && soldIn.length === 0 && (
+        <span className="rounded-full bg-coral/15 px-1.5 py-0.5 font-body text-[9px] font-semibold uppercase tracking-wider text-coral">
+          Not sold in any print type
+        </span>
+      )}
       {subcategories.map((subcategory) => {
         const fits = fitting.has(subcategory.id)
+        const off = excluded.includes(subcategory.subcategory_id)
+        const label = subcategory.display_label
+        const chipClass = `inline-block max-w-[8rem] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[9px] ${
+          !fits
+            ? 'bg-charcoal/8 text-charcoal/45'
+            : off
+              ? 'border border-charcoal/30 bg-white text-charcoal/55 line-through'
+              : 'bg-teal/15 text-deep-teal'
+        }`
+        if (!fits || !onToggle) {
+          return (
+            <span
+              key={subcategory.id}
+              title={!fits ? `does not fit ${label}` : off ? `not sold in ${label}` : `sold in ${label}`}
+              className={chipClass}
+            >
+              {label}
+            </span>
+          )
+        }
+        const next = off
+          ? excluded.filter((id) => id !== subcategory.subcategory_id)
+          : [...excluded, subcategory.subcategory_id]
         return (
-          <span
+          <button
             key={subcategory.id}
-            title={fits ? `fits ${subcategory.display_label}` : `does not fit ${subcategory.display_label}`}
-            className={`inline-block max-w-[8rem] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[9px] ${
-              fits ? 'bg-teal/15 text-deep-teal' : 'bg-charcoal/8 text-charcoal/45'
-            }`}
+            type="button"
+            role="switch"
+            aria-checked={!off}
+            aria-label={`Sold in ${label}`}
+            title={off ? `not sold in ${label} — click to sell this size in it` : `sold in ${label} — click to stop selling this size in it`}
+            onClick={() => onToggle(next)}
+            className={`${chipClass} cursor-pointer hover:ring-1 hover:ring-teal/50`}
           >
-            {subcategory.display_label}
-          </span>
+            {label}
+          </button>
         )
       })}
     </div>
@@ -283,6 +326,10 @@ export default function VariantsTab({
   const onNameChange = (id: string, value: string) => {
     updateVariantField(id, { name: value })
     if (value.trim()) debouncedSave(id, { name: value.trim() })
+  }
+  const onSoldInChange = (id: string, excluded: number[]) => {
+    updateVariantField(id, { excluded_subcategory_ids: excluded })
+    debouncedSave(id, { excluded_subcategory_ids: excluded })
   }
   const onManualOverride = (id: string, cur: number | null) => {
     const next = window.prompt(
@@ -472,7 +519,8 @@ export default function VariantsTab({
           <div key={m} data-testid={`medium-${m}`} className="mb-6 last:mb-0">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h3 className="font-display text-base font-medium text-charcoal">
-                {cfg?.name || mediumLabel(m)}
+                {/* The family, never one print type's name: the print types are listed beneath. */}
+                {mediumLabel(m)}
                 <span className="ml-2 font-body text-xs text-charcoal/40">({rows.length})</span>
                 {!configured && !darkMedium && (
                   <span className="ml-2 inline-block rounded-full bg-charcoal/10 px-2 py-0.5 font-body text-[10px] text-charcoal/50">Run Lumaprints sync to enable</span>
@@ -551,7 +599,7 @@ export default function VariantsTab({
                 <table className="w-full text-left">
                   <thead className="bg-charcoal/[0.03]">
                     <tr>
-                      {['Live', 'Label', 'Size', ...(sellable.length > 0 ? ['Fits'] : []), 'Cost', 'Markup / Gross margin', 'Price', 'Gross profit', ''].map((h, i) => (
+                      {['Live', 'Label', 'Size', ...(sellable.length > 0 ? ['Sold in'] : []), 'Cost', 'Markup / Gross margin', 'Price', 'Gross profit', ''].map((h, i) => (
                         <th key={i} className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">{h}</th>
                       ))}
                     </tr>
@@ -615,7 +663,13 @@ export default function VariantsTab({
                           </td>
                           {sellable.length > 0 && (
                             <td className="px-3 py-2">
-                              <FitsChips subcategories={sellable} size={size} master={masterPx} />
+                              <FitsChips
+                                subcategories={sellable}
+                                size={size}
+                                master={masterPx}
+                                excluded={v.excluded_subcategory_ids ?? []}
+                                onToggle={(next) => onSoldInChange(v.id, next)}
+                              />
                             </td>
                           )}
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap" title={`base ${fmtCents(cost)} + shipping ${fmtCents(ship)}`}>
@@ -676,7 +730,7 @@ export default function VariantsTab({
         <CustomSizeModal
           productId={productId}
           medium={customModal.medium}
-          mediumName={catalogByMedium[customModal.medium]?.name || mediumLabel(customModal.medium)}
+          mediumName={mediumLabel(customModal.medium)}
           subcategoryId={catalogByMedium[customModal.medium]?.subcategory_id ?? null}
           subcategories={sellableByMedium[customModal.medium] ?? []}
           defaultSubcategory={

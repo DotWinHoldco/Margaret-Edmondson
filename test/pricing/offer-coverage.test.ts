@@ -150,6 +150,16 @@ describe('coverageCell', () => {
     expect(cell.reason).toBe('1 size still in draft.')
   })
 
+  it('does not count a size the owner unticked for this print type, however well it fits', () => {
+    const cell = coverageCell({
+      variants: [{ width_in: 20, height_in: 30, is_active: true, excluded_subcategory_ids: [CANVAS.subcategory_id] }],
+      subcategory: CANVAS,
+      master,
+    })
+
+    expect(cell).toEqual({ live: 0, draft: 0, fits: 0, status: 'none', reason: 'no size fits' })
+  })
+
   it('counts only the sizes the print type can actually take', () => {
     // The 20 × 30 canvas Large is past the paper's 300 DPI ceiling, so under the paper
     // column it is a gap, not coverage.

@@ -300,6 +300,30 @@ export interface PrintVariant {
   shipping_mode?: 'included' | 'flat' | 'integration'
   shipping_fee_cents?: number
   lead_days?: number | null
+  /** Print types (provider subcategory ids) this size is NOT sold in; the owner's per-size veto. */
+  excluded_subcategory_ids?: number[] | null
+  /** The print type the stored `price` was computed for (the size's own depth). */
+  fulfillment_metadata?: { lumaprints_subcategory_id?: number | string | null } | null
+}
+
+/** The print type the variant's stored price belongs to, or null for a row that never said. */
+export function variantStoredSubcategoryId(variant: Pick<PrintVariant, 'fulfillment_metadata'>): number | null {
+  const raw = variant.fulfillment_metadata?.lumaprints_subcategory_id
+  const id = Number(raw)
+  return raw === null || raw === undefined || !Number.isFinite(id) || id <= 0 ? null : id
+}
+
+/**
+ * Whether the owner sells this size in this print type. A size is offered in every
+ * switched-on print type of its family that can take it, MINUS the ones unticked on the
+ * product page; the storefront, the quote route, checkout and the warmer all ask here.
+ */
+export function variantSoldIn(
+  variant: Pick<PrintVariant, 'excluded_subcategory_ids'>,
+  subcategoryId: number,
+): boolean {
+  const excluded = variant.excluded_subcategory_ids
+  return !Array.isArray(excluded) || !excluded.some((id) => Number(id) === subcategoryId)
 }
 
 /** The print size a variant sells, or null when the row has no usable dimensions. */
@@ -318,6 +342,7 @@ export function sizesFor(
   const rule = toRuleSubcategory(subcategory)
   return variants
     .filter((variant) => variant.medium === subcategory.medium)
+    .filter((variant) => variantSoldIn(variant, subcategory.subcategory_id))
     .filter((variant) => {
       const size = variantSize(variant)
       return size !== null && sizeFits(rule, size)

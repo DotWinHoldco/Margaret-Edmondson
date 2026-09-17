@@ -87,6 +87,23 @@ const checkoutRequestSchema = z.object({
 export type CheckoutRequestInput = z.infer<typeof checkoutRequestSchema>
 export type CheckoutItemInput = CheckoutRequestInput['items'][number]
 
+/**
+ * Whether a print size is sold in the print type a configured line names: the print type
+ * must be of the size's own family, and the owner must not have unticked it for this size
+ * on the product page. The same rule the public quote route applies; a line that fails it
+ * is not quoted and the validator answers `configuration_unavailable`. A print type the
+ * catalog does not know (`null`) is left to the engine, which refuses it as unavailable.
+ */
+export function printTypeSellable(
+  variant: Pick<CheckoutVariantRecord, 'medium' | 'excluded_subcategory_ids'>,
+  requested: { medium: string; subcategory_id: number } | null,
+): boolean {
+  if (!requested) return true
+  if (variant.medium && requested.medium !== variant.medium) return false
+  const excluded = variant.excluded_subcategory_ids
+  return !Array.isArray(excluded) || !excluded.some((id) => Number(id) === requested.subcategory_id)
+}
+
 /** `variantId` for a legacy line; `variantId|subcategoryRef|ids|hex` for a configured one. */
 export function checkoutLineKey(item: Pick<CheckoutItemInput, 'variantId' | 'subcategoryRef' | 'optionIds' | 'solidHex'>): string {
   const config = lineKey(item.subcategoryRef, item.optionIds ?? [], item.solidHex)
@@ -177,6 +194,8 @@ export interface CheckoutVariantRecord extends StudioFields {
   height_in: number | null
   margin_override_pct?: number | null
   manual_price_override_cents?: number | null
+  /** Print types (provider subcategory ids) this size is NOT sold in; the owner's per-size veto. */
+  excluded_subcategory_ids?: number[] | null
 }
 
 export interface CheckoutMediumRecord {
@@ -428,7 +447,7 @@ async function quoteConfiguredLines(
   const quotes: ConfiguredLineQuotes = new Map()
   if (configured.length === 0) return quotes
 
-  const [{ createServiceClient }, { isConfiguratorOpen }, { getFullCatalogCached }, { quoteConfiguration }, { withProviderReserve, PUBLIC_QUOTE_RESERVE }] = await Promise.all([
+  const [{ createServiceClient }, { isConfiguratorOpen }, { getFullCatalogCached, findSubcategory }, { quoteConfiguration }, { withProviderReserve, PUBLIC_QUOTE_RESERVE }] = await Promise.all([
     import('@/lib/supabase/server'),
     import('@/lib/catalog/door'),
     import('@/lib/catalog/load'),
@@ -443,6 +462,10 @@ async function quoteConfiguredLines(
   for (const item of configured) {
     const variant = variantById.get(item.variantId)
     if (!variant || !variant.width_in || !variant.height_in) continue // the validator refuses it
+    // Only a print type this size is sold in: another family, or a depth the owner unticked
+    // for this size on the product page, is not quoted, and the validator answers
+    // configuration_unavailable for the line. Same rule as the public quote route.
+    if (!printTypeSellable(variant, findSubcategory(catalog, item.subcategoryRef!))) continue
     const master = masters.get(item.productId)
     // Under the public reserve, like the PDP quote: a cart or checkout re-quote is a
     // public request and must never drain the slots fulfillment needs.
@@ -489,7 +512,7 @@ export async function validateAndPriceCheckoutItems(
       .in('id', productIds),
     supabase
       .from('product_variants')
-      .select(`id, product_id, name, price, variant_type, inventory_count, is_active, is_lumaprints_available, lumaprints_cost_cents, shipping_cost_cents, medium, size_label, width_in, height_in, margin_override_pct, manual_price_override_cents, ${STUDIO_VARIANT_COLUMNS}`)
+      .select(`id, product_id, name, price, variant_type, inventory_count, is_active, is_lumaprints_available, lumaprints_cost_cents, shipping_cost_cents, medium, size_label, width_in, height_in, margin_override_pct, manual_price_override_cents, excluded_subcategory_ids, ${STUDIO_VARIANT_COLUMNS}`)
       .in('id', variantIds),
   ])
 
