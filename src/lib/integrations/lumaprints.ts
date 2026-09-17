@@ -64,9 +64,27 @@ async function request(path: string, options: RequestInit = {}, attempt = 0): Pr
   })
   // Lumaprints sits behind Cloudflare, which 429s short bursts. Back off and
   // retry transient failures with exponential delay before giving up.
-  if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
-    await sleep(800 * 2 ** attempt)
-    return request(path, options, attempt + 1)
+  if (RETRYABLE_STATUS.has(res.status)) {
+    // The provider answers a throttle with its own window (Retry-After / x-ratelimit-reset,
+    // seconds). Honour it up to a short cap so a quote never hangs a request, and log the
+    // limit the key is actually given: the documented 40/min is not what production sees.
+    const headerSeconds =
+      Number(res.headers.get('retry-after')) || Number(res.headers.get('x-ratelimit-reset')) || 0
+    console.warn(
+      '[lumaprints] throttled',
+      JSON.stringify({
+        status: res.status,
+        attempt,
+        limit: res.headers.get('x-ratelimit-limit'),
+        remaining: res.headers.get('x-ratelimit-remaining'),
+        reset: res.headers.get('x-ratelimit-reset'),
+        retryAfter: res.headers.get('retry-after'),
+      }),
+    )
+    if (attempt < MAX_RETRIES) {
+      await sleep(Math.min(Math.max(headerSeconds * 1000, 800 * 2 ** attempt), 5_000))
+      return request(path, options, attempt + 1)
+    }
   }
   if (!res.ok) {
     const error = await res.text()

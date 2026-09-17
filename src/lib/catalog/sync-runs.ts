@@ -46,7 +46,8 @@ export function emptyDiff(): SyncDiff {
 export function addStats(base: SyncStats, delta: Partial<SyncStats>): SyncStats {
   const out = { ...base }
   for (const key of Object.keys(out) as Array<keyof SyncStats>) {
-    out[key] = out[key] + (delta[key] ?? 0)
+    // transientFailures is optional on older rows; every counter starts from 0.
+    out[key] = (out[key] ?? 0) + (delta[key] ?? 0)
   }
   return out
 }
