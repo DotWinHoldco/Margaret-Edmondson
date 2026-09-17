@@ -37,7 +37,7 @@ import type {
 } from '@/lib/pricing/quote-types'
 import { loadCatalog } from '@/lib/catalog/load'
 import { normalizeSelection } from '@/lib/catalog/selection'
-import { defaultOptionIds, type RuleMaster } from '@/lib/catalog/rules'
+import { CUSTOMER_VIOLATION_MESSAGES, defaultOptionIds, type RuleMaster } from '@/lib/catalog/rules'
 import { priceKeyHash } from '@/lib/catalog/hash'
 import {
   getProductsCost,
@@ -102,6 +102,8 @@ export interface DefaultQuoteInput {
   subcategoryRef: string
   widthIn: number
   heightIn: number
+  /** The stored variant overrides, when this size is already a priced variant row. */
+  variantPricing?: QuoteInput['variantPricing']
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +214,15 @@ function sortedIds(ids: readonly number[]): number[] {
   return [...new Set(ids)].sort((a, b) => a - b)
 }
 
+function sameIds(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index])
+}
+
+/** True when this subcategory still lists a group, so an empty selection is a bug. */
+function hasSendableGroups(subcategory: CatalogSubcategory): boolean {
+  return subcategory.groups.some((group) => group.removed_from_api !== true)
+}
+
 /**
  * The items one provider call carries for a miss.
  *
@@ -234,6 +245,14 @@ export function buildPricingBatch(
   heightIn: number,
 ): ProductCostRequestItem[] {
   const size = { width: widthIn, height: heightIn }
+  // The last gate before a request leaves the building. quoteConfiguration refuses this
+  // already; this one is for every other caller, now and later, and it throws rather
+  // than returning so no code path can treat it as a priceable answer.
+  if (selection.optionIds.length === 0 && hasSendableGroups(subcategory)) {
+    throw new Error(
+      `quote: refusing to price subcategory ${subcategory.subcategory_id} with no options while it still lists option groups`,
+    )
+  }
   if (subcategory.pricing_mode !== 'additive') {
     return [{ subcategoryId: subcategory.subcategory_id, size, options: selection.optionIds }]
   }
@@ -384,6 +403,31 @@ export async function quoteConfiguration(
   const heightIn = Number(input.heightIn)
   const refresh = opts.refresh === true
   const allowStale = opts.allowStale !== false
+  const variantPricing = input.variantPricing ?? { margin_override_pct: null, manual_price_override_cents: null }
+
+  // An empty option set on a subcategory that HAS groups is never a configuration we
+  // may price: the provider resolves the omission to Image Wrap on canvas and a 0.25in
+  // bleed on paper, and both reject an aspect-exact master after the card is charged
+  // (P15/F30). The rules engine fills every group it can, so reaching here means the
+  // catalog has no sendable default left and the answer is "not right now", not a call.
+  if (selection.optionIds.length === 0 && hasSendableGroups(subcategory)) {
+    return unavailable([
+      { code: 'subcategory_unavailable', message: CUSTOMER_VIOLATION_MESSAGES.subcategory_unavailable },
+    ])
+  }
+
+  // A manual price is a price for ONE product: the variant's default configuration.
+  // Any other configuration costs something else, and honouring the override for it
+  // would sell a 5 inch mat for the price of a bare frame. Refused before the provider
+  // is touched, because there is nothing to learn from pricing it.
+  if (
+    variantPricing.manual_price_override_cents !== null &&
+    !sameIds(selection.optionIds, defaultOptionIds(subcategory))
+  ) {
+    return unavailable([
+      { code: 'option_unavailable', message: CUSTOMER_VIOLATION_MESSAGES.manual_price_locked },
+    ])
+  }
 
   const rows = refresh ? [] : await readCacheRowsForSize(client, subcategory.id, widthIn, heightIn)
   const freshRows = rows.filter((row) => cacheRowIsFresh(row))
@@ -518,12 +562,15 @@ export async function quoteConfiguration(
   if (writes.length > 0) await writeCacheRows(client, writes)
 
   const marginPct = opts.marginPct ?? (await getEffectiveProductMargin(client, input.productId))
+  // The same four inputs the variant builder and the refresh route pass, in the same
+  // order of authority: a manual price wins, then the variant's margin, then the
+  // effective product default.
   const priceCents = customerPriceCents(
     {
       lumaprints_cost_cents: cost.costCents,
       shipping_cost_cents: shipping,
-      margin_override_pct: null,
-      manual_price_override_cents: null,
+      margin_override_pct: variantPricing.margin_override_pct,
+      manual_price_override_cents: variantPricing.manual_price_override_cents,
     },
     marginPct,
   )
@@ -595,6 +642,7 @@ export async function quoteDefaultConfiguration(
       widthIn: input.widthIn,
       heightIn: input.heightIn,
       optionIds: [],
+      variantPricing: input.variantPricing,
     },
     opts,
   )

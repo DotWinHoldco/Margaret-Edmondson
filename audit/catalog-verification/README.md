@@ -43,7 +43,11 @@ Three rules the writer enforces, so no step can soften them on its own:
 2. **A skip is counted and explained.** `counts.skipped` sits next to `counts.passed`
    and every skip writes its reason into `notes`. A guard that did not run is not a
    guard that passed.
-3. **Documented drops are not failures and not skips.** A standard size outside a
+3. **A classification is not a verdict.** `FINDING F36` marks a subcategory this host
+   would not price at all in this run; its assertions are counted as skipped, and the
+   sandbox is known to refuse scattered items under sustained load. Verify such a
+   profile on production before reading it as broken.
+4. **Documented drops are not failures and not skips.** A standard size outside a
    subcategory's published bounds, or a subcategory a run deliberately excluded, is
    listed (in a table cell or a note) because the harness chose not to ask the
    question. It never moves a count.

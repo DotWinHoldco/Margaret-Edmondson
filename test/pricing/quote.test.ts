@@ -310,6 +310,28 @@ const gFinish = group('g-150-finish', FINISH, 'canvas_finish', 'Canvas Finish')
 option(gFinish, 213, 'Matte', { is_default: true })
 option(gFinish, 212, 'Semi-Glossy')
 
+// A group the provider still lists whose safe default is gone: the rules engine has
+// nothing to send, and an empty options array is not an answer we are allowed to give.
+const STRANDED = sub({ id: 'sc-stranded', medium: 'canvas', subcategory_id: 101009, name: 'Stranded Canvas' })
+const gStranded = group('g-stranded', STRANDED, 'canvas_border', 'Canvas Border')
+optionRows.push({
+  id: 'o-stranded-2',
+  group_ref: gStranded,
+  option_id: 2,
+  api_option_name: 'Mirror Wrap',
+  display_label: 'Mirror Wrap',
+  enabled: true,
+  is_default: true,
+  provider_default: false,
+  sort_order: 2,
+  swatch: null,
+  geometry: null,
+  first_seen_at: STAMP,
+  last_seen_at: STAMP,
+  acknowledged_at: STAMP,
+  removed_from_api: true,
+})
+
 const catalog: Catalog = assembleCatalog(
   {
     host: HOST,
@@ -718,6 +740,127 @@ describe('quoteConfiguration: how a delta is derived', () => {
     expect(providerCalls).toHaveLength(0)
     expect(composed.selection?.optionIds).toEqual([2, 5, 212])
     expect(composed.costCents).toBe(3125)
+  })
+})
+
+describe('quoteConfiguration: variant overrides', () => {
+  it('honours a manual price at the variant default configuration', async () => {
+    const result = await quoteConfiguration(
+      db.client,
+      {
+        productId: PRODUCT,
+        subcategoryRef: CANVAS,
+        widthIn: 8,
+        heightIn: 10,
+        optionIds: [],
+        variantPricing: { margin_override_pct: null, manual_price_override_cents: 30000 },
+      },
+      OPTS,
+    )
+    expect(result.available).toBe(true)
+    expect(result.priceCents).toBe(30000)
+    // The cost and freight are still the real ones; only the customer price is fixed.
+    expect(result.costCents).toBe(1099)
+    expect(result.shippingCents).toBe(1234)
+  })
+
+  it('refuses any other configuration on a manual-price variant, before any call', async () => {
+    const result = await quoteConfiguration(
+      db.client,
+      {
+        productId: PRODUCT,
+        subcategoryRef: CANVAS,
+        widthIn: 8,
+        heightIn: 10,
+        optionIds: [3],
+        solidHex: '#1a1a1a',
+        variantPricing: { margin_override_pct: null, manual_price_override_cents: 30000 },
+      },
+      OPTS,
+    )
+    expect(result.available).toBe(false)
+    expect(result.violations).toEqual([
+      { code: 'option_unavailable', message: 'This size has a set price and cannot be customised.' },
+    ])
+    expect(result.priceCents).toBe(0)
+    expect(providerCalls).toHaveLength(0)
+    expect(shippingCalls).toHaveLength(0)
+  })
+
+  it('uses the variant margin override in place of the product default', async () => {
+    const result = await quoteConfiguration(
+      db.client,
+      {
+        productId: PRODUCT,
+        subcategoryRef: CANVAS,
+        widthIn: 8,
+        heightIn: 10,
+        optionIds: [],
+        variantPricing: { margin_override_pct: 40, manual_price_override_cents: null },
+      },
+      OPTS,
+    )
+    expect(result.priceCents).toBe(Math.round((1099 + 1234) * 1.4))
+    expect(result.priceCents).toBe(
+      customerPriceCents(
+        {
+          lumaprints_cost_cents: 1099,
+          shipping_cost_cents: 1234,
+          margin_override_pct: 40,
+          manual_price_override_cents: null,
+        },
+        100,
+      ),
+    )
+  })
+})
+
+describe('quoteConfiguration: never an empty option set', () => {
+  it('refuses a subcategory whose groups have nothing sendable left', async () => {
+    const result = await quote(STRANDED, 8, 10)
+    expect(result.available).toBe(false)
+    expect(result.violations).toEqual([
+      { code: 'subcategory_unavailable', message: 'This finish is not available right now.' },
+    ])
+    expect(providerCalls).toHaveLength(0)
+  })
+
+  it('buildPricingBatch throws rather than composing a request with no options', () => {
+    const normalized = normalizeSelection(catalog, {
+      productId: PRODUCT,
+      subcategoryRef: STRANDED,
+      widthIn: 8,
+      heightIn: 10,
+      optionIds: [],
+    })
+    if (!normalized.ok) throw new Error('fixture')
+    expect(normalized.selection.optionIds).toEqual([])
+    expect(() => buildPricingBatch(normalized.subcategory, normalized.selection, 8, 10)).toThrow(
+      /no options while it still lists option groups/i,
+    )
+  })
+
+  it('still prices a subcategory that genuinely has no option groups', () => {
+    // The guard is about a MISSING default, not about a family without options.
+    const groupless = { ...catalog.subcategories[0], groups: [], subcategory_id: 107001 }
+    expect(() =>
+      buildPricingBatch(
+        groupless,
+        {
+          subcategoryRef: groupless.id,
+          subcategoryId: 107001,
+          optionIds: [],
+          solidHex: null,
+          priceKeyHash: '',
+          lineHash: '',
+          shippingClassIds: [],
+          shippingClassHash: '',
+          labels: [],
+        },
+        8,
+        10,
+      ),
+    ).not.toThrow()
   })
 })
 

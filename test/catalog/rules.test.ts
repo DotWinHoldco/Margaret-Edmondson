@@ -27,7 +27,12 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 import { assembleCatalog } from '@/lib/catalog/assemble'
-import { defaultOptionIds, evaluateSelection } from '@/lib/catalog/rules'
+import {
+  CUSTOMER_VIOLATION_MESSAGES,
+  CUSTOMER_VIOLATION_MESSAGE_LIST,
+  defaultOptionIds,
+  evaluateSelection,
+} from '@/lib/catalog/rules'
 import { defaultSelection } from '@/lib/catalog/load'
 import type {
   Catalog,
@@ -234,6 +239,25 @@ function framedPaper(id: string, providerId: number, name: string, maxW: number,
 const PAPER_SMALL = framedPaper('sc-105001', 105001, '0.875w x 0.875h Black Frame', 36, 24)
 const PAPER_BIG = framedPaper('sc-105005', 105005, '1.25w x 0.875h Black Frame', 60, 40)
 
+// A frame whose glass is smaller than its published size bounds: the ceiling has to
+// bite with no mat chosen at all.
+const GLASS_ONLY = sub({
+  id: 'sc-105099',
+  medium: 'framed_fine_art_paper',
+  subcategory_id: 105099,
+  name: 'Small Glass Profile',
+  min_width_in: 5,
+  max_width_in: 60,
+  min_height_in: 5,
+  max_height_in: 40,
+  required_dpi: 300,
+  pricing_mode: 'whole_config',
+  max_glass_w_in: 32,
+  max_glass_h_in: 40,
+})
+const gGlassMat = group({ id: 'g-mat-105099', subcategory_ref: GLASS_ONLY, group_key: 'mat_size', display_label: 'Mat Size' })
+option({ group_ref: gGlassMat, option_id: 64, display_label: 'No Mat', is_default: true })
+
 // Metal: the easel whitelist the provider does not enforce.
 const METAL = sub({
   id: 'sc-106001',
@@ -336,6 +360,14 @@ function codes(result: { violations: Array<{ code: string }> }): string[] {
   return result.violations.map((violation) => violation.code)
 }
 
+function optionOf(ref: string, optionId: number) {
+  for (const group of find(ref).groups) {
+    const hit = group.options.find((option) => option.option_id === optionId)
+    if (hit) return hit
+  }
+  throw new Error(`fixture option ${optionId} missing`)
+}
+
 // ---------------------------------------------------------------------------
 
 describe('evaluateSelection: defaults', () => {
@@ -389,14 +421,21 @@ describe('evaluateSelection: option and group rules', () => {
     expect(codes(evaluateSelection(find(FRAMED), { widthIn: 16, heightIn: 20 }, [120]))).toContain('option_unavailable')
   })
 
-  it('option_blocked carries the blocked reason for a bleed and for an owed probe', () => {
+  it('option_blocked names the option without leaking the operator reason', () => {
     const wrap = evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [1])
-    expect(codes(wrap)).toContain('option_blocked')
-    expect(wrap.violations.find((v) => v.code === 'option_blocked')?.message).toMatch(/extra bleed/i)
+    const wrapViolation = wrap.violations.find((v) => v.code === 'option_blocked')
+    expect(wrapViolation?.message).toBe(CUSTOMER_VIOLATION_MESSAGES.option_blocked)
+    expect(wrapViolation?.optionId).toBe(1)
+    expect(wrapViolation?.groupKey).toBe('canvas_border')
+    // The detail an operator needs is still on the tree, where operators read it.
+    expect(optionOf(CANVAS, 1).blocked_reason).toMatch(/extra bleed/i)
 
     const rolled = evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [19])
-    expect(codes(rolled)).toContain('option_blocked')
-    expect(rolled.violations.find((v) => v.code === 'option_blocked')?.message).toMatch(/print checked/i)
+    expect(rolled.violations.find((v) => v.code === 'option_blocked')?.message).toBe(
+      CUSTOMER_VIOLATION_MESSAGES.option_blocked,
+    )
+    // The owed-probe sentence names a script to run: never customer copy.
+    expect(optionOf(CANVAS, 19).blocked_reason).toMatch(/print checked/i)
   })
 
   it('group_duplicate for two choices in one group', () => {
@@ -457,14 +496,28 @@ describe('evaluateSelection: size rules', () => {
     const over = evaluateSelection(find(PAPER_SMALL), { widthIn: 20, heightIn: 30 }, [69])
     expect(codes(over)).toContain('glass_ceiling')
     const violation = over.violations.find((v) => v.code === 'glass_ceiling')
-    expect(violation?.message).toContain('3.0 inches on each side')
-    expect(violation?.message).toContain('36 by 24')
+    expect(violation?.message).toBe(CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_mat)
+    // The screen points at the mat through the ids, not through the copy.
+    expect(violation?.groupKey).toBe('mat_size')
+    expect(violation?.optionId).toBe(69)
     expect(over.outerWidthIn).toBe(26)
     expect(over.outerHeightIn).toBe(36)
 
     // The 60 by 40 profile takes the same mat at a larger print, and refuses a bigger one.
     expect(codes(evaluateSelection(find(PAPER_BIG), { widthIn: 30, heightIn: 40 }, [73]))).not.toContain('glass_ceiling')
     expect(codes(evaluateSelection(find(PAPER_BIG), { widthIn: 36, heightIn: 48 }, [73]))).toContain('glass_ceiling')
+  })
+
+  it('applies the glass ceiling with No Mat when the frame declares one', () => {
+    // 50 by 40 is inside the published 60 by 40 bounds and outside the 32 by 40 glass.
+    const over = evaluateSelection(find(GLASS_ONLY), { widthIn: 50, heightIn: 40 }, [])
+    expect(codes(over)).toContain('glass_ceiling')
+    expect(over.violations.find((v) => v.code === 'glass_ceiling')?.message).toBe(
+      CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_size,
+    )
+    expect(codes(over)).not.toContain('size_out_of_bounds')
+    // The same frame takes a size that fits the glass.
+    expect(codes(evaluateSelection(find(GLASS_ONLY), { widthIn: 30, heightIn: 40 }, []))).not.toContain('glass_ceiling')
   })
 
   it('outer size equals the print size when no mat is chosen', () => {
@@ -483,7 +536,63 @@ describe('evaluateSelection: size rules', () => {
     }
     const off = evaluateSelection(find(METAL), { widthIn: 9, heightIn: 12 }, [32])
     expect(codes(off)).toContain('size_whitelist')
-    expect(off.violations.find((v) => v.code === 'size_whitelist')?.message).toContain('Metal Easel')
+    const violation = off.violations.find((v) => v.code === 'size_whitelist')
+    expect(violation?.message).toBe(CUSTOMER_VIOLATION_MESSAGES.size_whitelist)
+    expect(violation?.optionId).toBe(32)
+  })
+})
+
+describe('evaluateSelection: customer copy', () => {
+  // Every call the suite can make, so the assertion below is over what the engine
+  // actually emits rather than over what this test remembered to list.
+  const everyViolation = () => {
+    const results = [
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [999]),
+      evaluateSelection(find(FRAMED), { widthIn: 16, heightIn: 20 }, [120]),
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [1]),
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [19]),
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [2, 3], '#1a1a1a'),
+      evaluateSelection(find(NO_DEFAULT), { widthIn: 16, heightIn: 20 }, []),
+      evaluateSelection(find(PAPER_BIG), { widthIn: 8, heightIn: 10 }, [98]),
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [3]),
+      evaluateSelection(find(CANVAS), { widthIn: 8, heightIn: 10 }, [3], 'blue'),
+      evaluateSelection(find(CANVAS), { widthIn: 4, heightIn: 6 }, []),
+      evaluateSelection(find(CANVAS), { widthIn: 0, heightIn: 0 }, []),
+      evaluateSelection(find(PAPER_BIG), { widthIn: 24, heightIn: 30 }, [], undefined, {
+        printWidthPx: 6000,
+        printHeightPx: 7500,
+      }),
+      evaluateSelection(find(PAPER_BIG), { widthIn: 16, heightIn: 16 }, [], undefined, {
+        printWidthPx: 6000,
+        printHeightPx: 7500,
+      }),
+      evaluateSelection(find(PAPER_SMALL), { widthIn: 20, heightIn: 30 }, [69]),
+      evaluateSelection(find(GLASS_ONLY), { widthIn: 50, heightIn: 40 }, []),
+      evaluateSelection(find(METAL), { widthIn: 9, heightIn: 12 }, [32]),
+      evaluateSelection(find(PAPER_STRANDED), { widthIn: 8, heightIn: 10 }, []),
+    ]
+    return results.flatMap((result) => result.violations)
+  }
+
+  it('emits only messages from the customer-safe set', () => {
+    const emitted = everyViolation()
+    // Sanity: the sweep covers every code the RULES engine can raise. The fourteenth,
+    // subcategory_unavailable, belongs to selection.ts and is covered in its own suite.
+    expect(new Set(emitted.map((violation) => violation.code)).size).toBe(13)
+    for (const violation of emitted) {
+      expect(CUSTOMER_VIOLATION_MESSAGE_LIST).toContain(violation.message)
+    }
+  })
+
+  it('never writes an em dash into copy a customer reads', () => {
+    for (const message of CUSTOMER_VIOLATION_MESSAGE_LIST) {
+      expect(message).not.toMatch(/[—–]/)
+    }
+  })
+
+  it('keeps the operator sentences off the violation and on the tree', () => {
+    const emitted = everyViolation().map((violation) => violation.message)
+    expect(emitted.join(' ')).not.toMatch(/probe|Turn at least one|DPI|inch range/i)
   })
 })
 

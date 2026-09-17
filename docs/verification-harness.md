@@ -141,6 +141,15 @@ not in the repo: without them the run prints `SKIPPED: live sample (no productio
 credentials)` and carries on. It never substitutes the sandbox and never invents a
 number.
 
+**This spends the live key while the store is selling.** The production API key allows
+40 requests a minute for everything: storefront quotes, checkout re-quotes, the catalog
+sync and order submission. A live sample takes one request per variant out of that same
+allowance, on top of whatever customers are doing, and the first thing a shortage breaks
+is somebody's checkout. So keep `N` small, and run it inside the dead-hours window the
+sync already uses — **03:00 to 05:00 CT** — never during trading hours and never
+alongside a catalog sync. The sandbox has no such constraint, which is exactly why the
+sweep runs there.
+
 ## Reading the result
 
 Both modes exit non-zero when any assertion failed, print a one-line summary in the
@@ -150,6 +159,24 @@ same shape the JSON records, and write `audit/catalog-verification/<step>.{json,
 - `FINDING:` notes are provider behaviour we did not expect and need to triage.
 - `SKIPPED:` notes are assertions that could not be made, each with its reason. A
   skipped guard is no guard: read them before calling a step green.
+- `RETRY:` says how many items came back unpriced and how many priced when asked again.
+
+### F36 — subcategories this environment will not price
+
+A subcategory whose entire in-bounds default-set grid comes back unpriced, after the
+retry passes, is classified `UNPRICEABLE (this environment)`, recorded once as a
+`FINDING F36` line with the provider's own answer, listed in its own table, and its
+option and configuration assertions are counted as SKIPPED rather than failed. A base
+price that does not exist cannot be the reference for an option delta, so asserting on
+those items would report noise as fact.
+
+F36 is a statement about a HOST and a RUN, not about a catalog row. The sandbox returns
+`{"success": false}` with no message for scattered items during a long sweep: profiles
+classified unpriceable inside a 158-request run priced 40 of 40 seconds after it
+finished, and the set of classified profiles moved between two runs of the identical
+sweep. Treat an F36 line as "the sandbox would not price this today", verify the profile
+on the production host before enabling it, and re-run the sweep before reading anything
+more into it.
 
 A red step is not automatically a bug in the code under test. The first parity run is
 the example: it fails every default-set comparison while the production catalog carries

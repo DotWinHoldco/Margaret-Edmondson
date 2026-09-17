@@ -19,6 +19,7 @@ process.env.LUMAPRINTS_BASE_URL = 'https://us.api.lumaprints.com'
 const providerCalls = vi.hoisted(() => [] as Array<Array<{ subcategoryId: number; size: { width: number; height: number }; options?: number[] }>>)
 const shippingCalls = vi.hoisted(() => [] as Array<{ subcategoryId: number; orderItemOptions: number[] }>)
 const auth = vi.hoisted(() => ({ client: null as unknown as SupabaseClient }))
+const providerState = vi.hoisted(() => ({ budgetAfterCalls: Number.POSITIVE_INFINITY }))
 
 vi.mock('next/cache', () => ({ unstable_cache: (fn: () => unknown) => fn, revalidateTag: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({
@@ -28,20 +29,29 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/auth/require-admin', () => ({
   requireAdmin: async () => ({ ok: true, supabase: auth.client, user: { id: 'admin' } }),
 }))
-vi.mock('@/lib/integrations/lumaprints', () => ({
-  LumaprintsApiError: class LumaprintsApiError extends Error {
-    status = 500
-    body = ''
-  },
-  LumaprintsBudgetError: class LumaprintsBudgetError extends Error {},
-  LumaprintsDisabledError: class LumaprintsDisabledError extends Error {},
-  lumaprintsConfigured: () => true,
-  getShippingCost: async () => ({ shippingMethods: [{ cost: SHIPPING_DOLLARS[101002] }] }),
-  getProductsCost: async (items: Array<{ subcategoryId: number; size: { width: number; height: number }; options?: number[] }>) => {
-    providerCalls.push(items)
-    return items.map((item) => priceItem(item))
-  },
-}))
+vi.mock('@/lib/integrations/lumaprints', () => {
+  class LumaprintsBudgetError extends Error {
+    constructor() {
+      super('provider budget exhausted')
+      this.name = 'LumaprintsBudgetError'
+    }
+  }
+  return {
+    LumaprintsApiError: class LumaprintsApiError extends Error {
+      status = 500
+      body = ''
+    },
+    LumaprintsBudgetError,
+    LumaprintsDisabledError: class LumaprintsDisabledError extends Error {},
+    lumaprintsConfigured: () => true,
+    getShippingCost: async () => ({ shippingMethods: [{ cost: SHIPPING_DOLLARS[101002] }] }),
+    getProductsCost: async (items: Array<{ subcategoryId: number; size: { width: number; height: number }; options?: number[] }>) => {
+      providerCalls.push(items)
+      if (providerCalls.length > providerState.budgetAfterCalls) throw new LumaprintsBudgetError()
+      return items.map((item) => priceItem(item))
+    },
+  }
+})
 vi.mock('@/lib/pricing/shipping-quote', () => ({
   quoteWorstCaseCONUS: async (descriptor: { subcategoryId: number; orderItemOptions: number[] }) => {
     shippingCalls.push({ subcategoryId: descriptor.subcategoryId, orderItemOptions: descriptor.orderItemOptions })
@@ -342,6 +352,7 @@ beforeEach(() => {
   auth.client = db.client
   providerCalls.length = 0
   shippingCalls.length = 0
+  providerState.budgetAfterCalls = Number.POSITIVE_INFINITY
 })
 
 const ZIPS = ['33101']
@@ -461,6 +472,97 @@ describe('buildPricedVariantRow parity with the legacy engine', () => {
 })
 
 describe('the admin routes on the new engine', () => {
+  /** Six canvas variants of the same product, priced in size order. */
+  function seedRun() {
+    const sizes: Array<[string, number, number]> = [
+      ['8x10', 8, 10],
+      ['12x16', 12, 16],
+      ['9.25x11', 9.25, 11],
+      ['8x10', 8, 10],
+      ['12x16', 12, 16],
+      ['9.25x11', 9.25, 11],
+    ]
+    db.tables.product_variants = sizes.map((entry, index) => ({
+      id: `0000000${index}-0000-4000-8000-00000000000${index}`,
+      product_id: PRODUCT,
+      medium: 'canvas',
+      size_label: entry[0],
+      width_in: entry[1],
+      height_in: entry[2],
+      lumaprints_cost_cents: 1,
+      shipping_cost_cents: 1,
+      price: 0.01,
+      is_lumaprints_available: true,
+      margin_override_pct: null,
+      manual_price_override_cents: null,
+    }))
+  }
+
+  it('stops the run when the provider is busy, and leaves the rows it never reached alone', async () => {
+    seedRun()
+    // Three variants price, the fourth meets the budget refusal.
+    providerState.budgetAfterCalls = 3
+
+    const response = await refreshRoute(
+      new Request('http://local/api/admin/variants/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ product_id: PRODUCT }),
+        headers: { 'content-type': 'application/json' },
+      }) as never,
+    )
+    const body = (await response.json()) as {
+      data: { refreshed: number; unavailable: number; busy: number; stopped_early: boolean }
+    }
+    expect(body.data.busy).toBe(1)
+    expect(body.data.stopped_early).toBe(true)
+    // Nothing was marked unsellable because of an outage.
+    expect(body.data.unavailable).toBe(0)
+    expect(body.data.refreshed).toBe(3)
+
+    const rows = db.tables.product_variants
+    for (const row of rows.slice(0, 3)) {
+      expect(row.lumaprints_cost_cents).not.toBe(1)
+      expect(row.is_lumaprints_available).toBe(true)
+    }
+    // Rows 4 to 6 are exactly as they were: same cost, same price, still available.
+    for (const row of rows.slice(3)) {
+      expect(row.lumaprints_cost_cents).toBe(1)
+      expect(row.shipping_cost_cents).toBe(1)
+      expect(row.price).toBe(0.01)
+      expect(row.is_lumaprints_available).toBe(true)
+    }
+  })
+
+  it('still marks a variant unavailable when the provider refuses that size', async () => {
+    db.tables.product_variants = [
+      {
+        id: VARIANT,
+        product_id: PRODUCT,
+        medium: 'canvas',
+        size_label: '40x44',
+        width_in: 40,
+        height_in: 44,
+        lumaprints_cost_cents: 1,
+        shipping_cost_cents: 1,
+        is_lumaprints_available: true,
+        margin_override_pct: null,
+        manual_price_override_cents: null,
+      },
+    ]
+    const response = await refreshRoute(
+      new Request('http://local/api/admin/variants/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ variant_id: VARIANT }),
+        headers: { 'content-type': 'application/json' },
+      }) as never,
+    )
+    const body = (await response.json()) as { data: { unavailable: number; busy: number; stopped_early: boolean } }
+    expect(body.data.unavailable).toBe(1)
+    expect(body.data.busy).toBe(0)
+    expect(body.data.stopped_early).toBe(false)
+    expect(db.tables.product_variants[0].is_lumaprints_available).toBe(false)
+  })
+
   it('refresh returns the same costs the legacy engine would have written', async () => {
     const legacy = await getCachedPrice(db.client, 'canvas', '12x16', ZIPS)
 

@@ -219,6 +219,30 @@ export const getPublicCatalog = cache(async (): Promise<Catalog> => {
 })
 
 /**
+ * The FULL tree (disabled and tombstoned rows included), cached exactly like the
+ * storefront one: same tag, same revalidate, memoized per request.
+ *
+ * Pricing needs this tree rather than the storefront's. The storefront read drops
+ * disabled groups, and a disabled group is precisely the one whose geometry-hostile
+ * provider default has to be overridden, so quoting against the filtered tree would
+ * send the provider an omission it resolves into a 406 after payment. The public quote
+ * route serves one request per keystroke on the configurator, and an uncached load is
+ * four table reads each time, so it reads this instead.
+ *
+ * It is server-only data: it carries rows an admin has switched off, and nothing here
+ * may be serialized into a browser payload. Callers send prices and labels, not the tree.
+ */
+export const getFullCatalogCached = cache(async (): Promise<Catalog> => {
+  const host = catalogHost()
+  const read = unstable_cache(
+    async () => loadCatalog(await createServiceClient(), { host, includeDisabled: true }),
+    ['lumaprints-catalog-full', host],
+    { tags: [CATALOG_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+  )
+  return read()
+})
+
+/**
  * The admin tree: every row, including disabled and tombstoned ones, read with the
  * caller's authenticated client and never cached (the toggle UI must see its own write).
  */

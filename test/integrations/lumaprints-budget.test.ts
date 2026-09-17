@@ -122,3 +122,95 @@ describe('when the shared counter is unreachable', () => {
     expect(errorSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+// ---------------------------------------------------------------------------
+// The public-quote reserve (P1-1b): keystrokes must not spend the slots an order needs.
+// ---------------------------------------------------------------------------
+
+describe('acquireProviderSlot under a reserve', () => {
+  it('allows the hit while the window keeps more than the reserve in hand', async () => {
+    const { acquireProviderSlot, PUBLIC_QUOTE_RESERVE } = await freshBudget()
+    rpcMock.mockResolvedValue(allow(30))
+
+    const slot = await acquireProviderSlot({ reserve: PUBLIC_QUOTE_RESERVE })
+
+    expect(slot.degraded).toBe(false)
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses at once, without waiting, once the remaining slots belong to fulfillment', async () => {
+    vi.useFakeTimers()
+    try {
+      const { acquireProviderSlot, LumaprintsBudgetError, PUBLIC_QUOTE_RESERVE } = await freshBudget()
+      // Allowed by the counter, but only 3 slots are left and 8 are spoken for.
+      rpcMock.mockResolvedValue(allow(3))
+
+      // Fake timers are the assertion: a call that slept would never settle here.
+      await expect(acquireProviderSlot({ reserve: PUBLIC_QUOTE_RESERVE })).rejects.toBeInstanceOf(
+        LumaprintsBudgetError,
+      )
+      expect(rpcMock).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('refuses at once when the window is full rather than queueing behind it', async () => {
+    vi.useFakeTimers()
+    try {
+      const { acquireProviderSlot, LumaprintsBudgetError } = await freshBudget()
+      rpcMock.mockResolvedValue(deny(45_000))
+
+      await expect(acquireProviderSlot({ reserve: 8 })).rejects.toBeInstanceOf(LumaprintsBudgetError)
+      expect(rpcMock).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('leaves the fulfillment path alone: no reserve still acquires the last few slots', async () => {
+    const { acquireProviderSlot } = await freshBudget()
+    rpcMock.mockResolvedValue(allow(3))
+
+    const slot = await acquireProviderSlot()
+
+    expect(slot.waitedMs).toBeGreaterThanOrEqual(0)
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('withProviderReserve holds the calls inside it to the reserve and restores it after', async () => {
+    const { acquireProviderSlot, currentProviderReserve, withProviderReserve, LumaprintsBudgetError } =
+      await freshBudget()
+    rpcMock.mockResolvedValue(allow(3))
+
+    expect(currentProviderReserve()).toBe(0)
+
+    // Inside: the ambient reserve applies to a call that passes no reserve of its own.
+    await expect(
+      withProviderReserve(8, async () => {
+        expect(currentProviderReserve()).toBe(8)
+        return acquireProviderSlot()
+      }),
+    ).rejects.toBeInstanceOf(LumaprintsBudgetError)
+
+    // Restored, so fulfillment is not left holding the quote path's floor.
+    expect(currentProviderReserve()).toBe(0)
+    await expect(acquireProviderSlot()).resolves.toMatchObject({ degraded: false })
+  })
+
+  it('restores the previous reserve after a throw, and nests', async () => {
+    const { currentProviderReserve, withProviderReserve } = await freshBudget()
+
+    await expect(
+      withProviderReserve(8, async () => {
+        await withProviderReserve(2, async () => {
+          expect(currentProviderReserve()).toBe(2)
+        })
+        expect(currentProviderReserve()).toBe(8)
+        throw new Error('unit of work failed')
+      }),
+    ).rejects.toThrow('unit of work failed')
+
+    expect(currentProviderReserve()).toBe(0)
+  })
+})

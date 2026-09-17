@@ -12,13 +12,28 @@
 // geometry answers a screen shows are the ones the server enforces.
 
 import type { Catalog, CatalogSubcategory } from './types'
-import { evaluateSelection, glassCeiling, sizeWithinBounds, type RuleMaster, type RuleSize } from './rules'
+import {
+  CUSTOMER_VIOLATION_MESSAGES,
+  evaluateSelection,
+  fitsEitherWay,
+  glassCeiling,
+  sizeWithinBounds,
+  type RuleMaster,
+  type RuleSize,
+} from './rules'
 
 export interface OptionAvailability {
   optionId: number
   offerable: boolean
   /** Why it cannot be offered at this size, in customer copy. Null when it can. */
   reason: string | null
+  /**
+   * The operator's version of the same answer: the owed probe, the bleed the file would
+   * need, the exact sheet it would not fit. It belongs in the admin table and never in a
+   * shopper's browser, so the two are separate fields rather than one string a caller
+   * has to remember to swap out.
+   */
+  adminReason: string | null
 }
 
 export interface GroupAvailability {
@@ -101,13 +116,19 @@ export function offerableOptions(subcategory: CatalogSubcategory, size: RuleSize
     customerVisible: group.customer_visible === true,
     options: group.options.map((option) => {
       if (option.blocked_reason !== null) {
-        return { optionId: option.option_id, offerable: false, reason: option.blocked_reason }
+        return {
+          optionId: option.option_id,
+          offerable: false,
+          reason: CUSTOMER_VIOLATION_MESSAGES.option_blocked,
+          adminReason: option.blocked_reason,
+        }
       }
       if (option.effective_enabled !== true) {
         return {
           optionId: option.option_id,
           offerable: false,
-          reason: `${option.display_label} is not available right now.`,
+          reason: CUSTOMER_VIOLATION_MESSAGES.option_unavailable,
+          adminReason: `${option.display_label} is switched off.`,
         }
       }
 
@@ -115,37 +136,34 @@ export function offerableOptions(subcategory: CatalogSubcategory, size: RuleSize
       if (typeof perSide === 'number' && perSide > 0) {
         const outerW = widthIn + 2 * perSide
         const outerH = heightIn + 2 * perSide
-        const fits =
-          (outerW <= ceiling.w + 1e-6 && outerH <= ceiling.h + 1e-6) ||
-          (outerH <= ceiling.w + 1e-6 && outerW <= ceiling.h + 1e-6)
-        if (!fits) {
+        // The same orientation-aware fit the rules engine enforces, from the rules
+        // engine, so a screen can never offer what the server would refuse.
+        if (!fitsEitherWay(outerW, outerH, 0, ceiling.w, 0, ceiling.h)) {
           return {
             optionId: option.option_id,
             offerable: false,
-            reason: `${option.display_label} would make this ${trimNum(outerW)} by ${trimNum(outerH)} inches framed, past the ${trimNum(ceiling.w)} by ${trimNum(ceiling.h)} inch limit for ${subcategory.display_label}.`,
+            reason: CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_mat,
+            adminReason: `${option.display_label} would make this ${trimNum(outerW)} by ${trimNum(outerH)} inches framed, past the ${trimNum(ceiling.w)} by ${trimNum(ceiling.h)} inch glass of ${subcategory.display_label}.`,
           }
         }
       }
 
       const list = option.geometry?.size_whitelist
       if (list && list.length > 0) {
-        const fits = list.some(
-          ([w, h]) =>
-            (Math.abs(w - widthIn) < 1e-6 && Math.abs(h - heightIn) < 1e-6) ||
-            (Math.abs(w - heightIn) < 1e-6 && Math.abs(h - widthIn) < 1e-6),
-        )
+        const fits = list.some(([w, h]) => fitsEitherWay(widthIn, heightIn, w, w, h, h))
         if (!fits) {
           return {
             optionId: option.option_id,
             offerable: false,
-            reason: `${option.display_label} is available only at ${list
+            reason: CUSTOMER_VIOLATION_MESSAGES.size_whitelist,
+            adminReason: `${option.display_label} is sold only at ${list
               .map(([w, h]) => `${trimNum(w)} by ${trimNum(h)}`)
               .join(', ')} inches.`,
           }
         }
       }
 
-      return { optionId: option.option_id, offerable: true, reason: null }
+      return { optionId: option.option_id, offerable: true, reason: null, adminReason: null }
     }),
   }))
 }

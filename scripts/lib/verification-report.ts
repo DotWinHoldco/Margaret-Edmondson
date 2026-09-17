@@ -220,6 +220,19 @@ export class AssertionLog {
     this.notes.push(`SKIPPED: ${assertion} — ${reason}`)
   }
 
+  /**
+   * Many assertions the run could not make for ONE reason. The count is exact (a
+   * skipped guard is still counted as a guard that did not run); the note is written
+   * once, because a thousand identical SKIPPED lines hide the reason rather than
+   * report it.
+   */
+  skipMany(count: number, assertion: string, reason: string): void {
+    const n = Math.max(0, Math.trunc(count))
+    if (n === 0) return
+    this.skipped += n
+    this.notes.push(`SKIPPED (${n}): ${assertion} — ${reason}`)
+  }
+
   note(text: string): void {
     this.notes.push(text)
   }

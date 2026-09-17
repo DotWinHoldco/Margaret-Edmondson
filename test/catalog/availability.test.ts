@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Medium } from '@/lib/pricing/mediums'
 import { assembleCatalog } from '@/lib/catalog/assemble'
+import { CUSTOMER_VIOLATION_MESSAGES, CUSTOMER_VIOLATION_MESSAGE_LIST } from '@/lib/catalog/rules'
 import {
   offerableOptions,
   offerableSubcategories,
@@ -210,8 +211,10 @@ describe('availability', () => {
     expect(optionState(SMALL, { widthIn: 16, heightIn: 20 }, 67).offerable).toBe(true)
     const wide = optionState(SMALL, { widthIn: 16, heightIn: 20 }, 73)
     expect(wide.offerable).toBe(false)
-    expect(wide.reason).toContain('26 by 30')
-    expect(wide.reason).toContain('36 by 24')
+    expect(wide.reason).toBe(CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_mat)
+    // The measurements stay in the operator's copy.
+    expect(wide.adminReason).toContain('26 by 30')
+    expect(wide.adminReason).toContain('36 by 24')
     // The same mat on the larger profile at the same size is fine.
     expect(optionState(BIG, { widthIn: 16, heightIn: 20 }, 73).offerable).toBe(true)
   })
@@ -221,16 +224,37 @@ describe('availability', () => {
     expect(optionState(METAL, { widthIn: 24, heightIn: 16 }, 32).offerable).toBe(true)
     const off = optionState(METAL, { widthIn: 12, heightIn: 18 }, 32)
     expect(off.offerable).toBe(false)
-    expect(off.reason).toContain('8 by 10')
+    expect(off.reason).toBe(CUSTOMER_VIOLATION_MESSAGES.size_whitelist)
+    expect(off.adminReason).toContain('8 by 10')
   })
 
   it('carries the ADR-4 block and the plain off state as different reasons', () => {
     const wrap = optionState(CANVAS, { widthIn: 16, heightIn: 20 }, 1)
     expect(wrap.offerable).toBe(false)
-    expect(wrap.reason).toMatch(/extra bleed/i)
+    expect(wrap.reason).toBe(CUSTOMER_VIOLATION_MESSAGES.option_blocked)
+    expect(wrap.adminReason).toMatch(/extra bleed/i)
 
     const switchedOff = optionState(SMALL, { widthIn: 8, heightIn: 10 }, 71)
     expect(switchedOff.offerable).toBe(false)
-    expect(switchedOff.reason).toMatch(/not available right now/i)
+    expect(switchedOff.reason).toBe(CUSTOMER_VIOLATION_MESSAGES.option_unavailable)
+    expect(switchedOff.adminReason).toMatch(/switched off/i)
+  })
+
+  it('shows a customer only copy from the safe set, whatever the catalog row says', () => {
+    const sizes = [
+      { widthIn: 8, heightIn: 10 },
+      { widthIn: 16, heightIn: 20 },
+      { widthIn: 12, heightIn: 18 },
+    ]
+    for (const ref of [SMALL, BIG, METAL, CANVAS]) {
+      for (const size of sizes) {
+        for (const group of offerableOptions(find(ref), size)) {
+          for (const option of group.options) {
+            if (option.reason === null) continue
+            expect(CUSTOMER_VIOLATION_MESSAGE_LIST).toContain(option.reason)
+          }
+        }
+      }
+    }
   })
 })

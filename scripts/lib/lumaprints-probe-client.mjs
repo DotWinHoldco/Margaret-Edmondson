@@ -15,7 +15,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-export const SANDBOX_HOST_MARKER = 'api-sandbox'
+/**
+ * The sandbox, by exact hostname.
+ *
+ * This used to be a substring test against the whole base URL, which is a gate that can
+ * be walked through: `https://us.api.lumaprints.com/api-sandbox`, or any host whose
+ * name or path merely contains the word, would have passed `isSandbox` and unlocked
+ * order submission against PRODUCTION. The host is parsed and compared whole.
+ */
+export const SANDBOX_HOSTNAME = 'us.api-sandbox.lumaprints.com'
 
 /** Load a KEY=VALUE env file into process.env WITHOUT clobbering exported vars. */
 export function loadEnvFile(file) {
@@ -68,7 +76,7 @@ export class ProbeClient {
   }
 
   get isSandbox() {
-    return this.baseUrl.includes(SANDBOX_HOST_MARKER)
+    return this.host === SANDBOX_HOSTNAME
   }
 
   /** Refuse to continue unless the configured host is the sandbox. */

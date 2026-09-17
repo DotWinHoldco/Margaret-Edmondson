@@ -9,6 +9,8 @@ import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { loadCatalog } from '@/lib/catalog/load'
 import { subcategoryRefForMedium } from '@/lib/catalog/availability'
 import { quoteDefaultConfiguration } from '@/lib/pricing/quote'
+import { LumaprintsBudgetError } from '@/lib/integrations/lumaprints'
+import { LumaprintsUnavailableError } from '@/lib/pricing/pricing-errors'
 import { sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 
 const Body = z.object({
@@ -65,6 +67,18 @@ export async function POST(request: NextRequest) {
   const { data: variants, error: readErr } = await query
   if (readErr) return dbFail(readErr, 'admin/variants refresh read')
 
+  /**
+   * The provider being busy is not the same as a variant being unsellable.
+   *
+   * A budget refusal or an outage says nothing about this size, and the old behaviour
+   * (mark it unavailable and carry on) would walk the rest of a product's variants and
+   * switch the whole lot off during an outage, hiding a working store. So a busy
+   * provider stops the run where it stands and leaves every row it has not reached
+   * exactly as it was.
+   */
+  const providerBusy = (err: unknown): boolean =>
+    err instanceof LumaprintsBudgetError || err instanceof LumaprintsUnavailableError
+
   const diffs: RefreshDiff[] = []
   const productMargin = new Map<string, number>()
   // One catalog tree for the whole run, and one medium config per family: resolving
@@ -72,6 +86,8 @@ export async function POST(request: NextRequest) {
   const catalog = await loadCatalog(auth.supabase, { includeDisabled: true })
   const subcategoryRefs = new Map<Medium, string | null>()
   let unavailable = 0
+  let busy = 0
+  let stoppedEarly = false
 
   for (const v of (variants || []) as VariantRow[]) {
     if (!v.medium || !v.size_label) continue
@@ -98,7 +114,16 @@ export async function POST(request: NextRequest) {
         // written back to the configuration cache the storefront quote reads.
         const quote = await quoteDefaultConfiguration(
           auth.supabase,
-          { productId: v.product_id, subcategoryRef, widthIn, heightIn },
+          {
+            productId: v.product_id,
+            subcategoryRef,
+            widthIn,
+            heightIn,
+            variantPricing: {
+              margin_override_pct: v.margin_override_pct,
+              manual_price_override_cents: v.manual_price_override_cents,
+            },
+          },
           { catalog, zips, refresh: true, marginPct: defaultMargin },
         )
         if (!quote.available) throw new Error(quote.violations.map((violation) => violation.code).join(','))
@@ -107,8 +132,16 @@ export async function POST(request: NextRequest) {
         // A family the catalog has not been synced for yet keeps the legacy path.
         live = await refreshCachedPrice(auth.supabase, v.medium, v.size_label, zips)
       }
-    } catch {
-      // Could not fetch — mark unavailable but keep the manual override intact.
+    } catch (err) {
+      if (providerBusy(err)) {
+        // Nothing is written for this row, and the rest of the run is abandoned rather
+        // than spent turning working variants off.
+        busy += 1
+        stoppedEarly = true
+        break
+      }
+      // A genuine refusal of THIS size (out of bounds, or a configuration the rules
+      // reject). Mark it unavailable and keep the manual override intact.
       await auth.supabase
         .from('product_variants')
         .update({ is_lumaprints_available: false, updated_at: new Date().toISOString() })
@@ -153,5 +186,5 @@ export async function POST(request: NextRequest) {
       .eq('id', v.id)
   }
 
-  return apiOk({ refreshed: diffs.length, unavailable, diffs })
+  return apiOk({ refreshed: diffs.length, unavailable, busy, stopped_early: stoppedEarly, diffs })
 }

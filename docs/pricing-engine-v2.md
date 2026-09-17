@@ -25,6 +25,15 @@ QuoteResult {available, violations[], costCents, shippingCents, priceCents,
 Nothing else computes money. `customerPriceCents` applies the markup chain (variant,
 product, category, site) to the landed cost, exactly as it did before.
 
+`QuoteInput.variantPricing` carries the priced variant's own overrides when the
+selection is a Live variant:
+
+- `margin_override_pct` replaces the effective product margin for this size.
+- `manual_price_override_cents` fixes the price of the variant's DEFAULT configuration.
+  Any other configuration of a manual-price variant is refused (`option_unavailable`,
+  "This size has a set price and cannot be customised.") before a provider call, because
+  a set price is a price for one product and a 5 inch mat is a different one.
+
 ## Modules
 
 | File | What it owns |
@@ -111,8 +120,23 @@ only gate:
 Defaults are filled for every group before anything is sent, so a provider call never
 carries an empty options array while a group exists: an empty array resolves to Image
 Wrap on canvas and a 0.25 inch bleed on paper, both of which reject an aspect exact
-master. If a group's safe default is gone and the provider would resolve the omission
-to a hostile option, the configuration is refused rather than ordered.
+master. This is an invariant at two layers: `quoteConfiguration` returns
+`subcategory_unavailable` when the normalized set is empty and the subcategory still
+lists a group, and `buildPricingBatch` throws rather than composing such a request for
+any other caller. A subcategory that genuinely has no option groups (peel and stick)
+still prices.
+
+The glass ceiling is checked whenever a frame declares one (`max_glass_w_in` /
+`max_glass_h_in`), with or without a mat: those columns can sit below the published size
+bounds, and the bounds gate alone would pass a 50 by 40 print into a 32 by 40 sheet.
+
+**Customer copy is a fixed set.** `CUSTOMER_VIOLATION_MESSAGES` in `rules.ts` holds every
+string a violation may carry, all of them constants with nothing interpolated. Operator
+text (an owed probe naming a script, "turn at least one of its options on", the
+provider's own wording) stays on the tree as `blocked_reason` and as the subcategory's
+admin reason; a violation names the group and the option so the screen can point at the
+control instead. `offerableOptions` follows the same split: `reason` is customer copy,
+`adminReason` carries the measurements.
 
 ## Two hashes
 
@@ -132,6 +156,13 @@ to a hostile option, the configuration is refused rather than ordered.
 | Provider budget refused, disabled, 5xx, or a dead socket | The expired row is served with `stale: true`. With nothing cached, `QuoteUnavailableError` (which extends `LumaprintsUnavailableError`, so the builder's inline copy still works). |
 | Provider refuses the size (4xx or `success: false`) | `SizeOutOfBoundsError`. Never a cached number for a size the provider will not sell. |
 | Freight quote fails for another reason | Cost stands, shipping is zero for this quote, and nothing is memoized. |
+
+The admin refresh route separates the two kinds of failure. A busy provider
+(`QuoteUnavailableError`, `LumaprintsBudgetError`, `LumaprintsUnavailableError`) stops
+the run where it stands and returns `{ busy, stopped_early: true }` with every row it
+did not reach untouched; only a genuine refusal of a size marks that one variant
+`is_lumaprints_available = false`. The old behaviour walked the whole product during an
+outage and switched a working store off.
 
 ## Where it is wired
 
@@ -154,4 +185,7 @@ when it uses it.
   admin-owned column: sync never rewrites it.
 - The engine always reads the FULL catalog tree (`includeDisabled: true`). The storefront
   tree drops disabled groups, and a dropped group is exactly the one whose hostile
-  provider default has to be overridden.
+  provider default has to be overridden. Request paths should use
+  `getFullCatalogCached()` (service client, catalog tag, 300s, React `cache()`) rather
+  than loading it per request. It is server-only data and is never serialized to a
+  browser: send prices and labels, not the tree.

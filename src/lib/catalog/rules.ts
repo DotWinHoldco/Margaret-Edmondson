@@ -22,6 +22,43 @@ import type {
 } from './types'
 import type { ConstraintViolation } from '../pricing/quote-types'
 
+/**
+ * The ONLY strings a violation may carry to a customer.
+ *
+ * Violations travel from here to the configurator and to the checkout page, so the
+ * message is copy, not diagnostics. Operator text stays where operators read it: the
+ * owed-probe sentence, the "turn at least one of its options on" instruction and the
+ * provider's own wording remain on the tree as `blocked_reason` and as a subcategory's
+ * admin reason, and a violation names the group and the option instead so the screen
+ * can point at the control it is about.
+ *
+ * Every entry is a constant. Nothing is interpolated into a customer message, so a
+ * label, a size, a provider error or an internal note cannot ride out inside one.
+ */
+export const CUSTOMER_VIOLATION_MESSAGES = {
+  subcategory_unavailable: 'This finish is not available right now.',
+  option_unknown: 'That choice is not offered for this product.',
+  option_unavailable: 'This option is not available right now.',
+  option_blocked: 'This option is not available right now.',
+  group_duplicate: 'Choose only one option in each group.',
+  group_required: 'Choose an option in every group before you continue.',
+  group_dependency: 'That option does not apply to the rest of this configuration.',
+  hex_required: 'Choose a color before you continue.',
+  hex_invalid: 'That color is not a valid six digit hex code, for example #1a1a1a.',
+  size_out_of_bounds: 'That size is not available for this finish.',
+  size_resolution: 'That size is larger than this artwork can print.',
+  size_aspect: 'That size is not the shape of this artwork.',
+  glass_ceiling_mat: 'That mat is too wide for this frame at this size. Choose a narrower mat or a smaller print.',
+  glass_ceiling_size: 'That size is too large for this frame.',
+  size_whitelist: 'That option is not available at this size.',
+  manual_price_locked: 'This size has a set price and cannot be customised.',
+} as const
+
+/** Every customer-safe message, for the guard that nothing else is ever emitted. */
+export const CUSTOMER_VIOLATION_MESSAGE_LIST: readonly string[] = Object.freeze(
+  Object.values(CUSTOMER_VIOLATION_MESSAGES),
+)
+
 /** Tolerance for inch comparisons, so a size that rounds onto a bound still fits. */
 const EPS = 1e-6
 
@@ -53,11 +90,6 @@ export interface EvaluationResult {
 // ---------------------------------------------------------------------------
 // Small local helpers (kept local on purpose: this module imports no values)
 // ---------------------------------------------------------------------------
-
-/** 12 -> "12", 3.875 -> "3.875". Mirrors the size-tier label formatter. */
-function trimNum(n: number): string {
-  return Number(n.toFixed(4)).toString()
-}
 
 function inRange(value: number, min: number, max: number): boolean {
   return value >= min - EPS && value <= max + EPS
@@ -143,15 +175,6 @@ function isGroupVisible(
   return !hidden.includes(selected)
 }
 
-/** The parent group and the option that hides a dependent group, for the copy. */
-function hidingContext(
-  subcategory: CatalogSubcategory,
-  group: CatalogOptionGroup,
-): { parent: CatalogOptionGroup | null } {
-  const parent = subcategory.groups.find((candidate) => candidate.group_key === group.depends_on_group) ?? null
-  return { parent }
-}
-
 /** The glass ceiling for a subcategory: the explicit columns when set, else the bounds (P4). */
 function glassCeiling(subcategory: CatalogSubcategory): { w: number; h: number } {
   return {
@@ -206,7 +229,7 @@ export function evaluateSelection(
     if (!hit) {
       violations.push({
         code: 'option_unknown',
-        message: 'That choice is not offered for this product.',
+        message: CUSTOMER_VIOLATION_MESSAGES.option_unknown,
         optionId: id,
       })
       continue
@@ -215,7 +238,7 @@ export function evaluateSelection(
     if (already) {
       violations.push({
         code: 'group_duplicate',
-        message: `Choose only one ${hit.group.display_label}.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.group_duplicate,
         groupKey: hit.group.group_key,
         optionId: id,
       })
@@ -227,14 +250,16 @@ export function evaluateSelection(
     if (hit.option.blocked_reason !== null) {
       violations.push({
         code: 'option_blocked',
-        message: hit.option.blocked_reason,
+        // The reason itself is operator text (an owed probe names the script to run):
+        // it stays on the tree for the admin table and never reaches a shopper.
+        message: CUSTOMER_VIOLATION_MESSAGES.option_blocked,
         groupKey: hit.group.group_key,
         optionId: id,
       })
     } else if (hit.option.effective_enabled !== true) {
       violations.push({
         code: 'option_unavailable',
-        message: `${hit.option.display_label} is not available right now. Please choose another ${hit.group.display_label}.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.option_unavailable,
         groupKey: hit.group.group_key,
         optionId: id,
       })
@@ -245,12 +270,9 @@ export function evaluateSelection(
   const chosenIds = chosen.map((entry) => entry.option.option_id)
   for (const entry of chosen) {
     if (isGroupVisible(subcategory, entry.group, chosenIds)) continue
-    const { parent } = hidingContext(subcategory, entry.group)
     violations.push({
       code: 'group_dependency',
-      message: parent
-        ? `${entry.group.display_label} applies only when you choose a different ${parent.display_label}.`
-        : `${entry.group.display_label} does not apply to this configuration.`,
+      message: CUSTOMER_VIOLATION_MESSAGES.group_dependency,
       groupKey: entry.group.group_key,
       optionId: entry.option.option_id,
     })
@@ -268,7 +290,7 @@ export function evaluateSelection(
       // configuration is refused rather than ordered into a 406 after payment.
       violations.push({
         code: 'option_unavailable',
-        message: `${group.display_label} has no available choice, so this cannot be ordered right now.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.option_unavailable,
         groupKey: group.group_key,
       })
     }
@@ -286,10 +308,7 @@ export function evaluateSelection(
     if (count === 1) continue
     violations.push({
       code: 'group_required',
-      message:
-        count === 0
-          ? `Choose a ${group.display_label}.`
-          : `Choose only one ${group.display_label}.`,
+      message: count === 0 ? CUSTOMER_VIOLATION_MESSAGES.group_required : CUSTOMER_VIOLATION_MESSAGES.group_duplicate,
       groupKey: group.group_key,
     })
   }
@@ -301,14 +320,14 @@ export function evaluateSelection(
     if (!hex) {
       violations.push({
         code: 'hex_required',
-        message: `Choose a color for ${needsHex.option.display_label} before you continue.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.hex_required,
         groupKey: needsHex.group.group_key,
         optionId: needsHex.option.option_id,
       })
     } else if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
       violations.push({
         code: 'hex_invalid',
-        message: 'That color is not a valid six digit hex code, for example #1a1a1a.',
+        message: CUSTOMER_VIOLATION_MESSAGES.hex_invalid,
         groupKey: needsHex.group.group_key,
         optionId: needsHex.option.option_id,
       })
@@ -320,7 +339,7 @@ export function evaluateSelection(
   if (!sizeUsable) {
     violations.push({
       code: 'size_out_of_bounds',
-      message: 'Enter a width and a height greater than zero.',
+      message: CUSTOMER_VIOLATION_MESSAGES.size_out_of_bounds,
     })
   } else if (
     !fitsEitherWay(
@@ -334,7 +353,7 @@ export function evaluateSelection(
   ) {
     violations.push({
       code: 'size_out_of_bounds',
-      message: `${trimNum(widthIn)} by ${trimNum(heightIn)} inches is outside the ${trimNum(subcategory.min_width_in)} to ${trimNum(subcategory.max_width_in)} by ${trimNum(subcategory.min_height_in)} to ${trimNum(subcategory.max_height_in)} inch range for ${subcategory.display_label}.`,
+      message: CUSTOMER_VIOLATION_MESSAGES.size_out_of_bounds,
     })
   }
 
@@ -342,13 +361,11 @@ export function evaluateSelection(
     const dpi = subcategory.required_dpi
     const printW = Number(master.printWidthPx)
     const printH = Number(master.printHeightPx)
-    const maxWidthIn = dpi > 0 ? Math.floor((printW / dpi) * 100) / 100 : 0
-    const maxHeightIn = dpi > 0 ? Math.floor((printH / dpi) * 100) / 100 : 0
     const resolutionOk = dpi > 0 && widthIn * dpi <= printW + EPS && heightIn * dpi <= printH + EPS
     if (!resolutionOk) {
       violations.push({
         code: 'size_resolution',
-        message: `Too large. This artwork supports up to ${trimNum(maxWidthIn)} by ${trimNum(maxHeightIn)} inches at ${dpi} DPI.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.size_resolution,
       })
     }
 
@@ -362,7 +379,7 @@ export function evaluateSelection(
     if (!(aspectDeltaPct <= ASPECT_TOLERANCE_PCT + EPS)) {
       violations.push({
         code: 'size_aspect',
-        message: `${aspectDeltaPct.toFixed(1)}% off the shape of the artwork. Adjust a dimension.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.size_aspect,
       })
     }
   }
@@ -380,14 +397,19 @@ export function evaluateSelection(
   const outerWidthIn = sizeUsable ? widthIn + 2 * perSideTotal : widthIn
   const outerHeightIn = sizeUsable ? heightIn + 2 * perSideTotal : heightIn
 
-  if (sizeUsable && perSideTotal > 0 && matEntry) {
+  // A frame whose glass is smaller than its published size bounds has to be checked
+  // whether or not a mat was chosen: the bounds gate above would pass a 50 by 40 print
+  // into a 32 by 40 sheet, and the provider prices that without a word (P4).
+  const hasOwnCeiling = subcategory.max_glass_w_in !== null || subcategory.max_glass_h_in !== null
+  if (sizeUsable && (perSideTotal > 0 || hasOwnCeiling)) {
     const ceiling = glassCeiling(subcategory)
     if (!fitsEitherWay(outerWidthIn, outerHeightIn, 0, ceiling.w, 0, ceiling.h)) {
       violations.push({
         code: 'glass_ceiling',
-        message: `${matEntry.option.display_label} makes this ${trimNum(outerWidthIn)} by ${trimNum(outerHeightIn)} inches framed, which is larger than the ${trimNum(ceiling.w)} by ${trimNum(ceiling.h)} inch limit for ${subcategory.display_label}. Choose a narrower mat or a smaller print.`,
-        groupKey: matEntry.group.group_key,
-        optionId: matEntry.option.option_id,
+        message: matEntry
+          ? CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_mat
+          : CUSTOMER_VIOLATION_MESSAGES.glass_ceiling_size,
+        ...(matEntry ? { groupKey: matEntry.group.group_key, optionId: matEntry.option.option_id } : {}),
       })
     }
   }
@@ -405,9 +427,7 @@ export function evaluateSelection(
       if (fits) continue
       violations.push({
         code: 'size_whitelist',
-        message: `${entry.option.display_label} is available only at ${list
-          .map(([w, h]) => `${trimNum(w)} by ${trimNum(h)}`)
-          .join(', ')} inches.`,
+        message: CUSTOMER_VIOLATION_MESSAGES.size_whitelist,
         groupKey: entry.group.group_key,
         optionId: entry.option.option_id,
       })
@@ -444,4 +464,4 @@ export function sizeWithinBounds(subcategory: CatalogSubcategory, size: RuleSize
   )
 }
 
-export { glassCeiling, isGroupVisible as isDependentGroupVisible }
+export { fitsEitherWay, glassCeiling, isGroupVisible as isDependentGroupVisible }

@@ -103,7 +103,15 @@ export async function buildPricedVariantRow(
       // of geometry rules.
       const quote = await quoteDefaultConfiguration(
         supabase,
-        { productId: product_id, subcategoryRef, widthIn: width_in, heightIn: height_in },
+        {
+          productId: product_id,
+          subcategoryRef,
+          widthIn: width_in,
+          heightIn: height_in,
+          // The variant's own overrides travel with the quote, so the price it reports
+          // and the price written on the row below are one number, not two.
+          variantPricing: { margin_override_pct, manual_price_override_cents },
+        },
         { catalog, zips, refresh, marginPct: productDefaultMargin },
       )
       if (quote.available && quote.selection) {

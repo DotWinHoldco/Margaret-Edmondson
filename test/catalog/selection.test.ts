@@ -16,6 +16,7 @@ import type { Medium } from '@/lib/pricing/mediums'
 import { assembleCatalog } from '@/lib/catalog/assemble'
 import { normalizeSelection, findSubcategoryByRef } from '@/lib/catalog/selection'
 import { lineHash, priceKeyHash } from '@/lib/catalog/hash'
+import { CUSTOMER_VIOLATION_MESSAGES, CUSTOMER_VIOLATION_MESSAGE_LIST } from '@/lib/catalog/rules'
 import type {
   Catalog,
   CatalogOptionGroupRow,
@@ -227,6 +228,16 @@ describe('normalizeSelection', () => {
     expect(off.ok).toBe(false)
     if (off.ok) return
     expect(off.violations[0].code).toBe('subcategory_unavailable')
+  })
+
+  it('answers an unavailable subcategory with customer copy, not the admin reason', () => {
+    // The tree's blocked_reason is written for the admin table ("Turn at least one of
+    // its options on"); a shopper gets the fixed sentence instead.
+    for (const result of [normalize('sc-nope', []), normalize(OFF, [])]) {
+      if (result.ok) throw new Error('fixture')
+      expect(result.violations[0].message).toBe(CUSTOMER_VIOLATION_MESSAGES.subcategory_unavailable)
+      expect(CUSTOMER_VIOLATION_MESSAGE_LIST).toContain(result.violations[0].message)
+    }
   })
 
   it('returns the rule violations rather than a selection when the geometry refuses', () => {

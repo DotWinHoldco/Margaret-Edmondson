@@ -127,6 +127,7 @@ interface Probe {
   isSandbox: boolean
   requestCount: number
   assertSandbox(what: string): void
+  records: Array<{ headers?: Record<string, string | null>; status: number }>
   priceBatch(items: unknown[], label?: string): Promise<ProbeRecord>
   printSummary(prefix?: string): { requestCount: number; peakPerRolling60s: number; wallMs: number }
 }
@@ -137,6 +138,7 @@ interface Args {
   h?: boolean
   sweep?: boolean
   parity?: boolean
+  raw?: string | boolean
   env?: string | boolean
   snapshot?: string | boolean
   subcategories?: string | boolean
@@ -186,6 +188,8 @@ Usage:
   node --import ./scripts/lib/register-ts.mjs scripts/verify-catalog-pricing.ts --sweep --env .env.luma --snapshot <file>
       [--subcategories 101002,105005] [--sizes small,mid,max] [--yes]
   node --import ./scripts/lib/register-ts.mjs scripts/verify-catalog-pricing.ts --parity [--live-sample N] [--live-env <file>]
+  node --import ./scripts/lib/register-ts.mjs scripts/verify-catalog-pricing.ts \
+      --raw <subcategoryId> <width> <height> --env .env.luma --snapshot <file>
   node --import ./scripts/lib/register-ts.mjs scripts/verify-catalog-pricing.ts --help
 
 Modes:
@@ -197,6 +201,11 @@ Modes:
              it on 105 (F26). Framed paper also gets the glass-ceiling edge: the
              provider prices it (recorded) and the rules engine must reject it
              (asserted). SANDBOX only, <= 25 req/min, no orders, ever.
+  --raw      One batch-pricing call for ONE item (the subcategory's seeded default set
+             at the given size) with the request, the HTTP status and the FULL raw body
+             printed verbatim. This is the "is it the provider or is it us" mode: it
+             says whether the response array carries a row for the item at all, and
+             whether that row is a failure or an absence. Prices nothing else.
   --parity   V6.1. No provider call by default: every active print variant in the
              production database is re-derived through the catalog (default option set
              and subcategory id) and re-priced through customerPriceCents, and must
@@ -394,12 +403,35 @@ function rowSetFromSnapshot(snapshot: Snapshot): Parameters<typeof assembleCatal
 // Pricing plumbing
 // ---------------------------------------------------------------------------
 
+interface PricedBatch {
+  rows: PriceRow[]
+  /** Items that came back unpriced on the first pass. */
+  retried: number
+  /** Of those, how many priced on a later pass. */
+  recovered: number
+  /** One line per retry pass: how many were asked again and how many came back. */
+  passes: string[]
+}
+
+/** Retry passes after the first, and how long to idle before each. */
+const RETRY_PASSES = 2
+const RETRY_COOLDOWN_MS = 60_000
+
 /**
- * Price every item, in batches of <= 40, and return the rows aligned with the items.
- * A failed chunk becomes one failed row per item rather than an exception, so one bad
- * batch cannot hide the other forty assertions in the run.
+ * Price every item, in batches of <= 40, then RETRY the ones that came back unpriced.
+ *
+ * The retries are not politeness, they are measurement. A long run against the sandbox
+ * returns `{"success": false}` with no message for scattered items that price perfectly
+ * well on their own: profiles this harness classified as unpriceable inside a
+ * 158-request sweep priced 40 of 40, with the same option sets and mixed option sets,
+ * seconds after that same sweep finished, and the set of "unpriceable" profiles moved
+ * between two runs of the identical sweep. That is throughput, not capability. So the
+ * unpriced items are asked again in later passes with an idle period between them, and
+ * only what is still unpriced at the end is judged. Every pass is recorded: a run that
+ * needed thousands of retries has told you something about the environment even when
+ * it ends up green.
  */
-async function priceAll(client: Probe, items: PriceRequestItem[], label: string): Promise<PriceRow[]> {
+async function priceChunks(client: Probe, items: PriceRequestItem[], label: string): Promise<PriceRow[]> {
   const rows: PriceRow[] = []
   const batches = chunk(items, BATCH_MAX)
   let index = 0
@@ -416,6 +448,49 @@ async function priceAll(client: Probe, items: PriceRequestItem[], label: string)
     for (const row of body as PriceRow[]) rows.push(row)
   }
   return rows
+}
+
+async function priceAll(client: Probe, items: PriceRequestItem[], label: string): Promise<PricedBatch> {
+  const rows = await priceChunks(client, items, label)
+  const unpriced = (): number[] => {
+    const out: number[] = []
+    rows.forEach((row, index) => {
+      if (row.success !== true) out.push(index)
+    })
+    return out
+  }
+
+  const firstFailures = unpriced()
+  const passes: string[] = []
+  let recovered = 0
+
+  for (let pass = 1; pass <= RETRY_PASSES; pass += 1) {
+    const pending = unpriced()
+    if (pending.length === 0) break
+    process.stderr.write(
+      `  [${label}] ${pending.length} item(s) unpriced; idling ${RETRY_COOLDOWN_MS / 1000}s then retry pass ${pass}/${RETRY_PASSES}\n`,
+    )
+    await new Promise((resolve) => setTimeout(resolve, RETRY_COOLDOWN_MS))
+    const retryRows = await priceChunks(client, pending.map((index) => items[index]), `${label}-retry${pass}`)
+    let passRecovered = 0
+    retryRows.forEach((row, position) => {
+      if (row.success === true) {
+        rows[pending[position]] = row
+        passRecovered += 1
+      }
+    })
+    recovered += passRecovered
+    passes.push(`${label} retry ${pass}: asked ${pending.length}, priced ${passRecovered}`)
+  }
+
+  return { rows, retried: firstFailures.length, recovered, passes }
+}
+
+/** Why an item is not priced, in the provider's own terms. */
+function unpricedReason(row: PriceRow | null | undefined): string {
+  if (!row) return 'no row in the response array'
+  if (typeof row.message === 'string' && row.message.length > 0) return row.message
+  return `success:${String(row.success)} with no message (row present, price ${String(row.price)})`
 }
 
 /**
@@ -598,13 +673,33 @@ async function runSweep(args: Args): Promise<number> {
       passOneKeys.push(`swap|${plan.sub.subcategoryId}|${swap.size.label}|${swap.optionId}`)
     }
   }
-  const passOneRows = await priceAll(client, passOne, 'pass1')
+  const passOneBatch = await priceAll(client, passOne, 'pass1')
+  const passOneRows = passOneBatch.rows
   const rowByKey = new Map<string, PriceRow>()
   const itemByKey = new Map<string, PriceRequestItem>()
   passOneKeys.forEach((key, i) => {
     rowByKey.set(key, passOneRows[i] ?? { success: false, message: 'no response row' })
     itemByKey.set(key, passOne[i])
   })
+
+  // --- F36: subcategories this environment will not price at all ---------------
+  //
+  // A subcategory whose ENTIRE default-set grid comes back unpriced — after the retry
+  // — is not something the run can assert anything about: every option swap and every
+  // configuration below it is measured against a base price that does not exist. It is
+  // classified once, its assertions are counted as SKIPPED rather than failed, and the
+  // provider's own words are recorded. This is a statement about this host, not about
+  // the catalog row: a profile the sandbox will not price may price on production, and
+  // must be verified there before it is enabled.
+  const unpriceable = new Map<number, string>()
+  for (const plan of plans) {
+    if (plan.grid.length === 0) continue
+    const id = plan.sub.subcategoryId
+    const priced = plan.grid.filter((size) => apiTotalCents(rowByKey.get(`base|${id}|${size.label}`)) !== null).length
+    if (priced === 0) {
+      unpriceable.set(id, unpricedReason(rowByKey.get(`base|${id}|${plan.grid[0].label}`)))
+    }
+  }
 
   // --- Pass 2: the maximal distinct-group configuration + the glass edge ------
   interface MaximalPlan {
@@ -683,7 +778,10 @@ async function runSweep(args: Args): Promise<number> {
     }
   }
 
-  const passTwoRows = passTwo.length ? await priceAll(client, passTwo, 'pass2') : []
+  const passTwoBatch = passTwo.length
+    ? await priceAll(client, passTwo, 'pass2')
+    : { rows: [] as PriceRow[], retried: 0, recovered: 0, passes: [] as string[] }
+  const passTwoRows = passTwoBatch.rows
   const maximalRows = new Map<number, PriceRow>()
   const glassRows = new Map<number, PriceRow>()
   passTwoKinds.forEach((kind, i) => {
@@ -730,7 +828,7 @@ async function runSweep(args: Args): Promise<number> {
     const row = rowByKey.get(key) ?? null
     const item = itemByKey.get(key)
     if (!row || row.success !== true) {
-      log.fail(`${what} prices`, `success !== true (${row?.message ?? 'no row'})`, context)
+      log.fail(`${what} prices`, `not priced after a retry: ${unpricedReason(row)}`, context)
       return null
     }
     if (!(typeof row.price === 'number' && row.price > 0)) {
@@ -765,6 +863,15 @@ async function runSweep(args: Args): Promise<number> {
 
   for (const plan of plans) {
     const id = plan.sub.subcategoryId
+    if (unpriceable.has(id)) {
+      // Two assertions per item (it prices, and it echoes what was requested).
+      log.skipMany(
+        (plan.grid.length + plan.swaps.length) * 2,
+        `${id} pricing assertions`,
+        `UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — ${unpriceable.get(id)}`,
+      )
+      continue
+    }
     for (const size of plan.grid) {
       assertPriced(`base|${id}|${size.label}`, `${id} ${size.label} default set`, { subcategoryId: id, size: size.label, options: plan.defaults })
     }
@@ -787,7 +894,7 @@ async function runSweep(args: Args): Promise<number> {
     if (apiCents === null) {
       log.fail(
         `${config.plan.sub.subcategoryId} ${config.size.label} maximal configuration prices`,
-        `success !== true (${row?.message ?? 'no row'})`,
+        `not priced after a retry: ${unpricedReason(row)}`,
         { options: config.options },
       )
       return
@@ -828,7 +935,7 @@ async function runSweep(args: Args): Promise<number> {
     const record = perSub.get(edge.plan.sub.subcategoryId)!
     const row = glassRows.get(index)
     const apiCents = apiTotalCents(row)
-    record.edge = apiCents === null ? `provider refused (${row?.message ?? 'no row'})` : `provider priced $${(apiCents / 100).toFixed(2)}`
+    record.edge = apiCents === null ? `not priced (${unpricedReason(row)})` : `provider priced $${(apiCents / 100).toFixed(2)}`
     log.note(
       `RECORDED: ${edge.plan.sub.subcategoryId} ${edge.size.label} print + ${edge.matIn}in mat (glass ${edge.size.width + 2 * edge.matIn} x ${edge.size.height + 2 * edge.matIn}in, bounds ${num(edge.plan.sub.maximumWidth)} x ${num(edge.plan.sub.maximumHeight)}in) — ${record.edge}. The provider enforces nothing geometric (P4/F31).`,
     )
@@ -853,6 +960,14 @@ async function runSweep(args: Args): Promise<number> {
       { subcategoryId: edge.plan.sub.subcategoryId, size: edge.size.label, options: edge.options },
     )
   })
+
+  // F36, once per subcategory: a classification, not a failure.
+  for (const [subcategoryId, reason] of unpriceable) {
+    const plan = plans.find((candidate) => candidate.sub.subcategoryId === subcategoryId)
+    log.note(
+      `FINDING F36: ${subcategoryId} "${plan?.sub.name ?? ''}" UNPRICEABLE (this environment) — 0 of ${plan?.grid.length ?? 0} in-bounds default-set sizes priced on ${client.host}, even after a retry. Provider's answer: ${reason}. Its option and configuration assertions were SKIPPED, not failed; verify this profile on the production host before enabling it.`,
+    )
+  }
 
   // F35, once per subcategory: recorded, never counted against the step.
   for (const [subcategoryId, ids] of finishNotEchoed) {
@@ -892,12 +1007,44 @@ async function runSweep(args: Args): Promise<number> {
       ]
     }),
   }
+  const unpriceableTable: StepTable = {
+    title: 'Not priceable in this environment (F36)',
+    columns: ['subcategory', 'medium', 'name', 'in-bounds sizes tried', 'assertions skipped', "provider's answer"],
+    rows: [...unpriceable.entries()].map(([subcategoryId, reason]) => {
+      const plan = plans.find((candidate) => candidate.sub.subcategoryId === subcategoryId)
+      return [
+        subcategoryId,
+        MEDIUM_BY_CATEGORY[categoryOf(subcategoryId)] ?? '',
+        plan?.sub.name ?? '',
+        plan?.grid.length ?? 0,
+        ((plan?.grid.length ?? 0) + (plan?.swaps.length ?? 0)) * 2,
+        reason,
+      ]
+    }),
+  }
   const additivityTable: StepTable = {
     title: 'Whole-configuration additivity',
     columns: ['subcategory', 'size', 'groups', 'base $', 'predicted $', 'api $', 'diff $', 'verdict', 'treatment'],
     rows: additivityRows,
   }
 
+  const retried = passOneBatch.retried + passTwoBatch.retried
+  const recovered = passOneBatch.recovered + passTwoBatch.recovered
+  if (retried > 0) {
+    log.note(
+      `RETRY: ${retried} item(s) came back unpriced on the first pass and ${recovered} priced on a later pass. Only the ${retried - recovered} still unpriced at the end were judged. Passes: ${passOneBatch.passes.concat(passTwoBatch.passes).join(' · ')}.`,
+    )
+  }
+  // What the provider said about its own budget while all this was happening: a silent
+  // success:false under sustained load is worth correlating with a shrinking remaining.
+  const remainings = client.records
+    .map((record) => Number(record.headers?.['x-ratelimit-remaining']))
+    .filter((value) => Number.isFinite(value))
+  if (remainings.length > 0) {
+    log.note(
+      `Provider budget headers over ${remainings.length} response(s): x-ratelimit-remaining min ${Math.min(...remainings)}, last ${remainings[remainings.length - 1]}.`,
+    )
+  }
   log.note(
     `Default option sets came from src/lib/catalog/seed-rules.ts (pickSeededDefault), keyed on provider NAMES and never [] (an empty array resolves to Image Wrap / 0.25in bleed — P15).`,
   )
@@ -913,13 +1060,18 @@ async function runSweep(args: Args): Promise<number> {
     counts: log.counts,
     failures: log.failures as StepFailure[],
     notes: log.notes,
-    tables: [subcategoryTable, additivityTable],
+    tables: unpriceable.size > 0
+      ? [subcategoryTable, unpriceableTable, additivityTable]
+      : [subcategoryTable, additivityTable],
     meta: {
       snapshot: path.relative(REPO_ROOT, snapshotPath),
       snapshotCapturedAt: snapshot.capturedAt,
       subcategories: plans.map((plan) => plan.sub.subcategoryId),
       sizes: [...wantedSizes],
       itemsPriced: passOne.length + passTwo.length,
+      itemsRetried: retried,
+      itemsRecoveredByRetry: recovered,
+      unpriceableSubcategories: [...unpriceable.keys()],
       requestsEstimated: estimate,
       requestsSent: summary.requestCount,
       peakPerRolling60s: summary.peakPerRolling60s,
@@ -929,9 +1081,86 @@ async function runSweep(args: Args): Promise<number> {
 
   console.log('')
   console.log(log.summaryLine('V2'))
+  if (retried > 0) console.log(`retried ${retried} unpriced item(s); ${recovered} recovered`)
+  if (unpriceable.size > 0) {
+    console.log(`UNPRICEABLE on ${client.host} (F36): ${[...unpriceable.keys()].join(', ')}`)
+  }
   console.log(`items priced: ${passOne.length + passTwo.length} · requests sent: ${summary.requestCount} (estimated ${estimate})`)
   console.log(`Wrote ${path.relative(REPO_ROOT, jsonPath)} and ${path.relative(REPO_ROOT, mdPath)}`)
   return green ? 0 : 1
+}
+
+// ---------------------------------------------------------------------------
+// --raw — one call, printed verbatim
+// ---------------------------------------------------------------------------
+
+/**
+ * Price ONE item and print everything the provider said about it.
+ *
+ * When a sweep reports that a subcategory prices nothing, the first question is whether
+ * the provider refused it or the harness never asked properly. This mode answers that
+ * with evidence rather than reasoning: the exact request body, the HTTP status, the raw
+ * response text, and an explicit verdict on whether the response array contains a row
+ * for the item (an absence) or a row that says it failed (a refusal).
+ */
+async function runRaw(args: Args): Promise<number> {
+  const subcategoryId = Number(args.raw)
+  const width = Number(args._[0])
+  const height = Number(args._[1])
+  if (!Number.isFinite(subcategoryId) || !Number.isFinite(width) || !Number.isFinite(height)) {
+    console.error('--raw needs <subcategoryId> <width> <height>')
+    return 2
+  }
+  const snapshotArg = str(args.snapshot, '')
+  if (!snapshotArg) {
+    console.error('--raw needs --snapshot <fixture.json> (the default option set comes from it)')
+    return 2
+  }
+  const snapshot = JSON.parse(fs.readFileSync(path.resolve(REPO_ROOT, snapshotArg), 'utf8')) as Snapshot
+  let target: SnapshotSubcategory | null = null
+  for (const category of snapshot.categories) {
+    for (const sub of category.subcategories) if (sub.subcategoryId === subcategoryId) target = sub
+  }
+  if (!target) {
+    console.error(`The snapshot has no subcategory ${subcategoryId}.`)
+    return 2
+  }
+
+  const { client, envFile } = clientFromEnv({
+    envFile: str(args.env, '.env.luma'),
+    rpm: 25,
+  }) as unknown as { client: Probe; envFile: string }
+  client.assertSandbox('a raw pricing probe')
+
+  const item: PriceRequestItem = {
+    subcategoryId,
+    size: { width, height },
+    options: defaultOptionIdsFor(target),
+  }
+  console.log(`host: ${client.baseUrl} (env ${envFile})`)
+  console.log(`subcategory: ${subcategoryId} "${target.name}" bounds ${num(target.minimumWidth)}-${num(target.maximumWidth)} x ${num(target.minimumHeight)}-${num(target.maximumHeight)} in, ${target.requiredDPI} DPI`)
+  console.log(`request body: ${JSON.stringify([item])}`)
+
+  const record = await client.priceBatch([item], 'raw')
+  console.log(`HTTP ${record.status}`)
+  console.log('raw body:')
+  console.log(record.rawText.length > 1500 ? `${record.rawText.slice(0, 1500)}\n… [trimmed, ${record.rawText.length} chars total]` : record.rawText)
+
+  const body = record.body
+  if (!Array.isArray(body)) {
+    console.log('verdict: the response is not an array, so there is no row for this item.')
+  } else if (body.length === 0) {
+    console.log('verdict: the response array is EMPTY — the row for this item is ABSENT, not a failure.')
+  } else {
+    const row = body[0] as PriceRow
+    const matches = row.subcategoryId === subcategoryId
+    console.log(
+      `verdict: the response array holds ${body.length} row(s); the first ${matches ? 'IS' : 'is NOT'} for subcategory ${subcategoryId}. ` +
+        `success=${String(row.success)} price=${String(row.price)} message=${row.message === undefined ? '(none)' : JSON.stringify(row.message)}. ` +
+        `${row.success === true ? 'Priced.' : 'Present but NOT priced: a refusal, not an absence.'}`,
+    )
+  }
+  return 0
 }
 
 // ---------------------------------------------------------------------------
@@ -1290,6 +1519,7 @@ async function runParity(args: Args): Promise<number> {
 
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2)) as unknown as Args
+  if (args.raw !== undefined && args.raw !== false) return runRaw(args)
   if (args.help === true || args.h === true || (!args.sweep && !args.parity)) {
     console.log(USAGE)
     return args.help === true || args.h === true ? 0 : 2

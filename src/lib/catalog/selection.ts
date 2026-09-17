@@ -21,7 +21,7 @@
 
 import type { Catalog, CatalogSubcategory, FrozenPrintOption } from './types'
 import type { ConstraintViolation, NormalizedSelection, QuoteInput } from '../pricing/quote-types'
-import { evaluateSelection, type RuleMaster } from './rules'
+import { CUSTOMER_VIOLATION_MESSAGES, evaluateSelection, type RuleMaster } from './rules'
 import { lineHash, normalizeHex, priceKeyHash } from './hash'
 
 export type NormalizeResult =
@@ -87,7 +87,7 @@ export function normalizeSelection(
       violations: [
         {
           code: 'subcategory_unavailable',
-          message: 'That print option is no longer offered. Please choose another.',
+          message: CUSTOMER_VIOLATION_MESSAGES.subcategory_unavailable,
         },
       ],
     }
@@ -97,10 +97,10 @@ export function normalizeSelection(
       ok: false,
       violations: [
         {
+          // The tree's own `blocked_reason` is written for the admin table ("Turn at
+          // least one of its options on"), so it stays there and the customer gets copy.
           code: 'subcategory_unavailable',
-          message:
-            subcategory.blocked_reason ??
-            `${subcategory.display_label} is not available right now. Please choose another.`,
+          message: CUSTOMER_VIOLATION_MESSAGES.subcategory_unavailable,
         },
       ],
     }

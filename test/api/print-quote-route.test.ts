@@ -4,8 +4,13 @@
 // CALLING the handler and reading what it returned or what it passed downstream; none
 // of it inspects the route's source.
 //
-// The three contracts under test:
-//   - the public shape never carries wholesale numbers (costCents / shippingCents),
+// The contracts under test:
+//   - the door is dark: with print_configurator_enabled off, the route is a 404 and the
+//     engine is never reached,
+//   - the public shape never carries wholesale numbers (costCents / shippingCents, and
+//     no per-option price_delta_cents on the labels),
+//   - an anonymous caller can only name a Live variant, never a size of its own,
+//   - the engine's provider calls run under the public budget reserve,
 //   - a rejected configuration is a 200 the configurator can render, while a broken
 //     request (400), an unsellable product (404) and a stalled provider (503) are not,
 //   - the engine is always handed the FULL catalog tree and the master's pixels, because
@@ -24,8 +29,9 @@ const BUSY_COPY = 'Print pricing is briefly busy. Please try again in a moment.'
 
 const rateLimitMock = vi.fn()
 const quoteConfigurationMock = vi.fn()
-const loadCatalogMock = vi.fn()
+const getFullCatalogCachedMock = vi.fn()
 const readinessMock = vi.fn()
+const withProviderReserveMock = vi.fn()
 
 /** Sentinel object: identity proves the very tree the route loaded reached the engine. */
 const FULL_TREE = { host: 'us.api.lumaprints.com', loaded_at: 'now', subcategories: [] }
@@ -75,7 +81,15 @@ vi.mock('@/lib/products/print-readiness', () => ({
 }))
 
 vi.mock('@/lib/catalog/load', () => ({
-  loadCatalog: (...args: unknown[]) => loadCatalogMock(...args),
+  getFullCatalogCached: (...args: unknown[]) => getFullCatalogCachedMock(...args),
+}))
+
+// The real wrapper sets a module-level reserve around the call; the double records the
+// reserve it was asked for and still runs the work, so the route's behaviour is tested
+// rather than the budget module's.
+vi.mock('@/lib/integrations/lumaprints-budget', () => ({
+  PUBLIC_QUOTE_RESERVE: 8,
+  withProviderReserve: (reserve: number, fn: () => Promise<unknown>) => withProviderReserveMock(reserve, fn),
 }))
 
 vi.mock('@/lib/integrations/lumaprints', () => ({ LumaprintsDisabledError }))
@@ -109,7 +123,7 @@ function quoteResult(overrides: Partial<QuoteResult> = {}): QuoteResult {
           group_label: 'Mat',
           option_id: 64,
           option_label: 'No Mat',
-          price_delta_cents: 0,
+          price_delta_cents: 2052,
         },
       ],
     },
@@ -126,7 +140,7 @@ function quoteResult(overrides: Partial<QuoteResult> = {}): QuoteResult {
 }
 
 function body(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return { subcategoryRef: SUBCATEGORY_REF, widthIn: 8, heightIn: 10, optionIds: [64, 74], ...overrides }
+  return { subcategoryRef: SUBCATEGORY_REF, variantId: VARIANT_ID, optionIds: [64, 74], ...overrides }
 }
 
 function call(payload: unknown, productId = PRODUCT_ID): Promise<Response> {
@@ -141,23 +155,34 @@ function call(payload: unknown, productId = PRODUCT_ID): Promise<Response> {
 beforeEach(() => {
   rateLimitMock.mockReset()
   quoteConfigurationMock.mockReset()
-  loadCatalogMock.mockReset()
+  getFullCatalogCachedMock.mockReset()
   readinessMock.mockReset()
+  withProviderReserveMock.mockReset()
+  withProviderReserveMock.mockImplementation((_reserve: number, fn: () => Promise<unknown>) => fn())
   tableResults.clear()
   selectedColumns.length = 0
   serviceClient = fakeServiceClient()
 
   rateLimitMock.mockResolvedValue({ ok: true, remaining: 59, resetAt: Date.now() + 60_000, degraded: false })
+  tableResults.set('site_settings', { data: { print_configurator_enabled: true }, error: null })
   tableResults.set('products', { data: { id: PRODUCT_ID, status: 'active', prints_enabled: true }, error: null })
   tableResults.set('product_variants', {
-    data: { id: VARIANT_ID, product_id: PRODUCT_ID, is_active: true, width_in: 18, height_in: 24 },
+    data: {
+      id: VARIANT_ID,
+      product_id: PRODUCT_ID,
+      is_active: true,
+      width_in: 18,
+      height_in: 24,
+      margin_override_pct: null,
+      manual_price_override_cents: null,
+    },
     error: null,
   })
   readinessMock.mockResolvedValue({
     data: new Map([[PRODUCT_ID, { productId: PRODUCT_ID, ready: true, widthPx: 4800, heightPx: 6000 }]]),
     error: null,
   })
-  loadCatalogMock.mockResolvedValue(FULL_TREE)
+  getFullCatalogCachedMock.mockResolvedValue(FULL_TREE)
   quoteConfigurationMock.mockResolvedValue(quoteResult())
 })
 
@@ -179,6 +204,40 @@ describe('POST /api/products/[id]/print-quote', () => {
     expect(readinessMock).not.toHaveBeenCalled()
   })
 
+  it('is dark: with the configurator flag off it is a 404 and the engine is never reached', async () => {
+    tableResults.set('site_settings', { data: { print_configurator_enabled: false }, error: null })
+
+    const response = await call(body())
+
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ ok: false, code: 'not_found', error: 'Not found' })
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
+    expect(getFullCatalogCachedMock).not.toHaveBeenCalled()
+    // Nothing behind the flag was read: no product row, no readiness, no variant.
+    expect(selectedColumns.map((c) => c.table)).toEqual(['site_settings'])
+    expect(readinessMock).not.toHaveBeenCalled()
+  })
+
+  it('is dark when the settings row is missing or the flag is null', async () => {
+    tableResults.set('site_settings', { data: null, error: null })
+    const missingRow = await call(body())
+
+    tableResults.set('site_settings', { data: { print_configurator_enabled: null }, error: null })
+    const nullFlag = await call(body())
+
+    expect([missingRow.status, nullFlag.status]).toEqual([404, 404])
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
+  })
+
+  it('reads the flag before it parses the body', async () => {
+    tableResults.set('site_settings', { data: { print_configurator_enabled: false }, error: null })
+
+    // A body that would be a 400 behind an open door is still a 404 in front of a dark one.
+    const response = await call('{"subcategoryRef":')
+
+    expect(response.status).toBe(404)
+  })
+
   it('rejects an unknown body key with 400 invalid_request', async () => {
     const response = await call(body({ discountPct: 90 }))
 
@@ -187,19 +246,21 @@ describe('POST /api/products/[id]/print-quote', () => {
     expect(quoteConfigurationMock).not.toHaveBeenCalled()
   })
 
-  it('rejects a body that sends both a variant and an explicit size', async () => {
-    const response = await call(body({ variantId: VARIANT_ID }))
+  it('refuses an explicit size from a public caller: variantId is the only way to name one', async () => {
+    const withWidth = await call(body({ widthIn: 8 }))
+    const withBoth = await call(body({ widthIn: 8, heightIn: 10 }))
+    const sizeOnly = await call({ subcategoryRef: SUBCATEGORY_REF, widthIn: 8, heightIn: 10, optionIds: [] })
+
+    expect([withWidth.status, withBoth.status, sizeOnly.status]).toEqual([400, 400, 400])
+    expect((await withBoth.json()).code).toBe('invalid_request')
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
+  })
+
+  it('requires a variantId', async () => {
+    const response = await call({ subcategoryRef: SUBCATEGORY_REF, optionIds: [] })
 
     expect(response.status).toBe(400)
     expect((await response.json()).code).toBe('invalid_request')
-  })
-
-  it('rejects a size with no height, and an over-long edge', async () => {
-    const noHeight = await call({ subcategoryRef: SUBCATEGORY_REF, widthIn: 8, optionIds: [] })
-    const tooBig = await call(body({ widthIn: 301 }))
-
-    expect(noHeight.status).toBe(400)
-    expect(tooBig.status).toBe(400)
   })
 
   it('rejects malformed JSON with 400 invalid_request', async () => {
@@ -263,24 +324,50 @@ describe('POST /api/products/[id]/print-quote', () => {
     const response = await call({ subcategoryRef: SUBCATEGORY_REF, variantId: VARIANT_ID, optionIds: [64] })
 
     expect(response.status).toBe(200)
-    expect(quoteConfigurationMock.mock.calls[0][1]).toMatchObject({ widthIn: 18, heightIn: 24 })
-  })
-
-  it('rounds an explicit size onto the 0.05in grid before pricing', async () => {
-    await call(body({ widthIn: 12.3712, heightIn: 16.0201 }))
-
     expect(quoteConfigurationMock.mock.calls[0][1]).toMatchObject({
       productId: PRODUCT_ID,
       subcategoryRef: SUBCATEGORY_REF,
-      widthIn: 12.35,
-      heightIn: 16,
+      widthIn: 18,
+      heightIn: 24,
     })
   })
 
-  it('passes the FULL catalog tree and the master pixels to the engine', async () => {
+  it("passes the variant's own pricing overrides to the engine", async () => {
+    tableResults.set('product_variants', {
+      data: {
+        id: VARIANT_ID,
+        product_id: PRODUCT_ID,
+        is_active: true,
+        width_in: 18,
+        height_in: 24,
+        margin_override_pct: 140,
+        manual_price_override_cents: 19900,
+      },
+      error: null,
+    })
+
+    await call(body())
+
+    expect(quoteConfigurationMock.mock.calls[0][1].variantPricing).toEqual({
+      margin_override_pct: 140,
+      manual_price_override_cents: 19900,
+    })
+  })
+
+  it('runs the engine inside the public provider reserve', async () => {
+    await call(body())
+
+    expect(withProviderReserveMock).toHaveBeenCalledTimes(1)
+    expect(withProviderReserveMock.mock.calls[0][0]).toBe(8)
+    // The engine ran inside the wrapper, not beside it.
+    const order = withProviderReserveMock.mock.invocationCallOrder[0]
+    expect(quoteConfigurationMock.mock.invocationCallOrder[0]).toBeGreaterThan(order)
+  })
+
+  it('passes the FULL cached catalog tree and the master pixels to the engine', async () => {
     await call(body({ solidHex: '#AABBCC', optionIds: [3] }))
 
-    expect(loadCatalogMock).toHaveBeenCalledWith(serviceClient, { includeDisabled: true })
+    expect(getFullCatalogCachedMock).toHaveBeenCalledTimes(1)
     const [client, input, opts] = quoteConfigurationMock.mock.calls[0]
     expect(client).toBe(serviceClient)
     expect(input).toMatchObject({ optionIds: [3], solidHex: '#AABBCC' })
@@ -293,9 +380,11 @@ describe('POST /api/products/[id]/print-quote', () => {
 
     const productSelect = selectedColumns.find((c) => c.table === 'products')
     expect(productSelect?.columns).toBe('id, status, prints_enabled')
+    const settingsSelect = selectedColumns.find((c) => c.table === 'site_settings')
+    expect(settingsSelect?.columns).toBe('print_configurator_enabled')
   })
 
-  it('never returns wholesale cost or shipping to a public caller', async () => {
+  it('never returns wholesale cost, shipping or per-option deltas to a public caller', async () => {
     const response = await call(body())
     const payload = await response.json()
 
@@ -315,7 +404,15 @@ describe('POST /api/products/[id]/print-quote', () => {
     expect(payload.priceCents).toBe(6560)
     expect(payload.priceKeyHash).toBe('price-key-hash')
     expect(payload.lineHash).toBe('line-hash')
-    expect(payload.labels).toHaveLength(1)
+    expect(payload.labels).toEqual([
+      { group_key: 'mat_size', group_label: 'Mat', option_id: 64, option_label: 'No Mat' },
+    ])
+    // The fixture's label carries a 2052-cent wholesale delta; none of it may survive.
+    for (const label of payload.labels) {
+      expect(Object.keys(label).sort()).toEqual(['group_key', 'group_label', 'option_id', 'option_label'])
+      expect(label.price_delta_cents).toBeUndefined()
+    }
+    expect(JSON.stringify(payload)).not.toContain('2052')
     expect(JSON.stringify(payload)).not.toContain('2080')
     expect(JSON.stringify(payload)).not.toContain('1200')
   })

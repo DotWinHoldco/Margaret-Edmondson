@@ -126,9 +126,28 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   (the ≤25/min pace is per-invocation today) and retry-aware request accounting in the client.
   Operational note: `/api/admin/*` sits behind the site gate cookie; captures need that cookie.
 
+- P1 (61a869c..9d9ca4e + b29497c, PRs #3 #4 #5 #6 #7): architect wrote the contracts (types, keys,
+  hash, cache-tag), read the migration (RLS/grants) and sync finalize; ONE security-reviewer pass over
+  schema + sync + budget: 13 findings (3 blocking) → 11 closed in one corrective round (grants →
+  read-only browser roles; tombstones keep `enabled`; sync at 12/min; stale-run reaping + cooldown;
+  hostile-default override in default selection; public tree filters groups/options; classified error
+  vocabulary; uuid + host-checked continue; conditional claim; busy race → 409; dry-run body). Two
+  production incidents found and fixed by the exit run itself: provider throttle → transient chunks
+  (#4, #6); provider 50-item batch cap → batched defaults probe (#5). Bootstrap corrected to the five
+  live mediums (#7). Agents used: 2 executors (+2 resumes), 1 security-reviewer.
+- P2 (147c1ba, in review): contracts quote-types.ts by the architect; ONE security-reviewer pass over the
+  public quote route + engine: 3 blocking (dark-door gate + fulfillment budget reserve; wholesale delta
+  leak via labels; variant overrides dropped) + 4 should-fix + notes → corrective round in progress.
 ## Proof
 
 <!-- walks walked (date, device, by whom) · probe records · ledger read after deploy -->
+- P1 exit (2026-09-17, production): sync run bf79e8ce completed — 11 chunks, 69 requests, 51 / 225 /
+  1,265 rows, 0 tombstoned; dry run 1f4b624a — 62 requests, 0 new / 0 removed / 0 changed; SQL parity:
+  all 8 legacy `lumaprints_mediums` rows reproduced as catalog rows with identical ids and provider bounds,
+  legacy option sets = catalog defaults on every one; enabled set = [2,11] / [27,2,28] / [39] / [64,74,83,
+  94,96,146,148] / [39] on the five live subcategories; live RLS proof (anon 42501 on every write, runs
+  unreadable, `has_table_privilege(authenticated, INSERT|UPDATE|DELETE)` false on all four tables);
+  V6.1 parity 834/834 (`audit/catalog-verification/V6.1.md`).
 
 ## Close
 

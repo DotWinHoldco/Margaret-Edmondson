@@ -15,6 +15,15 @@ export interface QuoteInput {
   optionIds: number[]
   solidHex?: string
   quantity?: number
+  /**
+   * The priced variant's own overrides, when the selection is a Live variant. A manual price
+   * fixes the DEFAULT configuration's price and makes every other configuration unavailable;
+   * a margin override replaces the product/category/site margin for this size.
+   */
+  variantPricing?: {
+    margin_override_pct: number | null
+    manual_price_override_cents: number | null
+  }
 }
 
 /** One reason a configuration cannot be sold; `code` is stable, `message` is customer copy. */

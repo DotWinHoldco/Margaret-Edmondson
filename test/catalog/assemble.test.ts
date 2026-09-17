@@ -14,21 +14,31 @@ import { describe, it, expect, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Medium } from '@/lib/pricing/mediums'
 
+const cacheCalls = vi.hoisted(
+  () => [] as Array<{ keys: unknown; options: { tags?: string[]; revalidate?: number } }>,
+)
+
 vi.mock('next/cache', () => ({
-  unstable_cache: (fn: () => unknown) => fn,
+  unstable_cache: (
+    fn: () => unknown,
+    keys: unknown,
+    options: { tags?: string[]; revalidate?: number },
+  ) => {
+    cacheCalls.push({ keys, options })
+    return fn
+  },
   revalidateTag: vi.fn(),
 }))
 vi.mock('@/lib/supabase/server', () => ({
-  createServiceClient: async () => {
-    throw new Error('not used by this suite')
-  },
+  createServiceClient: async () => fakeClient(),
   createClient: async () => {
-    throw new Error('not used by this suite')
+    throw new Error('the loader does not use the cookie client')
   },
 }))
 
 import { assembleCatalog, BLOCKED_NEEDS_BLEED, optionBlockedReason } from '@/lib/catalog/assemble'
-import { loadCatalog } from '@/lib/catalog/load'
+import { getFullCatalogCached, loadCatalog } from '@/lib/catalog/load'
+import { CATALOG_CACHE_TAG } from '@/lib/catalog/cache-tag'
 import type {
   CatalogOptionGroupRow,
   CatalogOptionRow,
@@ -261,5 +271,27 @@ describe('assembleCatalog', () => {
     expect(optionBlockedReason({ geometry: null })).toBeNull()
     expect(optionBlockedReason({ geometry: { requires_file_bleed_in: 0.25 } })).toBe(BLOCKED_NEEDS_BLEED)
     expect(optionBlockedReason({ geometry: { probe_owed: 'not checked' } })).toBe('not checked')
+  })
+})
+
+describe('getFullCatalogCached', () => {
+  it('serves the FULL tree under the catalog tag, so a sync or a toggle drops it', async () => {
+    cacheCalls.length = 0
+    const tree = await getFullCatalogCached()
+
+    // Cached exactly like the storefront tree: same tag, same window.
+    expect(cacheCalls).toHaveLength(1)
+    expect(cacheCalls[0].options.tags).toEqual([CATALOG_CACHE_TAG])
+    expect(cacheCalls[0].options.revalidate).toBe(300)
+    expect(cacheCalls[0].keys).toContain('lumaprints-catalog-full')
+
+    // FULL means disabled and tombstoned rows are present: the quote path needs the
+    // groups the storefront read drops, because that is where a hostile provider
+    // default hides.
+    const ids = tree.subcategories.map((subcategory) => subcategory.id)
+    expect(ids).toContain('sc-off')
+    expect(ids).toContain('sc-gone')
+    const canvas = tree.subcategories.find((subcategory) => subcategory.id === 'sc-canvas')
+    expect(canvas?.groups.map((group) => group.id)).toContain('g-finish')
   })
 })
