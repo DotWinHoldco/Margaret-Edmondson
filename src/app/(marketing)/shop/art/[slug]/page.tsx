@@ -56,7 +56,7 @@ export default async function ProductPage(
     // A slug this product used to have (renamed in the editor) redirects for good; the
     // table is written by a trigger on every rename, so no link ever goes stale again.
     const current = await findProductSlugRedirect(await createClient(), slug)
-    if (current) permanentRedirect(`/shop/art/${current}`)
+    if (current) permanentRedirect(`/shop/art/${encodeURIComponent(current)}`)
     notFound()
   }
 

@@ -127,6 +127,43 @@ export async function readCacheRowsForSize(
 }
 
 /**
+ * Every row of the given subcategories, paged (PostgREST caps a response at 1,000 rows
+ * and says nothing), for callers that need the whole surface at once — the warmer reads
+ * its coverage this way rather than one row per offered size. Best effort like every
+ * read here: an error is an empty page, never a throw.
+ */
+export async function readCacheRowsForSubcategories(
+  client: SupabaseClient,
+  subcategoryRefs: readonly string[],
+): Promise<PricingCacheRowV2[]> {
+  const refs = [...new Set(subcategoryRefs)]
+  const out: PricingCacheRowV2[] = []
+  const PAGE = 1000
+  const REFS_PER_QUERY = 50
+  for (let i = 0; i < refs.length; i += REFS_PER_QUERY) {
+    const chunk = refs.slice(i, i + REFS_PER_QUERY)
+    let from = 0
+    for (;;) {
+      const { data, error } = await client
+        .from('lumaprints_pricing_cache')
+        .select(CACHE_COLS)
+        .in('subcategory_ref', chunk)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
+      if (error || !data) {
+        console.warn('quote-cache: could not read subcategory rows', error?.message ?? 'no data')
+        break
+      }
+      const page = (data as Array<Record<string, unknown>>).map(normalizeRow)
+      out.push(...page)
+      if (page.length < PAGE) break
+      from += PAGE
+    }
+  }
+  return out
+}
+
+/**
  * Worst-case CONUS shipping already quoted for this size and shipping class.
  *
  * Only a FRESH row with a real number counts: a zero is what a failed freight quote

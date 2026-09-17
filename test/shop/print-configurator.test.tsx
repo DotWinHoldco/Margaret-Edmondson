@@ -244,6 +244,8 @@ async function settle(ms = 400) {
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
+  // The quote hook adds up to a second of jitter to a retry; pin it so the timings are exact.
+  vi.spyOn(Math, 'random').mockReturnValue(0)
   fetchMock = vi.fn(async () => jsonResponse(quoteBody()))
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -251,6 +253,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   vi.useRealTimers()
 })
 

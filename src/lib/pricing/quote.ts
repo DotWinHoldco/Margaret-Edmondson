@@ -80,16 +80,27 @@ export class QuoteUnavailableError extends LumaprintsUnavailableError {
    * "provider unavailable" lines that were our own budget refusing, the provider never called).
    */
   readonly reason: string
-  constructor(message: string, reason: string = 'unknown') {
+  /** When the shared budget refused: how long until its window resets. Null otherwise. */
+  readonly retryAfterMs: number | null
+  constructor(message: string, reason: string = 'unknown', retryAfterMs: number | null = null) {
     super(message)
     this.name = 'QuoteUnavailableError'
     this.reason = reason
+    this.retryAfterMs = retryAfterMs
   }
 }
 
 /** The name of the failure class behind a provider refusal, for `QuoteUnavailableError.reason`. */
 function failureReason(err: unknown): string {
+  if (err instanceof QuoteUnavailableError) return err.reason
   return err instanceof Error && err.name ? err.name : 'unknown'
+}
+
+/** The budget's own answer to "when may I ask again", carried through to the browser. */
+function retryAfterOf(err: unknown): number | null {
+  if (err instanceof LumaprintsBudgetError) return err.retryAfterMs
+  if (err instanceof QuoteUnavailableError) return err.retryAfterMs
+  return null
 }
 
 /** The four-corner CONUS box, matching the site_settings default. */
@@ -369,8 +380,15 @@ async function quoteShippingCents(
     return Math.round(worstCase * 100)
   } catch (err) {
     if (isProviderUnavailable(err)) throw err
-    console.warn('quote: worst-case shipping unavailable, pricing without freight', err)
-    return 0
+    // Never price without freight. Shipping is included in the number the shopper sees,
+    // so the 0 this used to return was charged on real orders as free freight and cached
+    // for a day. A refused freight quote is a refused quote; the stale path, which now
+    // refuses zero-freight rows too, is the only fallback there is.
+    console.warn(
+      'quote: worst-case shipping unavailable, refusing to price without freight:',
+      err instanceof Error ? err.message : String(err),
+    )
+    throw new QuoteUnavailableError('We could not price shipping for this configuration.', failureReason(err))
   }
 }
 
@@ -523,6 +541,7 @@ export async function quoteConfiguration(
         throw new QuoteUnavailableError(
           'We could not reach the print provider and have no recent price for this configuration.',
           failureReason(err),
+          retryAfterOf(err),
         )
       }
       composed = fallback.composed

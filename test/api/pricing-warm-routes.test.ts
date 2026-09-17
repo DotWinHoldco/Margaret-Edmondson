@@ -13,6 +13,7 @@ const h = vi.hoisted(() => ({
   configured: vi.fn(),
   loadCatalog: vi.fn(),
   lease: vi.fn(),
+  release: vi.fn(),
   surface: vi.fn(),
   coverage: vi.fn(),
   run: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@/lib/integrations/lumaprints', () => ({ lumaprintsConfigured: h.config
 vi.mock('@/lib/catalog/load', () => ({ loadCatalog: h.loadCatalog }))
 vi.mock('@/lib/pricing/warm', () => ({
   acquireWarmLease: h.lease,
+  releaseWarmLease: h.release,
   loadWarmSurface: h.surface,
   readWarmCoverage: h.coverage,
   runWarmPass: h.run,
@@ -49,6 +51,7 @@ beforeEach(() => {
   h.configured.mockReturnValue(true)
   h.loadCatalog.mockResolvedValue(catalog)
   h.lease.mockResolvedValue({ ok: true })
+  h.release.mockResolvedValue(undefined)
   h.surface.mockResolvedValue([{ subcategoryRef: 'sc', widthIn: 8, heightIn: 10 }])
   h.coverage.mockResolvedValue({ surface: 1, fresh: 1, stale: 0, missing: 0, expiringSoon: 0, lastWarmedAt: null })
   h.run.mockResolvedValue(report)
@@ -76,12 +79,27 @@ describe('GET /api/cron/pricing-warm', () => {
     expect(h.run).not.toHaveBeenCalled()
   })
 
-  it('runs one pass on the full catalog tree as the service role and returns its ledger', async () => {
+  it('runs one pass on the full catalog tree as the service role, returns its ledger, and gives the lease back', async () => {
     const response = await cronGet(cronRequest())
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ ok: true, ...report })
     expect(h.loadCatalog).toHaveBeenCalledWith(service, { includeDisabled: true })
     expect(h.run).toHaveBeenCalledWith(service, { catalog, deadlineMs: 270_000 })
+    expect(h.release).toHaveBeenCalledWith(service)
+  })
+
+  it('gives the lease back even when the pass throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    h.run.mockRejectedValue(new Error('boom'))
+    const response = await cronGet(cronRequest())
+    expect(response.status).toBe(500)
+    expect(h.release).toHaveBeenCalledTimes(1)
+  })
+
+  it('never releases a lease it did not take', async () => {
+    h.lease.mockResolvedValue({ ok: false, retryAfterMs: 5_000 })
+    await cronGet(cronRequest())
+    expect(h.release).not.toHaveBeenCalled()
   })
 })
 
@@ -106,8 +124,18 @@ describe('/api/admin/catalog/warm', () => {
     expect(await response.json()).toEqual({ ok: true, started: true })
     expect(h.run).not.toHaveBeenCalled()
     expect(h.after).toHaveBeenCalledTimes(1)
+    expect(h.release).not.toHaveBeenCalled()
     await h.after.mock.calls[0][0]()
     expect(h.run).toHaveBeenCalledWith(service, { catalog, deadlineMs: 270_000 })
+    expect(h.release).toHaveBeenCalledWith(service)
+  })
+
+  it('POST gives the lease back when the deferred pass throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    h.run.mockRejectedValue(new Error('boom'))
+    await adminPost()
+    await h.after.mock.calls[0][0]()
+    expect(h.release).toHaveBeenCalledTimes(1)
   })
 
   it('POST reports a running pass instead of starting a second one', async () => {

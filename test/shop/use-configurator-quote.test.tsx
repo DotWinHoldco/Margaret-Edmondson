@@ -32,6 +32,8 @@ const request = { subcategoryRef: 'sc', variantId: 'v', optionIds: [] as number[
 
 beforeEach(() => {
   vi.useFakeTimers()
+  // The ladder adds up to a second of jitter; pin it at zero so the timings below are exact.
+  vi.spyOn(Math, 'random').mockReturnValue(0)
   replies.length = 0
   calls.length = 0
   vi.stubGlobal(
@@ -47,6 +49,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   vi.useRealTimers()
 })
 
@@ -89,6 +92,30 @@ describe('useConfiguratorQuote under a busy provider', () => {
     expect(result.current.state).toEqual({ status: 'error', code: 'provider_busy' })
     // Sixty seconds of patience, not more: the ladder is exactly one budget window.
     expect(PROVIDER_RETRY_MS.reduce((a, b) => a + b, 0)).toBe(60_000)
+  })
+
+  it("waits for the budget's own reset time when the server says so, never retrying inside the refusing window", async () => {
+    replies.push({ status: 503, body: { ok: false, code: 'provider_busy', error: 'busy', retryAfterMs: 20_000 } })
+    const { result } = renderHook(() => useConfiguratorQuote('p', request))
+    await tick(QUOTE_DEBOUNCE_MS)
+    expect(result.current.state).toEqual({ status: 'retrying', attempt: 1 })
+    // The first rung is 4 s, but the window resets in 20 s: no request until then.
+    await tick(19_999)
+    expect(calls).toHaveLength(1)
+    await tick(1)
+    expect(calls).toHaveLength(2)
+    expect(result.current.state).toMatchObject({ status: 'quoted' })
+  })
+
+  it('adds jitter to a retry so refused shoppers do not ask again in the same instant', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    replies.push(busy)
+    renderHook(() => useConfiguratorQuote('p', request))
+    await tick(QUOTE_DEBOUNCE_MS)
+    await tick(PROVIDER_RETRY_MS[0])
+    expect(calls).toHaveLength(1)
+    await tick(500)
+    expect(calls).toHaveLength(2)
   })
 
   it('treats a dropped connection like a busy provider', async () => {

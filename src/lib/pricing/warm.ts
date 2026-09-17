@@ -33,7 +33,7 @@ import { normalizeSelection } from '@/lib/catalog/selection'
 import { withProviderReserve } from '@/lib/integrations/lumaprints-budget'
 import { loadPublicPrintReadiness } from '@/lib/products/print-readiness'
 import { quoteDefaultConfiguration, QuoteUnavailableError } from '@/lib/pricing/quote'
-import { readCacheRow } from '@/lib/pricing/quote-cache'
+import { readCacheRowsForSubcategories } from '@/lib/pricing/quote-cache'
 import { LumaprintsApiError, LumaprintsBudgetError, LumaprintsDisabledError } from '@/lib/integrations/lumaprints'
 import { SizeOutOfBoundsError } from '@/lib/pricing/pricing-errors'
 
@@ -52,8 +52,13 @@ export const REFRESH_AHEAD_MS = 12 * 60 * 60 * 1000
 /** Inside a 300s function: enough for ~10 priced targets at pace, with margin to answer. */
 export const DEFAULT_PASS_DEADLINE_MS = 270_000
 export const DEFAULT_PASS_MAX_PRICED = 10
-/** The lease that keeps two passes (cron and admin) from spending the key at once. */
-export const WARM_LEASE = { key: 'luma:warm-lease', limit: 1, windowMs: 300_000 } as const
+/**
+ * The lease that keeps two passes (cron and admin) from spending the key at once. The
+ * window is the pass deadline plus a margin — shorter than the five-minute cron period, so
+ * scheduler jitter never lands a tick inside the previous lease — and a finished pass
+ * releases it at once (`releaseWarmLease`) rather than holding it to the end.
+ */
+export const WARM_LEASE = { key: 'luma:warm-lease', limit: 1, windowMs: 280_000 } as const
 
 export interface WarmTarget {
   subcategoryRef: string
@@ -211,15 +216,23 @@ export async function loadWarmSurface(client: SupabaseClient, catalog: Catalog):
     for (const id of chunk) ready.set(id, readiness.data.get(id)?.ready === true)
   }
 
-  const variants = await readAllRows<SurfaceVariant>(
-    () =>
-      client
-        .from('product_variants')
-        .select('id, product_id, medium, width_in, height_in, is_active, studio_only')
-        .in('product_id', ids)
-        .eq('is_active', true) as unknown as PagedQuery<SurfaceVariant>,
-    'warm: variants',
-  )
+  // The ids travel in the query string, so they go in chunks: a few hundred UUIDs in one
+  // `in.(…)` is a request line a gateway refuses outright, not a paged result.
+  const variants: SurfaceVariant[] = []
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100)
+    variants.push(
+      ...(await readAllRows<SurfaceVariant>(
+        () =>
+          client
+            .from('product_variants')
+            .select('id, product_id, medium, width_in, height_in, is_active, studio_only')
+            .in('product_id', chunk)
+            .eq('is_active', true) as unknown as PagedQuery<SurfaceVariant>,
+        'warm: variants',
+      )),
+    )
+  }
 
   return warmSurface(
     catalog,
@@ -242,24 +255,41 @@ export function classifyRow(row: Pick<PricingCacheRowV2, 'expires_at'> | null, n
 
 type RowReader = (target: WarmTarget) => Promise<PricingCacheRowV2 | null>
 
-function defaultRowReader(client: SupabaseClient): RowReader {
-  return (target) =>
-    readCacheRow(client, {
-      subcategoryRef: target.subcategoryRef,
-      widthIn: target.widthIn,
-      heightIn: target.heightIn,
-      priceKeyHash: target.priceKeyHash,
-    })
-}
+const rowKey = (ref: string, widthIn: number, heightIn: number, priceKeyHash: string) =>
+  `${ref}|${Number(widthIn)}|${Number(heightIn)}|${priceKeyHash}`
 
-/** Read every target's default row, a few at a time; never more than `parallel` in flight. */
-async function readRows(targets: readonly WarmTarget[], readRow: RowReader, parallel = 8): Promise<Array<PricingCacheRowV2 | null>> {
-  const out: Array<PricingCacheRowV2 | null> = []
-  for (let i = 0; i < targets.length; i += parallel) {
-    const chunk = targets.slice(i, i + parallel)
-    out.push(...(await Promise.all(chunk.map((target) => readRow(target)))))
+/**
+ * Every target's default row. One paged read of the surface's subcategories, indexed in
+ * memory — not one round trip per offered size, which an admin card polling every ten
+ * seconds turned into thousands of queries. A `readRow` seam (tests) reads per target.
+ */
+async function readRows(
+  client: SupabaseClient,
+  targets: readonly WarmTarget[],
+  readRow?: RowReader,
+): Promise<Array<PricingCacheRowV2 | null>> {
+  if (readRow) {
+    const out: Array<PricingCacheRowV2 | null> = []
+    for (let i = 0; i < targets.length; i += 8) {
+      const chunk = targets.slice(i, i + 8)
+      out.push(...(await Promise.all(chunk.map((target) => readRow(target)))))
+    }
+    return out
   }
-  return out
+  const rows = await readCacheRowsForSubcategories(
+    client,
+    targets.map((target) => target.subcategoryRef),
+  )
+  const byKey = new Map<string, PricingCacheRowV2>()
+  for (const row of rows) {
+    const key = rowKey(row.subcategory_ref, row.width_in, row.height_in, row.price_key_hash)
+    const held = byKey.get(key)
+    // Two rows for one key cannot happen (the writer deletes first); keep the newest if it does.
+    if (!held || row.fetched_at > held.fetched_at) byKey.set(key, row)
+  }
+  return targets.map(
+    (target) => byKey.get(rowKey(target.subcategoryRef, target.widthIn, target.heightIn, target.priceKeyHash)) ?? null,
+  )
 }
 
 /** What the admin card shows: how much of the surface is priced, and how fresh it is. */
@@ -269,7 +299,7 @@ export async function readWarmCoverage(
   opts: { now?: number; readRow?: RowReader } = {},
 ): Promise<WarmCoverage> {
   const now = opts.now ?? Date.now()
-  const rows = await readRows(targets, opts.readRow ?? defaultRowReader(client))
+  const rows = await readRows(client, targets, opts.readRow)
   const coverage: WarmCoverage = { surface: targets.length, fresh: 0, stale: 0, missing: 0, expiringSoon: 0, lastWarmedAt: null }
   for (const row of rows) {
     const need = classifyRow(row, now)
@@ -306,6 +336,16 @@ export async function acquireWarmLease(client: SupabaseClient): Promise<{ ok: tr
   if (!row || typeof row.allowed !== 'boolean') throw new Error('warm: lease returned no decision row')
   if (row.allowed) return { ok: true }
   return { ok: false, retryAfterMs: Math.max(0, Number(row.retry_after_ms) || 0) }
+}
+
+/**
+ * Give the lease back the moment a pass is over, so a short pass does not hold the key
+ * for the rest of its window and an admin "price now" can follow a cron tick. Best
+ * effort: a failure here only means the window runs out on its own.
+ */
+export async function releaseWarmLease(client: SupabaseClient): Promise<void> {
+  const { error } = await client.from('rate_limit_buckets').delete().eq('key', WARM_LEASE.key)
+  if (error) console.warn('[pricing-warm] could not release the lease:', error.message)
 }
 
 // ---------------------------------------------------------------------------
@@ -363,14 +403,13 @@ export async function runWarmPass(client: SupabaseClient, opts: WarmPassOptions)
   const now = opts.now ?? Date.now
   const sleep = opts.sleep ?? realSleep
   const quote = opts.quote ?? defaultQuote(client, opts.catalog)
-  const readRow = opts.readRow ?? defaultRowReader(client)
   const log = opts.log ?? ((line, data) => console.log(line, JSON.stringify(data)))
   const deadlineMs = opts.deadlineMs ?? DEFAULT_PASS_DEADLINE_MS
   const maxPriced = opts.maxPriced ?? DEFAULT_PASS_MAX_PRICED
   const startedAt = now()
 
   const targets = opts.targets ?? (await loadWarmSurface(client, opts.catalog))
-  const rows = await readRows(targets, readRow)
+  const rows = await readRows(client, targets, opts.readRow)
   const queue: Array<{ target: WarmTarget; need: WarmNeed }> = []
   let skippedFresh = 0
   for (let i = 0; i < targets.length; i += 1) {
@@ -404,6 +443,14 @@ export async function runWarmPass(client: SupabaseClient, opts: WarmPassOptions)
     const label = `${target.medium} ${target.subcategoryId} ${target.widthIn}x${target.heightIn}`
     try {
       const result = await quote(target)
+      if (result.stale) {
+        // The engine served its last row because the provider refused: nothing was priced
+        // and nothing was written. That is the end of this pass, like every other refusal;
+        // counting it as priced would make the ledger say the cache is filling when it is not.
+        report.stopped = 'stale_fallback'
+        log('[pricing-warm] stopped', { target: label, error: 'provider refused; the engine served a stale row' })
+        break
+      }
       if (!result.available) {
         report.unavailable += 1
         continue

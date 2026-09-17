@@ -54,9 +54,19 @@ export const PUBLIC_QUOTE_RESERVE = 8
  */
 export class LumaprintsBudgetError extends Error {
   readonly status = 429
-  constructor(message = 'Print pricing is briefly busy. Please try again in a moment.') {
-    super(message)
+  /**
+   * Milliseconds until the shared window resets, when the counter could say (0 when it
+   * could not). A caller that retries sooner than this spends another hit to be refused
+   * again — every refusal is charged — so the public quote route hands it to the browser
+   * and the browser's retry waits at least this long.
+   */
+  readonly retryAfterMs: number
+  constructor(retryAfterMs: number | string = 0, message = 'Print pricing is briefly busy. Please try again in a moment.') {
+    // Older callers passed a message first; a string first argument still means that.
+    const text = typeof retryAfterMs === 'string' ? retryAfterMs : message
+    super(text)
     this.name = 'LumaprintsBudgetError'
+    this.retryAfterMs = typeof retryAfterMs === 'number' ? Math.max(0, Math.trunc(retryAfterMs) || 0) : 0
   }
 }
 
@@ -199,7 +209,7 @@ export async function acquireProviderSlot(opts: { maxWaitMs?: number; reserve?: 
       // Refused without waiting: either the window is already full, or what is left of
       // it belongs to fulfillment.
       if (!decision.allowed || (decision.remaining !== null && decision.remaining < reserve)) {
-        throw new LumaprintsBudgetError()
+        throw new LumaprintsBudgetError(decision.retryAfterMs)
       }
       return { degraded, waitedMs: Date.now() - startedAt }
     }
@@ -209,7 +219,7 @@ export async function acquireProviderSlot(opts: { maxWaitMs?: number; reserve?: 
     const remainingWait = maxWaitMs - (Date.now() - startedAt)
     const delay = Math.min(decision.retryAfterMs, remainingWait)
     if (remainingWait <= 0 || delay <= 0 || decision.retryAfterMs > remainingWait) {
-      throw new LumaprintsBudgetError()
+      throw new LumaprintsBudgetError(decision.retryAfterMs)
     }
     await sleep(delay)
   }

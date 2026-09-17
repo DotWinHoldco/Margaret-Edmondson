@@ -61,6 +61,14 @@ export const QUOTE_RETRY_MS = 2_000
  * shared provider budget is a one-minute window, so by the last step it has reset once.
  */
 export const PROVIDER_RETRY_MS: readonly number[] = [4_000, 8_000, 16_000, 32_000]
+/**
+ * A refusal from the shared budget says when its window resets; a retry before that only
+ * spends another hit to be refused again. Each rung therefore waits at least that long
+ * (capped: a window is a minute), plus up to a second of jitter so a page full of shoppers
+ * refused together does not ask again in the same instant.
+ */
+export const MAX_RETRY_WAIT_MS = 65_000
+export const RETRY_JITTER_MS = 1_000
 
 export const QUOTE_ERROR_COPY: Record<QuoteErrorCode, string> = {
   rate_limited: 'Prices are updating. One moment.',
@@ -76,6 +84,8 @@ interface Outcome {
   ok: boolean
   code?: QuoteErrorCode
   body?: Extract<PrintQuoteResponse, { ok: true }>
+  /** With a busy answer: the server's own "ask again after" in milliseconds. */
+  retryAfterMs?: number
 }
 
 /**
@@ -88,7 +98,13 @@ function readOutcome(status: number, payload: unknown): Outcome {
   const body = payload as PrintQuoteResponse | null
   if (body && typeof body === 'object' && 'ok' in body) {
     if (body.ok === true) return { ok: true, body }
-    if (body.ok === false && typeof body.code === 'string') return { ok: false, code: body.code }
+    if (body.ok === false && typeof body.code === 'string') {
+      const retryAfterMs =
+        typeof body.retryAfterMs === 'number' && Number.isFinite(body.retryAfterMs) && body.retryAfterMs > 0
+          ? body.retryAfterMs
+          : undefined
+      return { ok: false, code: body.code, ...(retryAfterMs === undefined ? {} : { retryAfterMs }) }
+    }
   }
   if (status === 404) return { ok: false, code: 'not_found' }
   if (status === 400) return { ok: false, code: 'invalid_request' }
@@ -133,12 +149,14 @@ export function useConfiguratorQuote(
      * after the last step. The state says "retrying" so the page can show it is still
      * working rather than a red line that the shopper reads as final.
      */
-    const retryBusy = (busyRetries: number, limiterRetryUsed: boolean) => {
-      const wait = PROVIDER_RETRY_MS[busyRetries]
-      if (wait === undefined) {
+    const retryBusy = (busyRetries: number, limiterRetryUsed: boolean, retryAfterMs?: number) => {
+      const rung = PROVIDER_RETRY_MS[busyRetries]
+      if (rung === undefined) {
         settle({ status: 'error', code: 'provider_busy' })
         return
       }
+      const wait =
+        Math.min(MAX_RETRY_WAIT_MS, Math.max(rung, retryAfterMs ?? 0)) + Math.floor(Math.random() * RETRY_JITTER_MS)
       settle({ status: 'retrying', attempt: busyRetries + 1 })
       later(wait, () => void run(busyRetries + 1, limiterRetryUsed))
     }
@@ -202,7 +220,7 @@ export function useConfiguratorQuote(
         return
       }
       if (outcome.code === 'provider_busy') {
-        retryBusy(busyRetries, limiterRetryUsed)
+        retryBusy(busyRetries, limiterRetryUsed, outcome.retryAfterMs)
         return
       }
       // A closed door or a bad request is not something waiting improves.

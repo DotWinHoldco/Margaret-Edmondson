@@ -129,4 +129,10 @@ export type PrintQuoteResponse =
       lineHash: string
       labels: FrozenPrintOption[]
     })
-  | { ok: false; error: string; code: 'rate_limited' | 'provider_busy' | 'invalid_request' | 'not_found' }
+  | {
+      ok: false
+      error: string
+      code: 'rate_limited' | 'provider_busy' | 'invalid_request' | 'not_found'
+      /** With `provider_busy`: how long until the shared budget's window resets, when known. */
+      retryAfterMs?: number
+    }

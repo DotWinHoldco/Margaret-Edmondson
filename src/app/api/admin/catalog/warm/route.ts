@@ -22,6 +22,7 @@ import {
   acquireWarmLease,
   loadWarmSurface,
   readWarmCoverage,
+  releaseWarmLease,
   runWarmPass,
   DEFAULT_PASS_DEADLINE_MS,
 } from '@/lib/pricing/warm'
@@ -68,6 +69,8 @@ export async function POST() {
         console.log('[pricing-warm] admin pass', JSON.stringify(report))
       } catch (err) {
         console.error('[pricing-warm] admin pass failed', err instanceof Error ? err.message : String(err))
+      } finally {
+        await releaseWarmLease(service)
       }
     })
     return Response.json({ ok: true, started: true })

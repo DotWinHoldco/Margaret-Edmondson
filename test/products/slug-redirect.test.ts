@@ -69,6 +69,16 @@ describe('findProductSlugRedirect', () => {
     await expect(findProductSlugRedirect(loop.client, '   ')).resolves.toBeNull()
   })
 
+  it('refuses a slug that is not a slug on either side, so a redirect can never leave the product path', async () => {
+    const { client, queries } = fakeClient({
+      product_slug_redirects: [{ old_slug: '../admin', product_id: PRODUCT }, { old_slug: 'old', product_id: PRODUCT }],
+      products: [{ id: PRODUCT, slug: '../../admin', status: 'active' }],
+    })
+    await expect(findProductSlugRedirect(client, '../admin')).resolves.toBeNull()
+    expect(queries).toHaveLength(0)
+    await expect(findProductSlugRedirect(client, 'old')).resolves.toBeNull()
+  })
+
   it('answers null, never throws, when a read fails', async () => {
     const { client } = fakeClient({ product_slug_redirects: [{ old_slug: 'old', product_id: PRODUCT }] }, ['products'])
     await expect(findProductSlugRedirect(client, 'old')).resolves.toBeNull()

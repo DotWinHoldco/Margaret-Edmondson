@@ -16,7 +16,7 @@ import { apiFail } from '@/lib/api/respond'
 import { createServiceClient } from '@/lib/supabase/server'
 import { lumaprintsConfigured } from '@/lib/integrations/lumaprints'
 import { loadCatalog } from '@/lib/catalog/load'
-import { acquireWarmLease, runWarmPass, DEFAULT_PASS_DEADLINE_MS } from '@/lib/pricing/warm'
+import { acquireWarmLease, releaseWarmLease, runWarmPass, DEFAULT_PASS_DEADLINE_MS } from '@/lib/pricing/warm'
 
 export const runtime = 'nodejs'
 /** A pass is ~10 priced sizes at 25s pace; the deadline inside leaves margin to answer. */
@@ -34,10 +34,14 @@ export async function GET(request: Request) {
     if (!lease.ok) {
       return Response.json({ ok: true, skipped: 'a warm pass is already running', retryAfterMs: lease.retryAfterMs })
     }
-    const catalog = await loadCatalog(service, { includeDisabled: true })
-    const report = await runWarmPass(service, { catalog, deadlineMs: DEFAULT_PASS_DEADLINE_MS })
-    console.log('[pricing-warm] pass', JSON.stringify(report))
-    return Response.json({ ok: true, ...report })
+    try {
+      const catalog = await loadCatalog(service, { includeDisabled: true })
+      const report = await runWarmPass(service, { catalog, deadlineMs: DEFAULT_PASS_DEADLINE_MS })
+      console.log('[pricing-warm] pass', JSON.stringify(report))
+      return Response.json({ ok: true, ...report })
+    } finally {
+      await releaseWarmLease(service)
+    }
   } catch (err) {
     return apiFail(err, { context: 'cron/pricing-warm' })
   }

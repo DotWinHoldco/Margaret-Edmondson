@@ -396,6 +396,48 @@ describe('runWarmPass', () => {
     expect(budget).toMatchObject({ priced: 1, stopped: 'LumaprintsBudgetError' })
   })
 
+  it('ends the pass when the engine served a stale row: the provider refused and nothing was written', async () => {
+    const result = await runWarmPass(client, {
+      catalog,
+      targets,
+      now: () => NOW,
+      sleep: async () => {},
+      readRow: async () => null,
+      quote: async (t) => (key(t) === '101002 16x20' ? { ...priced(), stale: true } : priced()),
+      log: () => {},
+    })
+    expect(result).toMatchObject({ priced: 1, stopped: 'stale_fallback' })
+  })
+
+  it('reads the whole surface in one paged query and matches rows to targets by numeric size', async () => {
+    const urls: string[] = []
+    const dbClient = {
+      from: (table: string) => {
+        urls.push(table)
+        const builder = {
+          select: () => builder,
+          in: (column: string, values: string[]) => {
+            urls.push(`${column}=${values.join(',')}`)
+            return builder
+          },
+          order: () => builder,
+          range: async () => ({
+            data: [
+              // Numeric columns arrive as strings from PostgREST; the index must not care.
+              { ...row(NOW + 48 * HOUR), subcategory_ref: CANVAS, width_in: '16', height_in: '20', price_key_hash: targets[1].priceKeyHash },
+            ],
+            error: null,
+          }),
+        }
+        return builder
+      },
+    } as unknown as SupabaseClient
+    const coverage = await readWarmCoverage(dbClient, targets, { now: NOW })
+    expect(coverage).toMatchObject({ surface: 3, fresh: 1, missing: 2 })
+    expect(urls.filter((u) => u === 'lumaprints_pricing_cache')).toHaveLength(1)
+    expect(urls.some((u) => u.startsWith('subcategory_ref='))).toBe(true)
+  })
+
   it('counts a rules refusal as unavailable and a row that appeared meanwhile as free', async () => {
     const result = await runWarmPass(client, {
       catalog,
