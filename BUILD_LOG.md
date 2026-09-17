@@ -8,6 +8,17 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #orchestration — session 33beeda3: P3–P9 shipped to production (door closed), report GO, human gates remain
+
+- **Date:** 2026-09-17
+- **Blueprint:** docs/blueprints/2026-09-16-full-catalog.md (Status: executing — human gates only) · plan audit/FULL-CATALOG-BUILD-PLAN.md rev 3
+- **Landed:** PR #11 → e2b51d0 (P3–P8 + P9 harness + two security-pass closures + two preview fixes), PR #12 → 79e1e3d (loader paging under the PostgREST row cap + V7 receipts); both production deploys READY with matching SHAs; `print_configurator_enabled` stays false.
+- **Agents:** 7 executor spawns (P3 ×3, P4, P7, P8, P9 harness), 2 security-reviewer passes (P3 write path: BLOCK → closed; wave P4–P8: BLOCK → closed), 0 refuters, 0 lens rounds; rework: 2 corrective rounds, both architect-written. Governor: 9 of 12 used, 0 denied, no override.
+- **usage: agents=9 turns=1443 out_k=1877 cache_read_M=441 architect_share=72% denied=0 sig=3d06ea71**
+- **Live proof pointers:** migration RPC guards proven on production (blueprint Examine P3); V2/V3/V4/V6.1 step files + `audit/CATALOG-VERIFICATION-REPORT.md` (GO); preview walk + production admin walk + V7.2/V7.8 receipts in the blueprint Proof; Vercel runtime errors after deploy: none from production.
+- **Found on the way:** sign-in return address ignored the current origin (fixed); previews had no catalog rows for the sandbox host (`CATALOG_READ_HOST`); preview lacked `SITE_AUTH_SECRET` (set); the P1 loader silently lost 127 options to the 1,000-row cap (fixed); Supabase's redirect allowlist still needs the preview wildcard (owner, dashboard).
+- **Owed (human):** V7.2 dashboard comparison of the five recorded costs; V7.5 billing address + card on the production provider account; V7.9 real QC order; FLAG flip + per-medium enablement with margin sign-off (§11); the 2% margin overrides and the 5 duplicate variant groups for Margaret/Skylar; a Print Catalog screenshot for the help article; the coverage generation run once print types are chosen.
+
 ## #full-catalog #p9-verification — Phase 9 harness + the live receipts: V1–V6.1 all GREEN, launch gate down to the two production checks and the human gates
 
 - **Date:** 2026-09-17

@@ -1,0 +1,24 @@
+{
+ "session": "33beeda3-a4f7-420a-a41c-550c8e0868bd",
+ "first": "2026-09-17T12:40:54.339Z",
+ "last": "2026-09-17T14:33:45.298Z",
+ "cwd_recorded": true,
+ "agents": 9,
+ "turns": 1443,
+ "out_k": 1877,
+ "cache_read_M": 441,
+ "cache_create_M": 9,
+ "architect_share": 72,
+ "out_by_role_k": {
+  "architect": 1348,
+  "executor": 528
+ },
+ "agents_by_stage": {
+  "executor": 7,
+  "reviewer": 1,
+  "verifier": 1
+ },
+ "denied": 0,
+ "generated_by": "usage-report 1.1.0",
+ "line": "usage: agents=9 turns=1443 out_k=1877 cache_read_M=441 architect_share=72% denied=0 sig=3d06ea71"
+}
