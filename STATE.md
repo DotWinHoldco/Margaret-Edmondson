@@ -15,8 +15,8 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 > sandbox. Production-key operations run inside the deployed app behind `requireAdmin` (aal2).
 > P0 (this entry): sandbox catalog snapshot + 16-probe matrix in `fixtures/lumaprints/` (see
 > BUILD_LOG `#p0-discovery`); plan §2/§4.1/ADR-3/ADR-4/§7.1/§8/§9 revised to recorded facts.
-> NEXT: P0 follow-up (production snapshot via `/api/admin/lumaprints/snapshot` + id diff) → P1 schema
-> + sync v2. Storefront flag stays OFF until V6.1 parity is cents-exact. Live-fire guard owed before
+> P0b DONE: production snapshot + id diff (ids identical by name on both hosts; F12 closed). NEXT: P1 schema
+> + sync v2 (in flight on `catalog/p1-schema-sync`). Storefront flag stays OFF until V6.1 parity is cents-exact. Live-fire guard owed before
 > any Stripe test purchase: router must never submit `stripe_mode='test'` orders to a non-sandbox host.
 
 > **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**

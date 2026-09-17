@@ -8,6 +8,21 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #p0-discovery — P0b: production catalog snapshot + id diff (F12 closed)
+
+- **Date:** 2026-09-16
+- **Module:** fixtures/lumaprints/ (production snapshot, coverage, id-diff) · audit/FULL-CATALOG-BUILD-PLAN.md §2/§9
+- **Category:** verification record (no code change)
+- **Summary:** Captured the PRODUCTION catalog through the deployed `GET /api/admin/lumaprints/snapshot`
+  (admin aal2 session in the browser; 7 categories, 51 subcategories; category 105 in two paced passes,
+  19 + 7; every call sequential so the shared 40/min key never saw two walkers). Assembled with
+  `catalog-snapshot.mjs --assemble`, diffed by NAME against the sandbox fixture: 1,239 same-name-same-id,
+  0 same-name-different-id. Production extras: subcategory 105021 (3.250w x 1.375h Vintage Collection
+  Copper Frame); category 108 named "Foam-mounted Print" (same id, same 8 subcategories). Coverage vs §2:
+  0 missing, the same 5 EXTRA rows as sandbox. F12 closed: sandbox-verified ids are valid production ids.
+- **Verify:** `node scripts/catalog-snapshot.mjs --diff <sandbox> <production>` exit 0 · `npm run verify` PASSING-PARTIAL (pre-tier, docs-only diff).
+
+
 ## #full-catalog #p0-discovery — Phase 0: LumaPrints catalog snapshot + probe matrix (sandbox), plan rev 3
 
 - **Date:** 2026-09-16
