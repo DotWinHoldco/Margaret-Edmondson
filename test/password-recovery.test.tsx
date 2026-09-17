@@ -44,7 +44,9 @@ describe('password recovery request and callback', () => {
     fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'fixture@example.test' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send Reset Link' }))
     await screen.findByText('Check Your Email')
-    expect(auth.resetPasswordForEmail).toHaveBeenCalledWith('fixture@example.test', { redirectTo: 'https://artbyme.studio/auth/callback?type=recovery' })
+    // The return address is the origin the form is standing on (the browser wins over
+    // NEXT_PUBLIC_SITE_URL), so a preview deploy completes recovery on its own domain.
+    expect(auth.resetPasswordForEmail).toHaveBeenCalledWith('fixture@example.test', { redirectTo: `${window.location.origin}/auth/callback?type=recovery` })
     expect(screen.getByText(/same browser/)).toBeInTheDocument()
   })
 

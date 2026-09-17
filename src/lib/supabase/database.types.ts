@@ -2585,6 +2585,7 @@ export type Database = {
           fulfillment_status: string | null
           fulfillment_type: string
           id: string
+          line_hash: string
           lumaprints_option_ids: number[]
           lumaprints_subcategory_id: number | null
           medium: string | null
@@ -2600,6 +2601,7 @@ export type Database = {
           shipped_at: string | null
           shipping_fee_cents: number
           size_label: string | null
+          solid_color_hex: string | null
           tracking_number: string | null
           tracking_url: string | null
           unit_price: number
@@ -2613,6 +2615,7 @@ export type Database = {
           fulfillment_status?: string | null
           fulfillment_type: string
           id?: string
+          line_hash?: string
           lumaprints_option_ids?: number[]
           lumaprints_subcategory_id?: number | null
           medium?: string | null
@@ -2628,6 +2631,7 @@ export type Database = {
           shipped_at?: string | null
           shipping_fee_cents?: number
           size_label?: string | null
+          solid_color_hex?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
           unit_price: number
@@ -2641,6 +2645,7 @@ export type Database = {
           fulfillment_status?: string | null
           fulfillment_type?: string
           id?: string
+          line_hash?: string
           lumaprints_option_ids?: number[]
           lumaprints_subcategory_id?: number | null
           medium?: string | null
@@ -2656,6 +2661,7 @@ export type Database = {
           shipped_at?: string | null
           shipping_fee_cents?: number
           size_label?: string | null
+          solid_color_hex?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
           unit_price?: number
@@ -4621,6 +4627,62 @@ export type Database = {
           p_photos: string[]
           p_session_id: string
         }
+        Returns: string
+      }
+      catalog_admin_audit: {
+        Args: {
+          p_by: string
+          p_field: string
+          p_new: string
+          p_old: string
+          p_record: string
+          p_table: string
+        }
+        Returns: boolean
+      }
+      catalog_admin_caller: { Args: never; Returns: string }
+      catalog_admin_patch_bool: {
+        Args: { p_key: string; p_patch: Json }
+        Returns: boolean
+      }
+      catalog_admin_patch_group: {
+        Args: { p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      catalog_admin_patch_int: {
+        Args: { p_key: string; p_patch: Json }
+        Returns: number
+      }
+      catalog_admin_patch_keys: {
+        Args: { p_allowed: string[]; p_patch: Json }
+        Returns: undefined
+      }
+      catalog_admin_patch_label: {
+        Args: { p_key: string; p_patch: Json }
+        Returns: string
+      }
+      catalog_admin_patch_note: {
+        Args: { p_key: string; p_patch: Json }
+        Returns: string
+      }
+      catalog_admin_patch_option: {
+        Args: { p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      catalog_admin_patch_subcategory: {
+        Args: { p_id: string; p_patch: Json }
+        Returns: Json
+      }
+      catalog_admin_set_default_option: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      catalog_admin_set_medium_enabled: {
+        Args: { p_enabled: boolean; p_medium: string }
+        Returns: Json
+      }
+      catalog_option_blocked_reason: {
+        Args: { p_geometry: Json }
         Returns: string
       }
       claim_fulfillment_items: {

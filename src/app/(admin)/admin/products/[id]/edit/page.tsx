@@ -9,6 +9,7 @@ import MediaPicker from '@/components/admin/MediaPicker'
 import MasterArtworkPicker from '@/components/admin/MasterArtworkPicker'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import VariantsTab, { type Variant as PrintVariant, type MediumCatalogEntry } from '@/components/admin/VariantsTab'
+import type { CatalogSubcategory } from '@/lib/catalog/types'
 import ArrangeCollection from '../../ArrangeCollection'
 import CropModal from '@/components/admin/CropModal'
 import MasterCropModal from '@/components/admin/MasterCropModal'
@@ -263,6 +264,7 @@ export default function EditProductPage({
   const [productMarginOverride, setProductMarginOverride] = useState<string>('')
   const [productMarkupValid, setProductMarkupValid] = useState(true)
   const [mediumCatalog, setMediumCatalog] = useState<MediumCatalogEntry[]>([])
+  const [printCatalog, setPrintCatalog] = useState<CatalogSubcategory[]>([])
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [masterArtworkId, setMasterArtworkId] = useState<string | null>(null)
   const [masterArtwork, setMasterArtwork] = useState<{
@@ -315,7 +317,7 @@ export default function EditProductPage({
     async function fetchData() {
       const supabase = createClient()
 
-      const [categoriesRes, productRes, settingsRes, catalogRes] = await Promise.all([
+      const [categoriesRes, productRes, settingsRes, catalogRes, printCatalogRes] = await Promise.all([
         supabase
           .from('categories')
           .select('id, name, slug, default_margin_pct')
@@ -323,9 +325,18 @@ export default function EditProductPage({
         fetch(`/api/admin/products/${id}`).then((r) => r.json()),
         fetch(`/api/admin/pricing/settings`).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/lumaprints/catalog`).then((r) => r.json()).catch(() => null),
+        // The Print Catalog tree: which print types of each medium are sellable, with
+        // their published bounds and DPI. A failed read leaves it empty and the
+        // variants tab falls back to the legacy medium switch.
+        fetch(`/api/admin/catalog`).then((r) => r.json()).catch(() => null),
       ])
 
       if (catalogRes?.data?.items) setMediumCatalog(catalogRes.data.items as MediumCatalogEntry[])
+      setPrintCatalog(
+        Array.isArray(printCatalogRes?.data?.catalog?.subcategories)
+          ? (printCatalogRes.data.catalog.subcategories as CatalogSubcategory[])
+          : [],
+      )
 
       if (settingsRes?.data?.default_margin_pct != null) {
         setSiteDefaultMargin(Number(settingsRes.data.default_margin_pct))
@@ -1256,6 +1267,7 @@ export default function EditProductPage({
             productDefaultMargin={effectiveMargin}
             variants={printVariants}
             mediumCatalog={mediumCatalog}
+            catalog={printCatalog}
             master={
               masterArtwork
                 ? {

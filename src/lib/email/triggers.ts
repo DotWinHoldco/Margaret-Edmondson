@@ -12,13 +12,14 @@
 // path or signup flow — we log and return.
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendEmail, sendShippingUpdate } from './send'
+import { sendEmail, sendShippingUpdate, type OrderEmailLine } from './send'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { buildUnsubscribeUrl } from './unsubscribe'
 import { isSuppressed } from './suppression'
 import { upsertContact } from '@/lib/crm/contacts'
 import { generateDiscountCode } from '@/lib/discounts/generate'
+import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
@@ -335,6 +336,40 @@ export async function sendPostPurchaseEmail(
 }
 
 /**
+ * The shipped lines, described from each row's FROZEN purchase_spec (P7). A read
+ * failure costs the line list, never the shipping email.
+ */
+async function shippedOrderLines(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<OrderEmailLine[]> {
+  try {
+    const { data } = await supabase
+      .from('order_items')
+      .select('purchase_spec, product:products(title), variant:product_variants(name)')
+      .eq('order_id', orderId)
+    return (data || []).map((row) => {
+      const product = Array.isArray(row.product) ? row.product[0] : row.product
+      const variant = Array.isArray(row.variant) ? row.variant[0] : row.variant
+      const spec = describePurchaseSpec(asPurchaseSpec(row.purchase_spec), {
+        productTitle: (product as { title?: string | null } | null)?.title,
+        variantName: (variant as { name?: string | null } | null)?.name,
+      })
+      const options = specOptionsText(spec.options)
+      return {
+        name: spec.title,
+        ...(spec.line ? { variant: spec.line } : {}),
+        ...(options ? { options } : {}),
+        ...(spec.colorHex ? { colorHex: spec.colorHex } : {}),
+      }
+    })
+  } catch (err) {
+    console.error('shipped order lines lookup failed (suppressed):', orderId, err)
+    return []
+  }
+}
+
+/**
  * Replay-safe shipping notification. Wraps sendShippingUpdate with a
  * `shipped:<orderId>` dedupe so the LumaPrints webhook + the status-poll cron
  * can both fire it without double-sending. No-throw — a failure never breaks the
@@ -348,7 +383,12 @@ export async function notifyShipped(
     if (!args.email) return
     const key = `shipped:${args.orderId}`
     if (await alreadySent(supabase, key)) return
-    const result = await sendShippingUpdate(args.email, args.orderId, args.trackingUrl ?? undefined)
+    const result = await sendShippingUpdate(
+      args.email,
+      args.orderId,
+      args.trackingUrl ?? undefined,
+      await shippedOrderLines(supabase, args.orderId),
+    )
     await recordSend(supabase, {
       dedupeKey: key,
       email: args.email,

@@ -1,6 +1,14 @@
 // Create new DRAFT products for the new scans (excl. Medical Plaza).
 // Each: upload master (downscaled if >44MB), regen web image, products row (draft),
 // primary product_images, clone the print variants from a template product.
+//
+// The clone is a bulk import convenience, not the catalog path: it copies the template's rows
+// verbatim, so a new product inherits exactly the template's print types and nothing the
+// template never had. Sizes for the print types the catalog now offers come from Print Coverage
+// (/admin/products/coverage, "Generate missing sizes") or the product's Variants tab, both of
+// which build against the catalog bounds and required DPI. Run this for the masters and the
+// draft rows; fill the print types there.
+//
 // node --env-file=.env.local --max-old-space-size=8192 scripts/create-new-products.mjs
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';

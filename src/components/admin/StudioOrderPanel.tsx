@@ -9,6 +9,13 @@ import {
   type StudioShipment,
   type StudioStage,
 } from '@/lib/fulfillment/studio'
+import {
+  DESCRIBED_DETAIL_KEYS,
+  asPurchaseSpec,
+  describePurchaseSpec,
+  shortLineHash,
+  specOptionsText,
+} from '@/lib/orders/print-options'
 
 const input =
   'mt-1 w-full min-w-0 rounded-md border border-charcoal/20 bg-white px-3 py-2 font-body text-sm'
@@ -32,13 +39,17 @@ function WorkItem({
   const [replacementReason, setReplacementReason] = useState('')
   const [replacementId] = useState(() => crypto.randomUUID())
   const spec = job.item.purchase_spec
+  // P7: the ticket describes the FROZEN purchase, never the live catalog.
+  const frozen = asPurchaseSpec(spec)
+  const described = describePurchaseSpec(frozen)
+  const options = specOptionsText(described.options)
+  const hash = shortLineHash(frozen)
   const closed = ['shipped', 'delivered', 'cancelled'].includes(job.status)
   return (
     <div className="rounded-lg border border-charcoal/10 p-4">
       <div className="flex flex-wrap justify-between gap-2">
         <h3 className="font-display text-lg">
-          {spec.title || 'Artwork'} ·{' '}
-          {spec.option_name || spec.kind || 'Option'}
+          {described.title} · {described.line || described.kind}
         </h3>
         <span className="font-body text-xs text-teal">
           {job.replacement_of ? 'Replacement · ' : ''}
@@ -51,14 +62,35 @@ function WorkItem({
           : spec.size_label}{' '}
         {spec.medium?.replaceAll('_', ' ')}
       </p>
+      {options ? (
+        <p className="mt-1 font-body text-sm text-charcoal/65">{options}</p>
+      ) : null}
+      {described.colorHex ? (
+        <p className="mt-1 flex items-center gap-1.5 font-body text-sm text-charcoal/65">
+          <span
+            aria-hidden="true"
+            className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+            style={{ backgroundColor: described.colorHex }}
+          />
+          {described.colorHex}
+        </p>
+      ) : null}
+      {hash ? (
+        <p className="mt-1 font-mono text-xs text-charcoal/45">{hash}</p>
+      ) : null}
       {spec.details && (
         <dl className="mt-3 space-y-1 font-body text-sm">
           {Object.entries(spec.details)
-            .filter(([, v]) => v)
+            .filter(
+              ([k, v]) =>
+                v &&
+                !DESCRIBED_DETAIL_KEYS.includes(k) &&
+                (typeof v === 'string' || typeof v === 'number'),
+            )
             .map(([k, v]) => (
               <div key={k} className="flex flex-wrap gap-2">
                 <dt className="capitalize text-charcoal/60">{k}:</dt>
-                <dd>{v}</dd>
+                <dd>{String(v)}</dd>
               </div>
             ))}
         </dl>
@@ -478,17 +510,21 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
           <div className="mt-3 space-y-2">
             {jobs
               .filter((j) => j.status === 'packing')
-              .map((j) => (
+              .map((j) => {
+                const packing = describePurchaseSpec(
+                  asPurchaseSpec(j.item.purchase_spec),
+                )
+                const packingLine = packing.line || packing.title
+                return (
                 <label
                   key={j.id}
                   className="flex items-center justify-between gap-4 font-body text-sm"
                 >
                   <span>
-                    {j.item.purchase_spec.option_name || 'Artwork'} ·{' '}
-                    {remainingToShip(j, shipments)} remaining
+                    {packingLine} · {remainingToShip(j, shipments)} remaining
                   </span>
                   <input
-                    aria-label={`Quantity for ${j.item.purchase_spec.option_name || 'artwork'}`}
+                    aria-label={`Quantity for ${packingLine}`}
                     type="number"
                     min="0"
                     max={remainingToShip(j, shipments)}
@@ -502,7 +538,8 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
                     className="w-20 rounded-md border border-charcoal/20 p-2"
                   />
                 </label>
-              ))}
+                )
+              })}
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="font-body text-sm">

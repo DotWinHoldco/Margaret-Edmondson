@@ -36,6 +36,7 @@ import { runCheck as docs } from './check-docs.mjs';
 import { runCheck as authz } from './check-authz.mjs';
 import { runCheck as contract } from './check-contract.mjs';
 import { runCheck as grantBoundary } from './check-grant-boundary.mjs';
+import { runCheck as retiredSymbols } from './check-retired-symbols.mjs';
 import { changedFiles, headCommit } from './lib/changed.mjs';
 
 const args = process.argv.slice(2);
@@ -135,6 +136,9 @@ async function main() {
       gates.push(g);
     }
   }
+  // retired-symbols scans whole directories, not the diff: a retirement is reintroduced by a new
+  // file as easily as by an edited one, so it runs over src/ and scripts/ every time.
+  gates.push(retiredSymbols(root));
   if (!scope) gates.push(anchors(root));
   if (!scope) gates.push(state(root));
   gates.push(docs(root, { strict: docsStrict, scope }));

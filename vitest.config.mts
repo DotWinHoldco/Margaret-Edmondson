@@ -31,6 +31,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(rootDir, 'src'),
+      // Build-time marker with no runtime module; stubbed so tests can render
+      // server components that import it.
+      'server-only': path.resolve(rootDir, 'test/stubs/server-only.ts'),
     },
   },
 })

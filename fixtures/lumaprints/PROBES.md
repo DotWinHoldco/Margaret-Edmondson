@@ -1,16 +1,16 @@
 # LumaPrints P0 probes — us.api-sandbox.lumaprints.com
 
-Run: 2026-09-16T23-38-55-777Z · store 82222 · snapshot `catalog.us.api-sandbox.lumaprints.com.2026-09-16.json`
-Requests this pass: 38 · wall 79.5s · peak 25 in any rolling 60s (cap 25) · 429s 0
-Probes: 16 total · 6 PASS · 10 FINDING · 0 FAIL · 0 SKIPPED
-Sandbox orders placed: 3 (framed-paper-2in-mat=10000339584, canvas-solid-color=10000339585, paper-fractional=10000339586)
+Run: 2026-09-17T13-54-38-784Z · store 82222 · snapshot `catalog.us.api-sandbox.lumaprints.com.2026-09-16.json`
+Requests this pass: 32 · wall 71.8s · peak 25 in any rolling 60s (cap 25) · 429s 0
+Probes: 16 total · 4 PASS · 10 FINDING · 0 FAIL · 2 SKIPPED
+Sandbox orders placed: 0
 
 Probe images (private `print-masters` bucket, 2-hour signed URLs; paths recorded, tokens not):
 
-- `probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png` — 2400x3000px, 67KB, reachability HEAD 200 image/png
-- `probes/2026-09-16T23-38-55-777Z/ratio-60x40-lowres.png` — 900x600px, 12KB, reachability HEAD 200 image/png
-- `probes/2026-09-16T23-38-55-777Z/bleed-expected-2x4in.png` — 600x1200px, 11KB, reachability HEAD 200 image/png
-- `probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png` — 2775x3300px, 79KB, reachability HEAD 200 image/png
+- `probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png` — 2400x3000px, 67KB, reachability HEAD 200 image/png
+- `probes/2026-09-17T13-54-38-784Z/ratio-60x40-lowres.png` — 900x600px, 12KB, reachability HEAD 200 image/png
+- `probes/2026-09-17T13-54-38-784Z/bleed-expected-2x4in.png` — 600x1200px, 11KB, reachability HEAD 200 image/png
+- `probes/2026-09-17T13-54-38-784Z/9.25x11-at-300dpi.png` — 2775x3300px, 79KB, reachability HEAD 200 image/png
 
 ---
 
@@ -24,7 +24,7 @@ Request(s):
 
   ```json
   [{"subcategoryId":108001,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108002,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108003,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108005,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108006,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108007,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108009,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":108010,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":101001,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":101002,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":101003,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":101005,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":102001,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":102002,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":102003,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":103001,"size":{"width":12,"height":16},"options":[]},{"subcategoryId":103002,"size":{"width":12,"height":16},"options":[]},{"subcate
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/pricing/products` — failing subcategories priced with the first option of EVERY group
 
@@ -43,7 +43,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":108001,"size":{"width":12,"height":16},"price":16.33,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108002,"size":{"width":12,"height":16},"price":18.57,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108003,"size":{"width":12,"height":16},"price":18.57,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108005,"size":{"width":12,"height":16},"price":17.71,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108006,"size":{"width":12,"height":16},"price":20.28,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108007,"size":{"width":12,"height":16},"price":18.57,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108009,"size":{"width":12,"height":16},"price":18.57,"options":[{"optionId":36,"optionGroupName":"Bleed Size","optionName":"0.25in Bleed (0.25in on each side)","price":0}]},{"success":true,"subcategoryId":108010,"size":{"width":12,"heigh
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/pricing/products` -> **200**
 
@@ -54,7 +54,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":102001,"size":{"width":12,"height":16},"price":47.86,"options":[{"optionId":1,"optionGroupName":"Canvas Border","optionName":"Image Wrap","price":0},{"optionId":12,"optionGroupName":"0.75in Frame Styles","optionName":"0.75in Black Floating Frame","price":0},{"optionId":16,"optionGroupName":"Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":false,"subcategoryId":102001,"size":{"width":12,"height":16},"error":"Frame style option from option group 5 is required for subcategory 102001","statusCode":400},{"success":true,"subcategoryId":102001,"size":{"width":12,"height":16},"price":47.86,"options":[{"optionId":1,"optionGroupName":"Canvas Border","optionName":"Image Wrap","price":0},{"optionId":12,"optionGroupName":"0.75in Frame Styles","optionName":"0.75in Black Floating Frame","price":0},{"optionId":16,"optionGroupName":"Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":true,"subcategoryId":102001,"size":{"width":12,"height":16},"price":47.86,"options":[{"optionId":1,"optionGroupName":"Canvas Border","optionName":"Image Wrap","price":0},{"optionId":12,"optionGroupName":"0.75in Frame Styles","optionName":"0.75in Black Floating Frame","price":0},{"optionId":16,"optionGroupName":"Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":true,"subcategoryId":102002,"size":{"width":12,"height":16},"price":45.37,"options":[{"
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Verdict: **PASS**
@@ -89,18 +89,14 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig at printWidth/printHeight 8x10 with the 2in mat selected (numeric option ids)
 
   ```json
-  {"subcategoryId":105005,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[67,74,83,94,96,146,148]}
+  {"subcategoryId":105005,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[67,74,83,94,96,146,148]}
   ```
 - `POST /api/v1/images/checkImageConfig` — same call with STRING option ids (the documented type) — does the response change?
 
   ```json
-  {"subcategoryId":105005,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":["67","74","83","94","96","146","148"]}
+  {"subcategoryId":105005,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":["67","74","83","94","96","146","148"]}
   ```
-- `POST /api/v1/orders` — sandbox order framed-paper-2in-mat
-
-  ```json
-  {"externalId":"p0-probe-2026-09-16T23-38-55-777Z-framed-paper-2in-mat","storeId":82222,"shippingMethod":"default","productionTime":"regular","recipient":{"firstName":"Sandbox","lastName":"Test","addressLine1":"1 Test St","city":"Austin","state":"TX","zipCode":"78701","country":"US"},"orderItems":[{"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-framed-paper-2in-mat-1","subcategoryId":105005,"quantity":1,"width":8,"height":10,"file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","saveImage":false},"orderItemOptions":[67,74,83,94,96,146,148]}]}
-  ```
+- `POST /api/v1/orders` — order framed-paper-2in-mat not attempted (--no-orders)
 
 Response(s):
 
@@ -108,27 +104,27 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.65},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":67,"optionGroupName":"Mat Size","optionName":"2.0 inches on each side","price":8.81},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.77},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"opt
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
-- `POST /api/v1/orders` -> **201**
+- `POST /api/v1/orders` -> **not attempted**
 
   ```json
-  {"message":"The preliminary checks for the order submission were successful. It has now been placed in the queue for processing.","orderNumber":"10000339584"}
+  
   ```
 
 Verdict: **PASS**
 
-Implication: checkImageConfig 200; recommendedWidth/Height 200x250 = 8x10in (the field is inches x 25, NOT pixels as the captured OpenAPI notes claim); expectedAspectRatio 4:5; the 2400x3000 file passed at the print aspect. The submitted width/height IS the print size and the 2in mat grows the frame around it (ADR-4 `per_side_in` confirmed): the master stays aspect-exact to the PRINT, the glass (12x14) is never sent. String vs numeric option ids: identical response. Prices: No Mat $22.45, 2in mat $31.38. Sandbox order 10000339584 (submit 201).
+Implication: checkImageConfig 200; recommendedWidth/Height 200x250 = 8x10in (the field is inches x 25, NOT pixels as the captured OpenAPI notes claim); expectedAspectRatio 4:5; the 2400x3000 file passed at the print aspect. The submitted width/height IS the print size and the 2in mat grows the frame around it (ADR-4 `per_side_in` confirmed): the master stays aspect-exact to the PRINT, the glass (12x14) is never sent. String vs numeric option ids: identical response. Prices: No Mat $22.45, 2in mat $31.38. Sandbox order not placed (submit n/a).
 
 ### P4 — At the glass ceiling (largest in-bounds print + 5in mat), does the API 4xx, price anyway, or silently accept?
 
@@ -144,7 +140,7 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig at the ceiling print size with a 5in mat (low-res on purpose: the 406 body carries the expected px)
 
   ```json
-  {"subcategoryId":105005,"printWidth":60,"printHeight":40,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/ratio-60x40-lowres.png?token=REDACTED","orderItemOptions":[73,74,83,94,96,146,148]}
+  {"subcategoryId":105005,"printWidth":60,"printHeight":40,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/ratio-60x40-lowres.png?token=REDACTED","orderItemOptions":[73,74,83,94,96,146,148]}
   ```
 
 Response(s):
@@ -153,12 +149,12 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":105005,"size":{"width":60,"height":40},"price":150.37,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":3.5},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":60,"height":40},"price":150.37,"options":[{"optionId":73,"optionGroupName":"Mat Size","optionName":"5.0 inches on each side","price":77.12},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":4.03},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0}
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/ratio-60x40-lowres.png?token=REDACTED","recommendedWidth":1000,"recommendedHeight":1500,"expectedAspectRatio":"2:3","actualImageWidth":600,"actualImageHeight":900,"actualImageAspectRatio":"2:3"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/ratio-60x40-lowres.png?token=REDACTED","recommendedWidth":1000,"recommendedHeight":1500,"expectedAspectRatio":"2:3","actualImageWidth":600,"actualImageHeight":900,"actualImageAspectRatio":"2:3"}
   ```
 
 Verdict: **FINDING**
@@ -179,22 +175,22 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 8x10, No Bleed, aspect-exact 2400x3000 image (control)
 
   ```json
-  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[39]}
+  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[39]}
   ```
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 8x10, 0.25in bleed, SAME aspect-exact image
 
   ```json
-  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[36]}
+  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[36]}
   ```
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 8x10, 1.00in bleed, SAME aspect-exact image
 
   ```json
-  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[38]}
+  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[38]}
   ```
 - `POST /api/v1/images/checkImageConfig` — re-check 0.25in bleed with an image built at the API's OWN expectation (2x4in at 300 DPI)
 
   ```json
-  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/bleed-expected-2x4in.png?token=REDACTED","orderItemOptions":[36]}
+  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/bleed-expected-2x4in.png?token=REDACTED","orderItemOptions":[36]}
   ```
 
 Response(s):
@@ -207,22 +203,22 @@ Response(s):
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **406**
 
   ```json
-  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **406**
 
   ```json
-  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":-400,"recommendedHeight":-350,"expectedAspectRatio":"8:7","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":-400,"recommendedHeight":-350,"expectedAspectRatio":"8:7","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/bleed-expected-2x4in.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":600,"actualImageHeight":1200,"actualImageAspectRatio":"1:2"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/bleed-expected-2x4in.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":600,"actualImageHeight":1200,"actualImageAspectRatio":"1:2"}
   ```
 
 Verdict: **FINDING**
@@ -243,13 +239,9 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig with Solid Color selected
 
   ```json
-  {"subcategoryId":101002,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[3,11,259]}
+  {"subcategoryId":101002,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[3,11,259]}
   ```
-- `POST /api/v1/orders` — sandbox order canvas-solid-color
-
-  ```json
-  {"externalId":"p0-probe-2026-09-16T23-38-55-777Z-canvas-solid-color","storeId":82222,"shippingMethod":"default","productionTime":"regular","recipient":{"firstName":"Sandbox","lastName":"Test","addressLine1":"1 Test St","city":"Austin","state":"TX","zipCode":"78701","country":"US"},"orderItems":[{"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-canvas-solid-color-1","subcategoryId":101002,"quantity":1,"width":8,"height":10,"file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","saveImage":false},"orderItemOptions":[3,11,259],"solidColorHexCode":"#336699"}]}
-  ```
+- `POST /api/v1/orders` — order canvas-solid-color not attempted (--no-orders)
 
 Response(s):
 
@@ -261,17 +253,17 @@ Response(s):
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":200,"recommendedHeight":250,"expectedAspectRatio":"4:5","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
-- `POST /api/v1/orders` -> **201**
+- `POST /api/v1/orders` -> **not attempted**
 
   ```json
-  {"message":"The preliminary checks for the order submission were successful. It has now been placed in the queue for processing.","orderNumber":"10000339585"}
+  
   ```
 
-Verdict: **PASS**
+Verdict: **SKIPPED**
 
-Implication: checkImageConfig 200 with Solid Color selected; submit 201 order 10000339585; price $10.99. Solid Color Wrap + solidColorHexCode is accepted end to end on an aspect-exact master (the option that 406s is Image Wrap, not Solid Color). What comes back on GET /orders is settled in the order-echo probe below.
+Implication: checkImageConfig 200 with Solid Color selected; submit not attempted order n/a; price $10.99. Submit did not return 201 — read the raw body before enabling the option.
 
 ### P7 — Which endpoints accept fractional inches (9.25 x 11)?
 
@@ -322,18 +314,14 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 103001 at 9.25x11 with an aspect-exact 2775x3300 image
 
   ```json
-  {"subcategoryId":103001,"printWidth":9.25,"printHeight":11,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED","orderItemOptions":[39]}
+  {"subcategoryId":103001,"printWidth":9.25,"printHeight":11,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/9.25x11-at-300dpi.png?token=REDACTED","orderItemOptions":[39]}
   ```
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 101002 at 9.25x11
 
   ```json
-  {"subcategoryId":101002,"printWidth":9.25,"printHeight":11,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED","orderItemOptions":[2]}
+  {"subcategoryId":101002,"printWidth":9.25,"printHeight":11,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/9.25x11-at-300dpi.png?token=REDACTED","orderItemOptions":[2]}
   ```
-- `POST /api/v1/orders` — sandbox order paper-fractional
-
-  ```json
-  {"externalId":"p0-probe-2026-09-16T23-38-55-777Z-paper-fractional","storeId":82222,"shippingMethod":"default","productionTime":"regular","recipient":{"firstName":"Sandbox","lastName":"Test","addressLine1":"1 Test St","city":"Austin","state":"TX","zipCode":"78701","country":"US"},"orderItems":[{"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-paper-fractional-1","subcategoryId":103001,"quantity":1,"width":9.25,"height":11,"file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED","saveImage":false},"orderItemOptions":[39]}]}
-  ```
+- `POST /api/v1/orders` — order paper-fractional not attempted (--no-orders)
 
 Response(s):
 
@@ -371,7 +359,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":103001,"size":{"width":9.25,"height":11},"price":3.73,"options":[{"optionId":39,"optionGroupName":"Bleed Size","optionName":"No Bleed (Image goes to edge of paper)","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":9.25,"height":11},"price":22.29,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.68},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":106001,"size":{"width":9.25,"height":11},"price":36.13,"options":[{"optionId":35,"optionGroupName":"Metal Hanging Hardware","optionName":"None","price":0}]},{"success":true,"subcategoryId":107001,"size":{"width":9.25,"height":11},"price":5.71,"options":[]},{"success":true,"subcategoryId":108001,"size":{"width":9.25,"height":11},"price":13.93,"options":[{"optionId":39,"optionGroupName":"Bleed Size","optionName":"No Bleed (Image goes to edge of paper)","price":0
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/pricing/shipping` -> **200**
 
@@ -381,22 +369,22 @@ Response(s):
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED","recommendedWidth":231.25,"recommendedHeight":275,"expectedAspectRatio":"37:44","actualImageWidth":2775,"actualImageHeight":3300,"actualImageAspectRatio":"37:44"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/9.25x11-at-300dpi.png?token=REDACTED","recommendedWidth":231.25,"recommendedHeight":275,"expectedAspectRatio":"37:44","actualImageWidth":2775,"actualImageHeight":3300,"actualImageAspectRatio":"37:44"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **200**
 
   ```json
-  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED","recommendedWidth":231.25,"recommendedHeight":275,"expectedAspectRatio":"37:44","actualImageWidth":2775,"actualImageHeight":3300,"actualImageAspectRatio":"37:44"}
+  {"message":"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/9.25x11-at-300dpi.png?token=REDACTED","recommendedWidth":231.25,"recommendedHeight":275,"expectedAspectRatio":"37:44","actualImageWidth":2775,"actualImageHeight":3300,"actualImageAspectRatio":"37:44"}
   ```
-- `POST /api/v1/orders` -> **201**
+- `POST /api/v1/orders` -> **not attempted**
 
   ```json
-  {"message":"The preliminary checks for the order submission were successful. It has now been placed in the queue for processing.","orderNumber":"10000339586"}
+  
   ```
 
 Verdict: **FINDING**
 
-Implication: single /pricing/product 6/6 accepted; batch /pricing/products 6/6 accepted (HTTP 200); /pricing/shipping 200; checkImageConfig 103001 200 (recommended 9.25x11in vs ordered 9.25x11), 101002 200 (recommended 9.25x11in); fractional sandbox order 201 (10000339586). The batch endpoint accepts fractional inches despite its integer-typed schema, so the quote path needs no per-endpoint fallback for size typing. Fractional sizes also survive the image check and order submit with geometry-neutral options.
+Implication: single /pricing/product 6/6 accepted; batch /pricing/products 6/6 accepted (HTTP 200); /pricing/shipping 200; checkImageConfig 103001 200 (recommended 9.25x11in vs ordered 9.25x11), 101002 200 (recommended 9.25x11in); fractional sandbox order not attempted (n/a). The batch endpoint accepts fractional inches despite its integer-typed schema, so the quote path needs no per-endpoint fallback for size typing. Fractional sizes also survive the image check and order submit with geometry-neutral options.
 
 ### P8 — Is a Mat Color accepted when Mat Size = No Mat (dependent-visible group)?
 
@@ -416,7 +404,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.65},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":67,"optionGroupName":"Mat Size","optionName":"2.0 inches on each side","price":8.81},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.77},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"opt
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Verdict: **FINDING**
@@ -457,7 +445,7 @@ Request(s):
 
   ```json
   [{"label":"1.25in canvas with Canvas Hanging Hardware / Sawtooth Hanger installed (id 4, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,4]},{"label":"1.25in canvas with Canvas Hanging Hardware / Hanging Wire installed (id 5, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,5]},{"label":"1.25in canvas with Canvas Hanging Hardware / Black Backboard backing with sawtooth installed (id 6, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,6]},{"label":"1.25in canvas with Canvas Hanging Hardware / Black Backboard backing with hanging wire installed (id 7, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,7]},{"label":"1.25in canvas with Canvas Hanging Hardware / Hanging Wire provided loose (id 8, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,8]},{"label":"1.25in canvas with Canvas Hanging Hardware / Three-point Security Hardware installed (id 133, NOT in its own group)","subcategoryId":101002,"size":{"width":12,"height":16},"options":[2,133]},{"label":"1.25in canvas with its own
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Response(s):
@@ -514,7 +502,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.65},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.65},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":147,"optionGroupName":"Glazing","optionName":"No Glass","price":0},{"optionId":148,"optionGroupName":"Print Mou
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Verdict: **PASS**
@@ -536,7 +524,7 @@ Request(s):
 
   ```json
   [{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[64,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[65,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[66,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[67,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[68,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[69,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[70,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[71,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[72,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":8,"height":10},"options":[73,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":18,"height":24},"options":[64,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":18,"height":24},"options":[65,74,83,94,96,146,148]},{"subcategoryId":105005,"size":{"width":18,"height":24},"options":[66,74,83,94,96,146,148]},{"subcategory
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Response(s):
@@ -545,13 +533,13 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":102002,"size":{"width":8,"height":10},"price":28.17,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":27,"optionGroupName":"1.25 Inch Frame Styles","optionName":"1.25in Black Floating Frame","price":0},{"optionId":28,"optionGroupName":"1.25in Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":true,"subcategoryId":102002,"size":{"width":8,"height":10},"price":28.17,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":91,"optionGroupName":"1.25 Inch Frame Styles","optionName":"1.25in Oak Floating Frame","price":0},{"optionId":28,"optionGroupName":"1.25in Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":true,"subcategoryId":102002,"size":{"width":8,"height":10},"price":28.17,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":120,"optionGroupName":"1.25 Inch Frame Styles","optionName":"1.25in Walnut Floating Frame","price":0},{"optionId":28,"optionGroupName":"1.25in Framed Canvas Hanging Hardware","optionName":"Hanging Wire installed","price":1.6}]},{"success":true,"subcategoryId":102002,"size":{"width":20,"height":24},"price":72.1,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":27,"optionGroupName":"1.25 Inch Frame Styles","op
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 - `POST /api/v1/pricing/products` -> **200**
 
   ```json
   [{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":64,"optionGroupName":"Mat Size","optionName":"No Mat","price":0},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.65},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optionId":148,"optionGroupName":"Print Mounting","optionName":"Dry Mounted to Foam Core","price":0}]},{"success":true,"subcategoryId":105005,"size":{"width":8,"height":10},"price":20.8,"options":[{"optionId":65,"optionGroupName":"Mat Size","optionName":"1.0 inch on each side","price":5.61},{"optionId":74,"optionGroupName":"Paper Type","optionName":"Archival Matte Fine Art Paper","price":0},{"optionId":83,"optionGroupName":"Framed Fine Art Paper Hanging Hardware","optionName":"Hanging Wire installed on frame","price":1.71},{"optionId":94,"optionGroupName":"Framed Fine Art Paper Backing","optionName":"No Backing","price":0},{"optionId":96,"optionGroupName":"Mat Color","optionName":"White","price":0},{"optionId":146,"optionGroupName":"Glazing","optionName":"Acrylic Glass (recommended)","price":0},{"optio
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Verdict: **PASS**
@@ -568,7 +556,7 @@ Request(s):
 
   ```json
   [{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,213,9,4]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,213,10,4]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,213,9,133]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,212,9,4]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,213,10,133]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,212,10,4]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,212,9,133]},{"subcategoryId":101003,"size":{"width":16,"height":20},"options":[2,212,10,133]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[2,213,4]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[3,213,4]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[2,213,7]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[2,212,4]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[3,213,7]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[3,212,4]},{"subcategoryId":101001,"size":{"width":16,"height":20},"options":[2,212,7]},{"subcategoryId"
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Response(s):
@@ -577,7 +565,7 @@ Response(s):
 
   ```json
   [{"success":true,"subcategoryId":101003,"size":{"width":16,"height":20},"price":30.73,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":4,"optionGroupName":"Canvas Hanging Hardware","optionName":"Sawtooth Hanger installed","price":0},{"optionId":9,"optionGroupName":"Canvas Underlayer","optionName":"No Canvas Underlayer","price":0}]},{"success":true,"subcategoryId":101003,"size":{"width":16,"height":20},"price":30.73,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":4,"optionGroupName":"Canvas Hanging Hardware","optionName":"Sawtooth Hanger installed","price":0},{"optionId":10,"optionGroupName":"Canvas Underlayer","optionName":"Foamcore Underlayer","price":6.24}]},{"success":true,"subcategoryId":101003,"size":{"width":16,"height":20},"price":30.73,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":133,"optionGroupName":"Canvas Hanging Hardware","optionName":"Three-point Security Hardware installed","price":4.01},{"optionId":9,"optionGroupName":"Canvas Underlayer","optionName":"No Canvas Underlayer","price":0}]},{"success":true,"subcategoryId":101003,"size":{"width":16,"height":20},"price":30.73,"options":[{"optionId":2,"optionGroupName":"Canvas Border","optionName":"Mirror Wrap","price":0},{"optionId":4,"optionGroupName":"Canvas Hanging Hardware","optionName":"Sawtooth Hanger installed","price":0},{"opti
-  … [trimmed, full body in probes.2026-09-16.json]
+  … [trimmed, full body in probes.2026-09-17.json]
   ```
 
 Verdict: **FINDING**
@@ -598,12 +586,12 @@ Request(s):
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 101002 8x10, options [], aspect-exact 2400x3000 master
 
   ```json
-  {"subcategoryId":101002,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[]}
+  {"subcategoryId":101002,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[]}
   ```
 - `POST /api/v1/images/checkImageConfig` — checkImageConfig 103001 8x10, options [], same master
 
   ```json
-  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[]}
+  {"subcategoryId":103001,"printWidth":8,"printHeight":10,"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","orderItemOptions":[]}
   ```
 
 Response(s):
@@ -616,12 +604,12 @@ Response(s):
 - `POST /api/v1/images/checkImageConfig` -> **406**
 
   ```json
-  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":293.75,"recommendedHeight":343.75,"expectedAspectRatio":"47:55","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":293.75,"recommendedHeight":343.75,"expectedAspectRatio":"47:55","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 - `POST /api/v1/images/checkImageConfig` -> **406**
 
   ```json
-  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
+  {"message":"The aspect ratio of the image is not same as the ordered size. We only allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.","imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-17T13-54-38-784Z/8x10-at-300dpi.png?token=REDACTED","recommendedWidth":50,"recommendedHeight":100,"expectedAspectRatio":"1:2","actualImageWidth":2400,"actualImageHeight":3000,"actualImageAspectRatio":"4:5"}
   ```
 
 Verdict: **FINDING**
@@ -634,39 +622,17 @@ Plan ref: §6 P0 "Mat math"/"Solid Color Wrap"; V4 echo assertion; §9 F5/F18
 
 Request(s):
 
-- `GET /api/v1/orders/10000339584` — GET /orders/10000339584 (framed-paper-2in-mat)
-- `GET /api/v1/orders/10000339585` — GET /orders/10000339585 (canvas-solid-color)
-- `GET /api/v1/orders/10000339586` — GET /orders/10000339586 (paper-fractional)
 
 Response(s):
 
-- `GET /api/v1/orders/10000339584` -> **200**
 
-  ```json
-  {"orderNumber":10000339584,"externalId":"p0-probe-2026-09-16T23-38-55-777Z-framed-paper-2in-mat","storeId":82222,"orderDate":"2026-09-16T16:39:15.000Z","email":"testing@holdco.win","shippingMethod":"Ground Advantage (2-5 Business Days)","productionTime":"Regular","discountTotal":0,"shippingTotal":11.57,"taxTotal":0,"subTotal":31.38,"orderTotal":42.95,"orderStatus":"Pending Payment","recipient":{"firstName":"Sandbox","lastName":"Test","company":"","addressLine1":"1 Test St","addressLine2":"","city":"Austin","state":"TX","zipCode":"78701","country":"US","phone":""},"orderItems":[{"subcategoryId":105005,"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-framed-paper-2in-mat-1","quantity":1,"width":"8.00","height":"10.00","file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED"},"itemCostTotal":31.38,"orderItemOptions":[{"optionId":67,"optionName":"2.0 inches on each side"},{"optionId":74,"optionName":"Archival Matte Fine Art Paper"},{"optionId":83,"optionName":"Hanging Wire installed on frame"},{"optionId":94,"optionName":"No Backing"},{"optionId":96,"optionName":"White"},{"optionId":146,"optionName":"Acrylic Glass (recommended)"},{"optionId":148,"optionName":"Dry Mounted to Foam Core"}]}]}
-  ```
-- `GET /api/v1/orders/10000339585` -> **200**
+Verdict: **SKIPPED**
 
-  ```json
-  {"orderNumber":10000339585,"externalId":"p0-probe-2026-09-16T23-38-55-777Z-canvas-solid-color","storeId":82222,"orderDate":"2026-09-16T16:39:24.000Z","email":"testing@holdco.win","shippingMethod":"Ground Advantage (2-5 Business Days)","productionTime":"Regular","discountTotal":0,"shippingTotal":11.12,"taxTotal":0,"subTotal":10.99,"orderTotal":22.11,"orderStatus":"Pending Payment","recipient":{"firstName":"Sandbox","lastName":"Test","company":"","addressLine1":"1 Test St","addressLine2":"","city":"Austin","state":"TX","zipCode":"78701","country":"US","phone":""},"orderItems":[{"subcategoryId":101002,"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-canvas-solid-color-1","quantity":1,"width":"8.00","height":"10.00","file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/8x10-at-300dpi.png?token=REDACTED"},"itemCostTotal":10.99,"orderItemOptions":[{"optionId":3,"optionName":"Solid Color"},{"optionId":11,"optionName":"Sawtooth Hanger installed"},{"optionId":259,"optionName":"Matte"}]}]}
-  ```
-- `GET /api/v1/orders/10000339586` -> **200**
-
-  ```json
-  {"orderNumber":10000339586,"externalId":"p0-probe-2026-09-16T23-38-55-777Z-paper-fractional","storeId":82222,"orderDate":"2026-09-16T16:40:12.000Z","email":"testing@holdco.win","shippingMethod":"Ground Advantage (2-5 Business Days)","productionTime":"Regular","discountTotal":0,"shippingTotal":6.38,"taxTotal":0,"subTotal":3.73,"orderTotal":10.11,"orderStatus":"Pending Payment","recipient":{"firstName":"Sandbox","lastName":"Test","company":"","addressLine1":"1 Test St","addressLine2":"","city":"Austin","state":"TX","zipCode":"78701","country":"US","phone":""},"orderItems":[{"subcategoryId":103001,"externalItemId":"p0-probe-2026-09-16T23-38-55-777Z-paper-fractional-1","quantity":1,"width":"9.25","height":"11.00","file":{"imageUrl":"https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/sign/print-masters/probes/2026-09-16T23-38-55-777Z/9.25x11-at-300dpi.png?token=REDACTED"},"itemCostTotal":3.73,"orderItemOptions":[{"optionId":39,"optionName":"No Bleed (Image goes to edge of paper)"}]}]}
-  ```
-
-Verdict: **PASS**
-
-Implication: 3/3 orders returned 200 on GET (the submit 201 is only a QUEUE acknowledgement — a GET immediately after submit 404s, so V4 must poll, not read once). Option ids echo back exactly: YES; dimensions echo exactly (including the fractional 9.25x11): YES; solidColorHexCode echoed: NO. The hex never comes back (the order item carries only subcategoryId, externalItemId, quantity, width, height, file, itemCostTotal, orderItemOptions), so our own snapshot is the sole record of the chosen colour — assert it in our DB, never read it back from the provider. orderStatus values: Pending Payment.
+Implication: SKIPPED: orders disabled (--no-orders)
 
 ---
 
 ## Sandbox orders
 
-| label | externalId | submit status | orderNumber | GET echo |
-|---|---|---|---|---|
-| framed-paper-2in-mat | `p0-probe-2026-09-16T23-38-55-777Z-framed-paper-2in-mat` | 201 | 10000339584 | 200 |
-| canvas-solid-color | `p0-probe-2026-09-16T23-38-55-777Z-canvas-solid-color` | 201 | 10000339585 | 200 |
-| paper-fractional | `p0-probe-2026-09-16T23-38-55-777Z-paper-fractional` | 201 | 10000339586 | 200 |
+- none placed in this run
 

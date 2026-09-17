@@ -1,4 +1,5 @@
 import { loadCustomerProgress } from '@/lib/orders/customer-progress'
+import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 import CustomerShipments from '@/components/orders/CustomerShipments'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
@@ -26,7 +27,8 @@ function statusLabel(s: string): string {
 }
 
 interface OrderItemRow {
-  purchase_spec?: {title?:string;option_name?:string}
+  /** The frozen configuration. Described by `describePurchaseSpec`, never re-read from the catalog. */
+  purchase_spec?: unknown
   id: string
   quantity: number
   unit_price: number | null
@@ -108,6 +110,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {items.map((it) => {
               const product = one(it.product)
               const variant = one(it.variant)
+              const spec = describePurchaseSpec(asPurchaseSpec(it.purchase_spec), {
+                productTitle: product?.title,
+                variantName: variant?.name,
+              })
+              const options = specOptionsText(spec.options)
               const size = it.print_width_in != null && it.print_height_in != null
                 ? `${it.print_width_in} × ${it.print_height_in} in`
                 : it.size_label || ''
@@ -115,13 +122,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <div key={it.id} className="px-6 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-body text-sm font-medium text-charcoal">{it.purchase_spec?.title || product?.title || 'Item'}</p>
+                      <p className="font-body text-sm font-medium text-charcoal">{spec.title}</p>
                       <p className="mt-0.5 font-body text-xs text-charcoal/55">
-                        {it.purchase_spec?.option_name || variant?.name || ''}
-                        {it.medium ? `${variant?.name ? ' · ' : ''}${it.medium.replace(/_/g, ' ')}` : ''}
+                        {spec.line}
+                        {it.medium ? `${spec.line ? ' · ' : ''}${it.medium.replace(/_/g, ' ')}` : ''}
                         {size ? ` · ${size}` : ''}
                         {` · Qty ${it.quantity}`}
                       </p>
+                      {options ? (
+                        <p className="mt-0.5 font-body text-xs text-charcoal/55">{options}</p>
+                      ) : null}
+                      {spec.colorHex ? (
+                        <p className="mt-0.5 flex items-center gap-1.5 font-body text-xs text-charcoal/55">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                            style={{ backgroundColor: spec.colorHex }}
+                          />
+                          {spec.colorHex}
+                        </p>
+                      ) : null}
                       <span className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-body font-medium capitalize ${STATUS_COLOR[it.fulfillment_status] || 'bg-charcoal/10 text-charcoal/60'}`}>
                         {statusLabel(it.fulfillment_status)}
                       </span>

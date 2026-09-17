@@ -1,4 +1,5 @@
 import { loadCustomerProgress } from '@/lib/orders/customer-progress'
+import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 import CustomerShipments from '@/components/orders/CustomerShipments'
 import Link from 'next/link'
 import type { Metadata } from 'next'
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 type Rel = { title?: string; name?: string } | { title?: string; name?: string }[] | null
 
 type OrderItem = {
-  purchase_spec?: {title?:string;option_name?:string}
+  /** The frozen configuration. Described by `describePurchaseSpec`, never re-read from the catalog. */
+  purchase_spec?: unknown
   id: string
   quantity: number
   unit_price: number | null
@@ -168,17 +170,31 @@ export default async function OrderConfirmationPage(props: {
         <div className="mt-10 bg-white border border-charcoal/10 rounded-lg p-6 sm:p-8 text-left">
           <ul className="divide-y divide-charcoal/10">
             {items.map((it) => {
-              const title = (it.purchase_spec?.title || rel(it.product, 'title')) ?? 'Artwork'
-              const variant = it.purchase_spec?.option_name || rel(it.variant, 'name')
-              const line = (Number(it.unit_price) || 0) * (it.quantity || 1)
+              const spec = describePurchaseSpec(asPurchaseSpec(it.purchase_spec), {
+                productTitle: rel(it.product, 'title'),
+                variantName: rel(it.variant, 'name'),
+              })
+              const options = specOptionsText(spec.options)
+              const lineTotal = (Number(it.unit_price) || 0) * (it.quantity || 1)
               return (
                 <li key={it.id} className="flex items-start justify-between py-3 gap-4">
                   <div>
-                    <p className="font-body text-sm text-charcoal">{title}</p>
-                    {variant ? <p className="font-body text-xs text-charcoal/50">{variant}</p> : null}
+                    <p className="font-body text-sm text-charcoal">{spec.title}</p>
+                    {spec.line ? <p className="font-body text-xs text-charcoal/50">{spec.line}</p> : null}
+                    {options ? <p className="font-body text-xs text-charcoal/50">{options}</p> : null}
+                    {spec.colorHex ? (
+                      <p className="flex items-center gap-1.5 font-body text-xs text-charcoal/50">
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                          style={{ backgroundColor: spec.colorHex }}
+                        />
+                        {spec.colorHex}
+                      </p>
+                    ) : null}
                     <p className="font-body text-xs text-charcoal/50">Qty {it.quantity}</p>
                   </div>
-                  <p className="font-body text-sm text-charcoal whitespace-nowrap">{money(line)}</p>
+                  <p className="font-body text-sm text-charcoal whitespace-nowrap">{money(lineTotal)}</p>
                 </li>
               )
             })}

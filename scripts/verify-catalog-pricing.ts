@@ -10,6 +10,21 @@
 //        --snapshot fixtures/lumaprints/catalog.us.api-sandbox.lumaprints.com.2026-09-16.json
 //   node --import ./scripts/lib/register-ts.mjs scripts/verify-catalog-pricing.ts --parity [--live-sample 5]
 //
+// Two sweep flags decide how a per-item sandbox DROP is read (F37):
+//
+//   --retry-passes N  how many times an unpriced item is asked again, with an idle
+//                     period between passes (default 2). Only what is still unpriced
+//                     at the end is judged.
+//   --strict          count every residual F37 drop as FAILED instead of SKIPPED, so
+//                     the run goes red on any drop at all. It only ever TIGHTENS: no
+//                     flag in this script can turn a failure into a pass.
+//
+// F37 is the per-item random drop: a `success:false` row with NO message, in a
+// subcategory that priced other items in the same run. The same item prices on its own
+// seconds later, so by default its two assertions are SKIPPED and counted, with one
+// `FINDING F37` note per subcategory saying how many of its items dropped. F36 remains
+// the whole-grid case (a subcategory this host would not price at all).
+//
 // Why a plain-node script and not a test: the sweep spends real provider budget over
 // tens of minutes and the parity run reads the production database. Neither belongs in
 // `npm test`, and both must be re-runnable by a person with a printed receipt.
@@ -146,6 +161,8 @@ interface Args {
   yes?: boolean
   'live-sample'?: string | boolean
   'live-env'?: string | boolean
+  strict?: boolean
+  'retry-passes'?: string | boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +173,18 @@ interface Args {
 const BATCH_MAX = 40
 /** Refuse a sweep larger than this without an explicit --yes. */
 const REQUEST_BUDGET = 900
+
+/** Retry passes after the first, and how long to idle before each. */
+const DEFAULT_RETRY_PASSES = 2
+const RETRY_COOLDOWN_MS = 60_000
+
+/**
+ * Run configuration for the drop handling, set once from argv before the first batch.
+ * `retryPasses` is how many times an unpriced item is asked again; `strict` decides
+ * whether the residue is counted as FAILED (strict) or SKIPPED with an F37 note.
+ */
+let retryPasses = DEFAULT_RETRY_PASSES
+let strictDrops = false
 /** Host the parity run's catalog rows must come from. */
 const PRODUCTION_HOST = 'us.api.lumaprints.com'
 
@@ -217,6 +246,11 @@ Options:
   --subcategories <list>  comma-separated provider subcategory ids to limit the sweep
   --sizes <list>          which representative sizes to swap options at: small,mid,max
   --yes                   proceed when the estimate exceeds ${REQUEST_BUDGET} requests
+  --retry-passes <N>      sweep only: retry passes after the first for items that came
+                          back unpriced (default ${DEFAULT_RETRY_PASSES})
+  --strict                sweep only: count every residual per-item drop (F37) as
+                          FAILED rather than SKIPPED. Tightens the run; nothing in this
+                          script can soften a failure into a pass.
   --live-sample <N>       parity only: also price N variants live on PRODUCTION pricing
                           endpoints (read-only). Needs production credentials; prints
                           SKIPPED and continues when they are absent.
@@ -413,9 +447,6 @@ interface PricedBatch {
   passes: string[]
 }
 
-/** Retry passes after the first, and how long to idle before each. */
-const RETRY_PASSES = 2
-const RETRY_COOLDOWN_MS = 60_000
 
 /**
  * Price every item, in batches of <= 40, then RETRY the ones that came back unpriced.
@@ -464,11 +495,11 @@ async function priceAll(client: Probe, items: PriceRequestItem[], label: string)
   const passes: string[] = []
   let recovered = 0
 
-  for (let pass = 1; pass <= RETRY_PASSES; pass += 1) {
+  for (let pass = 1; pass <= retryPasses; pass += 1) {
     const pending = unpriced()
     if (pending.length === 0) break
     process.stderr.write(
-      `  [${label}] ${pending.length} item(s) unpriced; idling ${RETRY_COOLDOWN_MS / 1000}s then retry pass ${pass}/${RETRY_PASSES}\n`,
+      `  [${label}] ${pending.length} item(s) unpriced; idling ${RETRY_COOLDOWN_MS / 1000}s then retry pass ${pass}/${retryPasses}\n`,
     )
     await new Promise((resolve) => setTimeout(resolve, RETRY_COOLDOWN_MS))
     const retryRows = await priceChunks(client, pending.map((index) => items[index]), `${label}-retry${pass}`)
@@ -484,6 +515,19 @@ async function priceAll(client: Probe, items: PriceRequestItem[], label: string)
   }
 
   return { rows, retried: firstFailures.length, recovered, passes }
+}
+
+/**
+ * F37: a per-item drop rather than a refusal.
+ *
+ * The sandbox answers a long run with `{"success": false}` and NO message for scattered
+ * items that price perfectly well on their own moments later; a genuine refusal carries
+ * the provider's words. So a row that is present, unsuccessful and silent is classified
+ * as a drop, and a row that says WHY it failed never is.
+ */
+function isSandboxDrop(row: PriceRow | null | undefined): boolean {
+  if (!row || row.success === true) return false
+  return !(typeof row.message === 'string' && row.message.length > 0)
 }
 
 /** Why an item is not priced, in the provider's own terms. */
@@ -631,6 +675,12 @@ async function runSweep(args: Args): Promise<number> {
 
   const plans = subs.map((sub) => planSubcategory(sub, wantedSizes))
 
+  // Drop handling, decided before the first request so the printed plan says which
+  // rules this run is judged under.
+  const wantedPasses = Number(str(args['retry-passes'], String(DEFAULT_RETRY_PASSES)))
+  retryPasses = Number.isFinite(wantedPasses) && wantedPasses >= 0 ? Math.trunc(wantedPasses) : DEFAULT_RETRY_PASSES
+  strictDrops = args.strict === true
+
   // --- Budget, printed before a single request is sent -----------------------
   const passOneItems = plans.reduce((total, plan) => total + plan.grid.length + plan.swaps.length, 0)
   const passTwoItems = plans.reduce((total, plan) => {
@@ -645,6 +695,7 @@ async function runSweep(args: Args): Promise<number> {
   console.log(`  pass 1 items (grid + option swaps): ${passOneItems}`)
   console.log(`  pass 2 items (maximal configs + glass-ceiling edge): ${passTwoItems}`)
   console.log(`  estimated provider requests: ${estimate} (batches of ${BATCH_MAX}, <= 25/min)`)
+  console.log(`  retry passes: ${retryPasses} · residual per-item drops (F37): ${strictDrops ? 'FAILED (--strict)' : 'SKIPPED and counted'}`)
   if (estimate > REQUEST_BUDGET && args.yes !== true) {
     console.error(`Refusing: the estimate exceeds the ${REQUEST_BUDGET}-request budget. Re-run with --yes to proceed.`)
     return 2
@@ -807,6 +858,13 @@ async function runSweep(args: Args): Promise<number> {
   const neverEchoed = new Map<number, Set<number>>()
 
   /**
+   * F37, per subcategory: priced items that came back silent after every retry pass, in
+   * a subcategory that DID price other items in the same run. Counted here and reported
+   * once per subcategory below, so 273 identical SKIPPED lines cannot hide the reason.
+   */
+  const f37Drops = new Map<number, number>()
+
+  /**
    * F35: the Canvas Finish group (212 Semi-Glossy / 213 Matte, 259 on the 1.25in
    * depths) is accepted by pricing — no rejection, no "not associated to subcategory"
    * — and never appears in the echoed options. Measured on the sweep and again on a
@@ -828,7 +886,18 @@ async function runSweep(args: Args): Promise<number> {
     const row = rowByKey.get(key) ?? null
     const item = itemByKey.get(key)
     if (!row || row.success !== true) {
-      log.fail(`${what} prices`, `not priced after a retry: ${unpricedReason(row)}`, context)
+      const droppedSubcategoryId = Number(context.subcategoryId)
+      const dropped = isSandboxDrop(row) && Number.isFinite(droppedSubcategoryId)
+      if (dropped) f37Drops.set(droppedSubcategoryId, (f37Drops.get(droppedSubcategoryId) ?? 0) + 1)
+      // Default: a silent drop is not a verdict about this configuration, so its two
+      // assertions are skipped and counted once per subcategory below. --strict judges
+      // it, which can only ever make the run redder.
+      if (dropped && !strictDrops) return null
+      log.fail(
+        `${what} prices`,
+        `not priced after ${retryPasses} retry pass(es): ${unpricedReason(row)}${dropped ? ' — classified F37 (per-item sandbox drop), counted as FAILED because --strict was passed' : ''}`,
+        context,
+      )
       return null
     }
     if (!(typeof row.price === 'number' && row.price > 0)) {
@@ -961,6 +1030,23 @@ async function runSweep(args: Args): Promise<number> {
     )
   })
 
+  // F37, once per subcategory: how much of it this host dropped, and how that was read.
+  for (const [subcategoryId, dropped] of [...f37Drops.entries()].sort((a, b) => a[0] - b[0])) {
+    const plan = plans.find((candidate) => candidate.sub.subcategoryId === subcategoryId)
+    const total = (plan?.grid.length ?? 0) + (plan?.swaps.length ?? 0)
+    if (!strictDrops) {
+      // Two assertions per dropped item (it prices, and it echoes what was requested).
+      log.skipMany(
+        dropped * 2,
+        `${subcategoryId} pricing assertions`,
+        `FINDING F37 (per-item sandbox drop): ${dropped} of ${total} priced item(s) came back success:false with no message after ${retryPasses} retry pass(es)`,
+      )
+    }
+    log.note(
+      `FINDING F37: ${subcategoryId} "${plan?.sub.name ?? ''}" dropped ${dropped} of ${total} priced item(s) on ${client.host} — a silent success:false in a subcategory that priced other items in the same run, which is throughput and not capability (the same configuration prices on its own moments later). ${strictDrops ? 'Counted as FAILED in this run (--strict).' : 'Counted as SKIPPED, never as passed; re-run with --strict, or on the production host, to judge them.'}`,
+    )
+  }
+
   // F36, once per subcategory: a classification, not a failure.
   for (const [subcategoryId, reason] of unpriceable) {
     const plan = plans.find((candidate) => candidate.sub.subcategoryId === subcategoryId)
@@ -1028,6 +1114,13 @@ async function runSweep(args: Args): Promise<number> {
     rows: additivityRows,
   }
 
+  const f37Total = [...f37Drops.values()].reduce((total, count) => total + count, 0)
+  if (strictDrops && log.failed > 0 && log.failed === f37Total) {
+    log.note(
+      `DIAGNOSIS (cause class: sandbox-drop): all ${log.failed} failure(s) in this run are F37 per-item drops — a silent success:false with no provider message, in subcategories that priced other items in the same run. Nothing here is a statement about a catalog row. Re-run without --strict to see the same run classified, or sweep the production host to judge these profiles.`,
+    )
+  }
+
   const retried = passOneBatch.retried + passTwoBatch.retried
   const recovered = passOneBatch.recovered + passTwoBatch.recovered
   if (retried > 0) {
@@ -1072,6 +1165,10 @@ async function runSweep(args: Args): Promise<number> {
       itemsRetried: retried,
       itemsRecoveredByRetry: recovered,
       unpriceableSubcategories: [...unpriceable.keys()],
+      retryPasses,
+      strict: strictDrops,
+      itemsDroppedF37: f37Total,
+      f37Subcategories: Object.fromEntries([...f37Drops.entries()].map(([id, count]) => [String(id), count])),
       requestsEstimated: estimate,
       requestsSent: summary.requestCount,
       peakPerRolling60s: summary.peakPerRolling60s,
@@ -1084,6 +1181,11 @@ async function runSweep(args: Args): Promise<number> {
   if (retried > 0) console.log(`retried ${retried} unpriced item(s); ${recovered} recovered`)
   if (unpriceable.size > 0) {
     console.log(`UNPRICEABLE on ${client.host} (F36): ${[...unpriceable.keys()].join(', ')}`)
+  }
+  if (f37Total > 0) {
+    console.log(
+      `per-item drops (F37): ${f37Total} across ${f37Drops.size} subcategory(ies) — ${strictDrops ? 'FAILED (--strict)' : 'SKIPPED and counted'}`,
+    )
   }
   console.log(`items priced: ${passOne.length + passTwo.length} · requests sent: ${summary.requestCount} (estimated ${estimate})`)
   console.log(`Wrote ${path.relative(REPO_ROOT, jsonPath)} and ${path.relative(REPO_ROOT, mdPath)}`)

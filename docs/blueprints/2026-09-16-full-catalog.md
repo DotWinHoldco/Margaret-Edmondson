@@ -64,10 +64,10 @@ types before fan-out.
 | P0b | Production snapshot + id diff (via deployed route) | architect | fixtures/lumaprints/catalog.us.api.lumaprints.com.*.json, id-diff | `--diff` exit 0 or every mismatch recorded |
 | P1 | Schema + sync v2 + backfill + cron + loader | executor (+ architect on RLS/seed) | supabase/migrations/*, src/lib/catalog/{types,load,sync}.ts, api/admin/lumaprints/sync, api/cron/lumaprints-catalog-sync, scripts/backfill-catalog.mjs | npm test green; parity assert 8/8 legacy rows reproduced |
 | P2 | Pricing engine v2 + rules engine | executor (+ architect on quote seam) | src/lib/pricing/quote.ts, lumaprints-cache.ts, rules.ts, availability.ts, selection.ts, print-quote route | V6.1 parity cents-exact on every active variant; V2 sandbox sweep green |
-| P3 | Admin catalog manager + VariantsTab v2 + offer-coverage generator | executor | admin/catalog page + API, VariantsTab.tsx, bulk-create, scripts/generate-offer-coverage.mjs | RTL + route tests; generator idempotent; coverage report |
-| P4 | Storefront configurator + preview (flag) | executor | components/shop/PrintConfigurator*, ProductDetail mount | V6 E2E all 8 mediums on preview, flag OFF in prod |
-| P5 | Cart / checkout / order freeze v3 + snapshot-gate sweep + test-mode router guard | executor (architect owns webhook gates) | cart/*, checkout/*, webhooks/stripe/route.ts, quoted-prices.ts | V5 suite green; dual-line order incl. depth-only difference |
-| P6 | Fulfillment v2 | executor (architect owns router seam) | fulfillment/router.ts, fulfillability.ts | V4: 8 sandbox orders 201 + echo |
+| P3 | Admin catalog manager + VariantsTab v2 + offer-coverage generator (session 2, 2026-09-17: architect wrote migration 20260917100000 — five aal2-checked SECURITY DEFINER RPCs + audit rows + in-tx cache eviction — and the shared helpers `defaultSubcategoryForMedium`, `subcategory-tiers.ts`, `variant-insert.subcategoryRef`; three executors: A catalog manager routes+UI, B VariantsTab v2 + generate-defaults, C coverage route/report/script + bulk-create) | executor ×3 + architect | src/app/api/admin/catalog/**, src/components/admin/catalog/**, VariantsTab.tsx, api/admin/variants/coverage, bulk-create, generate-defaults, builder-context.ts, scripts/generate-offer-coverage.mjs | RTL + route tests; generator idempotent; coverage report |
+| P4 | Storefront configurator + preview (flag) — session 2: architect wrote `src/lib/catalog/door.ts` (flag + preview-only `PRINT_CONFIGURATOR_FORCE` env override, production ignores it) and the cart line identity (`CartItem.selection`, `cartLineKey`, reducer keyed by line, quotes applied per line); executor D builds the configurator, FramePreview, storefront allow-list serializer, PDP mount, cart surfaces | executor + architect | components/shop/PrintConfigurator/**, ProductDetail, shop/art/[slug]/page, catalog/storefront.ts, CartDrawer, cart page, CartItemTitle, print-quote route flag read | V6 walk on a preview deploy (FORCE=on), flag OFF in prod |
+| P5 | Cart / checkout / order freeze v3 + snapshot-gate sweep + test-mode router guard — session 2: ALL architect: migration 20260917110000 (order_items.line_hash + solid_color_hex, upsert key (order_id, product_id, variant_id, line_hash)), checkout schema v3 + per-line dedupe + configured-line re-quote through `quoteConfiguration` + price-drift refusal + purchaseSpec v3, snapshot v3 (`hasPurchaseSnapshot`, `>= 2` everywhere), webhook gate sweep (7 sites) + upsert key, `provider-guard.ts` | architect | checkout/validation.ts, checkout/snapshot.ts, webhooks/stripe/route.ts, cart/context.tsx, cart/quoted-prices.ts, fulfillment/provider-guard.ts | tests: checkout-validation-v3 (dual depth-only lines, price drift, no-quote), checkout-snapshot-v3, provider-guard, router-guard (real router, fake client) |
+| P6 | Fulfillment v2 — session 2: architect: router guard wired into `validateLumaprintsItem` (both the order path and the single-item retry), data-driven required-group + needs_hex checks from the catalog tree (`checkFrozenOptions`, legacy 102xxx arithmetic only when the catalog has no row), `solidColorHexCode` passthrough; disabled-after-purchase submits (test) | architect | fulfillment/router.ts | V4: sandbox orders per medium (owed to P9) |
 | P7 | Order surfaces | executor | emails, account order page, admin order panels | email snapshot tests |
 | P8 | Cleanup + help articles + docs | executor | legacy pricing files, help/articles.ts, docs/*.md | grep gate zero retired symbols |
 | P9 | Verification report + launch gate | architect | audit/CATALOG-VERIFICATION-REPORT.md | every automatable V7 item green |
@@ -139,6 +139,41 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   public quote route + engine: 3 blocking (dark-door gate + fulfillment budget reserve; wholesale delta
   leak via labels; variant overrides dropped) + 4 should-fix + notes → all closed in one corrective round
   (two executors + 2 resumes). build-check GREEN, 817 tests, V6.1 parity 834/834 on production.
+- P3 (session 2, 2026-09-17, uncommitted tree → PR): architect wrote and live-proved the migration
+  (20260917100000) on production; ONE security-reviewer pass over the write path + routes + coverage:
+  verdict BLOCK → 1 blocking (lumaprints_pricing_cache writable/readable by an aal1 admin through
+  PostgREST, a pre-existing policy this wave made load-bearing) + 4 should-fix (audit_log INSERT
+  forgeable, swatch image_path unconstrained into a CSS url(), admin check route unthrottled on the
+  shared key, cookie-bearing script accepts any host) + notes. ALL closed by the architect in
+  migration 20260917120000 (aal2 on every pricing-cache verb, no anon, no TRUNCATE; audit_log
+  definer-only writes; CHECK on swatch.image_path) + route/script/component edits (rate limit
+  'catalog-check' 30/min; quoted + validated CSS url(); https + host allowlist; `*.cookie` ignored;
+  zips length guard in 5 routes; cache-tag failures logged). Not closed: duplicate
+  (product_id, medium, size_label) unique index — production already holds 5 duplicate groups
+  (admin cleanup owed before the index); grant-boundary gate still self-skips without credentials.
+  Agents: 3 executors, 1 security-reviewer.
+- P4 (session 2): executor D; architect read storefront.ts (allow-list), the door, the cart
+  identity; the same security-reviewer pass as P5–P8 covers the storefront payload and the
+  print-quote route change.
+- P5/P6 (session 2): all architect; examined by the wave security pass: ONE security-reviewer over P4–P8
+  (money path, identity, router guard, snapshot immunity, door, payloads, injection, verify integrity,
+  migration): verdict BLOCK → 1 blocking (checkout deduped on the client's RAW option ids while
+  order_items keys on the server-normalized line hash: two accepted lines could collapse into one
+  row) + 2 should-fix (a later provider sync adding a required group or a needs_hex flag could veto a
+  paid line; public re-quotes ran outside the provider reserve) + 4 notes. ALL closed by the
+  architect: `validateCheckoutCatalog` refuses `duplicate_line` on `variant + server lineHash`
+  (the request-level raw-id dedupe stays as the early check); the configurator stores the
+  normalized ids read back from the quote's labels; `checkFrozenOptions` ignores groups/options
+  first seen after the order's `created_at`; `quoteConfiguredLines` runs under
+  `withProviderReserve(PUBLIC_QUOTE_RESERVE)`; the shipping quote caps configured lines at 12; the
+  checkout schema refuses a half-configured line and requires `expectedPriceCents` on a configured
+  one (F9 is not opt-in). Regression tests: checkout-validation-v3 (same-hash refusal, schema
+  refinements) and router-guard (post-purchase group/flag ignored). Answered no-issue: money,
+  identity at every other layer, guard bypass, door, payloads, injection, migration ordering.
+- P7/P8 (session 2): executors F and G; P7 edited src/lib/email/send.ts and vitest.config.mts
+  (`server-only` alias to a test stub) outside its OWNS with reasons; P8 registered the
+  retired-symbols gate in build-check and edited HelpIndex.tsx ("N guides" no longer hardcoded).
+
 ## Proof
 
 <!-- walks walked (date, device, by whom) · probe records · ledger read after deploy -->
@@ -152,6 +187,38 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
 - P2 exit (2026-09-17): V6.1 parity 834/834 on production (`audit/catalog-verification/V6.1.md`); V2 sandbox
   sweep 190 requests / 0 x 429 with additivity 12/12 and 25/25 engine glass-ceiling assertions; F35/F36/F37
   recorded (sandbox drops rows at random in long sweeps) — the strict production run is owed to V7.2.
+
+- Session 2 (2026-09-17, commit fe1a802 + follow-ups on PR #11):
+  - V6.1 parity on production: 834/834 GREEN at fe1a802 (`audit/catalog-verification/V6.1.md`), 278 of 318 variants in scope.
+  - V2 `--strict` sandbox sweep at fe1a802: 8023 assertions, 6717 passed, 282 FAILED, 1024 skipped (F36: 105016/105017/105025/105026 unpriceable on the sandbox); every one of the 282 failures is an F37 per-item silent drop across 6 framed-paper profiles (105011/105015/105019/105020/105023/105024), DIAGNOSIS cause class sandbox-drop; 194 requests, 0 x 429, additivity and glass-ceiling assertions all passed; kept as `V2.strict.{json,md}`. The default-mode run (F37 counted as classified skips) is the step file the report reads; the production host does not drop rows (P1 sync 0 drops, V6.1 parity).
+  - V4 sandbox order suite at fe1a802: 49/49 GREEN — one maximal-option order per medium (8 of 8), each
+    checkImageConfig 200 → POST /orders 201 → GET /orders echo EXACT (options, size, subcategory); orders
+    10000339587–10000339594 on store 82222 (canvas Solid Color #c8102e + wire + matte; framed canvas Oak
+    0.875 + backboard wire; paper 9.25×11 No Bleed; framed paper 105005 3in mat + French Blue + Hot Press +
+    acrylic + Kraft backing + dry mount at 11×14; foam 12.5×16; metal Glossy Silver + Easel 8×10; peel & stick
+    12×12; rolled canvas defaults). 32 requests, 0 × 429. The hex is asserted from the request record (P16).
+  - V3 geometry step at fe1a802 (`scripts/write-v3-from-probes.mjs` over a fresh `--no-orders` run of the P0 probe
+    matrix, `fixtures/lumaprints/probes.2026-09-17.json`): 16 probes, 14 passed (4 PASS + 10 recorded findings the
+    engine is written to: empty option set resolves to Image Wrap / 0.25in bleed and 406s; mats price per size; framed
+    paper non-additive; provider enforces group boundaries but not bounds/whitelist/dependency), 0 failed, 2 skipped
+    (P6 Solid Color submit and P16 order echo, both order-dependent and both proven by V4: order 10000339587 with
+    #c8102e, echo exact). 32 requests, 0 × 429.
+  - V7 evidence recorded in `audit/catalog-verification/V7.checklist.json`: V7.1 green (P1 sync + dry run), V7.3 green (0 Live variants below landed cost; two 2% overrides flagged), V7.4 green (0 enabled frame/mat options without a swatch), V7.6 green (invariants pack all 0), V7.7 green (kill-switch drill off/on recorded), V7.5/V7.9/FLAG human, V7.2/V7.8 owed to the post-merge production walk.
+  - Live RPC proof of migration 20260917100000 on production (see Examine P3).
+  - P4 walk on the preview (de639d5, `margaret-edmondson-git-catalog-p3-13cac5-dotwinholdcos-projects.vercel.app`,
+    `PRINT_CONFIGURATOR_FORCE=on` + `CATALOG_READ_HOST=us.api.lumaprints.com`, gate password typed by the owner), desktop,
+    2026-09-17 14:15 UTC, by the architect through the browser: /shop/art/the-dual renders the Original / Print toggle;
+    Print shows the two live print types (Stretched Canvas from $52.75, Fine Art Paper from $26.37), the size chips with
+    default-configuration prices, the canvas border + hardware groups, the true-to-scale preview with "About 6 × 12 in on
+    the wall", and a server-quoted price ($52.75 = the legacy price, parity); switching to Fine Art Paper re-priced all
+    three sizes from the server ($20.37 / $27.34 / $41.37) and swapped the groups to Bleed Size (No Bleed); Add Print to
+    Cart put ONE line in the drawer titled "The Dual — Small — 6 × 12 in" with "Archival Matte Fine Art Paper · No Bleed
+    (Image goes to edge of paper)" and the quantity controls keyed by line; 0 console errors. Not walked on the preview:
+    a paid test checkout (Stripe is LIVE on the shared settings; a test-mode window is a separate, scheduled step) and
+    the phone breakpoint. Two preview facts fixed on the way: sign-in return address (dd3c1a9) and the catalog read host
+    (de639d5). Owner note: the print-clarity banner still says "stretched canvas" for every medium; per-medium copy from
+    `lumaprints_subcategories.description` is a follow-up. Blocked bleed/wrap options are hidden rather than shown
+    disabled while they are also switched off; they render disabled-with-reason only once enabled (matches ADR-4).
 
 ## Close
 

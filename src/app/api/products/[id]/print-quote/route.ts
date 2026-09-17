@@ -49,6 +49,7 @@ import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
 import { apiFail } from '@/lib/api/respond'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getFullCatalogCached } from '@/lib/catalog/load'
+import { isConfiguratorOpen } from '@/lib/catalog/door'
 import { loadPublicPrintReadiness } from '@/lib/products/print-readiness'
 import { LumaprintsDisabledError } from '@/lib/integrations/lumaprints'
 import { PUBLIC_QUOTE_RESERVE, withProviderReserve } from '@/lib/integrations/lumaprints-budget'
@@ -160,14 +161,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // The dark door, before anything else: no catalog read, no engine, no body parse.
     // A store that has not turned the configurator on has no print-quote endpoint.
-    const flagResult = await service
-      .from('site_settings')
-      .select('print_configurator_enabled')
-      .eq('id', true)
-      .maybeSingle()
-    if (flagResult.error) return apiFail(flagResult.error, { code: 'DATABASE_ERROR', context: 'print-quote flag' })
-    const flag = flagResult.data as { print_configurator_enabled: boolean | null } | null
-    if (flag?.print_configurator_enabled !== true) return fail(404, 'not_found', DARK_COPY)
+    // The flag is read through `isConfiguratorOpen`, the one module that owns it, so
+    // this route, the product page and checkout validation can never disagree about
+    // whether the door is open.
+    if (!(await isConfiguratorOpen(service))) return fail(404, 'not_found', DARK_COPY)
   } catch (err) {
     return apiFail(err, { context: 'products/[id]/print-quote POST' })
   }

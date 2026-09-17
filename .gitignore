@@ -62,3 +62,8 @@ public/SCANS/
 
 # build-prompt scratch (kept out of the client repo; parked on feature branches when needed)
 claude-code-prompt__*.md
+
+# Session cookies for admin-driven scripts, transfer dumps, CLI temp
+*.cookie
+.cowork-transfer/
+supabase/.temp/

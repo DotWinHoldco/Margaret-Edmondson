@@ -167,3 +167,33 @@ export function offerableOptions(subcategory: CatalogSubcategory, size: RuleSize
     }),
   }))
 }
+
+/**
+ * The subcategory a medium prices and orders by DEFAULT (ADR-2: a variant is a size for a
+ * medium; the subcategory is per-order state, and the variant's stored cost is the default
+ * configuration of the medium's default subcategory).
+ *
+ * The legacy `lumaprints_mediums.subcategory_id` wins while it is still sellable, so the
+ * five live mediums keep pricing exactly as before; otherwise the first sellable
+ * subcategory by sort order. Null means the medium has nothing sellable right now, and a
+ * caller must not guess a substitute.
+ */
+export function defaultSubcategoryForMedium(
+  catalog: Catalog,
+  medium: string,
+  legacySubcategoryId: number | null | undefined,
+): CatalogSubcategory | null {
+  if (legacySubcategoryId !== null && legacySubcategoryId !== undefined) {
+    const legacy = catalog.subcategories.find(
+      (subcategory) =>
+        subcategory.medium === medium &&
+        subcategory.subcategory_id === Number(legacySubcategoryId) &&
+        subcategory.effective_enabled === true,
+    )
+    if (legacy) return legacy
+  }
+  const sellable = offerableSubcategories(catalog, medium).sort(
+    (a, b) => a.sort_order - b.sort_order || a.subcategory_id - b.subcategory_id,
+  )
+  return sellable[0] ?? null
+}

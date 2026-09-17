@@ -1,9 +1,9 @@
 {
   "step": "V6.1",
   "title": "Legacy parity: every live print variant re-derives and re-prices identically",
-  "startedAt": "2026-09-17T02:06:16.274Z",
-  "finishedAt": "2026-09-17T02:06:18.067Z",
-  "commit": "147c1ba54db5d2342ffdef1eeb8a5a8fe4ef43de",
+  "startedAt": "2026-09-17T13:41:00.933Z",
+  "finishedAt": "2026-09-17T13:41:02.360Z",
+  "commit": "fe1a802a6c3c8e180e6b7915056114526195af5f",
   "host": "klwkajukicsoiwpsgftt.supabase.co",
   "counts": {
     "assertions": 834,
@@ -75,6 +75,6 @@
     "liveSample": 0
   },
   "green": true,
-  "durationMs": 1793,
-  "generatedAt": "2026-09-17T02:06:18.116Z"
+  "durationMs": 1427,
+  "generatedAt": "2026-09-17T13:41:02.409Z"
 }

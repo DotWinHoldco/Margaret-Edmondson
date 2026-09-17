@@ -19,7 +19,7 @@ export default function HelpIndex() {
       <header className="rounded-xl bg-charcoal px-6 py-9 text-cream sm:px-9">
         <p className="text-xs uppercase tracking-[0.2em] text-cream/65">Your studio handbook</p>
         <h1 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">A clear next step for your art business.</h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-cream/80">20 practical guides, from your first product to a well-run studio. Follow them in order or find the job you need. Each guide has real screen examples, simple steps, and a way to check your work.</p>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-cream/80">{helpArticles.length} practical guides, from your first product to a well-run studio. Follow them in order or find the job you need. Each guide has real screen examples, simple steps, and a way to check your work.</p>
         <Link href="/admin/help/01-start-here" className="mt-6 inline-flex rounded-lg bg-teal px-5 py-3 text-sm font-semibold text-white hover:bg-deep-teal">Start with guide 1 →</Link>
       </header>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -32,7 +32,7 @@ export default function HelpIndex() {
       <div>
         <label htmlFor="help-search" className="mb-2 block text-sm font-semibold">Find an answer</label>
         <input id="help-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try sales tax, shipping, markup, gross margin, or edit a page" className="w-full rounded-lg border border-charcoal/20 bg-white px-4 py-3 text-base outline-none focus:border-teal focus:ring-2 focus:ring-teal/20" />
-        <p className="mt-2 text-sm text-charcoal/60" role="status">{articles.length} of 20 guides{query.trim() ? ' match your search' : ' · about one task per guide'}</p>
+        <p className="mt-2 text-sm text-charcoal/60" role="status">{articles.length} of {helpArticles.length} guides{query.trim() ? ' match your search' : ' · about one task per guide'}</p>
       </div>
       {groups.map((group) => <section key={group} aria-label={group}>
         <h2 className="mb-4 font-display text-xl font-semibold">{group}</h2>
@@ -43,7 +43,7 @@ export default function HelpIndex() {
           </Link>)}
         </div>
       </section>)}
-      {articles.length === 0 && <div className="rounded-xl border border-charcoal/10 bg-white p-6"><p>No guide matches those words. Try a shorter search, such as “tax” or “product.”</p><button type="button" onClick={() => setQuery('')} className="mt-3 text-sm font-semibold text-teal underline">Show all 20 guides</button></div>}
+      {articles.length === 0 && <div className="rounded-xl border border-charcoal/10 bg-white p-6"><p>No guide matches those words. Try a shorter search, such as “tax” or “product.”</p><button type="button" onClick={() => setQuery('')} className="mt-3 text-sm font-semibold text-teal underline">Show all {helpArticles.length} guides</button></div>}
     </div>
   )
 }

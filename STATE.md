@@ -1,29 +1,32 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-17 (Full LumaPrints catalog program — P0, P1, P2 live dark on production; P3–P9 next; resume in a fresh session)
+Last updated: 2026-09-17 (Full LumaPrints catalog program — P3–P8 built + P9 harness on PR #11; production dark; live receipts in flight)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-17 03:30 UTC) — FULL LUMAPRINTS CATALOG PROGRAM: P0, P1, P2 LIVE ON PRODUCTION (dark); P3–P9 NOT STARTED. Session 15e819c2 closed at the machine usage ceiling — RESUME IN A FRESH SESSION.**
-> Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 (section 1 corrected: the store sells FIVE mediums today). Blueprint
-> `docs/blueprints/2026-09-16-full-catalog.md` Status: executing. Trunk `main` (git deploys production). PRs #1–#10 merged.
-> Production DB: catalog v2 tables (20260917000100) + pricing cache v2 + `site_settings.print_configurator_enabled=false`
-> (20260917000200). Production catalog synced (51 / 225 / 1,265; one default per group; 3 required groups); enabled =
-> the five live subcategories with their legacy option sets. V6.1 parity 834/834. Dry-run sync 0 diffs. Public quote
-> route deployed DARK (404 until the flag flips). No governor override remains.
-> Env: Vercel production LumaPrints pair (sensitive) targets production only; preview = sandbox pair + sandbox base URL.
-> Production-key operations run inside the app behind `requireAdmin` (aal2) via the admin browser session (route calls
-> exceed the browser tool's 45 s limit: fire-and-forget fetch + poll). Provider throttles the production key
-> (~10/min, ThrottlerException) and caps a pricing batch at 50 items; the sandbox drops rows at random in long sweeps.
-> NEXT (fresh session): (1) V2 sweep F37 classification + `--strict`, green sandbox run; (2) P3 admin catalog manager —
-> toggles as SECURITY DEFINER RPCs checking `is_admin_or_artist() AND auth.jwt()->>'aal'='aal2'` + audit row, VariantsTab
-> v2, offer-coverage generator (budget-aware: one provider batch per (subcategory,size) miss + 4 shipping quotes); (3) P4
-> configurator + preview behind the flag; (4) P5 money path — FIRST unit the router guard (a `stripe_mode='test'` order
-> must never be submitted to a non-sandbox LumaPrints host; preview + prod share one DB and one Stripe webhook); (5) P6
-> fulfillment (8 sandbox orders); (6) P7; (7) P8; (8) P9 report + GO checklist. Human gates: V7.9 real order; flag flip.
-> Dependency-audit CI step is RED on main independent of this program (36 advisories incl. Next 16.3.0 critical).
+> **Current truth (2026-09-17, session 2) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P8 BUILT, P9 HARNESS BUILT; PR #11 (branch `catalog/p3-admin-catalog`, fe1a802 + follow-ups) — merge pending the live verification receipts; production stays DARK.**
+> Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 · blueprint `docs/blueprints/2026-09-16-full-catalog.md` (Status: executing;
+> Examine carries both security-pass receipts, all findings closed). Production DB now holds migrations 20260917100000
+> (catalog admin RPCs), 20260917110000 (order_items.line_hash + solid_color_hex, 4-column upsert key) and 20260917120000
+> (pricing cache + audit log aal2-only for browser roles, swatch image_path CHECK); the RPC guards were live-proven.
+> Storefront: `print_configurator_enabled=false` on production; Vercel PREVIEW carries `PRINT_CONFIGURATOR_FORCE=on`
+> (production ignores it by code), so every PR preview opens the configurator. The preview sits behind the site password
+> gate: the P4 walk needs the gate password typed once in the browser (owed).
+> Verify at fe1a802: build-check GREEN (15/15 incl. build) · vitest 102 files / 1012 passed / 7 pre-existing skips ·
+> V6.1 parity on production 834/834 GREEN. In flight / owed: V2 --strict sandbox sweep, V4 sandbox order suite (8 orders),
+> the generated `audit/CATALOG-VERIFICATION-REPORT.md`, the preview walk, V7.2 (five configurations through the admin
+> sellable check on production vs the provider dashboard) and V7.8 (production PDP = legacy picker, prices at parity).
+> Human gates unchanged: V7.9 real production QC order; FLAG flip + per-medium enablement with margin sign-off (§11).
+> Owner flags: two Live variants carry a 2% margin override (Flower Power 20x20 paper, Think Again 12x9 canvas);
+> production has 5 duplicate (product, medium, size) variant groups (clean before adding the unique index);
+> a Print Catalog screenshot for the new help article is owed.
+> Preview facts (fixed 2026-09-17): sign-in flows now return to the current origin (`authOrigin`), and previews read the
+> production-host catalog rows (`CATALOG_READ_HOST=us.api.lumaprints.com` on Vercel preview; production ignores it).
+> Supabase's redirect allowlist still needs `https://*-dotwinholdcos-projects.vercel.app/**` for Google sign-in on previews (dashboard, owner).
+> Ops: the wave used 9 of the 12-agent budget (5 executors, 2 security reviewers, 1 more executor for P9, 1 for P8);
+> `.cowork-transfer/`, `supabase/.temp/` and `*.cookie` are now ignored.
 
 > **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**
 > The password gate is now DB-driven: `site_settings.gate_enabled/gate_password/gate_secret/

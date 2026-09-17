@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
@@ -13,11 +13,15 @@ import {
   partnerDimension,
   validateCustomSize,
   DEFAULT_SIZE_STEP,
+  type SizeBounds,
   type SizeTier,
 } from '@/lib/pricing/size-tiers'
+import { boundsOf } from '@/lib/pricing/subcategory-tiers'
 import { boundsForSubcategory } from '@/lib/pricing/subcategory-bounds'
 import { printSizeLabel } from '@/lib/pricing/print-size-label'
 import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
+import type { Catalog, CatalogSubcategory } from '@/lib/catalog/types'
+import { defaultSubcategoryForMedium, offerableSubcategories, sizeFits } from '@/lib/catalog/availability'
 
 export interface MediumCatalogEntry {
   medium: Medium
@@ -63,6 +67,14 @@ interface Props {
   productDefaultMargin: number
   variants: Variant[]
   mediumCatalog: MediumCatalogEntry[]
+  /**
+   * Every catalog subcategory row (the admin tree's `subcategories`), sellable or not.
+   * It decides which mediums get a section, what each section's print types publish for
+   * bounds and DPI, and which of them a given size actually fits. Empty (the catalog read
+   * failed, or an older caller) falls back to the legacy medium switch so the tab keeps
+   * working rather than showing nothing.
+   */
+  catalog?: CatalogSubcategory[]
   master: MasterPrintInfo | null
   /** Gross-margin threshold for the green/amber colouring. */
   targetGrossMarginPct?: number
@@ -85,11 +97,93 @@ function fmtCents(c: number | null | undefined): string {
   return `$${(c / 100).toFixed(2)}`
 }
 
+/** 12 -> "12", 3.875 -> "3.875". */
+function trimIn(n: number): string {
+  return Number(Number(n).toFixed(4)).toString()
+}
+
+/** What the generate route reports it could not derive, per print type. */
+interface DroppedTierLine {
+  tier: SizeTier
+  reason: string
+  subcategoryLabel?: string
+}
+
+interface GenerateResult {
+  text: string
+  dropped: DroppedTierLine[]
+}
+
+type MasterPx = { printWidthPx: number; printHeightPx: number } | undefined
+
+/** The print types of this medium a size can be ordered in right now. */
+function fittingSubcategories(
+  subcategories: CatalogSubcategory[],
+  size: { widthIn: number; heightIn: number } | null,
+  master: MasterPx,
+): CatalogSubcategory[] {
+  if (!size) return []
+  return subcategories.filter((subcategory) => sizeFits(subcategory, size, master))
+}
+
+/**
+ * One chip per sellable print type of the medium: green where the size can be
+ * ordered, grey with the reason in the title where it cannot, and a single red chip
+ * when nothing takes it (which is also what blocks the Live toggle).
+ */
+function FitsChips({
+  subcategories,
+  size,
+  master,
+}: {
+  subcategories: CatalogSubcategory[]
+  size: { widthIn: number; heightIn: number } | null
+  master: MasterPx
+}) {
+  if (subcategories.length === 0) return <span className="font-body text-[10px] text-charcoal/35">—</span>
+  const fitting = new Set(fittingSubcategories(subcategories, size, master).map((s) => s.id))
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {fitting.size === 0 && (
+        <span className="rounded-full bg-coral/15 px-1.5 py-0.5 font-body text-[9px] font-semibold uppercase tracking-wider text-coral">
+          Not sellable
+        </span>
+      )}
+      {subcategories.map((subcategory) => {
+        const fits = fitting.has(subcategory.id)
+        return (
+          <span
+            key={subcategory.id}
+            title={fits ? `fits ${subcategory.display_label}` : `does not fit ${subcategory.display_label}`}
+            className={`rounded-full px-1.5 py-0.5 font-body text-[9px] ${
+              fits ? 'bg-teal/15 text-deep-teal' : 'bg-charcoal/8 text-charcoal/45'
+            }`}
+          >
+            {subcategory.display_label}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+/** A medium nothing is turned on for keeps its sizes reachable, but folded away. */
+function Collapsible({ collapsed, summary, children }: { collapsed: boolean; summary: string; children: ReactNode }) {
+  if (!collapsed) return <>{children}</>
+  return (
+    <details>
+      <summary className="cursor-pointer font-body text-[11px] text-teal">{summary}</summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  )
+}
+
 export default function VariantsTab({
   productId,
   productDefaultMargin,
   variants: initial,
   mediumCatalog,
+  catalog = [],
   master,
   targetGrossMarginPct = 50,
   onEditCrop,
@@ -102,6 +196,25 @@ export default function VariantsTab({
     return out
   }, [mediumCatalog])
 
+  // The availability helpers read a tree; the tab is handed the subcategory rows, which
+  // is all of it that matters here (host and load stamp are server bookkeeping).
+  const catalogLoaded = catalog.length > 0
+  const catalogTree = useMemo<Catalog>(
+    () => ({ host: '', loaded_at: '', subcategories: catalog }),
+    [catalog],
+  )
+  /** Per medium: the print types that can be sold right now, in sort order. */
+  const sellableByMedium = useMemo(() => {
+    const out: Record<string, CatalogSubcategory[]> = {}
+    if (!catalogLoaded) return out
+    for (const m of MEDIUMS) {
+      out[m] = offerableSubcategories(catalogTree, m).sort(
+        (a, b) => a.sort_order - b.sort_order || a.subcategory_id - b.subcategory_id,
+      )
+    }
+    return out
+  }, [catalogTree, catalogLoaded])
+
   const [variants, setVariants] = useState(initial)
   useEffect(() => { setVariants(initial) }, [initial])
   const defaultMargin = productDefaultMargin
@@ -109,7 +222,7 @@ export default function VariantsTab({
   const [refreshStatus, setRefreshStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
   const [lastDiff, setLastDiff] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const [genMsg, setGenMsg] = useState<Record<string, string | null>>({})
+  const [genMsg, setGenMsg] = useState<Record<string, GenerateResult | null>>({})
   const [genBusy, setGenBusy] = useState<Medium | null>(null)
   const [customModal, setCustomModal] = useState<{ medium: Medium; prefill?: { name: string; width_in: number; height_in: number } } | null>(null)
 
@@ -228,14 +341,22 @@ export default function VariantsTab({
       const body = await res.json().catch(() => ({}))
       if (res.ok) {
         const created = body.data?.created?.length ?? 0
-        const dropped: Array<{ tier: SizeTier; reason: string }> = body.data?.dropped ?? []
-        const droppedMsg = dropped.length
-          ? ` Skipped: ${dropped.map((d) => `${TIER_NAME[d.tier]} ${d.reason}`).join('; ')}.`
-          : ''
-        setGenMsg((m) => ({ ...m, [medium]: `Created ${created} draft size${created === 1 ? '' : 's'}.${droppedMsg}` }))
+        const dropped: DroppedTierLine[] = body.data?.dropped ?? []
+        const from: string[] = body.data?.fromSubcategories ?? []
+        const fromMsg = from.length ? ` Derived from ${from.join(', ')}.` : ''
+        setGenMsg((m) => ({
+          ...m,
+          [medium]: {
+            text: `Created ${created} draft size${created === 1 ? '' : 's'}.${fromMsg}`,
+            dropped,
+          },
+        }))
         await reload()
       } else {
-        setGenMsg((m) => ({ ...m, [medium]: body.error || 'Could not generate sizes.' }))
+        setGenMsg((m) => ({
+          ...m,
+          [medium]: { text: body.error || 'Could not generate sizes.', dropped: [] },
+        }))
       }
       setGenBusy(null)
     })
@@ -323,16 +444,37 @@ export default function VariantsTab({
       {MEDIUMS.map((m) => {
         const cfg = catalogByMedium[m]
         const rows = grouped[m] || []
-        const configured = Boolean(cfg && cfg.enabled && cfg.subcategory_id)
+        const sellable = sellableByMedium[m] ?? []
+        const legacyConfigured = Boolean(cfg && cfg.enabled && cfg.subcategory_id)
+        // With a catalog the print types decide; without one (a failed read, an older
+        // caller) the legacy medium switch still drives the section.
+        const configured = catalogLoaded ? sellable.length > 0 : legacyConfigured
         if (!configured && rows.length === 0) return null
         const hasDefaults = rows.some((r) => !r.is_custom_size)
+        const defaultSubcategory = catalogLoaded
+          ? defaultSubcategoryForMedium(catalogTree, m, cfg?.subcategory_id ?? null)
+          : null
+        // The tightest DPI decides the largest print the master can carry across this
+        // medium's print types, so that is the one the readout has to name.
+        const strictest = sellable.length
+          ? sellable.reduce((a, b) => (b.required_dpi > a.required_dpi ? b : a))
+          : null
+        const largest =
+          strictest && printW && printH
+            ? {
+                w: Math.floor((printW / strictest.required_dpi) * 100) / 100,
+                h: Math.floor((printH / strictest.required_dpi) * 100) / 100,
+              }
+            : null
+        const masterPx: MasterPx = printW && printH ? { printWidthPx: printW, printHeightPx: printH } : undefined
+        const darkMedium = catalogLoaded && sellable.length === 0
         return (
-          <div key={m} className="mb-6 last:mb-0">
+          <div key={m} data-testid={`medium-${m}`} className="mb-6 last:mb-0">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h3 className="font-display text-base font-medium text-charcoal">
                 {cfg?.name || mediumLabel(m)}
                 <span className="ml-2 font-body text-xs text-charcoal/40">({rows.length})</span>
-                {!configured && (
+                {!configured && !darkMedium && (
                   <span className="ml-2 inline-block rounded-full bg-charcoal/10 px-2 py-0.5 font-body text-[10px] text-charcoal/50">Run Lumaprints sync to enable</span>
                 )}
               </h3>
@@ -362,14 +504,54 @@ export default function VariantsTab({
               )}
             </div>
 
-            {genMsg[m] && <p className="mb-2 font-body text-[11px] text-deep-teal">{genMsg[m]}</p>}
+            {sellable.length > 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {sellable.map((subcategory) => (
+                  <span key={subcategory.id} className="font-body text-[11px] text-charcoal/60">
+                    <strong className="font-medium text-charcoal/80">{subcategory.display_label}</strong>
+                    {' · '}
+                    {trimIn(subcategory.min_width_in)}–{trimIn(subcategory.max_width_in)} in wide ×{' '}
+                    {trimIn(subcategory.min_height_in)}–{trimIn(subcategory.max_height_in)} in tall
+                    {' · '}
+                    {subcategory.required_dpi} DPI
+                    {defaultSubcategory?.id === subcategory.id && (
+                      <span className="ml-1.5 inline-block rounded-full bg-teal/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-deep-teal">default</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {strictest && largest && (
+              <p className="mb-2 font-body text-[11px] text-charcoal/55">
+                Largest print at {strictest.required_dpi} DPI: <strong>{largest.w} × {largest.h} in</strong> (limited by {strictest.display_label})
+              </p>
+            )}
+
+            {darkMedium && (
+              <p role="status" className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 font-body text-[11px] text-amber-800">
+                No print type of this medium is turned on in Print Catalog; existing sizes stay but cannot go Live
+              </p>
+            )}
+
+            {genMsg[m] && (
+              <div className="mb-2">
+                <p className="font-body text-[11px] text-deep-teal">{genMsg[m]!.text}</p>
+                {genMsg[m]!.dropped.map((d, i) => (
+                  <p key={`${d.tier}-${d.subcategoryLabel ?? ''}-${i}`} className="font-body text-[11px] text-charcoal/60">
+                    {TIER_NAME[d.tier]}{d.subcategoryLabel ? ` on ${d.subcategoryLabel}` : ''}: {d.reason}
+                  </p>
+                ))}
+              </div>
+            )}
 
             {rows.length > 0 && (
+              <Collapsible collapsed={darkMedium} summary={`Show ${rows.length} existing size${rows.length === 1 ? '' : 's'}`}>
               <div className="rounded-md border border-charcoal/10 overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-charcoal/[0.03]">
                     <tr>
-                      {['Live', 'Label', 'Size', 'Cost', 'Markup / Gross margin', 'Price', 'Gross profit', ''].map((h, i) => (
+                      {['Live', 'Label', 'Size', ...(sellable.length > 0 ? ['Fits'] : []), 'Cost', 'Markup / Gross margin', 'Price', 'Gross profit', ''].map((h, i) => (
                         <th key={i} className="px-3 py-2 font-body text-[10px] font-semibold uppercase tracking-wider text-charcoal/60">{h}</th>
                       ))}
                     </tr>
@@ -387,19 +569,30 @@ export default function VariantsTab({
                       const gm = grossMarginPct(price, cost, ship)
                       const gmColor = gm <= 0 ? 'text-coral' : gm < targetGrossMarginPct ? 'text-amber-600' : 'text-teal'
                       const sizeDisplay = printSizeLabel(v)
+                      const size =
+                        v.width_in && v.height_in ? { widthIn: v.width_in, heightIn: v.height_in } : null
+                      // A size no print type of this medium can take cannot be sold,
+                      // whatever the medium switch says.
+                      const fitsNone =
+                        sellable.length > 0 && fittingSubcategories(sellable, size, masterPx).length === 0
+                      const liveBlocked = !(masterReady && configured) || fitsNone
                       return (
                         <tr key={v.id} className={!v.is_active ? 'bg-charcoal/[0.015]' : ''}>
                           <td className="px-3 py-2">
                             <input
                               type="checkbox"
                               checked={v.is_active}
-                              disabled={!v.is_active && !(masterReady && configured)}
+                              disabled={!v.is_active && liveBlocked}
                               onChange={(e) => onActiveChange(v.id, e.target.checked)}
                               title={
-                                !v.is_active && !(masterReady && configured)
-                                  ? masterReady
-                                    ? 'Run the Lumaprints sync to enable this medium first.'
-                                    : 'Crop the master / set the print area before going Live.'
+                                !v.is_active && liveBlocked
+                                  ? !masterReady
+                                    ? 'Crop the master / set the print area before going Live.'
+                                    : darkMedium
+                                      ? 'Turn on a print type of this medium in Print Catalog first.'
+                                      : fitsNone
+                                        ? 'No print type of this medium takes this size.'
+                                        : 'Run the Lumaprints sync to enable this medium first.'
                                   : v.is_active
                                     ? 'Live on the site'
                                     : 'Draft — not shown on the site'
@@ -420,6 +613,11 @@ export default function VariantsTab({
                             <span className="ml-1.5 inline-block rounded-full bg-charcoal/8 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-charcoal/55">{v.size_tier || 'Custom'}</span>
                             {sizeDisplay.actualNote && <span className="block text-[9px] leading-4 text-charcoal/70">{sizeDisplay.actualNote}</span>}
                           </td>
+                          {sellable.length > 0 && (
+                            <td className="px-3 py-2">
+                              <FitsChips subcategories={sellable} size={size} master={masterPx} />
+                            </td>
+                          )}
                           <td className="px-3 py-2 font-body text-sm text-charcoal/70 whitespace-nowrap" title={`base ${fmtCents(cost)} + shipping ${fmtCents(ship)}`}>
                             {cost + ship > 0 ? fmtCents(cost + ship) : <span className="text-amber-600">Set cost</span>}
                             {cost + ship > 0 && v.last_priced_at && (
@@ -468,17 +666,28 @@ export default function VariantsTab({
                   </tbody>
                 </table>
               </div>
+              </Collapsible>
             )}
           </div>
         )
       })}
 
-      {customModal && catalogByMedium[customModal.medium] && printW && printH && (
+      {customModal && printW && printH && (
         <CustomSizeModal
           productId={productId}
           medium={customModal.medium}
-          mediumName={catalogByMedium[customModal.medium].name || mediumLabel(customModal.medium)}
-          subcategoryId={catalogByMedium[customModal.medium].subcategory_id}
+          mediumName={catalogByMedium[customModal.medium]?.name || mediumLabel(customModal.medium)}
+          subcategoryId={catalogByMedium[customModal.medium]?.subcategory_id ?? null}
+          subcategories={sellableByMedium[customModal.medium] ?? []}
+          defaultSubcategory={
+            catalogLoaded
+              ? defaultSubcategoryForMedium(
+                  catalogTree,
+                  customModal.medium,
+                  catalogByMedium[customModal.medium]?.subcategory_id ?? null,
+                )
+              : null
+          }
           printW={printW}
           printH={printH}
           defaultMargin={defaultMargin}
@@ -511,6 +720,8 @@ function CustomSizeModal({
   medium,
   mediumName,
   subcategoryId,
+  subcategories,
+  defaultSubcategory,
   printW,
   printH,
   defaultMargin,
@@ -524,6 +735,10 @@ function CustomSizeModal({
   medium: Medium
   mediumName: string
   subcategoryId: number | null
+  /** Every sellable print type of the medium, for the fits chips. */
+  subcategories: CatalogSubcategory[]
+  /** The print type this medium prices and orders by default; null = no catalog yet. */
+  defaultSubcategory: CatalogSubcategory | null
   printW: number
   printH: number
   defaultMargin: number
@@ -533,8 +748,14 @@ function CustomSizeModal({
   onCreated: () => void
   onPrepareCrop?: (aspectRatio: number) => void
 }) {
-  const bounds = boundsForSubcategory(subcategoryId)
-  const dpi = bounds.requiredDPI
+  // The catalog publishes the real bounds and DPI per print type; the seeded table is
+  // the fallback for a medium whose rows have not been synced yet. The server gates
+  // the save against these same numbers (loadBuilderContext, given the tree).
+  const legacyBounds = boundsForSubcategory(subcategoryId)
+  const bounds: SizeBounds = defaultSubcategory
+    ? boundsOf(defaultSubcategory)
+    : { minW: legacyBounds.minW, maxW: legacyBounds.maxW, minH: legacyBounds.minH, maxH: legacyBounds.maxH }
+  const dpi = defaultSubcategory ? Number(defaultSubcategory.required_dpi) : legacyBounds.requiredDPI
   const { ratio, orientation } = aspectFromMaster(printW, printH)
   const maxW = Math.floor(printW / dpi * 100) / 100
   const maxH = Math.floor(printH / dpi * 100) / 100
@@ -712,6 +933,16 @@ function CustomSizeModal({
             <Checkline ok={check.resolutionOk} text={check.resolutionOk ? `Master supports up to ${maxW}×${maxH} in` : `Too large — master supports up to ${maxW}×${maxH} in at ${dpi} DPI.`} />
             <Checkline ok={check.boundsOk} text={check.boundsOk ? `Within Lumaprints limits (${bounds.minW}–${bounds.maxW} × ${bounds.minH}–${bounds.maxH} in)` : check.reasons.find((r) => /exceeds|below/.test(r)) || 'Outside Lumaprints limits.'} />
             <Checkline ok={check.aspectOk} text={check.aspectOk ? `Matches the artwork (${check.aspectDeltaPct.toFixed(1)}% off)` : `${check.aspectDeltaPct.toFixed(1)}% off the artwork’s shape — prepare the matching crop or choose a custom size.`} />
+            {subcategories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="font-body text-[10px] uppercase tracking-wider text-charcoal/50">Fits</span>
+                <FitsChips
+                  subcategories={subcategories}
+                  size={{ widthIn, heightIn }}
+                  master={{ printWidthPx: printW, printHeightPx: printH }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Pricing panel */}

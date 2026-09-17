@@ -60,8 +60,23 @@ const IN_CHUNK = 200
 /** How long the storefront tree may be served before a background refresh (seconds). */
 const CATALOG_REVALIDATE_SECONDS = 300
 
+/**
+ * The host whose catalog rows a READ uses. Normally the provider host the app talks to
+ * (`catalogHost()`); on a preview deploy, which talks to the SANDBOX provider, the
+ * catalog tables hold no sandbox rows and every product would offer nothing. P0 proved
+ * the two hosts share every id (F12 closed: 1,239 same-name-same-id rows), so a preview
+ * may read the production-host rows and still price and order against the sandbox.
+ * `CATALOG_READ_HOST` is honoured only outside production; sync writes never use it
+ * (they key on the host they walked), so a preview can never write production rows.
+ */
+export function catalogReadHost(env: Record<string, string | undefined> = process.env): string {
+  const override = (env.CATALOG_READ_HOST ?? '').trim()
+  if (override && env.VERCEL_ENV !== 'production') return override
+  return catalogHost()
+}
+
 export interface LoadCatalogOptions {
-  /** API host whose ids this tree is built from; defaults to the configured provider host. */
+  /** API host whose ids this tree is built from; defaults to the configured read host. */
   host?: string
   /** Admin view: keep disabled and tombstoned rows so the toggle UI can show them. */
   includeDisabled?: boolean
@@ -162,7 +177,7 @@ export async function loadCatalog(
   client: SupabaseClient,
   opts: LoadCatalogOptions = {},
 ): Promise<Catalog> {
-  const host = opts.host ?? catalogHost()
+  const host = opts.host ?? catalogReadHost()
   const includeDisabled = opts.includeDisabled === true
 
   const [mediumSwitch, subcategoryRows] = await Promise.all([
@@ -209,7 +224,7 @@ export async function loadCatalog(
  * rows two different policies chose. RLS stays the backstop for any cookie-client read.
  */
 export const getPublicCatalog = cache(async (): Promise<Catalog> => {
-  const host = catalogHost()
+  const host = catalogReadHost()
   const read = unstable_cache(
     async () => loadCatalog(await createServiceClient(), { host, includeDisabled: false }),
     ['lumaprints-catalog', host],
@@ -233,7 +248,7 @@ export const getPublicCatalog = cache(async (): Promise<Catalog> => {
  * may be serialized into a browser payload. Callers send prices and labels, not the tree.
  */
 export const getFullCatalogCached = cache(async (): Promise<Catalog> => {
-  const host = catalogHost()
+  const host = catalogReadHost()
   const read = unstable_cache(
     async () => loadCatalog(await createServiceClient(), { host, includeDisabled: true }),
     ['lumaprints-catalog-full', host],
