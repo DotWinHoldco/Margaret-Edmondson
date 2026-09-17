@@ -1,31 +1,29 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-17 (Full LumaPrints catalog program — P0 + P1 live on production; P2 in review)
+Last updated: 2026-09-17 (Full LumaPrints catalog program — P0, P1, P2 live dark on production; P3–P9 next; resume in a fresh session)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-17) — FULL LUMAPRINTS CATALOG PROGRAM: P0 + P1 LIVE, P2 IN REVIEW (plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3, blueprint `docs/blueprints/2026-09-16-full-catalog.md`).**
-> Trunk: `main` (fast-forwarded to the live commit on 09-16; git-triggered production deploys). PRs #1–#7
-> merged. Production DB carries the catalog v2 tables (migration 20260917000100) and the pricing cache v2
-> columns + `site_settings.print_configurator_enabled = false` (20260917000200). Production catalog synced
-> (51 subcategories / 225 groups / 1,265 options; one default per group; 3 required groups); enabled = the
-> FIVE subcategories the store sells today with their legacy option sets — the plan's "two mediums" premise
-> was wrong (94 canvas / 91 paper / 34 framed paper / 30 foam / 29 framed canvas active variants).
-> V6.1 parity 834/834 on production. Dry-run sync: 0 destructive diffs.
-> Env: Vercel production LumaPrints pair (sensitive) targets production ONLY; preview = sandbox pair +
-> sandbox base URL + Supabase public vars. Production-key operations run inside the app behind
-> `requireAdmin` (aal2) and are driven from the admin browser session. The production key is throttled
-> far below 40/min by the provider (ThrottlerException); sync treats throttles as transient chunks.
-> **GOVERNOR OVERRIDE ACTIVE** for session 15e819c2 (`.dotwin/governor-override` + `~/.dotwin/`), +12 agents,
-> expires 2026-09-17T05:50Z, reason recorded in the file; remove at program close.
-> IN FLIGHT: P2 (rules engine, quote engine + cache v2, public print-quote route, verification harness) on
-> `catalog/p2-pricing-engine` — security pass done, 3 blocking findings being closed (flag gate + fulfillment
-> reserve, label delta leak, variant overrides). Full sandbox V2 sweep: 4,261 assertions pass; 12 framed-paper
-> profiles are unpriceable on the sandbox host (F36, being classified). NEXT: land P2 → P3 admin catalog
-> manager + coverage generator → P4 configurator (flag OFF in prod) → P5 money path (test-mode router guard
-> FIRST) → P6 → P7 → P8 → P9 report. Two human gates remain at the end (V7.9 real order; flag flip).
+> **Current truth (2026-09-17 03:30 UTC) — FULL LUMAPRINTS CATALOG PROGRAM: P0, P1, P2 LIVE ON PRODUCTION (dark); P3–P9 NOT STARTED. Session 15e819c2 closed at the machine usage ceiling — RESUME IN A FRESH SESSION.**
+> Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 (section 1 corrected: the store sells FIVE mediums today). Blueprint
+> `docs/blueprints/2026-09-16-full-catalog.md` Status: executing. Trunk `main` (git deploys production). PRs #1–#10 merged.
+> Production DB: catalog v2 tables (20260917000100) + pricing cache v2 + `site_settings.print_configurator_enabled=false`
+> (20260917000200). Production catalog synced (51 / 225 / 1,265; one default per group; 3 required groups); enabled =
+> the five live subcategories with their legacy option sets. V6.1 parity 834/834. Dry-run sync 0 diffs. Public quote
+> route deployed DARK (404 until the flag flips). No governor override remains.
+> Env: Vercel production LumaPrints pair (sensitive) targets production only; preview = sandbox pair + sandbox base URL.
+> Production-key operations run inside the app behind `requireAdmin` (aal2) via the admin browser session (route calls
+> exceed the browser tool's 45 s limit: fire-and-forget fetch + poll). Provider throttles the production key
+> (~10/min, ThrottlerException) and caps a pricing batch at 50 items; the sandbox drops rows at random in long sweeps.
+> NEXT (fresh session): (1) V2 sweep F37 classification + `--strict`, green sandbox run; (2) P3 admin catalog manager —
+> toggles as SECURITY DEFINER RPCs checking `is_admin_or_artist() AND auth.jwt()->>'aal'='aal2'` + audit row, VariantsTab
+> v2, offer-coverage generator (budget-aware: one provider batch per (subcategory,size) miss + 4 shipping quotes); (3) P4
+> configurator + preview behind the flag; (4) P5 money path — FIRST unit the router guard (a `stripe_mode='test'` order
+> must never be submitted to a non-sandbox LumaPrints host; preview + prod share one DB and one Stripe webhook); (5) P6
+> fulfillment (8 sandbox orders); (6) P7; (7) P8; (8) P9 report + GO checklist. Human gates: V7.9 real order; flag flip.
+> Dependency-audit CI step is RED on main independent of this program (36 advisories incl. Next 16.3.0 critical).
 
 > **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**
 > The password gate is now DB-driven: `site_settings.gate_enabled/gate_password/gate_secret/
