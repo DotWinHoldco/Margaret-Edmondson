@@ -8,12 +8,15 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import OfferCoverage from '@/components/admin/OfferCoverage'
+import DoorNotice from '@/components/admin/catalog/DoorNotice'
+import { readConfiguratorDoorState } from '@/lib/catalog/door-state'
 
 export const metadata: Metadata = {
   title: 'Print Coverage',
 }
 
-export default function PrintCoveragePage() {
+export default async function PrintCoveragePage() {
+  const door = await readConfiguratorDoorState()
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 font-body text-xs text-charcoal/50">
@@ -31,6 +34,9 @@ export default function PrintCoveragePage() {
       <p className="mt-2 max-w-3xl font-body text-sm text-charcoal/60">
         Which artworks sell on which print types
       </p>
+      <div className="mt-4 max-w-3xl">
+        <DoorNotice screen="coverage" door={door} />
+      </div>
       <OfferCoverage />
     </div>
   )

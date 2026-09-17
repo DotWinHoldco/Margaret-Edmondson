@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #admin-ux — Print Catalog and Print Coverage say where the switches are and whether shoppers can see them yet
+
+- **Date:** 2026-09-17
+- **Module:** src/components/admin/catalog/DoorNotice.tsx · src/lib/catalog/door-state.ts (`readConfiguratorDoorState`, service-role read of the flag, fail-safe "unknown") · /admin/catalog and /admin/products/coverage pages
+- **Category:** admin UX (R1)
+- **Summary:** Owner feedback: the Coverage screen gave no path to turning a frame or print type on. Both screens now carry a note: Coverage says it only reports and links to Print Catalog with the switch order (print type → group → option → default); Catalog links back to Coverage for sizes; both state the configurator door plainly (ON: shoppers see what is switched on; OFF: everything is staged for launch and the store keeps today's default size list) and link the "Turn print types and options on or off" guide.
+- **Verify:** tsc 0 · eslint 0 · `npm run verify` pre-tier passing (supabase-boundaries clean after moving the service read out of the component).
+
 ## #full-catalog #orchestration — session 33beeda3: P3–P9 shipped to production (door closed), report GO, human gates remain
 
 - **Date:** 2026-09-17
