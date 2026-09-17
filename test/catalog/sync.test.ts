@@ -54,7 +54,7 @@ function loadFixture(): Fixture {
 }
 
 // The mock reads this at call time, so a test can mutate the catalog between runs.
-const state = vi.hoisted(() => ({ catalog: null as unknown as Fixture, costCalls: 0 }))
+const state = vi.hoisted(() => ({ catalog: null as unknown as Fixture, costCalls: 0, costBatchSizes: [] as number[] }))
 
 function findSubcategory(id: number): { category: FixtureCategory; sub: FixtureSubcategory } | null {
   for (const category of state.catalog.categories) {
@@ -103,6 +103,7 @@ vi.mock('@/lib/integrations/lumaprints', () => ({
     findSubcategory(Number(subcategoryId))?.sub.optionGroups ?? [],
   getProductsCost: async (items: Array<{ subcategoryId: number; size: { width: number; height: number } }>) => {
     state.costCalls += 1
+    state.costBatchSizes.push(items.length)
     return items.map((item) => {
       const found = findSubcategory(item.subcategoryId)
       // P1: the three framed-canvas depths are the only rows in the catalog that
@@ -163,6 +164,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 beforeEach(() => {
   state.catalog = loadFixture()
   state.costCalls = 0
+  state.costBatchSizes = []
 })
 
 // ---------------------------------------------------------------------------
@@ -620,6 +622,22 @@ describe('catalog sync v2 — transient provider conditions', () => {
     const immediate = await startCatalogSync(createMemoryCatalogStore(), bad, { host: HOST, ...FAST })
     expect(immediate.status).toBe('failed')
     expect(immediate.error).toBe('provider_error:400')
+  })
+})
+
+describe('catalog sync v2 — provider batch limits', () => {
+  it('splits the defaults probe at the provider maximum of 50 items per pricing call', async () => {
+    // Production has 51 subcategories; the sandbox fixture has exactly 50, which is why a
+    // single-batch probe passed every test and then 400ed on the first production run.
+    const cat107 = state.catalog.categories.find((c) => c.id === 107)!
+    cat107.subcategories.push({ ...cat107.subcategories[0], subcategoryId: 107002, name: 'Peel and Stick Art Print (second)' })
+    const store = createMemoryCatalogStore()
+    const run = await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    expect(run.status).toBe('completed')
+    expect(state.costBatchSizes).toEqual([50, 1])
+    // 1 category list + 7 subcategory lists + 51 option lists + 2 defaults batches.
+    expect(run.stats.requests).toBe(61)
+    expect(run.stats.subcategories).toBe(51)
   })
 })
 
