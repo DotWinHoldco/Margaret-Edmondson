@@ -262,3 +262,10 @@ UNSUBSCRIBE_SECRET, newsletter RLS, is_admin_or_artist.
 
 ### Relevant history
 `#findings` (audit register), `#reg-financial`, `#reg-comms`, `#migration-drift`.
+
+### [2026-06-22T21:27:12.930Z] #build-check
+Status: green
+Verified: 11/11 required gates
+Failing: none
+
+
