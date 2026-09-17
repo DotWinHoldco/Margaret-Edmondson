@@ -42,8 +42,11 @@ types before fan-out.
   `is_admin_or_artist()` for all writes, public SELECT of enabled rows only for the storefront
   (anon reads never see disabled or tombstoned rows through the public policy); service role
   writes from sync/cron only.
-- Grant boundary: browser roles never write these tables directly; every toggle goes through
-  `/api/admin/catalog/*` (requireAdmin aal2) and is audit-logged.
+- Grant boundary: browser roles hold SELECT only (public: enabled + non-tombstoned rows; admins:
+  all rows); NO insert/update/delete grant or policy for anon/authenticated. Sync writes as the
+  service role behind `requireAdmin`/`requireCron`; P3 toggles go through SECURITY DEFINER RPCs
+  that check `is_admin_or_artist()` AND `auth.jwt()->>'aal' = 'aal2'` and write the audit row in
+  the same transaction. Tombstones never touch `enabled`; finalize refuses a half-empty walk.
 - Doors seeded DARK: `site_settings.print_configurator_enabled = false`; every new subcategory /
   group / option `enabled = false` except the exact current live configuration (plan §4.3).
 - Transaction owners: order creation stays in the Stripe webhook path (`order_items` insert keyed
