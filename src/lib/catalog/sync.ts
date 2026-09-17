@@ -3,9 +3,12 @@
 //
 // Two facts shape this whole module.
 //
-// 1. A full walk is 59 provider requests paced at 25/minute (the shared key has
-//    40/minute and the live storefront's quote path needs the rest), so a run is
-//    minutes of wall time and the house invocation ceiling is 60 seconds. The
+// 1. A full walk is 59 provider requests paced at 12/minute, so a run is minutes of
+//    wall time and the house invocation ceiling is 60 seconds. Twelve, not
+//    twenty-five: the provider publishes 40 requests/minute for the whole key and the
+//    storefront quotes on that same key, so a background walk that took most of the
+//    budget would hand customers 429s at exactly cache-miss time. Sync takes under a
+//    third and leaves the rest. The
 //    walk is therefore a row in `catalog_sync_runs` that successive invocations
 //    advance one stage at a time, and every chunk is idempotent: re-running the
 //    same cursor position produces the same rows, so a timeout costs one repeat,
@@ -15,8 +18,10 @@
 //    same rows. Sync owns the provider's half (names, bounds, DPI, which options
 //    exist) and must not touch the other half (enabled, is_default, labels,
 //    notes, swatches, geometry, sort order, pricing mode). A row that disappears
-//    from the provider is tombstoned and switched off, never deleted: paid orders
-//    reference these rows by id forever.
+//    from the provider is TOMBSTONED, never deleted and never switched off: paid
+//    orders reference these rows by id forever, the loader's cascade stops offering a
+//    tombstoned row immediately, and if the provider lists it again the admin's own
+//    answer to "do we sell this" is still the one on the row.
 //
 // The one deliberate provider call with an EMPTY options array lives in the
 // `defaults` stage. Everywhere else an empty set is forbidden, because the
@@ -30,6 +35,9 @@ import {
   getProductsCost,
   getSubcategories,
   getSubcategoryOptions,
+  LumaprintsApiError,
+  LumaprintsBudgetError,
+  LumaprintsDisabledError,
   type ProductCostRequestItem,
   type ProductCostResult,
 } from '@/lib/integrations/lumaprints'
@@ -91,6 +99,39 @@ export class CatalogSyncRefusedError extends Error {
   }
 }
 
+/** A walk too short to be trusted with tombstones. Carries its counts for the log. */
+export class CatalogTombstoneRefusedError extends Error {
+  constructor(readonly walked: number, readonly known: number, readonly host: string) {
+    super(`Refusing to tombstone: saw ${walked} of ${known} known subcategories`)
+    this.name = 'CatalogTombstoneRefusedError'
+  }
+}
+
+/**
+ * Why a run stopped, as a fixed vocabulary rather than an exception message.
+ *
+ * `catalog_sync_runs.error` is read back by the admin UI and lives in the database
+ * indefinitely, so it must never carry provider response text: a 4xx body is written
+ * by a third party, can quote the request that produced it, and a request to this
+ * provider carries a key. The class is enough to act on; the detail belongs in the
+ * server log, where it expires.
+ */
+export type SyncErrorClass =
+  | `provider_error:${number}`
+  | 'budget_exhausted'
+  | 'disabled'
+  | 'refused_tombstone'
+  | 'stale: no heartbeat for 15 minutes'
+  | 'internal'
+
+export function classifySyncError(err: unknown): SyncErrorClass {
+  if (err instanceof LumaprintsApiError) return `provider_error:${err.status}`
+  if (err instanceof LumaprintsBudgetError) return 'budget_exhausted'
+  if (err instanceof LumaprintsDisabledError) return 'disabled'
+  if (err instanceof CatalogTombstoneRefusedError) return 'refused_tombstone'
+  return 'internal'
+}
+
 export interface StartSyncOptions {
   host: string
   dryRun?: boolean
@@ -99,15 +140,27 @@ export interface StartSyncOptions {
 export interface ChunkOptions {
   /** Stop starting new work after this much wall time. Default 45s of a 60s ceiling. */
   budgetMs?: number
-  /** Hard ceiling on provider requests in one invocation. Default 20. */
+  /** Hard ceiling on provider requests in one invocation. Default 8. */
   maxRequests?: number
-  /** Minimum gap between provider requests. Default 2400ms = 25/minute. */
+  /** Minimum gap between provider requests. Default 5000ms = 12/minute. */
   minIntervalMs?: number
 }
 
-const DEFAULT_BUDGET_MS = 45_000
-const DEFAULT_MAX_REQUESTS = 20
-const DEFAULT_MIN_INTERVAL_MS = 2400
+export const DEFAULT_BUDGET_MS = 45_000
+/**
+ * Provider calls per invocation. Eight at a five second pace is forty seconds of the
+ * forty-five second budget, which is the most a chunk can spend without risking the
+ * sixty second invocation ceiling.
+ */
+export const DEFAULT_MAX_REQUESTS = 8
+/** 5s between calls = 12 requests/minute out of the key-wide 40. */
+export const DEFAULT_MIN_INTERVAL_MS = 5000
+/**
+ * How long one provider call may take before the invocation is at risk. A chunk stops
+ * starting new calls this far from the end of its budget, so a slow response cannot
+ * be killed mid-flight with its writes half applied.
+ */
+export const WORST_CASE_REQUEST_MS = 10_000
 /** The probe size every subcategory is priced at, clamped into its own bounds. */
 const PROBE_WIDTH_IN = 12
 const PROBE_HEIGHT_IN = 16
@@ -204,11 +257,14 @@ class ChunkBudget {
     return this.elapsed >= this.budgetMs
   }
 
-  /** Room for one more paced provider call inside both ceilings. */
+  /**
+   * Room for one more paced provider call inside both ceilings, counting the pace it
+   * has to wait AND the worst case the call itself may take.
+   */
   canRequest(): boolean {
     if (this.requests >= this.maxRequests) return false
     const pacing = this.lastRequestAt > 0 ? this.minIntervalMs : 0
-    return this.elapsed + pacing < this.budgetMs
+    return this.elapsed + pacing + WORST_CASE_REQUEST_MS < this.budgetMs
   }
 
   async request<T>(call: () => Promise<T>): Promise<T> {
@@ -686,15 +742,18 @@ const LIVE_BOOTSTRAP: Array<{ subcategory: RegExp; groups: string[]; options: Re
 async function applyLiveBootstrap(ctx: ChunkContext): Promise<void> {
   const rows = await ctx.store.listSubcategories(ctx.host)
   for (const spec of LIVE_BOOTSTRAP) {
-    const row = rows.find((r) => spec.subcategory.test(r.name))
+    // Never switch on a row the provider no longer lists: the bootstrap seeds what we
+    // sell today, and an id the provider dropped is not that.
+    const row = rows.find((r) => spec.subcategory.test(r.name) && !r.removed_from_api)
     if (!row) continue
     await ctx.store.setSubcategoryEnabled(row.id, true)
     const groups = await ctx.store.listGroups(row.id)
     for (const group of groups) {
-      if (!spec.groups.includes(group.group_key)) continue
+      if (!spec.groups.includes(group.group_key) || group.removed_from_api) continue
       await ctx.store.setGroupFlags(group.id, { enabled: true })
       const options = await ctx.store.listOptions(group.id)
       for (const option of options) {
+        if (option.removed_from_api) continue
         if (spec.options.some((re) => re.test(option.api_option_name))) {
           await ctx.store.setOptionFlags(option.id, { enabled: true })
         }
@@ -722,9 +781,7 @@ async function stepFinalize(ctx: ChunkContext, cursor: SyncCursor): Promise<Sync
   const known = (await ctx.store.listSubcategories(ctx.host)).filter((r) => !r.removed_from_api).length
   const walked = new Set(cursor.subcategoryIds ?? []).size
   if (known > 0 && walked * 2 < known) {
-    throw new Error(
-      `Refusing to tombstone: this run saw ${walked} of ${known} known subcategories on ${ctx.host}`,
-    )
+    throw new CatalogTombstoneRefusedError(walked, known, ctx.host)
   }
 
   // "Seen in this run" is `last_seen_at >= the run's start`, which is the one
@@ -736,7 +793,10 @@ async function stepFinalize(ctx: ChunkContext, cursor: SyncCursor): Promise<Sync
     (await ctx.store.tombstoneSubcategoriesNotSeen(ctx.host, since))
   ctx.stats.tombstoned += tombstoned
 
-  if ((await ctx.store.countEnabledSubcategories(ctx.host)) === 0) await applyLiveBootstrap(ctx)
+  // One shot, keyed on "has this host ever finished a real walk", not on "is anything
+  // enabled". Keying it on the enabled count would re-seed today's configuration every
+  // time an admin turned the whole catalog off, quietly putting products back on sale.
+  if (!(await ctx.store.hasCompletedRun(ctx.host))) await applyLiveBootstrap(ctx)
 
   invalidateCatalogCache()
   return { stage: 'done' }
@@ -754,7 +814,7 @@ async function runChunk(
   client: CatalogProviderClient,
   run: CatalogSyncRunRow,
   options: ChunkOptions,
-): Promise<CatalogSyncRunRow> {
+): Promise<ClaimedRun> {
   const budget = new ChunkBudget(
     options.budgetMs ?? DEFAULT_BUDGET_MS,
     options.maxRequests ?? DEFAULT_MAX_REQUESTS,
@@ -800,24 +860,27 @@ async function runChunk(
       }
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'catalog sync failed'
-    return store.updateRun(run.id, {
+    // The class is persisted; the detail is logged and expires with the log.
+    console.error('[catalog-sync] chunk failed:', err instanceof Error ? err.message : err)
+    const failed = await store.updateRun(run.id, {
       status: 'failed',
-      error: message,
+      error: classifySyncError(err),
       finished_at: new Date().toISOString(),
     })
+    return { ...failed, claimed: true }
   }
 
   ctx.stats.requests += budget.requests
   ctx.stats.chunks += 1
 
   const done = cursor.stage === 'done'
-  return store.updateRun(run.id, {
+  const saved = await store.updateRun(run.id, {
     cursor,
     stats: addStats(run.stats, ctx.stats),
     ...(run.dry_run ? { diff: mergeDiff(run.diff ?? emptyDiff(), ctx.diff) } : {}),
     ...(done ? { status: 'completed' as const, finished_at: new Date().toISOString() } : {}),
   })
+  return { ...saved, claimed: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -825,29 +888,131 @@ async function runChunk(
 // ---------------------------------------------------------------------------
 
 /**
- * Open a run and walk the first chunk. Refuses when a run is already in flight
- * for this host: two walks would double-spend the shared rate limit and race
- * each other's merges (the database enforces the same thing with a partial
- * unique index, so the refusal holds across invocations).
+ * A run row plus whether THIS call is the one walking it. `claimed: false` means
+ * another invocation holds the run and this one did nothing, which is a normal
+ * outcome under an overlapping cron, not an error.
+ */
+export type ClaimedRun = CatalogSyncRunRow & { claimed: boolean }
+
+/** A `running` run with no heartbeat for this long is presumed dead. */
+export const STALE_RUN_MS = 15 * 60 * 1000
+/** After a failed run the cron waits this long before opening another one. */
+export const FAILED_RUN_COOLDOWN_MS = 60 * 60 * 1000
+/** A completed walk is fresh for this long. */
+export const REFRESH_AFTER_MS = 6 * 24 * 60 * 60 * 1000
+
+const UNIQUE_VIOLATION = '23505'
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === UNIQUE_VIOLATION
+}
+
+/**
+ * Fail any run that claims to be running but has not written a heartbeat in fifteen
+ * minutes.
+ *
+ * Without this one killed invocation wedges the host forever: the partial unique index
+ * allows exactly one `running` row, so every later start is refused and the catalog
+ * silently stops refreshing. Fifteen minutes is far longer than a chunk can legally
+ * take (45s of budget), so a live run is never reaped.
+ */
+export async function reapStaleRuns(
+  store: CatalogStore,
+  host: string,
+  nowMs: number = Date.now(),
+): Promise<number> {
+  const running = await store.findRunningRun(host)
+  if (!running) return 0
+  if (nowMs - Date.parse(running.updated_at) < STALE_RUN_MS) return 0
+  await store.updateRun(running.id, {
+    status: 'failed',
+    error: 'stale: no heartbeat for 15 minutes',
+    finished_at: new Date(nowMs).toISOString(),
+  })
+  return 1
+}
+
+export type CronPlan =
+  | { action: 'continue'; runId: string }
+  | { action: 'start' }
+  | { action: 'skip'; reason: 'cooldown' | 'fresh' }
+
+/**
+ * What a cron tick should do, given this host's recent runs. Pure so the decision is
+ * testable without a route, a clock or a database.
+ *
+ * The cooldown is the part that matters: a run that fails for a reason the next tick
+ * cannot fix (the provider is down, the key is over budget) would otherwise be retried
+ * every five minutes all night, spending the shared request budget on the same
+ * failure. One hour of quiet is long enough for an outage to end and short enough that
+ * a real problem still surfaces before the morning.
+ */
+export function planCatalogSyncTick(runs: readonly CatalogSyncRunRow[], nowMs: number = Date.now()): CronPlan {
+  const running = runs.find((r) => r.status === 'running')
+  if (running) return { action: 'continue', runId: running.id }
+
+  const lastFailed = runs
+    .filter((r) => r.status === 'failed')
+    .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))[0]
+  if (lastFailed && nowMs - Date.parse(lastFailed.finished_at ?? lastFailed.updated_at) < FAILED_RUN_COOLDOWN_MS) {
+    return { action: 'skip', reason: 'cooldown' }
+  }
+
+  const fresh = runs.some(
+    (r) =>
+      r.status === 'completed' &&
+      !r.dry_run &&
+      nowMs - Date.parse(r.finished_at ?? r.started_at) < REFRESH_AFTER_MS,
+  )
+  if (fresh) return { action: 'skip', reason: 'fresh' }
+
+  return { action: 'start' }
+}
+
+/**
+ * Open a run and walk the first chunk. Refuses when a run is already in flight for
+ * this host: two walks would double-spend the shared rate limit and race each other's
+ * merges. The check is belt and braces with the partial unique index, which is the
+ * part that actually holds across invocations, so a 23505 from the insert is the same
+ * refusal arriving a moment later.
  */
 export async function startCatalogSync(
   store: CatalogStore,
   client: CatalogProviderClient,
-  options: StartSyncOptions & ChunkOptions,
-): Promise<CatalogSyncRunRow> {
+  options: StartSyncOptions & ChunkOptions & { now?: number },
+): Promise<ClaimedRun> {
+  await reapStaleRuns(store, options.host, options.now ?? Date.now())
   const inFlight = await store.findRunningRun(options.host)
   if (inFlight) throw new CatalogSyncBusyError(inFlight.id)
-  const run = await store.createRun(newRunRow(options.host, options.dryRun === true))
+
+  let run: CatalogSyncRunRow
+  try {
+    run = await store.createRun(newRunRow(options.host, options.dryRun === true))
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      const winner = await store.findRunningRun(options.host)
+      throw new CatalogSyncBusyError(winner?.id ?? 'unknown')
+    }
+    throw err
+  }
   return runChunk(store, client, run, options)
 }
 
-/** Walk one more chunk of an in-flight run. */
+/**
+ * Walk one more chunk of an in-flight run, but only after claiming it.
+ *
+ * The claim is a conditional update on the `updated_at` this call read. Two overlapping
+ * invocations (a cron tick that ran long and the next one, an admin pressing the button
+ * while the cron works) would otherwise both walk from the same cursor and spend the
+ * shared provider budget twice for one chunk of progress. The loser returns the run it
+ * found, untouched, having called the provider zero times.
+ */
 export async function continueCatalogSync(
   store: CatalogStore,
   client: CatalogProviderClient,
   runId: string,
   options: ChunkOptions = {},
-): Promise<CatalogSyncRunRow> {
+): Promise<ClaimedRun> {
   const run = await store.getRun(runId)
   if (!run) throw new CatalogSyncRefusedError('That sync run does not exist')
   if (run.status !== 'running') {
@@ -855,7 +1020,10 @@ export async function continueCatalogSync(
     // at a chunk that did not finish, and re-entering it would bury the reason.
     throw new CatalogSyncRefusedError(`This sync run is ${run.status} and cannot be continued`)
   }
-  return runChunk(store, client, run, options)
+
+  const claimed = await store.claimRun(run.id, run.updated_at)
+  if (!claimed) return { ...run, claimed: false }
+  return runChunk(store, client, claimed, options)
 }
 
 /**
@@ -866,7 +1034,7 @@ export async function runCatalogSyncToCompletion(
   store: CatalogStore,
   client: CatalogProviderClient,
   options: StartSyncOptions & ChunkOptions & { maxChunks?: number },
-): Promise<CatalogSyncRunRow> {
+): Promise<ClaimedRun> {
   const maxChunks = options.maxChunks ?? 200
   let run = await startCatalogSync(store, client, options)
   for (let i = 1; i < maxChunks; i++) {

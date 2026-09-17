@@ -13,6 +13,12 @@
 // is a SELECT, then an INSERT or an UPDATE with an explicit column list, keyed by
 // the natural key. A 23505 on the insert means a concurrent writer won the race,
 // which is not an error: re-read and apply the API-sourced patch instead.
+//
+// A tombstone sets `removed_from_api` and NOTHING else. It deliberately does not
+// touch `enabled`, because `enabled` is the admin's answer to "do we sell this" and a
+// provider hiccup must not silently rewrite it: the loader's cascade already treats a
+// tombstoned row as unsellable, so the row stops being offered the moment it is
+// tombstoned, and when the provider brings it back the admin's answer is still there.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
@@ -185,6 +191,21 @@ export interface CatalogStore {
   findRunningRun(host: string): Promise<CatalogSyncRunRow | null>
   listRuns(host: string, limit: number): Promise<CatalogSyncRunRow[]>
   updateRun(id: string, patch: SyncRunPatch): Promise<CatalogSyncRunRow>
+  /**
+   * Has this host ever finished a real (non dry-run) walk? The live bootstrap is a
+   * one-shot keyed on this and not on "nothing is enabled", so an admin who turns the
+   * whole catalog off for a weekend does not get today's configuration re-seeded on
+   * the next cron tick.
+   */
+  hasCompletedRun(host: string): Promise<boolean>
+  /**
+   * Take the run for one chunk: a conditional update that succeeds only while the row
+   * is still `running` AND still carries the `updated_at` the caller read. Two
+   * invocations that overlap therefore cannot both walk the same cursor and spend the
+   * shared provider budget twice. Returns the claimed row, or null when someone else
+   * has it.
+   */
+  claimRun(id: string, expectedUpdatedAt: string): Promise<CatalogSyncRunRow | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -322,7 +343,8 @@ export function createSupabaseCatalogStore(client: SupabaseClient): CatalogStore
     async tombstoneSubcategoriesNotSeen(host, seenSince) {
       const { data, error } = await db
         .from(SUBCATEGORIES)
-        .update({ removed_from_api: true, enabled: false })
+        // `enabled` is untouched on purpose: see the tombstone note in the header.
+        .update({ removed_from_api: true })
         .eq('api_host', host)
         .eq('removed_from_api', false)
         .lt('last_seen_at', seenSince)
@@ -379,7 +401,7 @@ export function createSupabaseCatalogStore(client: SupabaseClient): CatalogStore
       for (const slice of chunk(refs, ID_CHUNK)) {
         const { data, error } = await db
           .from(GROUPS)
-          .update({ removed_from_api: true, enabled: false })
+          .update({ removed_from_api: true })
           .in('subcategory_ref', slice)
           .eq('removed_from_api', false)
           .lt('last_seen_at', seenSince)
@@ -453,7 +475,7 @@ export function createSupabaseCatalogStore(client: SupabaseClient): CatalogStore
       for (const slice of chunk(groupIds, ID_CHUNK)) {
         const { data, error } = await db
           .from(OPTIONS)
-          .update({ removed_from_api: true, enabled: false })
+          .update({ removed_from_api: true })
           .in('group_ref', slice)
           .eq('removed_from_api', false)
           .lt('last_seen_at', seenSince)
@@ -507,6 +529,30 @@ export function createSupabaseCatalogStore(client: SupabaseClient): CatalogStore
         .single()
       if (error) fail('update sync run', error)
       return data as CatalogSyncRunRow
+    },
+
+    async hasCompletedRun(host) {
+      const { count, error } = await db
+        .from(RUNS)
+        .select('id', { count: 'exact', head: true })
+        .eq('api_host', host)
+        .eq('status', 'completed')
+        .eq('dry_run', false)
+      if (error) fail('count completed sync runs', error)
+      return (count ?? 0) > 0
+    },
+
+    async claimRun(id, expectedUpdatedAt) {
+      const { data, error } = await db
+        .from(RUNS)
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('status', 'running')
+        .eq('updated_at', expectedUpdatedAt)
+        .select(RUN_COLUMNS)
+        .maybeSingle()
+      if (error) fail('claim sync run', error)
+      return (data ?? null) as CatalogSyncRunRow | null
     },
   }
 }

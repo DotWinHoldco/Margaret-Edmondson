@@ -33,6 +33,19 @@ import type {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
+/**
+ * Strictly increasing ISO timestamps. Postgres resolves `updated_at` far finer than
+ * `Date.now()` does, and the claim in `claimRun` compares the value exactly: without
+ * this, two writes inside one millisecond would look like the same version and a test
+ * would prove the opposite of what it claims.
+ */
+let lastStamp = 0
+function nextStamp(): string {
+  const now = Math.max(Date.now(), lastStamp + 1)
+  lastStamp = now
+  return new Date(now).toISOString()
+}
+
 class UniqueViolation extends Error {
   code = '23505'
   constructor(key: string) {
@@ -122,8 +135,9 @@ export function createMemoryCatalogStore(): MemoryCatalogStore {
       for (const row of allSubcategories()) {
         if (row.api_host !== host || row.removed_from_api) continue
         if (row.last_seen_at >= seenSince) continue
+        // `enabled` is deliberately left alone: a tombstone records what the provider
+        // did, never what the admin decided.
         row.removed_from_api = true
-        row.enabled = false
         n += 1
       }
       return n
@@ -163,8 +177,9 @@ export function createMemoryCatalogStore(): MemoryCatalogStore {
       for (const row of allGroups()) {
         if (requireSubcategory(row.subcategory_ref).api_host !== host || row.removed_from_api) continue
         if (row.last_seen_at >= seenSince) continue
+        // `enabled` is deliberately left alone: a tombstone records what the provider
+        // did, never what the admin decided.
         row.removed_from_api = true
-        row.enabled = false
         n += 1
       }
       return n
@@ -213,8 +228,9 @@ export function createMemoryCatalogStore(): MemoryCatalogStore {
       for (const row of allOptions()) {
         if (hostOfOption(row) !== host || row.removed_from_api) continue
         if (row.last_seen_at >= seenSince) continue
+        // `enabled` is deliberately left alone: a tombstone records what the provider
+        // did, never what the admin decided.
         row.removed_from_api = true
-        row.enabled = false
         n += 1
       }
       return n
@@ -250,7 +266,18 @@ export function createMemoryCatalogStore(): MemoryCatalogStore {
     async updateRun(id: string, patch: SyncRunPatch) {
       const row = runs.get(id)
       if (!row) throw new Error(`no run ${id}`)
-      Object.assign(row, clone(patch), { updated_at: new Date().toISOString() })
+      Object.assign(row, clone(patch), { updated_at: nextStamp() })
+      return clone(row)
+    },
+
+    async hasCompletedRun(host) {
+      return [...runs.values()].some((r) => r.api_host === host && r.status === 'completed' && !r.dry_run)
+    },
+
+    async claimRun(id, expectedUpdatedAt) {
+      const row = runs.get(id)
+      if (!row || row.status !== 'running' || row.updated_at !== expectedUpdatedAt) return null
+      row.updated_at = nextStamp()
       return clone(row)
     },
 

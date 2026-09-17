@@ -64,7 +64,28 @@ function findSubcategory(id: number): { category: FixtureCategory; sub: FixtureS
   return null
 }
 
+// The provider's typed errors, redeclared inside the factory (a vi.mock factory is
+// hoisted, so it cannot close over a top-level class) and re-exported below for the
+// tests that throw them.
+const errors = vi.hoisted(() => ({
+  LumaprintsApiError: class LumaprintsApiError extends Error {
+    readonly status: number
+    readonly body: string
+    constructor(status: number, body: string) {
+      super(`Lumaprints API error (${status}): ${body}`)
+      this.name = 'LumaprintsApiError'
+      this.status = status
+      this.body = body
+    }
+  },
+  LumaprintsBudgetError: class LumaprintsBudgetError extends Error {},
+  LumaprintsDisabledError: class LumaprintsDisabledError extends Error {},
+}))
+
 vi.mock('@/lib/integrations/lumaprints', () => ({
+  LumaprintsApiError: errors.LumaprintsApiError,
+  LumaprintsBudgetError: errors.LumaprintsBudgetError,
+  LumaprintsDisabledError: errors.LumaprintsDisabledError,
   getCategories: async () => state.catalog.categories.map((c) => ({ id: c.id, name: c.name })),
   getSubcategories: async (categoryId: number | string) => {
     const category = state.catalog.categories.find((c) => c.id === Number(categoryId))
@@ -115,6 +136,14 @@ vi.mock('@/lib/integrations/lumaprints', () => ({
 import {
   CatalogSyncBusyError,
   CatalogSyncRefusedError,
+  DEFAULT_BUDGET_MS,
+  DEFAULT_MAX_REQUESTS,
+  DEFAULT_MIN_INTERVAL_MS,
+  FAILED_RUN_COOLDOWN_MS,
+  planCatalogSyncTick,
+  reapStaleRuns,
+  STALE_RUN_MS,
+  WORST_CASE_REQUEST_MS,
   continueCatalogSync,
   liveProviderClient,
   runCatalogSyncToCompletion,
@@ -122,7 +151,7 @@ import {
   type CatalogProviderClient,
 } from '@/lib/catalog/sync'
 import { createMemoryCatalogStore, type MemoryCatalogStore } from './memory-store'
-import type { CatalogOptionRow } from '@/lib/catalog/types'
+import type { CatalogOptionRow, CatalogSyncRunRow } from '@/lib/catalog/types'
 
 const HOST = 'us.api-sandbox.lumaprints.com'
 // Paced at zero: the pacing itself is not under test here and 59 real gaps would
@@ -510,7 +539,7 @@ describe('catalog sync v2 — mass-tombstone guard', () => {
     state.catalog.categories = []
     const run = await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
     expect(run.status).toBe('failed')
-    expect(run.error).toMatch(/Refusing to tombstone: this run saw 0 of 50/)
+    expect(run.error).toBe('refused_tombstone')
 
     const after = store.dump()
     expect(after.subcategories.filter((s) => s.removed_from_api)).toHaveLength(0)
@@ -557,14 +586,20 @@ describe('catalog sync v2 — chunked and resumable', () => {
     expect(snapshot(chunked)).toEqual(snapshot(oneShot))
   })
 
-  it('needs a handful of chunks at the house request ceiling', async () => {
+  it('needs a known number of chunks at the default request ceiling', async () => {
     const store = createMemoryCatalogStore()
-    const run = await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 20 })
+    // Only the pace is relaxed; the per-chunk ceiling is the production default.
+    const run = await runCatalogSyncToCompletion(store, liveProviderClient, {
+      host: HOST,
+      minIntervalMs: 0,
+      budgetMs: 600_000,
+    })
     expect(run.status).toBe('completed')
     expect(run.stats.requests).toBe(59)
-    // Pinned, not bounded: the cron window is sized from this number. 59 requests
-    // at 20 per invocation is three chunks, the last of which also finalizes.
-    expect(run.stats.chunks).toBe(3)
+    // Pinned, not bounded: the cron window is sized from this number. 59 requests at
+    // eight per invocation is eight chunks, the last of which also finalizes. At one
+    // tick every five minutes that is forty minutes inside a two hour window.
+    expect(run.stats.chunks).toBe(8)
   })
 })
 
@@ -635,7 +670,7 @@ describe('catalog sync v2 — one run at a time', () => {
     }
     const run = await startCatalogSync(store, broken, { host: HOST, ...FAST })
     expect(run.status).toBe('failed')
-    expect(run.error).toBe('provider is down')
+    expect(run.error).toBe('internal')
     await expect(continueCatalogSync(store, broken, run.id, FAST)).rejects.toBeInstanceOf(CatalogSyncRefusedError)
     // A failed run is terminal, so the next start is allowed.
     const next = await startCatalogSync(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 2 })
@@ -647,5 +682,352 @@ describe('catalog sync v2 — one run at a time', () => {
     await expect(continueCatalogSync(store, liveProviderClient, 'not-a-run', FAST)).rejects.toBeInstanceOf(
       CatalogSyncRefusedError,
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe('catalog sync v2 — provider budget headroom', () => {
+  it('paces itself to a third of the key-wide limit and caps a chunk at eight calls', () => {
+    // The provider publishes 40 requests/minute for the whole key and the storefront
+    // quotes on it. These two numbers are the promise that a night-time walk leaves
+    // the customer path most of that budget.
+    expect(DEFAULT_MIN_INTERVAL_MS).toBe(5000)
+    expect(60_000 / DEFAULT_MIN_INTERVAL_MS).toBe(12)
+    expect(DEFAULT_MAX_REQUESTS).toBe(8)
+    // Eight calls at a five second pace fit the budget with the worst case to spare.
+    expect((DEFAULT_MAX_REQUESTS - 1) * DEFAULT_MIN_INTERVAL_MS + WORST_CASE_REQUEST_MS).toBeLessThanOrEqual(
+      DEFAULT_BUDGET_MS,
+    )
+  })
+
+  it('never makes more than eight provider calls in one chunk', async () => {
+    const store = createMemoryCatalogStore()
+    const calls: string[] = []
+    const counting: CatalogProviderClient = {
+      getCategories: async () => {
+        calls.push('categories')
+        return liveProviderClient.getCategories()
+      },
+      getSubcategories: async (id) => {
+        calls.push(`subcategories:${id}`)
+        return liveProviderClient.getSubcategories(id)
+      },
+      getSubcategoryOptions: async (id) => {
+        calls.push(`options:${id}`)
+        return liveProviderClient.getSubcategoryOptions(id)
+      },
+      getProductsCost: async (items) => {
+        calls.push('cost')
+        return liveProviderClient.getProductsCost(items)
+      },
+    }
+    // Only the pace is relaxed; the request ceiling is the default under test.
+    const run = await startCatalogSync(store, counting, { host: HOST, minIntervalMs: 0 })
+    expect(calls).toHaveLength(DEFAULT_MAX_REQUESTS)
+    expect(run.stats.requests).toBe(DEFAULT_MAX_REQUESTS)
+    expect(run.status).toBe('running')
+  })
+
+  it('stops before a call that could outlive the invocation', async () => {
+    const store = createMemoryCatalogStore()
+    // A budget shorter than one worst-case response leaves no safe room to start.
+    const run = await startCatalogSync(store, liveProviderClient, {
+      host: HOST,
+      minIntervalMs: 0,
+      budgetMs: WORST_CASE_REQUEST_MS - 1_000,
+    })
+    expect(run.stats.requests).toBe(0)
+    expect(run.status).toBe('running')
+    expect(run.cursor.stage).toBe('categories')
+  })
+})
+
+describe('catalog sync v2 — a tombstone is not a toggle', () => {
+  let store: MemoryCatalogStore
+
+  beforeEach(async () => {
+    store = createMemoryCatalogStore()
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+  })
+
+  const paperBleed = () => {
+    const d = store.dump()
+    const sub = d.subcategories.find((x) => x.subcategory_id === 103001)!
+    const group = d.groups.find((g) => g.subcategory_ref === sub.id && g.group_key === 'bleed_size')!
+    return { sub, group, option: d.options.find((o) => o.group_ref === group.id && o.option_id === 39)! }
+  }
+
+  it('keeps the admin answer when the provider drops a row, and when it comes back', async () => {
+    const { option } = paperBleed()
+    store.patchOption(option.id, { enabled: true })
+    store.patchGroup(paperBleed().group.id, { enabled: true })
+
+    // The provider drops No Bleed from the paper bleed group.
+    const bleedGroup = state.catalog.categories
+      .find((c) => c.id === 103)!
+      .subcategories.find((x) => x.subcategoryId === 103001)!
+      .optionGroups.find((g) => g.optionGroup === 'Bleed Size')!
+    const removed = bleedGroup.optionGroupItems.find((o) => o.optionId === 39)!
+    bleedGroup.optionGroupItems = bleedGroup.optionGroupItems.filter((o) => o.optionId !== 39)
+
+    await sleep(5)
+    expect((await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })).status).toBe(
+      'completed',
+    )
+
+    const tombstoned = store.dump().options.find((o) => o.id === option.id)!
+    expect(tombstoned.removed_from_api).toBe(true)
+    expect(tombstoned.enabled).toBe(true) // the admin said yes; a provider hiccup does not answer for them
+    expect(tombstoned.is_default).toBe(true)
+
+    // The provider lists it again.
+    bleedGroup.optionGroupItems.push(removed)
+    await sleep(5)
+    expect((await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })).status).toBe(
+      'completed',
+    )
+
+    const restored = store.dump().options.find((o) => o.id === option.id)!
+    expect(restored.removed_from_api).toBe(false)
+    expect(restored.enabled).toBe(true)
+    expect(restored.is_default).toBe(true)
+  })
+
+  it('leaves enabled alone on a group and a subcategory too', async () => {
+    const cat103 = state.catalog.categories.find((c) => c.id === 103)!
+    const dropped = cat103.subcategories.find((x) => x.subcategoryId === 103009)!
+    const row = store.dump().subcategories.find((x) => x.subcategory_id === 103009)!
+    store.patchSubcategory(row.id, { enabled: true })
+    const group = store.dump().groups.find((g) => g.subcategory_ref === row.id)!
+    store.patchGroup(group.id, { enabled: true })
+    cat103.subcategories = cat103.subcategories.filter((x) => x.subcategoryId !== dropped.subcategoryId)
+
+    await sleep(5)
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+
+    const after = store.dump().subcategories.find((x) => x.id === row.id)!
+    expect(after.removed_from_api).toBe(true)
+    expect(after.enabled).toBe(true)
+    expect(store.dump().groups.find((g) => g.id === group.id)!.enabled).toBe(true)
+    expect(store.dump().groups.find((g) => g.id === group.id)!.removed_from_api).toBe(true)
+  })
+})
+
+describe('catalog sync v2 — the live bootstrap is a one shot', () => {
+  it('seeds today only on the first completed walk, never again', async () => {
+    const store = createMemoryCatalogStore()
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(5)
+
+    // An admin takes the whole catalog off sale.
+    for (const row of store.dump().subcategories) store.patchSubcategory(row.id, { enabled: false })
+    for (const row of store.dump().options) store.patchOption(row.id, { enabled: false })
+
+    await sleep(5)
+    expect((await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })).status).toBe(
+      'completed',
+    )
+
+    // Nothing is put back on sale behind their back.
+    expect(store.dump().subcategories.filter((s) => s.enabled)).toHaveLength(0)
+    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(0)
+  })
+
+  it('does not count a dry run as the first walk', async () => {
+    const store = createMemoryCatalogStore()
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, dryRun: true, ...FAST })
+    await sleep(5)
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(5)
+  })
+
+  it('never switches on a row the provider no longer lists', async () => {
+    const store = createMemoryCatalogStore()
+    // The provider drops the framed depth the live store sells today.
+    const cat102 = state.catalog.categories.find((c) => c.id === 102)!
+    cat102.subcategories = cat102.subcategories.filter((x) => x.subcategoryId !== 102002)
+    await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
+    const enabled = store.dump().subcategories.filter((x) => x.enabled).map((x) => x.subcategory_id)
+    expect(enabled).toEqual([101002])
+  })
+})
+
+describe('catalog sync v2 — stale runs and failure backoff', () => {
+  const runRow = (over: Partial<CatalogSyncRunRow>): CatalogSyncRunRow =>
+    ({
+      id: 'run',
+      api_host: HOST,
+      status: 'completed',
+      dry_run: false,
+      cursor: { stage: 'done' },
+      stats: { requests: 0, categories: 0, subcategories: 0, groups: 0, options: 0, inserted: 0, updated: 0, tombstoned: 0, chunks: 0 },
+      diff: null,
+      error: null,
+      started_at: new Date(0).toISOString(),
+      updated_at: new Date(0).toISOString(),
+      finished_at: new Date(0).toISOString(),
+      ...over,
+    }) as CatalogSyncRunRow
+
+  it('fails a run whose heartbeat stopped, so one killed invocation cannot wedge the host', async () => {
+    const store = createMemoryCatalogStore()
+    const started = await startCatalogSync(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 1 })
+    expect(started.status).toBe('running')
+
+    const later = Date.parse(started.updated_at) + STALE_RUN_MS + 1_000
+    expect(await reapStaleRuns(store, HOST, later)).toBe(1)
+    const reaped = (await store.getRun(started.id))!
+    expect(reaped.status).toBe('failed')
+    expect(reaped.error).toBe('stale: no heartbeat for 15 minutes')
+
+    // Exactly one new run opens afterwards, and the wedged one is not resumed.
+    const next = await startCatalogSync(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 1, now: later })
+    expect(next.id).not.toBe(started.id)
+    expect(store.dump().runs.filter((r) => r.status === 'running')).toHaveLength(1)
+    expect(store.dump().runs).toHaveLength(2)
+  })
+
+  it('leaves a run that is still beating alone', async () => {
+    const store = createMemoryCatalogStore()
+    const started = await startCatalogSync(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 1 })
+    expect(await reapStaleRuns(store, HOST, Date.parse(started.updated_at) + STALE_RUN_MS - 1_000)).toBe(0)
+    expect((await store.getRun(started.id))!.status).toBe('running')
+  })
+
+  it('waits an hour after a failure instead of retrying the same outage every five minutes', () => {
+    const now = Date.UTC(2026, 8, 17, 9, 0, 0)
+    const failedAt = (minutesAgo: number) => new Date(now - minutesAgo * 60_000).toISOString()
+
+    expect(
+      planCatalogSyncTick([runRow({ status: 'failed', updated_at: failedAt(10), finished_at: failedAt(10) })], now),
+    ).toEqual({ action: 'skip', reason: 'cooldown' })
+
+    expect(
+      planCatalogSyncTick([runRow({ status: 'failed', updated_at: failedAt(61), finished_at: failedAt(61) })], now),
+    ).toEqual({ action: 'start' })
+
+    expect(FAILED_RUN_COOLDOWN_MS).toBe(60 * 60 * 1000)
+  })
+
+  it('continues a live run, skips a fresh catalog, and starts when the walk has aged out', () => {
+    const now = Date.UTC(2026, 8, 17, 9, 0, 0)
+    const ago = (days: number) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString()
+
+    expect(planCatalogSyncTick([runRow({ id: 'live', status: 'running' })], now)).toEqual({
+      action: 'continue',
+      runId: 'live',
+    })
+    expect(planCatalogSyncTick([runRow({ finished_at: ago(2) })], now)).toEqual({ action: 'skip', reason: 'fresh' })
+    expect(planCatalogSyncTick([runRow({ finished_at: ago(7) })], now)).toEqual({ action: 'start' })
+    // A dry run is a rehearsal, not a refresh.
+    expect(planCatalogSyncTick([runRow({ dry_run: true, finished_at: ago(1) })], now)).toEqual({ action: 'start' })
+    expect(planCatalogSyncTick([], now)).toEqual({ action: 'start' })
+  })
+})
+
+describe('catalog sync v2 — one walker per run', () => {
+  it('lets only the invocation that claims the run call the provider', async () => {
+    const store = createMemoryCatalogStore()
+    const started = await startCatalogSync(store, liveProviderClient, { host: HOST, ...FAST, maxRequests: 2 })
+
+    let calls = 0
+    const counting: CatalogProviderClient = {
+      getCategories: async () => {
+        calls += 1
+        return liveProviderClient.getCategories()
+      },
+      getSubcategories: async (id) => {
+        calls += 1
+        return liveProviderClient.getSubcategories(id)
+      },
+      getSubcategoryOptions: async (id) => {
+        calls += 1
+        return liveProviderClient.getSubcategoryOptions(id)
+      },
+      getProductsCost: async (items) => {
+        calls += 1
+        return liveProviderClient.getProductsCost(items)
+      },
+    }
+
+    // Both invocations read the same row; only one can claim it.
+    const first = await continueCatalogSync(store, counting, started.id, { ...FAST, maxRequests: 2 })
+    const callsAfterFirst = calls
+    expect(first.claimed).toBe(true)
+    expect(callsAfterFirst).toBeGreaterThan(0)
+
+    // A second invocation holding the STALE updated_at claims nothing.
+    const stale = { ...started }
+    const loser = await continueCatalogSync(
+      { ...store, getRun: async () => stale } as typeof store,
+      counting,
+      started.id,
+      { ...FAST, maxRequests: 2 },
+    )
+    expect(loser.claimed).toBe(false)
+    expect(calls).toBe(callsAfterFirst)
+    expect(loser.cursor).toEqual(started.cursor)
+  })
+
+  it('turns a lost insert race into the same refusal as an in-flight run', async () => {
+    const store = createMemoryCatalogStore()
+    // findRunningRun sees nothing (the other writer has not committed yet) but the
+    // unique index does, which is the race the partial index exists to lose safely.
+    const racing = {
+      ...store,
+      findRunningRun: async () => null,
+      createRun: async () => {
+        const err = new Error('duplicate key value violates unique constraint') as Error & { code: string }
+        err.code = '23505'
+        throw err
+      },
+    } as unknown as MemoryCatalogStore
+
+    await expect(startCatalogSync(racing, liveProviderClient, { host: HOST, ...FAST })).rejects.toBeInstanceOf(
+      CatalogSyncBusyError,
+    )
+  })
+})
+
+describe('catalog sync v2 — provider text never reaches the database', () => {
+  it('stores a class, not the body of a provider error', async () => {
+    const store = createMemoryCatalogStore()
+    const leaky: CatalogProviderClient = {
+      getCategories: async () => {
+        throw new errors.LumaprintsApiError(400, 'MARKER-xyz store=82222 key=abc')
+      },
+      getSubcategories: async () => [],
+      getSubcategoryOptions: async () => [],
+      getProductsCost: async () => [],
+    }
+    const run = await startCatalogSync(store, leaky, { host: HOST, ...FAST })
+    expect(run.status).toBe('failed')
+    expect(run.error).toBe('provider_error:400')
+    expect(JSON.stringify(store.dump().runs)).not.toContain('MARKER')
+  })
+
+  it('classifies a budget refusal and a kill switch distinctly', async () => {
+    const store = createMemoryCatalogStore()
+    const overBudget: CatalogProviderClient = {
+      getCategories: async () => {
+        throw new errors.LumaprintsBudgetError('busy')
+      },
+      getSubcategories: async () => [],
+      getSubcategoryOptions: async () => [],
+      getProductsCost: async () => [],
+    }
+    expect((await startCatalogSync(store, overBudget, { host: HOST, ...FAST })).error).toBe('budget_exhausted')
+
+    const off = createMemoryCatalogStore()
+    const disabled: CatalogProviderClient = {
+      getCategories: async () => {
+        throw new errors.LumaprintsDisabledError('off')
+      },
+      getSubcategories: async () => [],
+      getSubcategoryOptions: async () => [],
+      getProductsCost: async () => [],
+    }
+    expect((await startCatalogSync(off, disabled, { host: HOST, ...FAST })).error).toBe('disabled')
   })
 })

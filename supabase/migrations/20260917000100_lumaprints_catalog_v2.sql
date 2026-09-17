@@ -156,12 +156,26 @@ alter table lumaprints_option_groups enable row level security;
 alter table lumaprints_options       enable row level security;
 alter table catalog_sync_runs        enable row level security;
 
+-- Staff READ every row, including the disabled and tombstoned ones the public
+-- policy hides, because the catalog manager has to show a toggle that is off and a
+-- badge on a row the provider dropped.
+--
+-- There is deliberately NO insert, update or delete policy for a browser role on any
+-- of these tables, and no write grant either (see the grants block below). The
+-- catalog decides which physical product a customer can order and which option ids
+-- travel to the provider in a paid order, so a write path that is one compromised
+-- admin session away from rewriting it is too much reach for a PostgREST call.
+-- P3's toggles will land as SECURITY DEFINER RPCs that check
+-- `is_admin_or_artist() AND (auth.jwt() ->> 'aal') = 'aal2'` and write their audit row
+-- in the same transaction as the change; sync keeps writing as the service role,
+-- which bypasses RLS by design. Until those RPCs exist these tables are read-only to
+-- every browser role, which is the correct failure direction.
 drop policy if exists "Admins manage lumaprints_subcategories" on lumaprints_subcategories;
-create policy "Admins manage lumaprints_subcategories"
-  on lumaprints_subcategories for all
+drop policy if exists "Admins read all lumaprints_subcategories" on lumaprints_subcategories;
+create policy "Admins read all lumaprints_subcategories"
+  on lumaprints_subcategories for select
   to authenticated
-  using (is_admin_or_artist())
-  with check (is_admin_or_artist());
+  using (is_admin_or_artist());
 
 drop policy if exists "Public read enabled lumaprints_subcategories" on lumaprints_subcategories;
 create policy "Public read enabled lumaprints_subcategories"
@@ -169,11 +183,11 @@ create policy "Public read enabled lumaprints_subcategories"
   using (enabled = true and removed_from_api = false);
 
 drop policy if exists "Admins manage lumaprints_option_groups" on lumaprints_option_groups;
-create policy "Admins manage lumaprints_option_groups"
-  on lumaprints_option_groups for all
+drop policy if exists "Admins read all lumaprints_option_groups" on lumaprints_option_groups;
+create policy "Admins read all lumaprints_option_groups"
+  on lumaprints_option_groups for select
   to authenticated
-  using (is_admin_or_artist())
-  with check (is_admin_or_artist());
+  using (is_admin_or_artist());
 
 drop policy if exists "Public read enabled lumaprints_option_groups" on lumaprints_option_groups;
 create policy "Public read enabled lumaprints_option_groups"
@@ -181,11 +195,11 @@ create policy "Public read enabled lumaprints_option_groups"
   using (enabled = true and removed_from_api = false);
 
 drop policy if exists "Admins manage lumaprints_options" on lumaprints_options;
-create policy "Admins manage lumaprints_options"
-  on lumaprints_options for all
+drop policy if exists "Admins read all lumaprints_options" on lumaprints_options;
+create policy "Admins read all lumaprints_options"
+  on lumaprints_options for select
   to authenticated
-  using (is_admin_or_artist())
-  with check (is_admin_or_artist());
+  using (is_admin_or_artist());
 
 drop policy if exists "Public read enabled lumaprints_options" on lumaprints_options;
 create policy "Public read enabled lumaprints_options"
@@ -201,10 +215,13 @@ create policy "Admins read catalog_sync_runs"
   using (is_admin_or_artist());
 
 -- =============================================================================
--- Grants. The policy layer decides WHICH rows; the grant layer decides which
--- verbs exist at all. Browser roles never hold DELETE on catalog rows: a
--- disappeared option is tombstoned, and order history references it forever.
--- P3's admin toggles are UPDATEs that pass through the "Admins manage" policy.
+-- Grants. The policy layer decides WHICH rows; the grant layer decides which verbs
+-- exist at all, and a column-level or policy-level mistake cannot reopen a verb the
+-- role does not hold. Browser roles hold SELECT and nothing else on all four tables:
+-- no INSERT, no UPDATE, no DELETE. Sync and the P3 toggle RPCs run as the service
+-- role. DELETE is not granted to anyone but the service role even in principle,
+-- because order history references these rows by id forever; a vanished option is
+-- tombstoned, never removed.
 -- =============================================================================
 
 revoke all on public.lumaprints_subcategories from anon, authenticated;
@@ -216,12 +233,8 @@ grant select on public.lumaprints_subcategories to anon, authenticated;
 grant select on public.lumaprints_option_groups to anon, authenticated;
 grant select on public.lumaprints_options       to anon, authenticated;
 
-grant insert, update on public.lumaprints_subcategories to authenticated;
-grant insert, update on public.lumaprints_option_groups to authenticated;
-grant insert, update on public.lumaprints_options       to authenticated;
-
--- Staff read their own run history through the policy above; runs are created
--- and advanced only by the sync process, which is the service role.
+-- Staff read their own run history through the policy above; runs are created and
+-- advanced only by the sync process, which is the service role.
 grant select on public.catalog_sync_runs to authenticated;
 
 grant all on public.lumaprints_subcategories to service_role;

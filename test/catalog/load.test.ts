@@ -155,6 +155,11 @@ const SUBCATEGORIES: CatalogSubcategoryRow[] = [
   }),
   subcategory({ id: 'sc-metal', medium: 'metal', subcategory_id: 106001, name: 'Metal Glossy White' }),
   subcategory({ id: 'sc-mat', medium: 'framed_fine_art_paper', subcategory_id: 105005, name: 'Framed Paper Black' }),
+  // Paper: every group is OFF, and the provider's own default for one of them is
+  // geometry-hostile (a 0.25in bleed), which is what the default-selection rule exists for.
+  subcategory({ id: 'sc-paper', medium: 'fine_art_paper', subcategory_id: 103001, name: 'Archival Matte' }),
+  // Canvas whose border group is live but whose neutral default has been switched off.
+  subcategory({ id: 'sc-canvas2', medium: 'canvas', subcategory_id: 101006, name: 'Canvas 2.00in' }),
   // Another host's ids for the same product: must never appear in a HOST tree.
   subcategory({ id: 'sc-sandbox', medium: 'canvas', subcategory_id: 101002, api_host: OTHER_HOST }),
 ]
@@ -191,6 +196,10 @@ const GROUPS: CatalogOptionGroupRow[] = [
     required: true,
   }),
   group({ id: 'g-metal-hw', subcategory_ref: 'sc-metal', group_key: 'metal_hardware', display_label: 'Metal Hanging Hardware' }),
+  group({ id: 'g-bleed', subcategory_ref: 'sc-paper', group_key: 'bleed_size', display_label: 'Bleed Size', enabled: false, sort_order: 1 }),
+  group({ id: 'g-paper-type', subcategory_ref: 'sc-paper', group_key: 'paper_type', display_label: 'Paper Type', enabled: false, sort_order: 2 }),
+  group({ id: 'g-border2', subcategory_ref: 'sc-canvas2', group_key: 'canvas_border', display_label: 'Canvas Border', sort_order: 1 }),
+  group({ id: 'g-finish2', subcategory_ref: 'sc-canvas2', group_key: 'canvas_finish', display_label: 'Canvas Finish', sort_order: 2 }),
   group({ id: 'g-mat-size', subcategory_ref: 'sc-mat', group_key: 'mat_size', display_label: 'Mat Size', sort_order: 1 }),
   group({
     id: 'g-mat-color',
@@ -230,12 +239,47 @@ const OPTIONS: CatalogOptionRow[] = [
   option({ id: 'o-nomat', group_ref: 'g-mat-size', option_id: 64, display_label: 'No Mat', is_default: true }),
   option({ id: 'o-mat1', group_ref: 'g-mat-size', option_id: 65, display_label: '1.0 in' }),
   option({ id: 'o-white', group_ref: 'g-mat-color', option_id: 96, display_label: 'White', is_default: true }),
+  // Bleed Size: the group is off and the provider would resolve it to a 0.25in bleed.
+  option({
+    id: 'o-bleed25',
+    group_ref: 'g-bleed',
+    option_id: 36,
+    display_label: '0.25in Bleed',
+    enabled: false,
+    provider_default: true,
+    geometry: { requires_file_bleed_in: 0.25 },
+  }),
+  option({ id: 'o-nobleed', group_ref: 'g-bleed', option_id: 39, display_label: 'No Bleed', enabled: false, is_default: true }),
+  // Paper Type: also off, but the provider default is harmless, so nothing is sent.
+  option({
+    id: 'o-archival',
+    group_ref: 'g-paper-type',
+    option_id: 74,
+    display_label: 'Archival Matte',
+    enabled: false,
+    is_default: true,
+    provider_default: true,
+  }),
+  // A live group whose neutral default the admin switched off, with a hostile provider default.
+  option({
+    id: 'o-wrap2',
+    group_ref: 'g-border2',
+    option_id: 1,
+    display_label: 'Image Wrap',
+    enabled: false,
+    provider_default: true,
+    geometry: BLEED,
+  }),
+  option({ id: 'o-mirror2', group_ref: 'g-border2', option_id: 2, display_label: 'Mirror Wrap', enabled: false, is_default: true }),
+  // Everything off, nothing hostile behind it: contributes nothing.
+  option({ id: 'o-semi2', group_ref: 'g-finish2', option_id: 212, display_label: 'Semi-Glossy', enabled: false, is_default: true }),
 ]
 
 const MEDIUMS: Array<{ medium: Medium; enabled: boolean }> = [
   { medium: 'canvas', enabled: true },
   { medium: 'framed_canvas', enabled: true },
   { medium: 'framed_fine_art_paper', enabled: true },
+  { medium: 'fine_art_paper', enabled: true },
   { medium: 'metal', enabled: false },
 ]
 
@@ -321,7 +365,9 @@ describe('loadCatalog assembly', () => {
   })
 
   it('sorts by sort_order then name and nests groups and options', async () => {
-    const catalog = await publicTree()
+    // The admin tree, because the storefront tree deliberately drops the disabled
+    // group this ordering is checked against.
+    const catalog = await adminTree()
     const canvas = findSubcategory(catalog, 'sc-canvas')!
 
     expect(canvas.groups.map((g) => g.group_key)).toEqual([
@@ -367,7 +413,8 @@ describe('the ADR-5 cascade', () => {
   })
 
   it('a disabled group hides its options', async () => {
-    const catalog = await publicTree()
+    // Admin tree: on the storefront the group is not served at all.
+    const catalog = await adminTree()
     const finish = findSubcategory(catalog, 'sc-canvas')!.groups.find((g) => g.group_key === 'canvas_finish')!
 
     expect(finish.effective_enabled).toBe(false)
@@ -376,7 +423,8 @@ describe('the ADR-5 cascade', () => {
   })
 
   it('excludes a tombstoned option and an admin-disabled option', async () => {
-    const catalog = await publicTree()
+    // Admin tree: the storefront never receives either row (see the public-tree suite).
+    const catalog = await adminTree()
     const hardware = findSubcategory(catalog, 'sc-canvas')!.groups.find(
       (g) => g.group_key === 'hanging_hardware',
     )!
@@ -419,23 +467,91 @@ describe('the ADR-5 cascade', () => {
   })
 })
 
-describe('selection helpers', () => {
-  it('defaultSelection returns exactly one sendable id per group', async () => {
+describe('the storefront tree is the public tree', () => {
+  it('drops disabled and tombstoned groups and options, not only subcategories', async () => {
     const catalog = await publicTree()
     const canvas = findSubcategory(catalog, 'sc-canvas')!
 
-    const ids = defaultSelection(canvas)
-    expect(ids).toHaveLength(canvas.groups.length)
-    // The marked defaults, including the admin-hidden group's: never an empty array (P15).
-    expect(ids).toEqual([2, 11, 212])
-    expect(ids).not.toContain(1)
+    // canvas_finish is an admin-disabled group: gone.
+    expect(canvas.groups.map((g) => g.group_key)).toEqual(['canvas_border', 'hanging_hardware'])
+
+    const hardware = canvas.groups.find((g) => g.group_key === 'hanging_hardware')!
+    const ids = hardware.options.map((o) => o.option_id)
+    expect(ids).toContain(11) // live
+    expect(ids).not.toContain(5) // admin-disabled
+    expect(ids).not.toContain(133) // tombstoned
+    expect(ids).toHaveLength(1)
   })
 
-  it('skips a blocked default and falls back to the first sendable option', async () => {
-    const catalog = await publicTree()
+  it('keeps those rows for the admin tree', async () => {
+    const catalog = await adminTree()
+    const canvas = findSubcategory(catalog, 'sc-canvas')!
+    expect(canvas.groups.map((g) => g.group_key)).toContain('canvas_finish')
+    const hardware = canvas.groups.find((g) => g.group_key === 'hanging_hardware')!
+    expect(hardware.options.map((o) => o.option_id).sort((a, b) => a - b)).toEqual([5, 11, 133])
+  })
+
+  it('still refuses to sell a subcategory whose required group has nothing in it', async () => {
+    const publicCatalog = await publicTree()
+    const blocked = findSubcategory(publicCatalog, 'sc-framed-empty')!
+    // Every option of its required frame group was filtered away by the public read,
+    // which is exactly the shape that would otherwise look sellable.
+    expect(blocked.groups.flatMap((g) => g.options)).toHaveLength(0)
+    expect(blocked.effective_enabled).toBe(false)
+    expect(blocked.blocked_reason).toContain('1.50in Frame Styles')
+
+    const sellable = findSubcategory(publicCatalog, 'sc-framed')!
+    expect(sellable.effective_enabled).toBe(true)
+  })
+})
+
+describe('selection helpers', () => {
+  it('sends our neutral default for every live group, and never the blocked one', async () => {
+    const catalog = await adminTree()
+    const canvas = findSubcategory(catalog, 'sc-canvas')!
+
+    // Mirror Wrap and Sawtooth: the live groups' marked defaults. Never Image Wrap (1),
+    // which is what an empty array would have resolved to.
+    expect(defaultSelection(canvas)).toEqual([2, 11])
+    expect(defaultSelection(canvas)).not.toContain(1)
+  })
+
+  it('still sends our default for an off group whose provider default is geometry-hostile', async () => {
+    const catalog = await adminTree()
+    const paper = findSubcategory(catalog, 'sc-paper')!
+
+    // Bleed Size is switched off, but omitting it makes the provider pick a 0.25in
+    // bleed, so No Bleed goes anyway. Paper Type is equally off and harmless: nothing.
+    expect(defaultSelection(paper)).toEqual([39])
+  })
+
+  it('sends our default even when the admin switched that very option off, if the fallback is hostile', async () => {
+    const catalog = await adminTree()
+    const canvas2 = findSubcategory(catalog, 'sc-canvas2')!
+
+    // Mirror Wrap is off, but it is OUR configuration, not a customer choice, and the
+    // alternative is not "no option" but Image Wrap. Canvas Finish is off with nothing
+    // hostile behind it, so it contributes nothing.
+    expect(defaultSelection(canvas2)).toEqual([2])
+  })
+
+  it('contributes nothing for a group with no sendable default', async () => {
+    const catalog = await adminTree()
     const framedEmpty = findSubcategory(catalog, 'sc-framed-empty')!
-    // 23 is disabled but sendable (no geometry block); 24 is tombstoned and is not.
-    expect(defaultSelection(framedEmpty)).toEqual([23])
+    // 23 is the marked default but switched off, and nothing hostile sits behind the
+    // group, so guessing a substitute would be inventing a product to sell.
+    expect(defaultSelection(framedEmpty)).toEqual([])
+  })
+
+  it('never contributes a tombstoned or blocked option', async () => {
+    const catalog = await adminTree()
+    for (const subcategory of catalog.subcategories) {
+      for (const id of defaultSelection(subcategory)) {
+        const option = optionById(subcategory, id)!
+        expect(option.removed_from_api).toBe(false)
+        expect(option.blocked_reason).toBeNull()
+      }
+    }
   })
 
   it('isGroupVisible gates mat_color on the mat_size selection', async () => {

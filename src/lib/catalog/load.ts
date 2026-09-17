@@ -13,6 +13,15 @@
 // owed) is never effective even when the DB row says enabled: the admin toggle also
 // refuses, and this is the belt to that pair of braces.
 //
+// The storefront tree (`includeDisabled: false`) is filtered at the QUERY on every
+// level, not only on subcategories: a disabled or tombstoned group or option is not
+// the storefront's business and must not be serialized to a browser. The one thing
+// that still has to survive that filter is the required-group guard, because a framed
+// canvas whose frame styles are all off is not sellable and the rows proving it are
+// exactly the ones being filtered away. So the guard reads its own small census of
+// required groups, which is sellability data the storefront needs rather than catalog
+// metadata it displays.
+//
 // Reads are plain PostgREST selects. The supabase-js builder is PromiseLike, so every
 // query is awaited and its `{ data, error }` read; nothing is chained off it.
 
@@ -99,20 +108,59 @@ async function readSubcategories(
 async function readGroups(
   client: SupabaseClient,
   subcategoryRefs: string[],
+  includeDisabled: boolean,
 ): Promise<CatalogOptionGroupRow[]> {
   const rows: CatalogOptionGroupRow[] = []
   for (const slice of chunk(subcategoryRefs, IN_CHUNK)) {
-    const result = await client.from('lumaprints_option_groups').select(GROUP_COLS).in('subcategory_ref', slice)
-    rows.push(...unwrap<CatalogOptionGroupRow>(result, 'option groups'))
+    let query = client.from('lumaprints_option_groups').select(GROUP_COLS).in('subcategory_ref', slice)
+    if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
+    rows.push(...unwrap<CatalogOptionGroupRow>(await query, 'option groups'))
   }
   return rows
 }
 
-async function readOptions(client: SupabaseClient, groupRefs: string[]): Promise<CatalogOptionRow[]> {
+async function readOptions(
+  client: SupabaseClient,
+  groupRefs: string[],
+  includeDisabled: boolean,
+): Promise<CatalogOptionRow[]> {
   const rows: CatalogOptionRow[] = []
   for (const slice of chunk(groupRefs, IN_CHUNK)) {
-    const result = await client.from('lumaprints_options').select(OPTION_COLS).in('group_ref', slice)
-    rows.push(...unwrap<CatalogOptionRow>(result, 'options'))
+    let query = client.from('lumaprints_options').select(OPTION_COLS).in('group_ref', slice)
+    if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
+    rows.push(...unwrap<CatalogOptionRow>(await query, 'options'))
+  }
+  return rows
+}
+
+/** The subset of a group row the sellability guard needs. */
+interface RequiredGroupCensusRow {
+  id: string
+  subcategory_ref: string
+  group_key: string
+  display_label: string
+}
+
+/**
+ * Every `required` group the provider still lists, whatever its own toggle says.
+ *
+ * The storefront read filters disabled groups away, so without this census a required
+ * group with every option switched off would simply vanish and its subcategory would
+ * look sellable. It is not: the provider rejects the order, after payment.
+ */
+async function readRequiredGroupCensus(
+  client: SupabaseClient,
+  subcategoryRefs: string[],
+): Promise<RequiredGroupCensusRow[]> {
+  const rows: RequiredGroupCensusRow[] = []
+  for (const slice of chunk(subcategoryRefs, IN_CHUNK)) {
+    const result = await client
+      .from('lumaprints_option_groups')
+      .select('id, subcategory_ref, group_key, display_label')
+      .in('subcategory_ref', slice)
+      .eq('required', true)
+      .eq('removed_from_api', false)
+    rows.push(...unwrap<RequiredGroupCensusRow>(result, 'required option groups'))
   }
   return rows
 }
@@ -153,7 +201,7 @@ function groupSelfOk(group: CatalogOptionGroupRow): boolean {
 function subcategoryBlockedReason(
   row: CatalogSubcategoryRow,
   mediumEnabled: boolean,
-  emptyRequiredGroup: CatalogOptionGroup | null,
+  emptyRequiredGroup: { display_label: string } | null,
 ): string | null {
   // Only a row an admin believes is on needs an explanation for why it is not.
   if (row.enabled !== true) return null
@@ -184,10 +232,17 @@ export async function loadCatalog(
     readSubcategories(client, host, includeDisabled),
   ])
 
-  const groupRows = subcategoryRows.length
-    ? await readGroups(client, subcategoryRows.map((row) => row.id))
+  const subcategoryRefs = subcategoryRows.map((row) => row.id)
+  const groupRows = subcategoryRefs.length ? await readGroups(client, subcategoryRefs, includeDisabled) : []
+  const optionRows = groupRows.length
+    ? await readOptions(client, groupRows.map((row) => row.id), includeDisabled)
     : []
-  const optionRows = groupRows.length ? await readOptions(client, groupRows.map((row) => row.id)) : []
+  // The admin tree already holds every group, so its census is free.
+  const requiredCensus: RequiredGroupCensusRow[] = includeDisabled
+    ? groupRows.filter((row) => row.required === true && row.removed_from_api !== true)
+    : subcategoryRefs.length
+      ? await readRequiredGroupCensus(client, subcategoryRefs)
+      : []
 
   const optionsByGroup = new Map<string, CatalogOption[]>()
   for (const row of optionRows) {
@@ -226,11 +281,15 @@ export async function loadCatalog(
     const mediumEnabled = mediumSwitch.get(row.medium) === true
 
     // A required group with nothing sellable in it takes the whole subcategory down:
-    // there is no valid order to place for it (F20).
+    // there is no valid order to place for it (F20). Read from the census, so a group
+    // the storefront filter dropped still counts against the subcategory.
     const emptyRequiredGroup =
-      groups.find(
-        (group) => group.required === true && !(groupSelfOk(group) && group.options.some(optionSelfOk)),
-      ) ?? null
+      requiredCensus
+        .filter((census) => census.subcategory_ref === row.id)
+        .find((census) => {
+          const assembled = groups.find((candidate) => candidate.id === census.id)
+          return !assembled || !groupSelfOk(assembled) || !assembled.options.some(optionSelfOk)
+        }) ?? null
 
     const effective =
       mediumEnabled && row.enabled === true && row.removed_from_api !== true && emptyRequiredGroup === null
@@ -318,23 +377,49 @@ export function optionById(subcategory: CatalogSubcategory, optionId: number): C
 }
 
 /**
- * The geometry-neutral option id of every group, customer-visible or not.
+ * True when leaving this group out of a provider call would let the provider resolve
+ * it to something geometry-hostile: Image Wrap on canvas (+3.75in of image per axis),
+ * a 0.25in bleed on paper (a shrunken image). Both reject an aspect-exact master at
+ * image check, which is the 406 that took launch night down.
+ */
+function hasHostileProviderDefault(group: CatalogOptionGroup): boolean {
+  return group.options.some(
+    (option) =>
+      option.provider_default === true && typeof option.geometry?.requires_file_bleed_in === 'number',
+  )
+}
+
+/**
+ * The option ids to send for a subcategory when the customer has chosen nothing.
  *
  * This is what every provider call sends instead of `[]` (P15: an empty array resolves
  * to Image Wrap on canvas and a 0.25in bleed on paper, both of which 406 an
- * aspect-exact master). A tombstoned group contributes nothing, because the provider
- * rejects an option id it no longer associates with the subcategory; a group whose
- * marked default is blocked or tombstoned falls back to its first sendable option.
+ * aspect-exact master). Per group, exactly one id is contributed, and only the group's
+ * marked `is_default`:
+ *
+ *  - when the group is live and that option is on, it is the neutral choice we sell;
+ *  - ALSO when the group is off, hidden, or its default has been switched off, BUT the
+ *    provider would resolve the omission to a geometry-hostile option. Our default goes
+ *    anyway, because it is our configuration rather than a customer's choice, and the
+ *    alternative is not "no option" but the provider's bad one.
+ *
+ * Never contributed: a tombstoned option (the provider rejects an id it no longer
+ * associates with the subcategory) or a blocked one (ADR-4). A group with nothing
+ * sendable contributes nothing rather than guessing at a substitute.
+ *
+ * Call this on a tree loaded with `includeDisabled: true`. The storefront tree
+ * deliberately drops disabled groups, so the hostile-default rule above cannot see the
+ * groups it exists for.
  */
 export function defaultSelection(subcategory: CatalogSubcategory): number[] {
   const ids: number[] = []
   for (const group of subcategory.groups) {
     if (group.removed_from_api === true) continue
-    const sendable = group.options.filter(
-      (option) => option.removed_from_api !== true && option.blocked_reason === null,
-    )
-    const chosen = sendable.find((option) => option.is_default === true) ?? sendable[0]
-    if (chosen) ids.push(chosen.option_id)
+    const marked = group.options.find((option) => option.is_default === true)
+    if (!marked || marked.removed_from_api === true || marked.blocked_reason !== null) continue
+    if ((group.effective_enabled && marked.enabled === true) || hasHostileProviderDefault(group)) {
+      ids.push(marked.option_id)
+    }
   }
   return ids
 }
