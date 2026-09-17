@@ -19,11 +19,31 @@ describe('familiar print labels are display only', () => {
   })
   it('respects both edge thresholds, including 2.5% for larger prints, without distant snapping', () => {
     expect(printSizeLabel({ width_in: 15.5, height_in: 20 }).dimensions).toBe('16 × 20 in')
-    expect(printSizeLabel({ width_in: 15.499, height_in: 20 }).isApproximate).toBe(false)
+    // Past the standard size's tolerance the label falls to the nearest whole inch, still
+    // inside the same half-inch rule, with the actual size in the note.
+    expect(printSizeLabel({ width_in: 15.499, height_in: 20 })).toMatchObject({ dimensions: '15 × 20 in', isApproximate: true })
     expect(printSizeLabel({ width_in: 29.25, height_in: 40 }).dimensions).toBe('30 × 40 in')
-    expect(printSizeLabel({ width_in: 29.249, height_in: 40 }).isApproximate).toBe(false)
+    expect(printSizeLabel({ width_in: 29.249, height_in: 40 })).toMatchObject({ dimensions: '29 × 40 in', isApproximate: true })
     expect(printSizeLabel({ width_in: 9, height_in: 20 }).dimensions).toBe('9 × 20 in')
     expect(printSizeLabel({ width_in: 16, height_in: 20 }).actualNote).toBeNull()
+  })
+
+  it('never shows raw decimals on a chip: a size no standard matches reads as the nearest whole inch, with the actual size beneath', () => {
+    // 16 × 32 is not a standard size, but 32.05 is 32 under the half-inch rule (2026-09-17).
+    expect(printSizeLabel({ width_in: 16, height_in: 32.05 })).toMatchObject({
+      dimensions: '16 × 32 in',
+      actualNote: '(actual cropped size: 16 × 32.05 in)',
+      isApproximate: true,
+    })
+    expect(printSizeLabel({ width_in: 14.95, height_in: 30, size_tier: 'L' })).toMatchObject({
+      title: 'Large — 15 × 30 in',
+      actualNote: '(actual cropped size: 14.95 × 30 in)',
+    })
+    expect(printSizeLabel({ width_in: 7.4, height_in: 12 }).dimensions).toBe('7 × 12 in')
+    // A whole-inch size is itself: no note.
+    expect(printSizeLabel({ width_in: 16, height_in: 32 })).toMatchObject({ dimensions: '16 × 32 in', actualNote: null })
+    // A standard size still wins when both fit.
+    expect(printSizeLabel({ width_in: 15.85, height_in: 20 }).dimensions).toBe('16 × 20 in')
   })
   it('retains custom names without duplicate dimensions and handles legacy missing dimensions', () => {
     expect(printSizeLabel({ width_in: 15.85, height_in: 20, name: 'Collector edition — 15.85x20 in' }).title).toBe('Collector edition — 16 × 20 in')

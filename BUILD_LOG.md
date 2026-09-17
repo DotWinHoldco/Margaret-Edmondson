@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #size-labels — A size chip never shows raw decimals: whole-inch fallback under the standing tolerance
+
+- **Date:** 2026-09-17
+- **Module:** src/lib/pricing/print-size-label.ts (`printSizeLabel`: standard size first, else the nearest whole inch under the same half-inch / 2.5% rule, else the exact size; the actual cropped size stays in the note whenever the label rounded)
+- **Category:** storefront display (R1; pricing, fulfillment and variant identity untouched)
+- **Summary:** Owner: "why is the size not 16×32 with the actual size below?" The familiar-size label only snapped to a fixed list of standard sizes; 16×32 is not on it, so a 16 × 32.05 chip showed the decimals (and the canvas Large read 14.95 × 30). The tolerance the owner confirmed does not change; the candidate set gains the nearest whole inch as a fallback, and a standard size still wins when both fit (29.25 × 40 stays 30 × 40).
+- **Verify:** test/print-size-label (+1 case, 2 expectations updated to the whole-inch fallback) · shop, cart, editor suites green (7 files / 61 tests) · build-check GREEN.
+
 ### [2026-09-17T19:56:08.508Z] #build-check
 Status: green
 Verified: 14/14 required gates
