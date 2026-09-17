@@ -1,12 +1,23 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-17 (Full LumaPrints catalog program — P3–P9 shipped, production dark, report GO, human gates owed)
+Last updated: 2026-09-17 15:20 UTC (Full LumaPrints catalog program — P3–P9 shipped + owner follow-ups #15–#18 live; production dark behind the new Settings switch; report GO; human gates owed)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-17 14:40 UTC) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P9 SHIPPED. main = 79e1e3d (PRs #11, #12), production deploy READY, door CLOSED (legacy storefront, V6.1 parity). Verification report GO; only the human gates remain.**
+> **Current truth (2026-09-17 15:20 UTC, session 33beeda3 handoff) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P9 SHIPPED AND LIVE (dark). main = b290ccf (PRs #11–#13, #15–#18), production deploy READY at that SHA, door CLOSED via the new Settings switch. Verification report GO; only the human gates remain.**
+> After the P9 close, four owner-driven follow-ups merged the same day: #15 Print Catalog / Print Coverage carry a guidance note
+> with the switch order and the live door state; #16 + #17 the product editor uses the full admin width and every sizes table
+> fits without a sideways scroll (measured on production); #18 Settings → "Print configurator" on/off card (admin-only
+> GET/PATCH `/api/admin/settings/print-configurator`), so the launch flip is the owner's own click. A proposal to widen the
+> familiar-size label tolerance was WITHDRAWN (#14): the half-inch / 2.5% rule stands by the owner's decision.
+> HOW THE OWNER GOES LIVE: Print Catalog → switch on print types / groups / options and pick defaults → Print Coverage →
+> "Generate missing sizes" (business call: which print types) → Settings → Print configurator ON → (later) Site access OFF.
+> Owed to people: Supabase redirect allowlist `https://*-dotwinholdcos-projects.vercel.app/**` (preview Google sign-in);
+> V7.2 dashboard comparison of the five recorded costs; V7.5 billing address + card on the production LumaPrints account;
+> V7.9 real QC order; per-medium margins (§11); the two 2% margin overrides and five duplicate variant groups; a Print
+> Catalog screenshot for help article 06a. Nothing is owed to code before the flip.
 > Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 · blueprint `docs/blueprints/2026-09-16-full-catalog.md` (Status: executing;
 > Examine carries both security-pass receipts, all findings closed). Production DB now holds migrations 20260917100000
 > (catalog admin RPCs), 20260917110000 (order_items.line_hash + solid_color_hex, 4-column upsert key) and 20260917120000
