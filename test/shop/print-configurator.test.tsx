@@ -575,3 +575,62 @@ describe('when the server cannot answer', () => {
     expect(onDoorClosed).toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// A size is sold only in the print types the owner has not unticked for it, and a size
+// chip shows a price only when that price is true for the finish on screen (2026-09-17).
+// ---------------------------------------------------------------------------
+
+describe('sizes per print type', () => {
+  const pricedFor105005 = { fulfillment_metadata: { lumaprints_subcategory_id: 105005 } }
+
+  it('hides a size under a finish the owner unticked for it, and drops the finish when no size remains', async () => {
+    // Only the small paper is sold in the Oak frame; the large one is unticked.
+    mount({
+      variants: [
+        variant({ id: 'v-paper-8x10', medium: 'framed_fine_art_paper', width_in: 8, height_in: 10, price: 88 }),
+        variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, excluded_subcategory_ids: [105001] }),
+      ],
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    await settle()
+    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /36 × 24 in/ })).toBeNull()
+
+    cleanup()
+    // Both sizes unticked for Oak: the finish is not offered at all.
+    mount({
+      variants: [
+        variant({ id: 'v-paper-8x10', medium: 'framed_fine_art_paper', width_in: 8, height_in: 10, price: 88, excluded_subcategory_ids: [105001] }),
+        variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, excluded_subcategory_ids: [105001] }),
+      ],
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    await settle()
+    expect(screen.queryByText('Choose a finish')).toBeNull()
+    expect(screen.queryByRole('radio', { name: '1.25 in Oak Frame' })).toBeNull()
+  })
+
+  it('shows a stored price only under the finish it was priced for; elsewhere the price line is the only number', async () => {
+    mount({
+      variants: [
+        variant({ id: 'v-paper-8x10', medium: 'framed_fine_art_paper', width_in: 8, height_in: 10, price: 88, ...pricedFor105005 }),
+        variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, ...pricedFor105005 }),
+      ],
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    await settle()
+    // Under the Black frame (the depth these were priced for) both chips carry their stored price.
+    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$88.00')
+    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('$300.00')
+
+    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    await settle()
+    // Under the Oak frame neither chip claims a number; the selected size's price is the server's, on the price line.
+    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('priced when selected')
+    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('priced when selected')
+    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).not.toHaveTextContent('$300.00')
+    expect(screen.getByText('$412.38')).toBeInTheDocument()
+  })
+})

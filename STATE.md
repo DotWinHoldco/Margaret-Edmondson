@@ -35,6 +35,14 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 > anonymous readers (products policy is `status='active'` only), so a sold original's page and redirect 404 for shoppers.
 > Verify at c7c89d7: build-check GREEN (15/15) · vitest 116 files / 1078 passed / 7 pre-existing skips · security pass 11
 > findings, 8 fixed, 3 refuted with live evidence (blueprint Examine).
+> SECOND UNIT, same session (blueprint `2026-09-17-size-depth-control.md`): a size now says which print types (depths) it
+> is sold in — "Sold in" switches per size on the product page (`product_variants.excluded_subcategory_ids`, migration
+> 20260917150000, live), honoured by the storefront, the public quote route (404), checkout (409), the warmer and the
+> coverage report; family headers read "Canvas" / "Framed Canvas" / "Fine Art Paper" with the print types listed beneath;
+> a size chip shows a price only under the depth it was priced for. What the depth means: 1.50in is the canvas edge
+> (stretcher-bar depth), matched by the floater frame; frame colours are the options under each depth. This session
+> reached the governor's usage ceiling during that unit (the security pass was refused; examined inline, receipts in the
+> blueprint) — the NEXT session must be fresh.
 > Owner flags: two Live variants carry a 2% margin override (Flower Power 20x20 paper, Think Again 12x9 canvas);
 > production has 5 duplicate (product, medium, size) variant groups (clean before adding the unique index);
 > a Print Catalog screenshot for the new help article is owed.

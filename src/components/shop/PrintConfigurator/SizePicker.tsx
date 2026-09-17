@@ -1,10 +1,11 @@
 'use client'
 
 // Authored by DotWin
-// Step three (§7.1): the Live sizes this finish can take, smallest first, each showing
-// the price of its DEFAULT configuration. The number here is the variant's own stored
-// price and never a computed one; the configured price comes from the server and is
-// shown once, on the button.
+// Step three (§7.1): the Live sizes this finish can take, smallest first. A chip shows a
+// price only when that price is TRUE for the finish on screen: the size's stored price
+// belongs to the depth it was priced for, so under another depth the chip says nothing
+// until the size is selected and the server has quoted it (2026-09-17: a 1.25in price sat
+// on a chip under the 1.50in finish). The configured price is always the server's.
 //
 // Sizes outside the finish's bounds are absent rather than disabled: a size that cannot
 // be printed at all is not a choice a shopper needs explained.
@@ -12,14 +13,19 @@
 import { printSizeLabel } from '@/lib/pricing/print-size-label'
 import type { PrintVariant } from './catalog-view'
 
+export const PRICED_ON_SELECT = 'priced when selected'
+
 export default function SizePicker({
   variants,
   value,
   onSelect,
+  priceFor,
 }: {
   variants: PrintVariant[]
   value: string | null
   onSelect: (variantId: string) => void
+  /** Dollars to show on a chip, or null when no honest number exists yet. Default: the stored price. */
+  priceFor?: (variant: PrintVariant) => number | null
 }) {
   return (
     <div className="mt-4">
@@ -54,6 +60,7 @@ export default function SizePicker({
         {variants.map((variant, index) => {
           const label = printSizeLabel(variant)
           const checked = variant.id === value
+          const price = priceFor ? priceFor(variant) : variant.price
           return (
             <button
               key={variant.id}
@@ -68,7 +75,9 @@ export default function SizePicker({
               }`}
             >
               <span className="block">{label.title}</span>
-              <span className="block font-body text-xs text-charcoal/55">${variant.price.toFixed(2)}</span>
+              <span className="block font-body text-xs text-charcoal/55">
+                {price === null ? PRICED_ON_SELECT : `$${price.toFixed(2)}`}
+              </span>
               {label.actualNote && (
                 <span className="block font-body text-[10px] leading-4 text-charcoal/45">{label.actualNote}</span>
               )}

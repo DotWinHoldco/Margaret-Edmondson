@@ -42,6 +42,7 @@ import {
   selectionAfterChoice,
   sizesFor,
   variantSize,
+  variantStoredSubcategoryId,
   visibleGroups,
   type PrintVariant,
 } from './catalog-view'
@@ -277,7 +278,18 @@ export default function PrintConfigurator({
         />
       )}
 
-      <SizePicker variants={sizes} value={variant.id} onSelect={setVariantId} />
+      <SizePicker
+        variants={sizes}
+        value={variant.id}
+        onSelect={setVariantId}
+        priceFor={(candidate) => {
+          // A chip's stored price is the size's default configuration in the depth it was
+          // priced for. Under any other depth there is no honest number on the chip; the
+          // configured price for the selected size is the server's, on the price line.
+          const stored = variantStoredSubcategoryId(candidate)
+          return stored === null || stored === subcategory.subcategory_id ? candidate.price : null
+        }}
+      />
 
       {groups.map((group) => (
         <div key={group.id}>

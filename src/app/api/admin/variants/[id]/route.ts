@@ -12,6 +12,10 @@ const Patch = z.object({
   is_active: z.boolean().optional(),
   // Custom-size variants can be renamed inline (e.g. "Life Size").
   name: z.string().trim().min(1).max(120).optional(),
+  // The print types (provider subcategory ids) this size is NOT sold in: the per-size
+  // veto the product page's "Sold in" chips write. Empty = every switched-on print type
+  // of the medium that fits. An id of another family is inert (nothing offers it there).
+  excluded_subcategory_ids: z.array(z.number().int().positive()).max(50).optional(),
 })
 
 // PATCH /api/admin/variants/[id] — update a variant's margin/price overrides and recompute its price; admin only.
@@ -53,6 +57,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const update: Record<string, unknown> = {
     ...parsed.data,
+    ...(parsed.data.excluded_subcategory_ids
+      ? { excluded_subcategory_ids: [...new Set(parsed.data.excluded_subcategory_ids)].sort((a, b) => a - b) }
+      : {}),
     price: newPriceCents / 100,
     updated_at: new Date().toISOString(),
   }

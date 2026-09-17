@@ -3133,6 +3133,7 @@ export type Database = {
       product_variants: {
         Row: {
           aspect_ratio: number | null
+          excluded_subcategory_ids: number[]
           external_variant_id: string | null
           fulfillment_metadata: Json | null
           height_in: number | null
@@ -3171,6 +3172,7 @@ export type Database = {
         }
         Insert: {
           aspect_ratio?: number | null
+          excluded_subcategory_ids?: number[]
           external_variant_id?: string | null
           fulfillment_metadata?: Json | null
           height_in?: number | null
@@ -3209,6 +3211,7 @@ export type Database = {
         }
         Update: {
           aspect_ratio?: number | null
+          excluded_subcategory_ids?: number[]
           external_variant_id?: string | null
           fulfillment_metadata?: Json | null
           height_in?: number | null

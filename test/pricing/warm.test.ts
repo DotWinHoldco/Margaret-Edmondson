@@ -253,6 +253,13 @@ describe('warmSurface', () => {
   it('is empty when no product has a ready master', () => {
     expect(warmSurface(catalog, [{ id: READY, ready: false }], variants)).toEqual([])
   })
+
+  it('never warms a print type the owner unticked for a size', () => {
+    const unticked = { product_id: READY, medium: 'framed_canvas', width_in: 20, height_in: 24, is_active: true, excluded_subcategory_ids: [102002] }
+    const targets = warmSurface(catalog, products, [...variants, unticked])
+    expect(targets.some((t) => t.subcategoryId === 102002 && t.widthIn === 20)).toBe(false)
+    expect(targets).toHaveLength(3)
+  })
 })
 
 describe('classifyRow', () => {

@@ -82,6 +82,11 @@ vi.mock('@/lib/products/print-readiness', () => ({
 
 vi.mock('@/lib/catalog/load', () => ({
   getFullCatalogCached: (...args: unknown[]) => getFullCatalogCachedMock(...args),
+  // The real lookup, verbatim: the route's print-type refusal depends on it finding rows.
+  findSubcategory: (catalog: { subcategories: Array<{ id: string; subcategory_id: number }> }, ref: string | number) => {
+    const wanted = String(ref)
+    return catalog.subcategories.find((s) => s.id === wanted || String(s.subcategory_id) === wanted) ?? null
+  },
 }))
 
 // The real wrapper sets a module-level reserve around the call; the double records the
@@ -171,10 +176,12 @@ beforeEach(() => {
       id: VARIANT_ID,
       product_id: PRODUCT_ID,
       is_active: true,
+      medium: 'framed_fine_art_paper',
       width_in: 18,
       height_in: 24,
       margin_override_pct: null,
       manual_price_override_cents: null,
+      excluded_subcategory_ids: [],
     },
     error: null,
   })
@@ -369,10 +376,12 @@ describe('POST /api/products/[id]/print-quote', () => {
         id: VARIANT_ID,
         product_id: PRODUCT_ID,
         is_active: true,
+        medium: 'framed_fine_art_paper',
         width_in: 18,
         height_in: 24,
         margin_override_pct: 140,
         manual_price_override_cents: 19900,
+        excluded_subcategory_ids: [],
       },
       error: null,
     })
@@ -506,5 +515,75 @@ describe('POST /api/products/[id]/print-quote', () => {
 
     expect(response.status).toBe(500)
     expect(JSON.stringify(payload)).not.toContain('lumaprints_pricing_cache')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// A size is quoted only in a print type it is sold in (2026-09-17): the print type must
+// be of the size's own family, and the owner must not have unticked it for this size.
+// ---------------------------------------------------------------------------
+
+describe('POST /api/products/[id]/print-quote: a print type the size is not sold in', () => {
+  const TREE_WITH_PAPER = {
+    ...FULL_TREE,
+    subcategories: [{ id: SUBCATEGORY_REF, subcategory_id: 105005, medium: 'framed_fine_art_paper' }],
+  }
+
+  it('quotes a size under a print type of its family that is not unticked', async () => {
+    getFullCatalogCachedMock.mockResolvedValue(TREE_WITH_PAPER)
+    const response = await call(body())
+    expect(response.status).toBe(200)
+    expect(quoteConfigurationMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('answers 404 for a print type of another family, without pricing anything', async () => {
+    getFullCatalogCachedMock.mockResolvedValue({
+      ...FULL_TREE,
+      subcategories: [{ id: SUBCATEGORY_REF, subcategory_id: 101002, medium: 'canvas' }],
+    })
+    const response = await call(body())
+    expect(response.status).toBe(404)
+    expect(await response.json()).toMatchObject({ ok: false, code: 'not_found' })
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
+  })
+
+  it('answers 404 for a print type the owner unticked for this size, without pricing anything', async () => {
+    getFullCatalogCachedMock.mockResolvedValue(TREE_WITH_PAPER)
+    tableResults.set('product_variants', {
+      data: {
+        id: VARIANT_ID,
+        product_id: PRODUCT_ID,
+        is_active: true,
+        medium: 'framed_fine_art_paper',
+        width_in: 18,
+        height_in: 24,
+        margin_override_pct: null,
+        manual_price_override_cents: null,
+        excluded_subcategory_ids: [105005],
+      },
+      error: null,
+    })
+    const response = await call(body())
+    expect(response.status).toBe(404)
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
+  })
+
+  it('leaves a print type the tree does not know to the engine', async () => {
+    getFullCatalogCachedMock.mockResolvedValue(FULL_TREE)
+    const response = await call(body())
+    expect(response.status).toBe(200)
+    expect(quoteConfigurationMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('POST /api/products/[id]/print-quote: a row with no medium is not a print size', () => {
+  it('answers 404 without pricing anything', async () => {
+    tableResults.set('product_variants', {
+      data: { id: VARIANT_ID, product_id: PRODUCT_ID, is_active: true, medium: null, width_in: 18, height_in: 24, margin_override_pct: null, manual_price_override_cents: null, excluded_subcategory_ids: [] },
+      error: null,
+    })
+    const response = await call(body())
+    expect(response.status).toBe(404)
+    expect(quoteConfigurationMock).not.toHaveBeenCalled()
   })
 })

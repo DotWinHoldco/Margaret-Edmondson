@@ -29,6 +29,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Catalog } from '@/lib/catalog/types'
 import type { PricingCacheRowV2, QuoteResult } from '@/lib/pricing/quote-types'
 import { offerableSubcategories, sizeFits } from '@/lib/catalog/availability'
+import { variantSoldIn } from '@/components/shop/PrintConfigurator/catalog-view'
 import { normalizeSelection } from '@/lib/catalog/selection'
 import { withProviderReserve } from '@/lib/integrations/lumaprints-budget'
 import { loadPublicPrintReadiness } from '@/lib/products/print-readiness'
@@ -114,6 +115,8 @@ export interface SurfaceVariant {
   height_in: number | string | null
   is_active: boolean | null
   studio_only?: boolean | null
+  /** Print types this size is NOT sold in: never warmed for them either. */
+  excluded_subcategory_ids?: number[] | null
 }
 
 /**
@@ -143,6 +146,7 @@ export function warmSurface(
     for (const subcategory of offerableSubcategories(catalog, variant.medium)) {
       const key = `${subcategory.id}|${widthIn}|${heightIn}`
       if (seen.has(key)) continue
+      if (!variantSoldIn(variant, subcategory.subcategory_id)) continue
       if (!sizeFits(subcategory, { widthIn, heightIn })) continue
       // The engine's own normalizer decides which option ids the default configuration
       // carries (dependency-hidden groups included), so the key here is the key it writes.
@@ -226,7 +230,7 @@ export async function loadWarmSurface(client: SupabaseClient, catalog: Catalog):
         () =>
           client
             .from('product_variants')
-            .select('id, product_id, medium, width_in, height_in, is_active, studio_only')
+            .select('id, product_id, medium, width_in, height_in, is_active, studio_only, excluded_subcategory_ids')
             .in('product_id', chunk)
             .eq('is_active', true) as unknown as PagedQuery<SurfaceVariant>,
         'warm: variants',

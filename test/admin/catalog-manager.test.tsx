@@ -222,7 +222,8 @@ async function openSubcategoryA() {
 
 it('renders the medium, its subcategories and their options from the served tree', async () => {
   renderManager()
-  expect(await screen.findByText(/Canvas \(1\.25/)).toBeInTheDocument()
+  // The family label names the family only; the depths are the rows beneath it.
+  expect(await screen.findByRole('heading', { name: /^Canvas$/ })).toBeInTheDocument()
   expect(screen.getByText(/1 of 2 subcategories on/)).toBeInTheDocument()
   await openSubcategoryA()
   expect(screen.getByLabelText('Walnut enabled')).toBeInTheDocument()

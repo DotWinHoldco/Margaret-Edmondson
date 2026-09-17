@@ -184,7 +184,7 @@ describe('OfferCoverage', () => {
       return body.dryRun === true
     })).toBe(true)
 
-    await waitFor(() => expect(screen.getByText(/Canvas \(1\.25" stretched\) · 20x30/)).toBeDefined())
+    await waitFor(() => expect(screen.getByText(/Canvas · 20x30/)).toBeDefined())
     expect(requests.filter((request) => request.method === 'GET')).toHaveLength(1)
     expect(h.success).not.toHaveBeenCalled()
   })
