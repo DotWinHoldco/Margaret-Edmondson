@@ -1,12 +1,12 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-17 (Full LumaPrints catalog program — P3–P8 built + P9 harness on PR #11; production dark; live receipts in flight)
+Last updated: 2026-09-17 (Full LumaPrints catalog program — P3–P9 shipped, production dark, report GO, human gates owed)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-17, session 2) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P8 BUILT, P9 HARNESS BUILT; PR #11 (branch `catalog/p3-admin-catalog`, fe1a802 + follow-ups) — merge pending the live verification receipts; production stays DARK.**
+> **Current truth (2026-09-17 14:40 UTC) — FULL LUMAPRINTS CATALOG PROGRAM: P3–P9 SHIPPED. main = 79e1e3d (PRs #11, #12), production deploy READY, door CLOSED (legacy storefront, V6.1 parity). Verification report GO; only the human gates remain.**
 > Plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3 · blueprint `docs/blueprints/2026-09-16-full-catalog.md` (Status: executing;
 > Examine carries both security-pass receipts, all findings closed). Production DB now holds migrations 20260917100000
 > (catalog admin RPCs), 20260917110000 (order_items.line_hash + solid_color_hex, 4-column upsert key) and 20260917120000

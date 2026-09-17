@@ -231,9 +231,34 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
 - V7.2 app side on production: five configurations through the admin check, provider called live, cost + shipping
   equal to the stored variant rows to the cent; the dashboard comparison is the person's step (status human).
 
+- P3 exit on production (2026-09-17 14:35 UTC, aal2 admin session, deploy e2b51d0): /admin/catalog renders the full
+  tree (sync history, "0 enabled frame/mat options need a swatch", medium and subcategory switches, NEW badges, bounds
+  and DPI, groups with defaults, swatch fields); the coverage report (GET /api/admin/variants/coverage): 38 eligible
+  products × the 5 live print types → 95 live cells, 4 draft, 81 none, 10 blocked (two products without a ready
+  master: no master attached; master not cropped); coverage dry run (POST, dryRun): 190 cells in 19.4 s, WOULD create
+  130 draft sizes (framed canvas 54, framed paper 38, foam 38), 208 existing sizes skipped, 202 tiers dropped by bounds
+  or DPI, 10 blocked. The real generation is a business call (which print types to sell) and was NOT run.
+- Loader defect found during the acceptance walk and fixed in PR #12: the admin/pricing tree read options in
+  200-group chunks and PostgREST silently caps a response at 1,000 rows → production served 1,138 of 1,265 options with
+  20 empty groups (Mat Color on 105005 among them). Every read now pages; regression test through a truncating fake.
+
+- Admin acceptance walk on production (2026-09-17 14:33 UTC, deploy 79e1e3d, aal2 admin session, through the live
+  /admin/catalog UI): expanded the live framed-paper profile 105005, switched the Mat Color option "Smooth Black" ON
+  (switch false → true, "Saved" toast) and back OFF (true → false, "Saved"); audit_log holds the two rows
+  (`enabled` false → true, true → false, changed_by = the admin), the option is back to `enabled = false`, and the
+  subcategory's v2 pricing-cache rows were evicted in the same transactions (0 rows). The PDP half of the walk is the
+  door: production is closed (legacy picker), the preview with the door open reflects the tree on the next load.
+
 ## Close
 
 <!-- #orchestration BUILD_LOG entry + usage: line from usage-report --write -->
 - Session 15e819c2 handoff (2026-09-17): BUILD_LOG `#orchestration` entry carries the printed line
   `usage: agents=8 turns=1592 out_k=2471 cache_read_M=508 architect_share=64% denied=1 sig=cf02fb37`. Status stays `executing`; P3–P9 open.
+- Session 33beeda3 (2026-09-17, second session): P3–P8 built, P9 harness built and run, PRs #11 (e2b51d0) and #12
+  (79e1e3d) merged and live on production with the door closed; report GO on every automatable step. BUILD_LOG
+  `#orchestration` entry carries the printed line
+  `usage: agents=9 turns=1443 out_k=1877 cache_read_M=441 architect_share=72% denied=0 sig=3d06ea71`
+  (7 executors, 1 security reviewer counted as reviewer, 1 as verifier; 0 refuters; 2 corrective rounds, both by the
+  architect). Status stays `executing` for the human gates only: V7.2 dashboard comparison, V7.5 billing address,
+  V7.9 real QC order, FLAG flip + per-medium enablement with margin sign-off.
 
