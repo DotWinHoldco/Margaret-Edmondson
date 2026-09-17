@@ -57,6 +57,35 @@ const OPTION_COLS =
 /** PostgREST rejects very long `in` lists; every id list is read in slices of this size. */
 const IN_CHUNK = 200
 
+/**
+ * PostgREST answers at most `max-rows` rows per request (1,000 on Supabase) and says
+ * nothing when it truncates. A chunk of 200 groups holds more options than that, so
+ * before this page loop the full tree came back with 1,138 of 1,265 options and twenty
+ * groups silently empty (Mat Color on the live framed-paper profile among them). Every
+ * read therefore pages by `range` in a fixed order until a short page arrives.
+ */
+const PAGE_ROWS = 1000
+
+type PagedQuery<T> = {
+  order: (column: string, opts?: { ascending?: boolean }) => PagedQuery<T>
+  range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+}
+
+async function readAllPages<T>(
+  build: () => PagedQuery<T>,
+  label: string,
+  orderColumn: string = 'id',
+): Promise<T[]> {
+  const rows: T[] = []
+  let from = 0
+  for (;;) {
+    const page = unwrap<T>(await build().order(orderColumn, { ascending: true }).range(from, from + PAGE_ROWS - 1), label)
+    rows.push(...page)
+    if (page.length < PAGE_ROWS) return rows
+    from += PAGE_ROWS
+  }
+}
+
 /** How long the storefront tree may be served before a background refresh (seconds). */
 const CATALOG_REVALIDATE_SECONDS = 300
 
@@ -109,9 +138,11 @@ async function readSubcategories(
 ): Promise<CatalogSubcategoryRow[]> {
   // The storefront read is the same shape the public RLS policy allows, so a cookie
   // client and the service client return the identical set of rows.
-  let query = client.from('lumaprints_subcategories').select(SUBCATEGORY_COLS).eq('api_host', host)
-  if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
-  return unwrap<CatalogSubcategoryRow>(await query, 'subcategories')
+  return readAllPages<CatalogSubcategoryRow>(() => {
+    let query = client.from('lumaprints_subcategories').select(SUBCATEGORY_COLS).eq('api_host', host)
+    if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
+    return query as unknown as PagedQuery<CatalogSubcategoryRow>
+  }, 'subcategories')
 }
 
 async function readGroups(
@@ -121,9 +152,13 @@ async function readGroups(
 ): Promise<CatalogOptionGroupRow[]> {
   const rows: CatalogOptionGroupRow[] = []
   for (const slice of chunk(subcategoryRefs, IN_CHUNK)) {
-    let query = client.from('lumaprints_option_groups').select(GROUP_COLS).in('subcategory_ref', slice)
-    if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
-    rows.push(...unwrap<CatalogOptionGroupRow>(await query, 'option groups'))
+    rows.push(
+      ...(await readAllPages<CatalogOptionGroupRow>(() => {
+        let query = client.from('lumaprints_option_groups').select(GROUP_COLS).in('subcategory_ref', slice)
+        if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
+        return query as unknown as PagedQuery<CatalogOptionGroupRow>
+      }, 'option groups')),
+    )
   }
   return rows
 }
@@ -135,9 +170,13 @@ async function readOptions(
 ): Promise<CatalogOptionRow[]> {
   const rows: CatalogOptionRow[] = []
   for (const slice of chunk(groupRefs, IN_CHUNK)) {
-    let query = client.from('lumaprints_options').select(OPTION_COLS).in('group_ref', slice)
-    if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
-    rows.push(...unwrap<CatalogOptionRow>(await query, 'options'))
+    rows.push(
+      ...(await readAllPages<CatalogOptionRow>(() => {
+        let query = client.from('lumaprints_options').select(OPTION_COLS).in('group_ref', slice)
+        if (!includeDisabled) query = query.eq('enabled', true).eq('removed_from_api', false)
+        return query as unknown as PagedQuery<CatalogOptionRow>
+      }, 'options')),
+    )
   }
   return rows
 }
@@ -155,13 +194,18 @@ async function readRequiredGroupCensus(
 ): Promise<RequiredGroupCensusRow[]> {
   const rows: RequiredGroupCensusRow[] = []
   for (const slice of chunk(subcategoryRefs, IN_CHUNK)) {
-    const result = await client
-      .from('lumaprints_option_groups')
-      .select('id, subcategory_ref, group_key, display_label')
-      .in('subcategory_ref', slice)
-      .eq('required', true)
-      .eq('removed_from_api', false)
-    rows.push(...unwrap<RequiredGroupCensusRow>(result, 'required option groups'))
+    rows.push(
+      ...(await readAllPages<RequiredGroupCensusRow>(
+        () =>
+          client
+            .from('lumaprints_option_groups')
+            .select('id, subcategory_ref, group_key, display_label')
+            .in('subcategory_ref', slice)
+            .eq('required', true)
+            .eq('removed_from_api', false) as unknown as PagedQuery<RequiredGroupCensusRow>,
+        'required option groups',
+      )),
+    )
   }
   return rows
 }

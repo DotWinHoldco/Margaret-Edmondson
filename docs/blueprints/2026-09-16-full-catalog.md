@@ -213,12 +213,23 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
     the wall", and a server-quoted price ($52.75 = the legacy price, parity); switching to Fine Art Paper re-priced all
     three sizes from the server ($20.37 / $27.34 / $41.37) and swapped the groups to Bleed Size (No Bleed); Add Print to
     Cart put ONE line in the drawer titled "The Dual — Small — 6 × 12 in" with "Archival Matte Fine Art Paper · No Bleed
-    (Image goes to edge of paper)" and the quantity controls keyed by line; 0 console errors. Not walked on the preview:
+    (Image goes to edge of paper)" and the quantity controls keyed by line; /cart lists the same line with its summary and
+    the ZIP re-quote (78701) answered through the v3 shipping-quote path for the configured line (shipping included, total
+    $20.37, 0 errors); 0 console errors throughout. Not walked on the preview:
     a paid test checkout (Stripe is LIVE on the shared settings; a test-mode window is a separate, scheduled step) and
     the phone breakpoint. Two preview facts fixed on the way: sign-in return address (dd3c1a9) and the catalog read host
     (de639d5). Owner note: the print-clarity banner still says "stretched canvas" for every medium; per-medium copy from
     `lumaprints_subcategories.description` is a follow-up. Blocked bleed/wrap options are hidden rather than shown
     disabled while they are also switched off; they render disabled-with-reason only once enabled (matches ADR-4).
+
+- Merge + production (2026-09-17 14:17 UTC): PR #11 merged as e2b51d0 (CI: build-check step success; the
+  dependency-audit step is the pre-existing red on main); Vercel production deploy dpl_DjeF9xQNjcEzzBjn8YNWugq2iCdD
+  READY, githubCommitSha = e2b51d0, aliases www.artbyme.studio + artbyme.studio. Post-deploy ledger (Vercel runtime
+  errors, 2h): nothing from production; the two groups are preview-only (CSP frame-src for Vercel's toolbar iframe;
+  `SITE_AUTH_SECRET` missing on preview → guest cart tokens refused — now set on Vercel preview).
+- V7.8 on production: door closed → legacy product page at parity (recorded in V7.checklist.json).
+- V7.2 app side on production: five configurations through the admin check, provider called live, cost + shipping
+  equal to the stored variant rows to the cent; the dashboard comparison is the person's step (status human).
 
 ## Close
 

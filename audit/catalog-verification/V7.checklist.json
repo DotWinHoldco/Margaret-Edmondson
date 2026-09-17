@@ -18,8 +18,8 @@
     {
       "id": "V7.2",
       "title": "V2 production pricing sweep green; five configurations spot-checked against the provider dashboard",
-      "status": "owed",
-      "evidence": "Runs only inside the deployed app with the production key (keys are unpullable): after merge, the admin sellable check (POST /api/admin/catalog/check) on five configurations from the aal2 admin session, compared with the provider dashboard prices; V2 --strict on the sandbox is the code-path proof."
+      "status": "human",
+      "evidence": "App side recorded on production (2026-09-17 14:20 UTC, deploy e2b51d0, POST /api/admin/catalog/check from the aal2 admin session, provider called live: fromCache=false, stale=false, 0 violations): canvas 101002 6.05x6 cost $14.44 + ship $7.80; framed canvas 102002 6.05x6 $34.65 + $14.09; paper 103001 4.1x12 $2.48 + $6.67; framed paper 105005 8x8 $21.21 + $9.18; foam 108001 8x8 $12.92 + $6.67. Every cost and shipping figure equals the stored variant row (lumaprints_cost_cents / shipping_cost_cents) to the cent; customer prices differ only by the per-variant margin overrides (200/150/150/150 vs the product margin 100 the check applies), which V6.1 covers. The dashboard comparison of those five costs is the person's step."
     },
     {
       "id": "V7.3",
@@ -54,8 +54,8 @@
     {
       "id": "V7.8",
       "title": "Rollback drill on preview: storefront flag off returns the legacy product page",
-      "status": "owed",
-      "evidence": "After the preview walk: the door closed (production today, print_configurator_enabled=false) renders the legacy product page with V6.1-parity prices; recorded when walked."
+      "status": "green",
+      "evidence": "Production (deploy e2b51d0, 2026-09-17 14:19 UTC): with print_configurator_enabled=false the product page /shop/art/the-dual renders the legacy picker (\"Choose artwork or print size\", Add Original to Cart) with V6.1-parity prices and no configurator; the same commit on the preview with the door forced open renders the configurator, so the door alone decides (rollback = flag off). Preview rollback with PRINT_CONFIGURATOR_FORCE=off is the same code path (test/catalog/door.test.ts)."
     },
     {
       "id": "V7.9",

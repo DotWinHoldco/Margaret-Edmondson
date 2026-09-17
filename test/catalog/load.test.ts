@@ -301,14 +301,21 @@ interface FakeBuilder {
   select: () => FakeBuilder
   eq: (column: string, value: unknown) => FakeBuilder
   in: (column: string, value: unknown[]) => FakeBuilder
+  order: (column: string, opts?: { ascending?: boolean }) => FakeBuilder
+  range: (from: number, to: number) => FakeBuilder
   /** Thenable only: a supabase-js builder exposes no `catch` and no `finally`. */
   then: <TResult>(onfulfilled: (value: { data: Row[]; error: null }) => TResult) => Promise<TResult>
 }
+
+/** PostgREST's silent per-request cap (Supabase default); the loader must page under it. */
+const FAKE_MAX_ROWS = 1000
 
 function fakeClient(): SupabaseClient {
   return {
     from(table: string): FakeBuilder {
       const filters: Filter[] = []
+      let window: { from: number; to: number } | null = null
+      let orderBy: string | null = null
       const builder: FakeBuilder = {
         select: () => builder,
         eq: (column, value) => {
@@ -319,6 +326,14 @@ function fakeClient(): SupabaseClient {
           filters.push({ op: 'in', column, value })
           return builder
         },
+        order: (column) => {
+          orderBy = column
+          return builder
+        },
+        range: (from, to) => {
+          window = { from, to }
+          return builder
+        },
         then: (onfulfilled) => {
           let rows = TABLES[table] ?? []
           for (const filter of filters) {
@@ -327,6 +342,10 @@ function fakeClient(): SupabaseClient {
                 ? rows.filter((row) => row[filter.column] === filter.value)
                 : rows.filter((row) => (filter.value as unknown[]).includes(row[filter.column]))
           }
+          if (orderBy) rows = [...rows].sort((x, y) => String(x[orderBy!]).localeCompare(String(y[orderBy!])))
+          // The same silent truncation PostgREST applies: a window never exceeds the cap,
+          // and a request without one is cut at the cap with no error.
+          rows = window ? rows.slice(window.from, Math.min(window.to + 1, window.from + FAKE_MAX_ROWS)) : rows.slice(0, FAKE_MAX_ROWS)
           return Promise.resolve({ data: rows, error: null }).then(onfulfilled)
         },
       }
