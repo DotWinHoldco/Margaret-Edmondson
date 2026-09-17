@@ -2,6 +2,7 @@ import { cheapestPrintPrice, availableOriginalPrice } from '@/lib/product-utils'
 import { resolveStorefrontProducts } from '@/lib/fulfillment/storefront'
 import { createClient } from './server'
 import { loadPublicPrintReadiness, storefrontMaster } from '@/lib/products/print-readiness'
+import { mergeFeaturedTiles, type LiveTileFacts } from '@/lib/page-blocks/featured-grid'
 
 export async function getPageContent(page: string, section?: string) {
   const supabase = await createClient()
@@ -43,18 +44,44 @@ export async function getPageBlocks(page: string) {
     .eq('is_visible', true)
     .order('sort_order', { ascending: true })
 
-  const blocks=data||[]
-  const ids=blocks.filter(b=>b.block_type==='featured_grid').flatMap(b=>((b.config?.products||[]) as Array<{id:string}>).map(p=>p.id)).filter(id=>/^[0-9a-f-]{36}$/i.test(id))
-  if(!ids.length)return blocks
-  const {data:catalog}=await supabase.from('products').select('*,product_variants(*)').in('id',ids).in('status',['active','sold'])
-  const resolved=await resolveStorefrontProducts(supabase,catalog||[])
-  const readiness=await loadPublicPrintReadiness(supabase,ids)
-  const labels=new Map(resolved.map(p=>{
-    const product={...p,master_artwork:storefrontMaster(readiness.data.get(p.id))}
-    const print=cheapestPrintPrice(product),original=availableOriginalPrice(product)
-    return [p.id,print!==null?'From $'+print.toFixed(2):original!==null?'$'+original.toFixed(2):'View options']
-  }))
-  return blocks.map(b=>b.block_type==='featured_grid'?{...b,config:{...b.config,products:((b.config?.products||[]) as Array<{id:string}>).map(p=>({...p,display_price_label:labels.get(p.id)||'View options'}))}}:b)
+  const blocks = data || []
+
+  // The Featured grid stores a snapshot of each tile. The live product rows decide the
+  // price label AND the link (slug/title), and a tile whose product is no longer live is
+  // dropped; see `mergeFeaturedTiles` for the rules and the 2026-09-17 dead-link lesson.
+  const tileConfigs = (block: (typeof blocks)[number]) =>
+    ((block.config as { products?: unknown } | null)?.products ?? []) as unknown
+  const ids = blocks
+    .filter((b) => b.block_type === 'featured_grid')
+    .flatMap((b) => {
+      const tiles = tileConfigs(b)
+      return Array.isArray(tiles) ? tiles.map((p) => String((p as { id?: unknown })?.id ?? '')) : []
+    })
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id))
+  if (!ids.length) return blocks
+
+  const { data: catalog } = await supabase
+    .from('products')
+    .select('*,product_variants(*)')
+    .in('id', ids)
+    .in('status', ['active', 'sold'])
+  const resolved = await resolveStorefrontProducts(supabase, catalog || [])
+  const readiness = await loadPublicPrintReadiness(supabase, ids)
+  const live = new Map<string, LiveTileFacts>(
+    resolved.map((p) => {
+      const product = { ...p, master_artwork: storefrontMaster(readiness.data.get(p.id)) }
+      const print = cheapestPrintPrice(product)
+      const original = availableOriginalPrice(product)
+      const priceLabel =
+        print !== null ? 'From $' + print.toFixed(2) : original !== null ? '$' + original.toFixed(2) : 'View options'
+      return [p.id, { slug: p.slug ?? null, title: p.title ?? null, priceLabel }]
+    }),
+  )
+  return blocks.map((b) =>
+    b.block_type === 'featured_grid'
+      ? { ...b, config: { ...(b.config as Record<string, unknown>), products: mergeFeaturedTiles(tileConfigs(b), live) } }
+      : b,
+  )
 }
 
 export async function getFeaturedProducts(limit = 4) {

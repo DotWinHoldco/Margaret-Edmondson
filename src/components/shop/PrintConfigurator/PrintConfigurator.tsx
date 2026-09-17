@@ -47,6 +47,7 @@ import {
 } from './catalog-view'
 import {
   QUOTE_ERROR_COPY,
+  RETRYING_NOTE,
   STALE_NOTE,
   useConfiguratorQuote,
 } from './useConfiguratorQuote'
@@ -249,7 +250,9 @@ export default function PrintConfigurator({
       ? `$${(quote.priceCents / 100).toFixed(2)}`
       : quote.status === 'quoting'
         ? 'Pricing your choices…'
-        : ''
+        : quote.status === 'retrying'
+          ? 'Checking the price…'
+          : ''
 
   return (
     <div>
@@ -325,6 +328,9 @@ export default function PrintConfigurator({
         )}
         {quote.status === 'quoted' && quote.stale && (
           <p className="mt-0.5 font-body text-xs text-charcoal/45">{STALE_NOTE}</p>
+        )}
+        {quote.status === 'retrying' && (
+          <p className="mt-0.5 font-body text-xs text-charcoal/45">{RETRYING_NOTE}</p>
         )}
         {quote.status === 'unavailable' && (
           <ul className="font-body text-sm text-coral">

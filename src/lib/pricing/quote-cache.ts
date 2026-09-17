@@ -26,8 +26,17 @@ import type { PricingCacheRowV2 } from '@/lib/pricing/quote-types'
 const CACHE_COLS =
   'id, subcategory_ref, width_in, height_in, price_key_hash, shipping_class_hash, cost_cents, shipping_cents, option_breakdown, base_cents, fetched_at, expires_at'
 
-/** How long a priced row is served without asking the provider again. */
-export const QUOTE_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+/**
+ * How long a priced row is served without asking the provider again.
+ *
+ * Three days, not one: provider prices move on the order of months, the production key
+ * is throttled far below the published 40/min, and the warmer (`warm.ts`) has to
+ * re-price every offered size once per life. A day made that 985 requests a day for
+ * nothing; three days is a third of that, and an expired row is still served stale
+ * when the provider cannot answer, so the price a shopper sees never gets OLDER than
+ * this plus the outage.
+ */
+export const QUOTE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000
 
 export interface QuoteCacheKey {
   subcategoryRef: string

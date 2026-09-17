@@ -526,12 +526,42 @@ describe('when the server cannot answer', () => {
     expect(screen.getByText('$412.38')).toBeInTheDocument()
   })
 
-  it('tells the shopper the print partner is busy', async () => {
+  it('keeps checking while the print partner is busy, and only after a full budget window says so', async () => {
     answerWith(() => jsonResponse({ ok: false, code: 'provider_busy', error: 'busy' }, 503))
     mount()
     await settle()
 
+    // The first refusal is not an error to the shopper: the page says it is still checking,
+    // and "Add to Cart" stays disabled until a price is on screen.
+    expect(screen.getByText('Checking the price…')).toBeInTheDocument()
+    expect(screen.getByText(/taking a moment/)).toBeInTheDocument()
+    expect(screen.queryByText('Our print partner is busy. Please try again in a minute.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add print to cart/i })).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    // Retries at 4, 8, 16 and 32 seconds (one budget window), still refused: now the copy.
+    await settle(61_000)
+    expect(fetchMock).toHaveBeenCalledTimes(5)
     expect(screen.getByText('Our print partner is busy. Please try again in a minute.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add print to cart/i })).toBeDisabled()
+  })
+
+  it('recovers the moment the print partner answers during the retry window', async () => {
+    answerWith(
+      () => jsonResponse({ ok: false, code: 'provider_busy', error: 'busy' }, 503),
+      () => jsonResponse(quoteBody()),
+    )
+    mount()
+    await settle()
+    expect(screen.getByText('Checking the price…')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    // The first rung of the ladder is four seconds; the price lands as soon as it answers.
+    await settle(4_100)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('$412.38')).toBeInTheDocument()
+    expect(screen.queryByText(/taking a moment/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add print to cart/i })).toBeEnabled()
   })
 
   it('hands the page back to the legacy picker when the door closes under it', async () => {

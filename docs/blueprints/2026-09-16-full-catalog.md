@@ -3,7 +3,7 @@
 Authored by DotWin
 
 Format: v2
-Status: executing
+Status: closed
 Radius: R2
 Budget: agents ≤ 12 · forks ≤ 0 · rounds ≤ 1 · ultracode: off
 Examine: default
@@ -266,3 +266,7 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   Settings "Print configurator" switch (the FLAG gate is now the owner's own click; the storefront copy of the gate stays
   Site access). #14 (label tolerance widening) withdrawn by the owner. Handoff written to STATE.md and memory.
 
+- Closed 2026-09-17 (session e37c5a7c): every code unit shipped and live; the remaining items are human gates
+  (V7.2, V7.5, V7.9, per-medium margins) tracked in STATE.md and memory, not build units. The owner opened the
+  configurator door at 16:06 UTC the same day; the two defects that surfaced (cold price cache → "print partner is
+  busy"; renamed slug → 404) are the subject of `2026-09-17-print-quote-resilience.md`.

@@ -617,6 +617,40 @@ describe('quoteConfiguration: provider trouble', () => {
     await expect(quote(CANVAS, 8, 10)).rejects.toBeInstanceOf(QuoteUnavailableError)
   })
 
+  it('names the class that refused, so the log line says whether the provider was ever called', async () => {
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+    await expect(quote(CANVAS, 8, 10)).rejects.toMatchObject({ reason: 'LumaprintsBudgetError' })
+  })
+
+  it('never serves a stale price with free freight: a frame swap whose row has none takes the highest freight quoted for the size', async () => {
+    // The default black frame writes the batch (the oak swap row among it, freight 0)
+    // and stamps the worst-case freight on the default row alone.
+    await quote(FRAMED, 16, 20)
+    for (const row of db.tables.lumaprints_pricing_cache) {
+      row.expires_at = new Date(Date.now() - 1000).toISOString()
+    }
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+
+    const result = await quote(FRAMED, 16, 20, [91])
+    expect(result.available).toBe(true)
+    expect(result.stale).toBe(true)
+    // Before 2026-09-17 this answered 0 and sold the oak frame with shipping included for free.
+    expect(result.shippingCents).toBe(2250)
+  })
+
+  it('refuses a stale answer when no row for the size carries freight at all', async () => {
+    await quote(CANVAS, 8, 10)
+    for (const row of db.tables.lumaprints_pricing_cache) {
+      row.expires_at = new Date(Date.now() - 1000).toISOString()
+      row.shipping_cents = 0
+    }
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+    await expect(quote(CANVAS, 8, 10)).rejects.toBeInstanceOf(QuoteUnavailableError)
+  })
+
   it('does not serve a stale row when the caller asked for a live number', async () => {
     await quote(CANVAS, 8, 10)
     for (const row of db.tables.lumaprints_pricing_cache) {

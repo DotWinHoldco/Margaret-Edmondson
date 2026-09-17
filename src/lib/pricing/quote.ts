@@ -73,10 +73,23 @@ export { evictQuoteCache }
  * shown the shopper a raw exception instead.
  */
 export class QuoteUnavailableError extends LumaprintsUnavailableError {
-  constructor(message: string) {
+  /**
+   * The class of failure behind the refusal (`LumaprintsBudgetError`, `LumaprintsApiError`,
+   * `not_configured`, …). The customer copy never changes; the log line needs this so the
+   * next incident is diagnosed from the logs and not from the code (2026-09-17: a day of
+   * "provider unavailable" lines that were our own budget refusing, the provider never called).
+   */
+  readonly reason: string
+  constructor(message: string, reason: string = 'unknown') {
     super(message)
     this.name = 'QuoteUnavailableError'
+    this.reason = reason
   }
+}
+
+/** The name of the failure class behind a provider refusal, for `QuoteUnavailableError.reason`. */
+function failureReason(err: unknown): string {
+  return err instanceof Error && err.name ? err.name : 'unknown'
 }
 
 /** The four-corner CONUS box, matching the site_settings default. */
@@ -460,7 +473,7 @@ export async function quoteConfiguration(
   if (!fromCache) {
     if (!lumaprintsConfigured()) {
       const fallback = staleFallback(subcategory, selection, rows, allowStale)
-      if (!fallback) throw new QuoteUnavailableError('LumaPrints API keys are not configured')
+      if (!fallback) throw new QuoteUnavailableError('LumaPrints API keys are not configured', 'not_configured')
       composed = fallback.composed
       shippingCents = fallback.shippingCents
       stale = true
@@ -509,6 +522,7 @@ export async function quoteConfiguration(
       if (!fallback) {
         throw new QuoteUnavailableError(
           'We could not reach the print provider and have no recent price for this configuration.',
+          failureReason(err),
         )
       }
       composed = fallback.composed
@@ -613,15 +627,34 @@ function staleFallback(
   if (!allowStale || rows.length === 0) return null
   const composed = composeFromRows(subcategory, selection, rows)
   if (!composed) return null
+  const shippingCents = staleShippingCents(selection, rows)
+  if (shippingCents === null) return null
+  return { composed, shippingCents }
+}
+
+/**
+ * Freight for a stale answer, and never zero.
+ *
+ * Shipping is included in the price the shopper sees, so a stale row served with
+ * `shipping_cents = 0` sells the print with free freight for as long as the provider is
+ * unreachable (2026-09-17: the budget refused a framed size whose only freight-bearing row
+ * was the default frame; the fallback answered 0). In order of fidelity: this exact
+ * configuration's own freight; a row of the same shipping class; failing both, the
+ * HIGHEST freight quoted for this size in this subcategory — a conservative number, since
+ * the box for a frame swap is the same box and a mat does not change it. When no row for
+ * the size carries freight at all there is nothing safe to say, and the caller refuses.
+ */
+function staleShippingCents(selection: NormalizedSelection, rows: PricingCacheRowV2[]): number | null {
   const exact = rows.find((row) => row.price_key_hash === selection.priceKeyHash)
+  if (exact && exact.shipping_class_hash === selection.shippingClassHash && exact.shipping_cents > 0) {
+    return exact.shipping_cents
+  }
   const sameClass = rows.find(
     (row) => row.shipping_class_hash === selection.shippingClassHash && row.shipping_cents > 0,
   )
-  const shippingCents =
-    exact && exact.shipping_class_hash === selection.shippingClassHash && exact.shipping_cents > 0
-      ? exact.shipping_cents
-      : (sameClass?.shipping_cents ?? 0)
-  return { composed, shippingCents }
+  if (sameClass) return sameClass.shipping_cents
+  const highest = rows.reduce((max, row) => Math.max(max, Number(row.shipping_cents) || 0), 0)
+  return highest > 0 ? highest : null
 }
 
 /**

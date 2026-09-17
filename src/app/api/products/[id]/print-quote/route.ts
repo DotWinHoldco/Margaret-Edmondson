@@ -278,7 +278,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Both of these mean "the provider cannot answer right now and no cache row can
     // stand in". They are the same sentence to a customer: try again shortly.
     if (err instanceof QuoteUnavailableError || err instanceof LumaprintsDisabledError) {
-      console.error('[print-quote] provider unavailable:', err instanceof Error ? err.message : String(err))
+      // The reason is the class that refused (our budget, the provider, the kill switch):
+      // without it a day of these lines cannot say whether LumaPrints was ever called.
+      const reason = err instanceof QuoteUnavailableError ? err.reason : err.name
+      console.error(`[print-quote] provider unavailable (${reason}):`, err.message)
       return fail(503, 'provider_busy', BUSY_COPY)
     }
     return apiFail(err, { context: 'products/[id]/print-quote POST' })
