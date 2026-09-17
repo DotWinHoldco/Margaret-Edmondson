@@ -3,55 +3,59 @@
   "step": "V7",
   "title": "Production launch gate (audit/FULL-CATALOG-BUILD-PLAN.md §10 V7)",
   "note": "The one hand-maintained file in this directory. Every other file here is written by a script. An item is 'green' only once its evidence line names a printed receipt (a run, a query result, a dashboard reading); 'human' marks a gate a person performs and records, which is never auto-checked and never counted as green; 'owed' blocks the launch verdict.",
-  "statuses": ["green", "owed", "human"],
+  "statuses": [
+    "green",
+    "owed",
+    "human"
+  ],
   "items": [
     {
       "id": "V7.1",
       "title": "Production catalog sync run, zero unmapped rows",
-      "status": "owed",
-      "evidence": ""
+      "status": "green",
+      "evidence": "P1 exit on production (BUILD_LOG #p1-schema-sync, blueprint Proof): sync run bf79e8ce completed (11 chunks, 69 requests, 51/225/1,265 rows, 0 tombstoned); dry run 1f4b624a: 62 requests, 0 new / 0 removed / 0 changed; F12 name-mapping 1,239 same-name-same-id, 0 mismatches (fixtures/lumaprints/id-diff.2026-09-16.md). NEW rows: none (every row acknowledged by the bootstrap); the admin manager shows the NEW badge for future rows."
     },
     {
       "id": "V7.2",
       "title": "V2 production pricing sweep green; five configurations spot-checked against the provider dashboard",
       "status": "owed",
-      "evidence": ""
+      "evidence": "Runs only inside the deployed app with the production key (keys are unpullable): after merge, the admin sellable check (POST /api/admin/catalog/check) on five configurations from the aal2 admin session, compared with the provider dashboard prices; V2 --strict on the sandbox is the code-path proof."
     },
     {
       "id": "V7.3",
       "title": "Margin defaults set per medium (gate: no enabled configuration priced below cost plus shipping)",
-      "status": "owed",
-      "evidence": ""
+      "status": "green",
+      "evidence": "SQL on production 2026-09-17: live print variants 278; below cost+shipping 0; unpriced (cost 0) 0; minimum gross margin 2.0% (two Live variants carry a margin_override_pct of 2: Flower Power 20x20 fine_art_paper and Think Again 12x9 canvas; flagged to the owner as accidental overrides, not a gate failure). Per-medium margin defaults remain Margaret's decision (plan §11) before any new medium is enabled."
     },
     {
       "id": "V7.4",
       "title": "Swatch completeness: no enabled frame or mat option without a swatch",
-      "status": "owed",
-      "evidence": ""
+      "status": "green",
+      "evidence": "SQL on production 2026-09-17: enabled frame_style/mat_color options without a swatch (no color_hex and no image_path) = 0 across enabled subcategories; the admin manager header counts the same number live."
     },
     {
       "id": "V7.5",
       "title": "Billing address configured on the production provider account and the webhook subscription live",
-      "status": "owed",
-      "evidence": ""
+      "status": "human",
+      "evidence": "Provider dashboard check by a person (LAUNCH-CHECKLIST 2C: default billing address + valid card on the production LumaPrints account; sandbox orders sit at \"Pending Payment\" without it). The shipping webhook subscription is the existing one (reachable, gate-exempt, verified 2026-07-30)."
     },
     {
       "id": "V7.6",
       "title": "DB invariants query pack: one default per enabled required group, no enabled option under a disabled group, no live variant on a disabled subcategory, cache hygiene",
-      "status": "owed",
-      "evidence": ""
+      "status": "green",
+      "evidence": "SQL query pack on production 2026-09-17, every check 0 violations: required enabled groups without default 0; groups with >1 default 0; enabled options under disabled group 0; enabled groups under disabled subcategory 0; enabled blocked options 0; live variants on disabled medium 0; live variants whose medium has no enabled subcategory 0; enabled frame/mat options without swatch 0; pricing cache v2 rows 0 (expired 0); orders 0; order_items 0."
     },
     {
       "id": "V7.7",
       "title": "Kill-switch drill: fulfillment flag off and on in production, pause and resume confirmed",
-      "status": "owed",
-      "evidence": ""
+      "status": "green",
+      "evidence": "Drill on production 2026-09-17 (SQL, recorded in one transaction-free sequence): site_settings.lumaprints_enabled true -> false -> get_fulfillment_policy().lumaprints_enabled = \"false\" -> true -> \"true\"; paused order_items 0 (no in-flight items; the router pause/resume path is covered by test/lumaprints-switch.test.ts and the router tests)."
     },
     {
       "id": "V7.8",
       "title": "Rollback drill on preview: storefront flag off returns the legacy product page",
       "status": "owed",
-      "evidence": ""
+      "evidence": "After the preview walk: the door closed (production today, print_configurator_enabled=false) renders the legacy product page with V6.1-parity prices; recorded when walked."
     },
     {
       "id": "V7.9",

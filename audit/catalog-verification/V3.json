@@ -1,0 +1,162 @@
+{
+  "step": "V3",
+  "title": "Geometry sweep: checkImageConfig and provider enforcement against the rules engine (P0 probe matrix re-run)",
+  "startedAt": "2026-09-17T13:56:04.382Z",
+  "finishedAt": "2026-09-17T13:56:04.383Z",
+  "commit": "fe1a802a6c3c8e180e6b7915056114526195af5f",
+  "host": "us.api-sandbox.lumaprints.com",
+  "counts": {
+    "assertions": 16,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 2
+  },
+  "failures": [],
+  "notes": [
+    "RECORDED (P2, provider behaviour the engine is written to): Frame profile IS the subcategory axis: 25 subcategories in 105, each named for a frame profile, and NO frame-style option group exists (confirmed). Mat Size, Mat Color, Paper Type, Glazing, Hardware, Backing and Print Mounting are option...",
+    "RECORDED (P4, provider behaviour the engine is written to): 60x40 No Mat: $153.87; +5in mat (glass would be 70x50): $231.52; 105001 36x24 +5in mat: $116.88; over-max width 62: PRICED (published bounds are NOT enforced by pricing). checkImageConfig 200, recommended 40x60in (= the ordered print siz...",
+    "RECORDED (P5, provider behaviour the engine is written to): No Bleed 200 (control, recommended 8x10in = the ordered size); 0.25in bleed 406 expecting 2x4in; 1.00in bleed 406 expecting -16x-14in — a NEGATIVE size, which no image can satisfy; re-check with an image at the API's own expectation: 200...",
+    "SKIPPED (P6): checkImageConfig 200 with Solid Color selected; submit not attempted order n/a; price $10.99. Submit did not return 201 — read the raw body before enabling the option.",
+    "RECORDED (P7, provider behaviour the engine is written to): single /pricing/product 6/6 accepted; batch /pricing/products 6/6 accepted (HTTP 200); /pricing/shipping 200; checkImageConfig 103001 200 (recommended 9.25x11in vs ordered 9.25x11), 101002 200 (recommended 9.25x11in); fractional sandbox ...",
+    "RECORDED (P8, provider behaviour the engine is written to): No Mat + White mat colour: $22.45 [64,74,83,94,96,146,148]; 2in mat + White: $31.38 [67,74,83,94,96,146,148]. The API silently accepts a mat colour with No Mat (it is echoed in the resolved options at $0), so Mat Color visibility is OURS...",
+    "RECORDED (P9, provider behaviour the engine is written to): 8x10 (whitelisted): $30.57 [32]; 13x19: $68.74 [32]; 30x40: $252.50 [32]; inset frame 13x19 (control): $68.74 [31]. Pricing accepts the easel at sizes outside the published whitelist — the size_whitelist rule is OURS alone, and an unguar...",
+    "RECORDED (P10, provider behaviour the engine is written to): own sawtooth id 11: $21.68 [2,11]; foreign hardware ids 4,5,6,7,8,133 -> 4:rejected 5:rejected 6:rejected 7:rejected 8:rejected 133:rejected. Every foreign hardware id is rejected: per-subcategory option lists are self-enforcing and no s...",
+    "RECORDED (P11, provider behaviour the engine is written to): foamcore id 10 on 101002: REJECTED \"orderItemOptions contains an option that is not associated to subcategory 101002.\"; on 101003 (control): $30.02 [2,4,10]. Rejected as expected: the group boundary is provider-enforced.",
+    "RECORDED (P14, provider behaviour the engine is written to): 16/20 multi-option configurations are additive (apiTotal === base + Σ individually-priced deltas), across 5 families. NON-ADDITIVE: framed paper 105005 [3in mat instead of none [Mat Size] + Somerset Velvet paper [Paper Type]] base $38.54...",
+    "RECORDED (P15, provider behaviour the engine is written to): Pricing with [] returns resolved options — 101002: [1=Image Wrap, 11=Sawtooth Hanger installed]; 103001: [36=0.25in Bleed (0.25in on each side)]. checkImageConfig with []: canvas 406 (expects 11.75x13.75in for an 8x10 order), paper 406 (...",
+    "SKIPPED (P16): SKIPPED: orders disabled (--no-orders)"
+  ],
+  "table": {
+    "title": "Probes",
+    "columns": [
+      "probe",
+      "key",
+      "verdict",
+      "requests",
+      "question"
+    ],
+    "rows": [
+      [
+        "P1",
+        "required",
+        "PASS",
+        3,
+        "Which subcategories reject an empty options array, and what is the MINIMAL required group set?"
+      ],
+      [
+        "P2",
+        "cat105",
+        "FINDING",
+        0,
+        "Is the frame profile the SUBCATEGORY axis on Framed Fine Art Paper (105), or an option group?"
+      ],
+      [
+        "P3",
+        "mat",
+        "PASS",
+        4,
+        "For framed paper with a mat, does the API take the PRINT size (glass derived) or the glass size — and what expectedAspectRatio comes back?"
+      ],
+      [
+        "P4",
+        "ceiling",
+        "FINDING",
+        2,
+        "At the glass ceiling (largest in-bounds print + 5in mat), does the API 4xx, price anyway, or silently accept?"
+      ],
+      [
+        "P5",
+        "bleed",
+        "FINDING",
+        5,
+        "Does a paper Bleed option behave like a mat (per_side_in, image stays at the ordered aspect) or does it shrink the image inside the sheet (blocked)?"
+      ],
+      [
+        "P6",
+        "solid",
+        "SKIPPED",
+        3,
+        "Does Solid Color Wrap with solidColorHexCode pass checkImageConfig, submit, and echo back on GET /orders?"
+      ],
+      [
+        "P7",
+        "fractional",
+        "FINDING",
+        11,
+        "Which endpoints accept fractional inches (9.25 x 11)?"
+      ],
+      [
+        "P8",
+        "matcolor",
+        "FINDING",
+        1,
+        "Is a Mat Color accepted when Mat Size = No Mat (dependent-visible group)?"
+      ],
+      [
+        "P9",
+        "easel",
+        "FINDING",
+        1,
+        "Does the metal easel price only at the published whitelist sizes?"
+      ],
+      [
+        "P10",
+        "hardware",
+        "FINDING",
+        1,
+        "On 1.25in canvas (sawtooth-only hardware group), what happens to the other depths’ hardware ids?"
+      ],
+      [
+        "P11",
+        "foamcore",
+        "FINDING",
+        1,
+        "Is the foamcore underlayer rejected on a depth that does not publish that group?"
+      ],
+      [
+        "P12",
+        "glazing",
+        "PASS",
+        1,
+        "Is glazing a real option group on framed paper (priced), or always-on?"
+      ],
+      [
+        "P13",
+        "deltas",
+        "PASS",
+        2,
+        "Do per-option prices vary by print size (the cache-key assumption)?"
+      ],
+      [
+        "P14",
+        "additivity",
+        "FINDING",
+        1,
+        "Does a whole configuration price equal base + the sum of individually-priced option deltas?"
+      ],
+      [
+        "P15",
+        "defaults",
+        "FINDING",
+        3,
+        "What does an EMPTY options array resolve to, and is that default safe for aspect-exact masters?"
+      ],
+      [
+        "P16",
+        "orderecho",
+        "SKIPPED",
+        0,
+        "Do queued sandbox orders materialise, and does GET /orders/{n} echo the option ids, the fractional dimensions and solidColorHexCode?"
+      ]
+    ]
+  },
+  "meta": {
+    "probesFile": "fixtures/lumaprints/probes.2026-09-17.json",
+    "runId": "2026-09-17T13-54-38-784Z",
+    "storeId": 82222,
+    "snapshot": "catalog.us.api-sandbox.lumaprints.com.2026-09-16.json"
+  },
+  "green": true,
+  "durationMs": 1,
+  "generatedAt": "2026-09-17T13:56:04.397Z"
+}

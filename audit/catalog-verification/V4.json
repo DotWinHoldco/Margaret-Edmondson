@@ -1,0 +1,543 @@
+{
+  "step": "V4",
+  "title": "Sandbox order suite: one maximal-option order per medium, echoed back exactly",
+  "startedAt": "2026-09-17T13:52:40.163Z",
+  "finishedAt": "2026-09-17T13:54:21.140Z",
+  "commit": "fe1a802a6c3c8e180e6b7915056114526195af5f",
+  "host": "us.api-sandbox.lumaprints.com",
+  "counts": {
+    "assertions": 49,
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0
+  },
+  "failures": [],
+  "notes": [
+    "FINDING F35: 101001 Canvas Finish id(s) [213] sent with order 10000339587; echoed back. Exempt from the echo assertion, not a failure.",
+    "RECORDED (P16): order 10000339587 carries solidColorHexCode #c8102e in the request; the provider's order item echoes only [subcategoryId, externalItemId, quantity, width, height, file, itemCostTotal, orderItemOptions] and never the hex, so our own record is the sole evidence of the colour.",
+    "FINDING F35: 102001 Canvas Finish id(s) [213] sent with order 10000339588; echoed back. Exempt from the echo assertion, not a failure.",
+    "FINDING F35: 101005 Canvas Finish id(s) [212] sent with order 10000339594; echoed back. Exempt from the echo assertion, not a failure.",
+    "Every configuration was proved against evaluateSelection before the provider was called; a configuration the engine refuses aborts the run as a harness bug (F30).",
+    "Canvas Finish ids are exempt from the echo assertion (F35: accepted, never echoed) and the solid-colour hex is asserted from the request record (P16: never echoed)."
+  ],
+  "table": {
+    "title": "One order per medium family",
+    "columns": [
+      "medium",
+      "subcategory",
+      "size (in)",
+      "option ids",
+      "order number",
+      "echo"
+    ],
+    "rows": [
+      [
+        "canvas",
+        "101001 0.75in Stretched Canvas",
+        "16 x 20",
+        "3,5,213",
+        "10000339587",
+        "exact"
+      ],
+      [
+        "framed_canvas",
+        "102001 0.75in Framed Canvas",
+        "16 x 20",
+        "2,17,213,243",
+        "10000339588",
+        "exact"
+      ],
+      [
+        "fine_art_paper",
+        "103001 Archival Matte Fine Art Paper",
+        "9.25 x 11",
+        "39",
+        "10000339589",
+        "exact"
+      ],
+      [
+        "framed_fine_art_paper",
+        "105005 1.25w x 0.875h Black Frame",
+        "11 x 14",
+        "69,75,93,95,107,146,148",
+        "10000339590",
+        "exact"
+      ],
+      [
+        "foam_mounted_fine_art_paper",
+        "108001 Foam-mounted Archival Matte Fine Art Paper",
+        "12.5 x 16",
+        "39",
+        "10000339591",
+        "exact"
+      ],
+      [
+        "metal",
+        "106002 Glossy Silver Metal Print",
+        "8 x 10",
+        "32",
+        "10000339592",
+        "exact"
+      ],
+      [
+        "peel_and_stick",
+        "107001 Peel and Stick Art Print",
+        "12 x 12",
+        "(none published)",
+        "10000339593",
+        "exact"
+      ],
+      [
+        "rolled_canvas",
+        "101005 Rolled Canvas",
+        "16 x 20",
+        "2,212",
+        "10000339594",
+        "exact"
+      ]
+    ]
+  },
+  "meta": {
+    "snapshot": "fixtures/lumaprints/catalog.us.api-sandbox.lumaprints.com.2026-09-16.json",
+    "snapshotCapturedAt": "2026-09-16T23:28:07.895Z",
+    "mode": "orders",
+    "ordersPlaced": 8,
+    "maxOrders": 8,
+    "storeId": 82222,
+    "mediums": [
+      "canvas",
+      "framed_canvas",
+      "fine_art_paper",
+      "framed_fine_art_paper",
+      "foam_mounted_fine_art_paper",
+      "metal",
+      "peel_and_stick",
+      "rolled_canvas"
+    ],
+    "plan": [
+      {
+        "medium": "canvas",
+        "subcategoryId": 101001,
+        "size": {
+          "width": 16,
+          "height": 20
+        },
+        "optionIds": [
+          3,
+          5,
+          213
+        ],
+        "solidColorHexCode": "#c8102e",
+        "notes": [
+          "Solid Color Wrap carries solidColorHexCode; the provider never echoes it (P16), so the request record is the evidence.",
+          "Size 16 x 20 is a standard grid size inside every canvas depth bounds.",
+          "options: canvas_border=Solid Color (3) · canvas_finish=Matte (213) · hanging_hardware=Hanging Wire installed (5)",
+          "bounds 6-65 x 6-36in · ceiling 65 x 36in · required DPI 200"
+        ]
+      },
+      {
+        "medium": "framed_canvas",
+        "subcategoryId": 102001,
+        "size": {
+          "width": 16,
+          "height": 20
+        },
+        "optionIds": [
+          2,
+          17,
+          213,
+          243
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "Frame Styles is the one required group in the catalog (P1/F13); it is chosen explicitly here.",
+          "options: frame_style=0.875x0.875 Oak Frame (243) · canvas_border=Mirror Wrap (2) · canvas_finish=Matte (213) · hanging_hardware=Black Backboard backing with hanging wire installed (17)",
+          "bounds 6-100 x 6-52in · ceiling 100 x 52in · required DPI 200"
+        ]
+      },
+      {
+        "medium": "fine_art_paper",
+        "subcategoryId": 103001,
+        "size": {
+          "width": 9.25,
+          "height": 11
+        },
+        "optionIds": [
+          39
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "Fractional size 9.25 x 11 (F15: fractional inches are accepted on every endpoint).",
+          "No Bleed is the only bleed this catalog can sell: every other member expects a shrunken file (ADR-4 bleed block).",
+          "options: bleed_size=No Bleed (Image goes to edge of paper) (39)",
+          "bounds 4-110 x 4-43in · ceiling 110 x 43in · required DPI 300"
+        ]
+      },
+      {
+        "medium": "framed_fine_art_paper",
+        "subcategoryId": 105005,
+        "size": {
+          "width": 11,
+          "height": 14
+        },
+        "optionIds": [
+          69,
+          75,
+          93,
+          95,
+          107,
+          146,
+          148
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "A 3in mat grows the glass to 17 x 20in, inside the 60 x 40in ceiling (P3/P4).",
+          "Mat Color is a dependent group: it is only legitimate because a real mat is chosen.",
+          "options: backing=Kraft Paper (95) · hanging_hardware=Sawtooth Hanger installed on frame (93) · glazing=Acrylic Glass (recommended) (146) · mat_color=French Blue (107) · mat_size=3.0 inches on each side (69) · paper_type=Hot Press Fine Art Paper (75) · print_mounting=Dry Mounted to Foam Core (148)",
+          "bounds 5-60 x 5-40in · ceiling 60 x 40in · required DPI 300",
+          "glass/outer size with the mat: 17 x 20in"
+        ]
+      },
+      {
+        "medium": "foam_mounted_fine_art_paper",
+        "subcategoryId": 108001,
+        "size": {
+          "width": 12.5,
+          "height": 16
+        },
+        "optionIds": [
+          39
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "Second fractional size of the suite: 12.5 x 16 (F15).",
+          "options: bleed_size=No Bleed (Image goes to edge of paper) (39)",
+          "bounds 5-59.5 x 5-39.5in · ceiling 59.5 x 39.5in · required DPI 300"
+        ]
+      },
+      {
+        "medium": "metal",
+        "subcategoryId": 106002,
+        "size": {
+          "width": 8,
+          "height": 10
+        },
+        "optionIds": [
+          32
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "The easel is whitelisted to seven sizes by our own rules; the provider prices it at any size (P9/F31). 8 x 10 is on the list.",
+          "Glossy Silver publishes narrower bounds (10-36 x 8-24in); 8 x 10 fits it rotated, which is how the engine and the provider both read it (F32).",
+          "options: metal_hardware=Metal Easel (32)",
+          "bounds 10-36 x 8-24in · ceiling 36 x 24in · required DPI 300"
+        ]
+      },
+      {
+        "medium": "peel_and_stick",
+        "subcategoryId": 107001,
+        "size": {
+          "width": 12,
+          "height": 12
+        },
+        "optionIds": [],
+        "solidColorHexCode": null,
+        "notes": [
+          "This subcategory publishes no option groups at all, so an empty array is the whole configuration, not an omission.",
+          "options: none (the subcategory publishes no groups)",
+          "no option groups: an explicitly empty array is the correct request here",
+          "bounds 4-150 x 4-49in · ceiling 150 x 49in · required DPI 200"
+        ]
+      },
+      {
+        "medium": "rolled_canvas",
+        "subcategoryId": 101005,
+        "size": {
+          "width": 16,
+          "height": 20
+        },
+        "optionIds": [
+          2,
+          212
+        ],
+        "solidColorHexCode": null,
+        "notes": [
+          "Engine defaults only: the four Rolled Canvas Border Size options are blocked with an owed V3 image-check probe, so none of them is sent.",
+          "options: canvas_border=Mirror Wrap (2) · canvas_finish=Semi-Glossy (212)",
+          "bounds 5-300 x 5-52in · ceiling 300 x 52in · required DPI 200"
+        ]
+      }
+    ],
+    "orders": [
+      {
+        "label": "canvas-101001-16x20",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-canvas-101001-16x20",
+        "orderNumber": "10000339587",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          3,
+          5,
+          213
+        ],
+        "echoedOptionIds": [
+          3,
+          5,
+          213
+        ],
+        "sentSize": {
+          "width": 16,
+          "height": 20
+        },
+        "echoedSize": {
+          "width": "16.00",
+          "height": "20.00"
+        },
+        "hexSent": "#c8102e"
+      },
+      {
+        "label": "framed_canvas-102001-16x20",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-framed_canvas-102001-16x20",
+        "orderNumber": "10000339588",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          2,
+          17,
+          213,
+          243
+        ],
+        "echoedOptionIds": [
+          2,
+          17,
+          213,
+          243
+        ],
+        "sentSize": {
+          "width": 16,
+          "height": 20
+        },
+        "echoedSize": {
+          "width": "16.00",
+          "height": "20.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "fine_art_paper-103001-9_25x11",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-fine_art_paper-103001-9_25x11",
+        "orderNumber": "10000339589",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          39
+        ],
+        "echoedOptionIds": [
+          39
+        ],
+        "sentSize": {
+          "width": 9.25,
+          "height": 11
+        },
+        "echoedSize": {
+          "width": "9.25",
+          "height": "11.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "framed_fine_art_paper-105005-11x14",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-framed_fine_art_paper-105005-11x14",
+        "orderNumber": "10000339590",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          69,
+          75,
+          93,
+          95,
+          107,
+          146,
+          148
+        ],
+        "echoedOptionIds": [
+          69,
+          75,
+          93,
+          95,
+          107,
+          146,
+          148
+        ],
+        "sentSize": {
+          "width": 11,
+          "height": 14
+        },
+        "echoedSize": {
+          "width": "11.00",
+          "height": "14.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "foam_mounted_fine_art_paper-108001-12_5x16",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-foam_mounted_fine_art_paper-108001-12_5x16",
+        "orderNumber": "10000339591",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          39
+        ],
+        "echoedOptionIds": [
+          39
+        ],
+        "sentSize": {
+          "width": 12.5,
+          "height": 16
+        },
+        "echoedSize": {
+          "width": "12.50",
+          "height": "16.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "metal-106002-8x10",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-metal-106002-8x10",
+        "orderNumber": "10000339592",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          32
+        ],
+        "echoedOptionIds": [
+          32
+        ],
+        "sentSize": {
+          "width": 8,
+          "height": 10
+        },
+        "echoedSize": {
+          "width": "8.00",
+          "height": "10.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "peel_and_stick-107001-12x12",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-peel_and_stick-107001-12x12",
+        "orderNumber": "10000339593",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [],
+        "echoedOptionIds": [],
+        "sentSize": {
+          "width": 12,
+          "height": 12
+        },
+        "echoedSize": {
+          "width": "12.00",
+          "height": "12.00"
+        },
+        "hexSent": null
+      },
+      {
+        "label": "rolled_canvas-101005-16x20",
+        "externalId": "v4-2026-09-17T13-52-40-129Z-rolled_canvas-101005-16x20",
+        "orderNumber": "10000339594",
+        "submitStatus": 201,
+        "echoStatus": 200,
+        "orderStatus": "Pending Payment",
+        "sentOptionIds": [
+          2,
+          212
+        ],
+        "echoedOptionIds": [
+          2,
+          19,
+          212
+        ],
+        "sentSize": {
+          "width": 16,
+          "height": 20
+        },
+        "echoedSize": {
+          "width": "16.00",
+          "height": "20.00"
+        },
+        "hexSent": null
+      }
+    ],
+    "probeImages": [
+      {
+        "label": "canvas-101001-16x20",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/canvas-101001-16x20.png",
+        "px": {
+          "width": 3200,
+          "height": 4000
+        },
+        "bytes": 94938
+      },
+      {
+        "label": "fine_art_paper-103001-9_25x11",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/fine_art_paper-103001-9_25x11.png",
+        "px": {
+          "width": 2775,
+          "height": 3300
+        },
+        "bytes": 72257
+      },
+      {
+        "label": "framed_fine_art_paper-105005-11x14",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/framed_fine_art_paper-105005-11x14.png",
+        "px": {
+          "width": 3300,
+          "height": 4200
+        },
+        "bytes": 92464
+      },
+      {
+        "label": "foam_mounted_fine_art_paper-108001-12_5x16",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/foam_mounted_fine_art_paper-108001-12_5x16.png",
+        "px": {
+          "width": 3750,
+          "height": 4800
+        },
+        "bytes": 122914
+      },
+      {
+        "label": "metal-106002-8x10",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/metal-106002-8x10.png",
+        "px": {
+          "width": 2400,
+          "height": 3000
+        },
+        "bytes": 57267
+      },
+      {
+        "label": "peel_and_stick-107001-12x12",
+        "storagePath": "v4/2026-09-17T13-52-40-129Z/peel_and_stick-107001-12x12.png",
+        "px": {
+          "width": 2400,
+          "height": 2400
+        },
+        "bytes": 47819
+      }
+    ],
+    "echoPolls": 12,
+    "echoIntervalMs": 5000,
+    "requestsSent": 32,
+    "peakPerRolling60s": 20,
+    "wallMs": 100997
+  },
+  "green": true,
+  "durationMs": 100977,
+  "generatedAt": "2026-09-17T13:54:21.191Z"
+}

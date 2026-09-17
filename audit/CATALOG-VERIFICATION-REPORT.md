@@ -1,15 +1,58 @@
-# V2 — Full-matrix sandbox pricing sweep (additivity + glass-ceiling edge)
+# Catalog verification report
+
+Authored by DotWin. **Generated** by `scripts/catalog-verification-report.mjs` from the step
+results in `audit/catalog-verification/`. Nothing in this file is typed by hand: every status is
+a step result’s own `green` field, every count is that result’s own count, and the verdict is
+derived from them. A step with no result file is MISSING, never assumed.
+
+- Generated at: 2026-09-17T14:07:53.057Z
+- Results directory: `audit/catalog-verification`
+- Commits represented: `dd3c1a90c5e409648a638987016ff65009a02e1f`, `fe1a802a6c3c8e180e6b7915056114526195af5f`
+- Hosts represented: `us.api-sandbox.lumaprints.com`, `klwkajukicsoiwpsgftt.supabase.co`
+- Vitest reporter output: `/private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json`
+
+> The steps below were not all run against the same tree (2 commits). A result from an older commit is stale evidence, not a pass.
+
+## Steps
+
+| Step | Status | Assertions | Passed | Failed | Skipped | Source |
+| --- | --- | --- | --- | --- | --- | --- |
+| V1 | **GREEN** | 1022 | 1015 | 0 | 7 | /private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json |
+| V2 | **GREEN** | 8305 | 6889 | 0 | 1416 | V2.json |
+| V3 | **GREEN** | 16 | 14 | 0 | 2 | V3.json |
+| V4 | **GREEN** | 49 | 49 | 0 | 0 | V4.json |
+| V5 | **GREEN** | 127 | 122 | 0 | 5 | /private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json |
+| V6.1 | **GREEN** | 834 | 834 | 0 | 0 | V6.1.json |
+| V7 | **RED** | 10 | 5 | 2 | 3 | V7.checklist.json |
+
+## V1 — Contract and fixture tests (CI, every PR)
+
+- Status: **GREEN**
+- Assertions: 1022 (passed 1015, failed 0, skipped 7)
+- Source: /private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json
+
+> 7 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
+
+### Notes
+
+- Counts are the vitest run's own: 1022 tests, 7 pending (a pending test is counted as a skip).
+
+### Failures
+
+None.
+
+## V2 — Full-matrix sandbox pricing sweep
 
 - Status: **GREEN**
 - Assertions: 8305 (passed 6889, failed 0, skipped 1416)
-- Host: `us.api-sandbox.lumaprints.com`
 - Commit: `dd3c1a90c5e409648a638987016ff65009a02e1f`
-- Started: 2026-09-17T13:56:06.664Z
-- Finished: 2026-09-17T14:05:47.224Z (580.6s)
+- Host: `us.api-sandbox.lumaprints.com`
+- Finished: 2026-09-17T14:05:47.224Z
+- Source: V2.json
 
-> 1416 assertion(s) SKIPPED. A skipped guard is no guard: see the notes below.
+> 1416 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
 
-## Notes
+### Notes
 
 - SKIPPED (256): 105013 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)
 - SKIPPED (256): 105023 pricing assertions — UNPRICEABLE (this environment): the whole default-set grid came back unpriced after a retry — success:false with no message (row present, price undefined)
@@ -109,13 +152,11 @@
 - Default option sets came from src/lib/catalog/seed-rules.ts (pickSeededDefault), keyed on provider NAMES and never [] (an empty array resolves to Image Wrap / 0.25in bleed — P15).
 - Sizes outside a subcategory's published bounds are documented drops, not failures (see the per-subcategory table).
 
-## Failures
+### Failures
 
 None.
 
-## Results
-
-### Per subcategory
+#### Per subcategory
 
 | subcategory | medium | sizes priced | options priced | additive ok/total | recorded (105) | glass-ceiling edge | sizes dropped (out of bounds) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -170,14 +211,14 @@ None.
 | 106002 | metal | 16 | 5 | 0/0 | 0 | n/a | 8x10 24x30 24x36 30x40 8x8 30x30 40x30 |
 | 107001 | peel_and_stick | 23 | 0 | 0/0 | 0 | n/a | none |
 
-### Not priceable in this environment (F36)
+#### Not priceable in this environment (F36)
 
 | subcategory | medium | name | in-bounds sizes tried | assertions skipped | provider's answer |
 | --- | --- | --- | --- | --- | --- |
 | 105013 | framed_fine_art_paper | 2w x 1.0625h Framer's Choice Black with Gold Frame | 23 | 256 | success:false with no message (row present, price undefined) |
 | 105023 | framed_fine_art_paper | 3w x 1.125h Gold Plein Air Frame | 23 | 256 | success:false with no message (row present, price undefined) |
 
-### Whole-configuration additivity
+#### Whole-configuration additivity
 
 | subcategory | size | groups | base $ | predicted $ | api $ | diff $ | verdict | treatment |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -233,95 +274,169 @@ None.
 | 105027 | 8x8 | 3 | 23.60 | 47.21 | 49.15 | 1.94 | NOT additive | recorded (F26) |
 | 105028 | 40x30 | 7 | 100.25 | 179.98 | 213.94 | 33.96 | NOT additive | recorded (F26) |
 
-## Run
+## V3 — Geometry sweep (checkImageConfig against the rules engine)
 
-```json
-{
-  "snapshot": "fixtures/lumaprints/catalog.us.api-sandbox.lumaprints.com.2026-09-16.json",
-  "snapshotCapturedAt": "2026-09-16T23:28:07.895Z",
-  "subcategories": [
-    108001,
-    108002,
-    108003,
-    108005,
-    108006,
-    108007,
-    108009,
-    108010,
-    101001,
-    101002,
-    101003,
-    101005,
-    102001,
-    102002,
-    102003,
-    103001,
-    103002,
-    103003,
-    103005,
-    103006,
-    103007,
-    103009,
-    105001,
-    105002,
-    105003,
-    105005,
-    105006,
-    105007,
-    105008,
-    105009,
-    105010,
-    105011,
-    105012,
-    105013,
-    105015,
-    105016,
-    105017,
-    105018,
-    105019,
-    105020,
-    105022,
-    105023,
-    105024,
-    105025,
-    105026,
-    105027,
-    105028,
-    106001,
-    106002,
-    107001
-  ],
-  "sizes": [
-    "small",
-    "mid",
-    "max"
-  ],
-  "itemsPriced": 4210,
-  "itemsRetried": 1904,
-  "itemsRecoveredByRetry": 1224,
-  "unpriceableSubcategories": [
-    105013,
-    105023
-  ],
-  "retryPasses": 2,
-  "strict": false,
-  "itemsDroppedF37": 452,
-  "f37Subcategories": {
-    "105012": 95,
-    "105015": 64,
-    "105016": 2,
-    "105020": 7,
-    "105022": 110,
-    "105024": 54,
-    "105026": 35,
-    "105027": 84,
-    "105028": 1
-  },
-  "requestsEstimated": 107,
-  "requestsSent": 184,
-  "peakPerRolling60s": 25,
-  "wallMs": 580555
-}
-```
+- Status: **GREEN**
+- Assertions: 16 (passed 14, failed 0, skipped 2)
+- Commit: `fe1a802a6c3c8e180e6b7915056114526195af5f`
+- Host: `us.api-sandbox.lumaprints.com`
+- Finished: 2026-09-17T13:56:04.383Z
+- Source: V3.json
 
-Authored by DotWin. Generated by the catalog verification harness.
+> 2 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
+
+### Notes
+
+- RECORDED (P2, provider behaviour the engine is written to): Frame profile IS the subcategory axis: 25 subcategories in 105, each named for a frame profile, and NO frame-style option group exists (confirmed). Mat Size, Mat Color, Paper Type, Glazing, Hardware, Backing and Print Mounting are option...
+- RECORDED (P4, provider behaviour the engine is written to): 60x40 No Mat: $153.87; +5in mat (glass would be 70x50): $231.52; 105001 36x24 +5in mat: $116.88; over-max width 62: PRICED (published bounds are NOT enforced by pricing). checkImageConfig 200, recommended 40x60in (= the ordered print siz...
+- RECORDED (P5, provider behaviour the engine is written to): No Bleed 200 (control, recommended 8x10in = the ordered size); 0.25in bleed 406 expecting 2x4in; 1.00in bleed 406 expecting -16x-14in — a NEGATIVE size, which no image can satisfy; re-check with an image at the API's own expectation: 200...
+- SKIPPED (P6): checkImageConfig 200 with Solid Color selected; submit not attempted order n/a; price $10.99. Submit did not return 201 — read the raw body before enabling the option.
+- RECORDED (P7, provider behaviour the engine is written to): single /pricing/product 6/6 accepted; batch /pricing/products 6/6 accepted (HTTP 200); /pricing/shipping 200; checkImageConfig 103001 200 (recommended 9.25x11in vs ordered 9.25x11), 101002 200 (recommended 9.25x11in); fractional sandbox ...
+- RECORDED (P8, provider behaviour the engine is written to): No Mat + White mat colour: $22.45 [64,74,83,94,96,146,148]; 2in mat + White: $31.38 [67,74,83,94,96,146,148]. The API silently accepts a mat colour with No Mat (it is echoed in the resolved options at $0), so Mat Color visibility is OURS...
+- RECORDED (P9, provider behaviour the engine is written to): 8x10 (whitelisted): $30.57 [32]; 13x19: $68.74 [32]; 30x40: $252.50 [32]; inset frame 13x19 (control): $68.74 [31]. Pricing accepts the easel at sizes outside the published whitelist — the size_whitelist rule is OURS alone, and an unguar...
+- RECORDED (P10, provider behaviour the engine is written to): own sawtooth id 11: $21.68 [2,11]; foreign hardware ids 4,5,6,7,8,133 -> 4:rejected 5:rejected 6:rejected 7:rejected 8:rejected 133:rejected. Every foreign hardware id is rejected: per-subcategory option lists are self-enforcing and no s...
+- RECORDED (P11, provider behaviour the engine is written to): foamcore id 10 on 101002: REJECTED "orderItemOptions contains an option that is not associated to subcategory 101002."; on 101003 (control): $30.02 [2,4,10]. Rejected as expected: the group boundary is provider-enforced.
+- RECORDED (P14, provider behaviour the engine is written to): 16/20 multi-option configurations are additive (apiTotal === base + Σ individually-priced deltas), across 5 families. NON-ADDITIVE: framed paper 105005 [3in mat instead of none [Mat Size] + Somerset Velvet paper [Paper Type]] base $38.54...
+- RECORDED (P15, provider behaviour the engine is written to): Pricing with [] returns resolved options — 101002: [1=Image Wrap, 11=Sawtooth Hanger installed]; 103001: [36=0.25in Bleed (0.25in on each side)]. checkImageConfig with []: canvas 406 (expects 11.75x13.75in for an 8x10 order), paper 406 (...
+- SKIPPED (P16): SKIPPED: orders disabled (--no-orders)
+
+### Failures
+
+None.
+
+#### Probes
+
+| probe | key | verdict | requests | question |
+| --- | --- | --- | --- | --- |
+| P1 | required | PASS | 3 | Which subcategories reject an empty options array, and what is the MINIMAL required group set? |
+| P2 | cat105 | FINDING | 0 | Is the frame profile the SUBCATEGORY axis on Framed Fine Art Paper (105), or an option group? |
+| P3 | mat | PASS | 4 | For framed paper with a mat, does the API take the PRINT size (glass derived) or the glass size — and what expectedAspectRatio comes back? |
+| P4 | ceiling | FINDING | 2 | At the glass ceiling (largest in-bounds print + 5in mat), does the API 4xx, price anyway, or silently accept? |
+| P5 | bleed | FINDING | 5 | Does a paper Bleed option behave like a mat (per_side_in, image stays at the ordered aspect) or does it shrink the image inside the sheet (blocked)? |
+| P6 | solid | SKIPPED | 3 | Does Solid Color Wrap with solidColorHexCode pass checkImageConfig, submit, and echo back on GET /orders? |
+| P7 | fractional | FINDING | 11 | Which endpoints accept fractional inches (9.25 x 11)? |
+| P8 | matcolor | FINDING | 1 | Is a Mat Color accepted when Mat Size = No Mat (dependent-visible group)? |
+| P9 | easel | FINDING | 1 | Does the metal easel price only at the published whitelist sizes? |
+| P10 | hardware | FINDING | 1 | On 1.25in canvas (sawtooth-only hardware group), what happens to the other depths’ hardware ids? |
+| P11 | foamcore | FINDING | 1 | Is the foamcore underlayer rejected on a depth that does not publish that group? |
+| P12 | glazing | PASS | 1 | Is glazing a real option group on framed paper (priced), or always-on? |
+| P13 | deltas | PASS | 2 | Do per-option prices vary by print size (the cache-key assumption)? |
+| P14 | additivity | FINDING | 1 | Does a whole configuration price equal base + the sum of individually-priced option deltas? |
+| P15 | defaults | FINDING | 3 | What does an EMPTY options array resolve to, and is that default safe for aspect-exact masters? |
+| P16 | orderecho | SKIPPED | 0 | Do queued sandbox orders materialise, and does GET /orders/{n} echo the option ids, the fractional dimensions and solidColorHexCode? |
+
+## V4 — Sandbox order suite (one maximal-option order per medium)
+
+- Status: **GREEN**
+- Assertions: 49 (passed 49, failed 0, skipped 0)
+- Commit: `fe1a802a6c3c8e180e6b7915056114526195af5f`
+- Host: `us.api-sandbox.lumaprints.com`
+- Finished: 2026-09-17T13:54:21.140Z
+- Source: V4.json
+
+### Notes
+
+- FINDING F35: 101001 Canvas Finish id(s) [213] sent with order 10000339587; echoed back. Exempt from the echo assertion, not a failure.
+- RECORDED (P16): order 10000339587 carries solidColorHexCode #c8102e in the request; the provider's order item echoes only [subcategoryId, externalItemId, quantity, width, height, file, itemCostTotal, orderItemOptions] and never the hex, so our own record is the sole evidence of the colour.
+- FINDING F35: 102001 Canvas Finish id(s) [213] sent with order 10000339588; echoed back. Exempt from the echo assertion, not a failure.
+- FINDING F35: 101005 Canvas Finish id(s) [212] sent with order 10000339594; echoed back. Exempt from the echo assertion, not a failure.
+- Every configuration was proved against evaluateSelection before the provider was called; a configuration the engine refuses aborts the run as a harness bug (F30).
+- Canvas Finish ids are exempt from the echo assertion (F35: accepted, never echoed) and the solid-colour hex is asserted from the request record (P16: never echoed).
+
+### Failures
+
+None.
+
+#### One order per medium family
+
+| medium | subcategory | size (in) | option ids | order number | echo |
+| --- | --- | --- | --- | --- | --- |
+| canvas | 101001 0.75in Stretched Canvas | 16 x 20 | 3,5,213 | 10000339587 | exact |
+| framed_canvas | 102001 0.75in Framed Canvas | 16 x 20 | 2,17,213,243 | 10000339588 | exact |
+| fine_art_paper | 103001 Archival Matte Fine Art Paper | 9.25 x 11 | 39 | 10000339589 | exact |
+| framed_fine_art_paper | 105005 1.25w x 0.875h Black Frame | 11 x 14 | 69,75,93,95,107,146,148 | 10000339590 | exact |
+| foam_mounted_fine_art_paper | 108001 Foam-mounted Archival Matte Fine Art Paper | 12.5 x 16 | 39 | 10000339591 | exact |
+| metal | 106002 Glossy Silver Metal Print | 8 x 10 | 32 | 10000339592 | exact |
+| peel_and_stick | 107001 Peel and Stick Art Print | 12 x 12 | (none published) | 10000339593 | exact |
+| rolled_canvas | 101005 Rolled Canvas | 16 x 20 | 2,212 | 10000339594 | exact |
+
+## V5 — Money-path integration tests
+
+- Status: **GREEN**
+- Assertions: 127 (passed 122, failed 0, skipped 5)
+- Source: /private/tmp/claude-501/-Users-skylarwebber/33beeda3-a4f7-420a-a41c-550c8e0868bd/scratchpad/vitest.json
+
+> 5 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
+
+### Notes
+
+- 13 test file(s) matched the money-path filter /checkout|cart|snapshot|router|fulfillment/i.
+
+### Failures
+
+None.
+
+## V6.1 — Legacy parity: today’s variants re-derive and re-price identically
+
+- Status: **GREEN**
+- Assertions: 834 (passed 834, failed 0, skipped 0)
+- Commit: `fe1a802a6c3c8e180e6b7915056114526195af5f`
+- Host: `klwkajukicsoiwpsgftt.supabase.co`
+- Finished: 2026-09-17T13:41:02.360Z
+- Source: V6.1.json
+
+### Notes
+
+- Default option sets were computed by src/lib/catalog/rules.ts (defaultOptionIds).
+- live sample: not requested
+
+### Failures
+
+None.
+
+#### Per medium
+
+| medium | active print variants | price parity ok | default set ok | subcategory ok |
+| --- | --- | --- | --- | --- |
+| framed_fine_art_paper | 34 | 34 | 34 | 34 |
+| fine_art_paper | 91 | 91 | 91 | 91 |
+| canvas | 94 | 94 | 94 | 94 |
+| framed_canvas | 29 | 29 | 29 | 29 |
+| foam_mounted_fine_art_paper | 30 | 30 | 30 | 30 |
+
+## V7 — Production launch gate (checklist)
+
+- Status: **RED**
+- Assertions: 10 (passed 5, failed 2, skipped 3)
+- Source: V7.checklist.json
+
+> 3 assertion(s) did not run. A skipped guard is no guard: the reasons are in the notes.
+
+| Item | Title | Status | Evidence |
+| --- | --- | --- | --- |
+| V7.1 | Production catalog sync run, zero unmapped rows | **green** | P1 exit on production (BUILD_LOG #p1-schema-sync, blueprint Proof): sync run bf79e8ce completed (11 chunks, 69 requests, 51/225/1,265 rows, 0 tombstoned); dry run 1f4b624a: 62 requests, 0 new / 0 removed / 0 changed; F12 name-mapping 1,239 same-name-same-id, 0 mismatches (fixtures/lumaprints/id-diff.2026-09-16.md). NEW rows: none (every row acknowledged by the bootstrap); the admin manager shows the NEW badge for future rows. |
+| V7.2 | V2 production pricing sweep green; five configurations spot-checked against the provider dashboard | **owed** | Runs only inside the deployed app with the production key (keys are unpullable): after merge, the admin sellable check (POST /api/admin/catalog/check) on five configurations from the aal2 admin session, compared with the provider dashboard prices; V2 --strict on the sandbox is the code-path proof. |
+| V7.3 | Margin defaults set per medium (gate: no enabled configuration priced below cost plus shipping) | **green** | SQL on production 2026-09-17: live print variants 278; below cost+shipping 0; unpriced (cost 0) 0; minimum gross margin 2.0% (two Live variants carry a margin_override_pct of 2: Flower Power 20x20 fine_art_paper and Think Again 12x9 canvas; flagged to the owner as accidental overrides, not a gate failure). Per-medium margin defaults remain Margaret's decision (plan §11) before any new medium is enabled. |
+| V7.4 | Swatch completeness: no enabled frame or mat option without a swatch | **green** | SQL on production 2026-09-17: enabled frame_style/mat_color options without a swatch (no color_hex and no image_path) = 0 across enabled subcategories; the admin manager header counts the same number live. |
+| V7.5 | Billing address configured on the production provider account and the webhook subscription live | **human** | Provider dashboard check by a person (LAUNCH-CHECKLIST 2C: default billing address + valid card on the production LumaPrints account; sandbox orders sit at "Pending Payment" without it). The shipping webhook subscription is the existing one (reachable, gate-exempt, verified 2026-07-30). |
+| V7.6 | DB invariants query pack: one default per enabled required group, no enabled option under a disabled group, no live variant on a disabled subcategory, cache hygiene | **green** | SQL query pack on production 2026-09-17, every check 0 violations: required enabled groups without default 0; groups with >1 default 0; enabled options under disabled group 0; enabled groups under disabled subcategory 0; enabled blocked options 0; live variants on disabled medium 0; live variants whose medium has no enabled subcategory 0; enabled frame/mat options without swatch 0; pricing cache v2 rows 0 (expired 0); orders 0; order_items 0. |
+| V7.7 | Kill-switch drill: fulfillment flag off and on in production, pause and resume confirmed | **green** | Drill on production 2026-09-17 (SQL, recorded in one transaction-free sequence): site_settings.lumaprints_enabled true -> false -> get_fulfillment_policy().lumaprints_enabled = "false" -> true -> "true"; paused order_items 0 (no in-flight items; the router pause/resume path is covered by test/lumaprints-switch.test.ts and the router tests). |
+| V7.8 | Rollback drill on preview: storefront flag off returns the legacy product page | **owed** | After the preview walk: the door closed (production today, print_configurator_enabled=false) renders the legacy product page with V6.1-parity prices; recorded when walked. |
+| V7.9 | One real production QC order on live keys, verified in the provider dashboard and on arrival | **human** | — |
+| FLAG | Production flag flip, then per-medium enablement of the launch selection | **human** | — |
+
+### Notes
+
+- 10 checklist item(s): 5 green, 2 owed, 3 declared human gate(s).
+- A human gate is a step a person performs and records; it is never auto-checked and never counted as green.
+
+### Failures
+
+- **V7.2 V2 production pricing sweep green; five configurations spot-checked against the provider dashboard**
+  - status: owed
+- **V7.8 Rollback drill on preview: storefront flag off returns the legacy product page**
+  - status: owed
+
+## Verdict
+
+NO-GO — V7.2 owed, V7.8 owed

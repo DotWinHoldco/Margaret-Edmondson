@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #p9-verification — Phase 9 harness + the live receipts: V1–V6.1 all GREEN, launch gate down to the two production checks and the human gates
+
+- **Date:** 2026-09-17
+- **Module:** scripts/verify-catalog-orders.mjs + scripts/lib/v4-configs.mjs (V4) · scripts/verify-catalog-pricing.ts (`--strict`, `--retry-passes`, F37 classification) · scripts/write-v3-from-probes.mjs (V3 from a fresh probe run) · scripts/catalog-verification-report.mjs (`npm run verify:catalog-report`) · audit/catalog-verification/{V2,V3,V4,V6.1}.{json,md}, V7.checklist.json, history/2026-09-17-V2-strict.* · audit/CATALOG-VERIFICATION-REPORT.md · src/lib/catalog/load.ts `catalogReadHost` (preview reads production-host rows; `CATALOG_READ_HOST` on Vercel preview) · src/lib/supabase/auth.ts `authOrigin` (sign-in returns to the current origin)
+- **Category:** verification harness + two preview fixes (R1)
+- **Summary:** Every automatable step is green at fe1a802/dd3c1a9: V1 1015/1022 (7 pre-existing skips), V2 8305 assertions 0 failed (1416 classified skips: F36 two sandbox-unpriceable profiles, F37 452 per-item sandbox drops across 9 profiles; the strict run that FAILS those drops is kept in history/ and reads 282 F37 failures, cause class sandbox-drop), V3 16 probes 0 failed (2 order-dependent skips proven by V4), V4 8/8 sandbox orders 201 with exact echo (10000339587–594), V5 127 money-path tests, V6.1 parity 834/834 on production. V7: 1/3/4/6/7 green with SQL receipts, 5/9/FLAG human, 2 and 8 owed to the post-merge production walk → report verdict NO-GO on exactly those two. Two preview facts found by the owner's walk: Google sign-in built its return address from NEXT_PUBLIC_SITE_URL (absent on previews) and the preview's sandbox host had no catalog rows; both fixed (dd3c1a9, de639d5).
+- **Verify:** `node scripts/catalog-verification-report.mjs --vitest-json <vitest json>` → GREEN ×6, NO-GO — V7.2 owed, V7.8 owed · tsc 0 · vitest 1015/1022.
+
 ## #full-catalog #p8-cleanup — Phase 8: help articles for the print store, operator docs, retired-symbols gate
 
 - **Date:** 2026-09-17

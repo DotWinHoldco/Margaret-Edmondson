@@ -188,6 +188,38 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   sweep 190 requests / 0 x 429 with additivity 12/12 and 25/25 engine glass-ceiling assertions; F35/F36/F37
   recorded (sandbox drops rows at random in long sweeps) — the strict production run is owed to V7.2.
 
+- Session 2 (2026-09-17, commit fe1a802 + follow-ups on PR #11):
+  - V6.1 parity on production: 834/834 GREEN at fe1a802 (`audit/catalog-verification/V6.1.md`), 278 of 318 variants in scope.
+  - V2 `--strict` sandbox sweep at fe1a802: 8023 assertions, 6717 passed, 282 FAILED, 1024 skipped (F36: 105016/105017/105025/105026 unpriceable on the sandbox); every one of the 282 failures is an F37 per-item silent drop across 6 framed-paper profiles (105011/105015/105019/105020/105023/105024), DIAGNOSIS cause class sandbox-drop; 194 requests, 0 x 429, additivity and glass-ceiling assertions all passed; kept as `V2.strict.{json,md}`. The default-mode run (F37 counted as classified skips) is the step file the report reads; the production host does not drop rows (P1 sync 0 drops, V6.1 parity).
+  - V4 sandbox order suite at fe1a802: 49/49 GREEN — one maximal-option order per medium (8 of 8), each
+    checkImageConfig 200 → POST /orders 201 → GET /orders echo EXACT (options, size, subcategory); orders
+    10000339587–10000339594 on store 82222 (canvas Solid Color #c8102e + wire + matte; framed canvas Oak
+    0.875 + backboard wire; paper 9.25×11 No Bleed; framed paper 105005 3in mat + French Blue + Hot Press +
+    acrylic + Kraft backing + dry mount at 11×14; foam 12.5×16; metal Glossy Silver + Easel 8×10; peel & stick
+    12×12; rolled canvas defaults). 32 requests, 0 × 429. The hex is asserted from the request record (P16).
+  - V3 geometry step at fe1a802 (`scripts/write-v3-from-probes.mjs` over a fresh `--no-orders` run of the P0 probe
+    matrix, `fixtures/lumaprints/probes.2026-09-17.json`): 16 probes, 14 passed (4 PASS + 10 recorded findings the
+    engine is written to: empty option set resolves to Image Wrap / 0.25in bleed and 406s; mats price per size; framed
+    paper non-additive; provider enforces group boundaries but not bounds/whitelist/dependency), 0 failed, 2 skipped
+    (P6 Solid Color submit and P16 order echo, both order-dependent and both proven by V4: order 10000339587 with
+    #c8102e, echo exact). 32 requests, 0 × 429.
+  - V7 evidence recorded in `audit/catalog-verification/V7.checklist.json`: V7.1 green (P1 sync + dry run), V7.3 green (0 Live variants below landed cost; two 2% overrides flagged), V7.4 green (0 enabled frame/mat options without a swatch), V7.6 green (invariants pack all 0), V7.7 green (kill-switch drill off/on recorded), V7.5/V7.9/FLAG human, V7.2/V7.8 owed to the post-merge production walk.
+  - Live RPC proof of migration 20260917100000 on production (see Examine P3).
+  - P4 walk on the preview (de639d5, `margaret-edmondson-git-catalog-p3-13cac5-dotwinholdcos-projects.vercel.app`,
+    `PRINT_CONFIGURATOR_FORCE=on` + `CATALOG_READ_HOST=us.api.lumaprints.com`, gate password typed by the owner), desktop,
+    2026-09-17 14:15 UTC, by the architect through the browser: /shop/art/the-dual renders the Original / Print toggle;
+    Print shows the two live print types (Stretched Canvas from $52.75, Fine Art Paper from $26.37), the size chips with
+    default-configuration prices, the canvas border + hardware groups, the true-to-scale preview with "About 6 × 12 in on
+    the wall", and a server-quoted price ($52.75 = the legacy price, parity); switching to Fine Art Paper re-priced all
+    three sizes from the server ($20.37 / $27.34 / $41.37) and swapped the groups to Bleed Size (No Bleed); Add Print to
+    Cart put ONE line in the drawer titled "The Dual — Small — 6 × 12 in" with "Archival Matte Fine Art Paper · No Bleed
+    (Image goes to edge of paper)" and the quantity controls keyed by line; 0 console errors. Not walked on the preview:
+    a paid test checkout (Stripe is LIVE on the shared settings; a test-mode window is a separate, scheduled step) and
+    the phone breakpoint. Two preview facts fixed on the way: sign-in return address (dd3c1a9) and the catalog read host
+    (de639d5). Owner note: the print-clarity banner still says "stretched canvas" for every medium; per-medium copy from
+    `lumaprints_subcategories.description` is a follow-up. Blocked bleed/wrap options are hidden rather than shown
+    disabled while they are also switched off; they render disabled-with-reason only once enabled (matches ADR-4).
+
 ## Close
 
 <!-- #orchestration BUILD_LOG entry + usage: line from usage-report --write -->
