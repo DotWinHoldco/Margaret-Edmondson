@@ -18,14 +18,23 @@ export function printSizeLabel(value: SizeInput) {
   const w = Number(value.width_in), h = Number(value.height_in)
   const valid = Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
   if (!valid) return { dimensions: value.size_label || '', title: value.name || value.size_label || 'Print', actualNote: null, isApproximate: false }
-  const candidates = STANDARD_SIZES.flatMap(([a, b]) => a === b ? [[a, b]] : [[a, b], [b, a]])
-    .filter(([a, b]) => (w === h || a === b || Math.sign(w - h) === Math.sign(a - b))
-      && Math.abs(w - a) <= Math.max(0.5, a * 0.025) + 1e-9
-      && Math.abs(h - b) <= Math.max(0.5, b * 0.025) + 1e-9)
+  // Familiar first: a standard size within the tolerance (half an inch or 2.5% per edge).
+  // Failing that, the nearest WHOLE-INCH size under the same tolerance — a 16 × 32.05 print
+  // is a 16 × 32, a 14.95 × 30 is a 15 × 30 — never the raw decimals on a chip (the
+  // standing rule: the tolerance does not widen; the candidate set does). The actual
+  // cropped size still travels in the note whenever the label rounded.
+  const withinTolerance = ([a, b]: readonly [number, number]) =>
+    a > 0 && b > 0
+    && (w === h || a === b || Math.sign(w - h) === Math.sign(a - b))
+    && Math.abs(w - a) <= Math.max(0.5, a * 0.025) + 1e-9
+    && Math.abs(h - b) <= Math.max(0.5, b * 0.025) + 1e-9
+  const candidates = STANDARD_SIZES.flatMap(([a, b]): Array<readonly [number, number]> => a === b ? [[a, b]] : [[a, b], [b, a]])
+    .filter(withinTolerance)
     .sort(([a, b], [c, d]) =>
       Math.max(Math.abs(w - a) / Math.max(0.5, a * 0.025), Math.abs(h - b) / Math.max(0.5, b * 0.025))
       - Math.max(Math.abs(w - c) / Math.max(0.5, c * 0.025), Math.abs(h - d) / Math.max(0.5, d * 0.025)))
-  const [displayW, displayH] = candidates[0] || [w, h]
+  const wholeInch: readonly [number, number] = [Math.round(w), Math.round(h)]
+  const [displayW, displayH] = candidates[0] || (withinTolerance(wholeInch) ? wholeInch : [w, h])
   const isApproximate = Math.abs(displayW - w) > 1e-9 || Math.abs(displayH - h) > 1e-9
   const dimensions = `${displayW} × ${displayH} in`
   // Keep personal names and Small/Medium/Large; remove only an old dimension fragment.
