@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #admin-ux — Settings gets the print configurator on/off switch
+
+- **Date:** 2026-09-17
+- **Module:** src/app/api/admin/settings/print-configurator/route.ts (GET/PATCH, admin only, strict `{ enabled }`, one column written, settings cache cleared) · src/components/admin/settings/PrintConfiguratorSection.tsx (Settings card: state pill, confirm before flipping, links to Print Catalog) · SettingsClient wiring
+- **Category:** admin control for the storefront door (R1/S: admin route)
+- **Summary:** Owner: "I don't want to have to tell you to turn it on." The door (`site_settings.print_configurator_enabled`, ADR-8) was flippable only by a database command; it is now a switch under Settings next to Site access, read fresh per request so a change reaches shoppers on the next page load. The launch gate stays a human decision, now a human's own click.
+- **Verify:** test/api/print-configurator-settings-route (401 / 400 / one-column write / cache clear / echo) · test/admin/print-configurator-section (confirm, exact PATCH body, state) · launch-wiring suite unchanged.
+
 ## #full-catalog #admin-ux — Product editor uses the full admin width; the sizes table no longer scrolls sideways on ordinary screens
 
 - **Date:** 2026-09-17
