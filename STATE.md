@@ -221,11 +221,11 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 <!-- dotwin:build-status:begin -->
 ## Current Build Status
 
-Status: green
-Last verified: 2026-09-17T17:28:33.294Z
+Status: failed
+Last verified: 2026-09-17T19:54:32.288Z
 Last command: build-check --green
-Gates passed: 14/14 required
-Failing gates: none
+Gates passed: 13/14 required
+Failing gates: test
 Unrun required gates: none
 <!-- dotwin:build-status:end -->
 

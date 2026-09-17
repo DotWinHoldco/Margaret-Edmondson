@@ -3,7 +3,7 @@
 Authored by DotWin
 
 Format: v2
-Status: executing
+Status: closed
 Radius: R2
 Budget: agents ≤ 2 · forks ≤ 0 · rounds ≤ 1 · ultracode: off
 Examine: default
@@ -115,4 +115,24 @@ checkout validation gain a refusal; admin variant route accepts the new field.
 
 ## Proof
 
-(walks at close)
+Production `dpl_AH8YUKU1vy1nSA5eLz8FJdP9LLF9` READY, `githubCommitSha` 13551e6 = main HEAD. Walked in the
+owner's browser on The Dual:
+- Framed Canvas → 1.25in: size chip "16 × 32.05 in $203.87" (its stored price, its own depth). ✔
+- Framed Canvas → 1.50in: size chip "16 × 32.05 in priced when selected"; the price line shows the live
+  1.50in quote $247.88 — the number the chip used to misreport as $203.87. ✔
+- Both depths still offered: nothing unticked yet (empty veto = today's behaviour, by design). The owner
+  unticks 1.50in on that size in the product editor's "Sold in" column when she wants it gone. ✔
+- Product editor and Print Catalog: the admin pages did not hydrate in the automation tab (only the nav
+  rendered), so the "Sold in" switches and the family titles were NOT walked live; they are covered by
+  the editor suite (30 tests incl. the switch → exact PATCH body) and the catalog-manager suite (family
+  heading). Owner to eyeball on next open.
+
+## Close
+
+- Closed 2026-09-17 (session e37c5a7c). PR #21 → main 13551e6, production READY at that SHA. Agents: 0
+  (the security pass was refused by the governor's session usage ceiling; examined inline, receipts
+  above). Rework: 1 round by the architect (chip rule simplified after the existing configurator tests
+  showed the duplicated price; three stale label assertions). This session is at the ceiling: the next
+  session must be fresh.
+- Owed to the owner: untick depths per size where wanted (product page, "Sold in"); the storage upload
+  cap and the dependency audit from the earlier unit still stand.
