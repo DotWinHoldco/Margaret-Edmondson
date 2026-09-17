@@ -64,10 +64,10 @@ types before fan-out.
 | P0b | Production snapshot + id diff (via deployed route) | architect | fixtures/lumaprints/catalog.us.api.lumaprints.com.*.json, id-diff | `--diff` exit 0 or every mismatch recorded |
 | P1 | Schema + sync v2 + backfill + cron + loader | executor (+ architect on RLS/seed) | supabase/migrations/*, src/lib/catalog/{types,load,sync}.ts, api/admin/lumaprints/sync, api/cron/lumaprints-catalog-sync, scripts/backfill-catalog.mjs | npm test green; parity assert 8/8 legacy rows reproduced |
 | P2 | Pricing engine v2 + rules engine | executor (+ architect on quote seam) | src/lib/pricing/quote.ts, lumaprints-cache.ts, rules.ts, availability.ts, selection.ts, print-quote route | V6.1 parity cents-exact on every active variant; V2 sandbox sweep green |
-| P3 | Admin catalog manager + VariantsTab v2 + offer-coverage generator | executor | admin/catalog page + API, VariantsTab.tsx, bulk-create, scripts/generate-offer-coverage.mjs | RTL + route tests; generator idempotent; coverage report |
-| P4 | Storefront configurator + preview (flag) | executor | components/shop/PrintConfigurator*, ProductDetail mount | V6 E2E all 8 mediums on preview, flag OFF in prod |
-| P5 | Cart / checkout / order freeze v3 + snapshot-gate sweep + test-mode router guard | executor (architect owns webhook gates) | cart/*, checkout/*, webhooks/stripe/route.ts, quoted-prices.ts | V5 suite green; dual-line order incl. depth-only difference |
-| P6 | Fulfillment v2 | executor (architect owns router seam) | fulfillment/router.ts, fulfillability.ts | V4: 8 sandbox orders 201 + echo |
+| P3 | Admin catalog manager + VariantsTab v2 + offer-coverage generator (session 2, 2026-09-17: architect wrote migration 20260917100000 — five aal2-checked SECURITY DEFINER RPCs + audit rows + in-tx cache eviction — and the shared helpers `defaultSubcategoryForMedium`, `subcategory-tiers.ts`, `variant-insert.subcategoryRef`; three executors: A catalog manager routes+UI, B VariantsTab v2 + generate-defaults, C coverage route/report/script + bulk-create) | executor ×3 + architect | src/app/api/admin/catalog/**, src/components/admin/catalog/**, VariantsTab.tsx, api/admin/variants/coverage, bulk-create, generate-defaults, builder-context.ts, scripts/generate-offer-coverage.mjs | RTL + route tests; generator idempotent; coverage report |
+| P4 | Storefront configurator + preview (flag) — session 2: architect wrote `src/lib/catalog/door.ts` (flag + preview-only `PRINT_CONFIGURATOR_FORCE` env override, production ignores it) and the cart line identity (`CartItem.selection`, `cartLineKey`, reducer keyed by line, quotes applied per line); executor D builds the configurator, FramePreview, storefront allow-list serializer, PDP mount, cart surfaces | executor + architect | components/shop/PrintConfigurator/**, ProductDetail, shop/art/[slug]/page, catalog/storefront.ts, CartDrawer, cart page, CartItemTitle, print-quote route flag read | V6 walk on a preview deploy (FORCE=on), flag OFF in prod |
+| P5 | Cart / checkout / order freeze v3 + snapshot-gate sweep + test-mode router guard — session 2: ALL architect: migration 20260917110000 (order_items.line_hash + solid_color_hex, upsert key (order_id, product_id, variant_id, line_hash)), checkout schema v3 + per-line dedupe + configured-line re-quote through `quoteConfiguration` + price-drift refusal + purchaseSpec v3, snapshot v3 (`hasPurchaseSnapshot`, `>= 2` everywhere), webhook gate sweep (7 sites) + upsert key, `provider-guard.ts` | architect | checkout/validation.ts, checkout/snapshot.ts, webhooks/stripe/route.ts, cart/context.tsx, cart/quoted-prices.ts, fulfillment/provider-guard.ts | tests: checkout-validation-v3 (dual depth-only lines, price drift, no-quote), checkout-snapshot-v3, provider-guard, router-guard (real router, fake client) |
+| P6 | Fulfillment v2 — session 2: architect: router guard wired into `validateLumaprintsItem` (both the order path and the single-item retry), data-driven required-group + needs_hex checks from the catalog tree (`checkFrozenOptions`, legacy 102xxx arithmetic only when the catalog has no row), `solidColorHexCode` passthrough; disabled-after-purchase submits (test) | architect | fulfillment/router.ts | V4: sandbox orders per medium (owed to P9) |
 | P7 | Order surfaces | executor | emails, account order page, admin order panels | email snapshot tests |
 | P8 | Cleanup + help articles + docs | executor | legacy pricing files, help/articles.ts, docs/*.md | grep gate zero retired symbols |
 | P9 | Verification report + launch gate | architect | audit/CATALOG-VERIFICATION-REPORT.md | every automatable V7 item green |
@@ -139,6 +139,41 @@ and the disabled-after-purchase fulfillment are walked, not inferred.
   public quote route + engine: 3 blocking (dark-door gate + fulfillment budget reserve; wholesale delta
   leak via labels; variant overrides dropped) + 4 should-fix + notes → all closed in one corrective round
   (two executors + 2 resumes). build-check GREEN, 817 tests, V6.1 parity 834/834 on production.
+- P3 (session 2, 2026-09-17, uncommitted tree → PR): architect wrote and live-proved the migration
+  (20260917100000) on production; ONE security-reviewer pass over the write path + routes + coverage:
+  verdict BLOCK → 1 blocking (lumaprints_pricing_cache writable/readable by an aal1 admin through
+  PostgREST, a pre-existing policy this wave made load-bearing) + 4 should-fix (audit_log INSERT
+  forgeable, swatch image_path unconstrained into a CSS url(), admin check route unthrottled on the
+  shared key, cookie-bearing script accepts any host) + notes. ALL closed by the architect in
+  migration 20260917120000 (aal2 on every pricing-cache verb, no anon, no TRUNCATE; audit_log
+  definer-only writes; CHECK on swatch.image_path) + route/script/component edits (rate limit
+  'catalog-check' 30/min; quoted + validated CSS url(); https + host allowlist; `*.cookie` ignored;
+  zips length guard in 5 routes; cache-tag failures logged). Not closed: duplicate
+  (product_id, medium, size_label) unique index — production already holds 5 duplicate groups
+  (admin cleanup owed before the index); grant-boundary gate still self-skips without credentials.
+  Agents: 3 executors, 1 security-reviewer.
+- P4 (session 2): executor D; architect read storefront.ts (allow-list), the door, the cart
+  identity; the same security-reviewer pass as P5–P8 covers the storefront payload and the
+  print-quote route change.
+- P5/P6 (session 2): all architect; examined by the wave security pass: ONE security-reviewer over P4–P8
+  (money path, identity, router guard, snapshot immunity, door, payloads, injection, verify integrity,
+  migration): verdict BLOCK → 1 blocking (checkout deduped on the client's RAW option ids while
+  order_items keys on the server-normalized line hash: two accepted lines could collapse into one
+  row) + 2 should-fix (a later provider sync adding a required group or a needs_hex flag could veto a
+  paid line; public re-quotes ran outside the provider reserve) + 4 notes. ALL closed by the
+  architect: `validateCheckoutCatalog` refuses `duplicate_line` on `variant + server lineHash`
+  (the request-level raw-id dedupe stays as the early check); the configurator stores the
+  normalized ids read back from the quote's labels; `checkFrozenOptions` ignores groups/options
+  first seen after the order's `created_at`; `quoteConfiguredLines` runs under
+  `withProviderReserve(PUBLIC_QUOTE_RESERVE)`; the shipping quote caps configured lines at 12; the
+  checkout schema refuses a half-configured line and requires `expectedPriceCents` on a configured
+  one (F9 is not opt-in). Regression tests: checkout-validation-v3 (same-hash refusal, schema
+  refinements) and router-guard (post-purchase group/flag ignored). Answered no-issue: money,
+  identity at every other layer, guard bypass, door, payloads, injection, migration ordering.
+- P7/P8 (session 2): executors F and G; P7 edited src/lib/email/send.ts and vitest.config.mts
+  (`server-only` alias to a test stub) outside its OWNS with reasons; P8 registered the
+  retired-symbols gate in build-check and edited HelpIndex.tsx ("N guides" no longer hardcoded).
+
 ## Proof
 
 <!-- walks walked (date, device, by whom) · probe records · ledger read after deploy -->

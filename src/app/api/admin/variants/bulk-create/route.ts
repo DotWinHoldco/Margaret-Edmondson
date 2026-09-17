@@ -2,10 +2,15 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
-import { MEDIUMS, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
+import { MEDIUMS, mediumLabel, sizeDimensions, type Medium } from '@/lib/pricing/mediums'
 import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { buildPricedVariantRow } from '@/lib/pricing/variant-insert'
+import { loadCatalog } from '@/lib/catalog/load'
+import { defaultSubcategoryForMedium } from '@/lib/catalog/availability'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const Body = z.object({
   product_id: z.string().uuid(),
@@ -14,7 +19,14 @@ const Body = z.object({
   margin_override_pct: z.number().nullable().optional(),
 })
 
-// POST /api/admin/variants/bulk-create — create priced variants for a product across medium and sizes (idempotent); admin only.
+// POST /api/admin/variants/bulk-create — create priced DRAFT variants for a product across
+// a medium and a list of sizes (idempotent); admin only.
+//
+// A medium can publish more than one print type (P3), so the subcategory each row prices
+// and freezes by is resolved through the catalog rather than assumed from the legacy
+// `lumaprints_mediums` row: the legacy id while it is still sellable, else the medium's
+// first sellable print type. A medium with nothing sellable is refused with the switch to
+// flip, instead of quietly writing rows priced against a print type the store cannot sell.
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -23,8 +35,19 @@ export async function POST(request: NextRequest) {
   const { product_id, medium, size_labels } = parsed.data
 
   const cfg = await getMediumConfig(auth.supabase, medium)
-  if (!cfg || !cfg.subcategory_id) {
+  if (!cfg) {
     return apiError(`Medium ${medium} is not configured. Run the Lumaprints sync first.`, 400, 'MEDIUM_NOT_CONFIGURED')
+  }
+
+  // One load for the whole request; every priced row below reads the same tree.
+  const catalog = await loadCatalog(auth.supabase, { includeDisabled: true })
+  const subcategory = defaultSubcategoryForMedium(catalog, medium, cfg.subcategory_id)
+  if (!subcategory) {
+    return apiError(
+      `Turn on at least one ${mediumLabel(medium)} print type in Print Catalog first.`,
+      400,
+      'MEDIUM_NOT_SELLABLE',
+    )
   }
 
   // Dedup server-side: never create a (medium × size) that already exists on
@@ -49,7 +72,7 @@ export async function POST(request: NextRequest) {
     .single()
   // Effective default margin = product → category → site → 100.
   const productDefaultMargin = await getEffectiveProductMargin(auth.supabase, product_id)
-  const zips: string[] = settings?.shipping_quote_zips || ['33101', '98101', '04401', '92101']
+  const zips: string[] = Array.isArray(settings?.shipping_quote_zips) && settings.shipping_quote_zips.length > 0 ? settings.shipping_quote_zips : ['33101', '98101', '04401', '92101']
 
   const rows: Array<Record<string, unknown>> = []
   for (const size_label of sizesToCreate) {
@@ -65,6 +88,8 @@ export async function POST(request: NextRequest) {
         productDefaultMargin,
         cfg,
         zips,
+        catalog,
+        subcategoryRef: subcategory.id,
         margin_override_pct: parsed.data.margin_override_pct ?? null,
         // Create as DRAFT — going Live is gated on a print-ready master +
         // enabled medium (PATCH /variants/[id]). This legacy endpoint must not

@@ -5,6 +5,12 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import OrderStatusControl from '@/components/admin/OrderStatusControl'
 import OrderFulfillmentPanel from '@/components/admin/OrderFulfillmentPanel'
+import {
+  asPurchaseSpec,
+  describePurchaseSpec,
+  shortLineHash,
+  specOptionsText,
+} from '@/lib/orders/print-options'
 
 export const metadata: Metadata = {
   title: 'Order Detail',
@@ -72,9 +78,16 @@ export default async function AdminOrderDetailPage(
   const items = Array.isArray(order.order_items) ? order.order_items : []
   const fulfillmentItems = items.map((item: Record<string, unknown>) => {
     const product = item.products as { title?: string } | null
+    // P7: describe the FROZEN purchase, never the live catalog.
+    const frozen = asPurchaseSpec(item.purchase_spec)
+    const spec = describePurchaseSpec(frozen, { productTitle: product?.title })
     return {
       id: item.id as string,
-      title: product?.title || 'Item',
+      title: spec.title,
+      line: spec.line,
+      options: specOptionsText(spec.options),
+      colorHex: spec.colorHex,
+      lineHash: shortLineHash(frozen),
       fulfillment_type: (item.fulfillment_type as string) || 'self_ship',
       fulfillment_status: (item.fulfillment_status as string) || 'pending',
       tracking_number: (item.tracking_number as string) || null,
@@ -173,6 +186,12 @@ export default async function AdminOrderDetailPage(
                       const product = item.products as
                         | { id: string; title: string; slug: string }
                         | null
+                      const frozen = asPurchaseSpec(item.purchase_spec)
+                      const spec = describePurchaseSpec(frozen, {
+                        productTitle: product?.title,
+                      })
+                      const options = specOptionsText(spec.options)
+                      const lineHash = shortLineHash(frozen)
                       const unitPrice = (item.unit_price as number) || 0
                       const quantity = (item.quantity as number) || 1
                       const lineTotal = unitPrice * quantity
@@ -186,13 +205,38 @@ export default async function AdminOrderDetailPage(
                         <tr key={item.id as string}>
                           <td className="px-6 py-4">
                             <p className="font-body text-sm font-medium text-charcoal">
-                              {product?.title || 'Unknown Product'}
+                              {spec.title}
                             </p>
+                            {spec.line && (
+                              <p className="mt-0.5 font-body text-xs text-charcoal/70">
+                                {spec.line}
+                              </p>
+                            )}
+                            {options && (
+                              <p className="mt-0.5 font-body text-xs text-charcoal/70">
+                                {options}
+                              </p>
+                            )}
+                            {spec.colorHex && (
+                              <p className="mt-0.5 flex items-center gap-1.5 font-body text-xs text-charcoal/70">
+                                <span
+                                  aria-hidden="true"
+                                  className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                                  style={{ backgroundColor: spec.colorHex }}
+                                />
+                                {spec.colorHex}
+                              </p>
+                            )}
                             <p className="mt-0.5 font-body text-xs text-charcoal/50">
                               {fulfillmentType === 'digital' ? 'Digital' : 'Physical'}
                               {trackingNumber && (
                                 <span className="ml-2">
                                   Tracking: {trackingNumber}
+                                </span>
+                              )}
+                              {lineHash && (
+                                <span className="ml-2 font-mono text-charcoal/45">
+                                  {lineHash}
                                 </span>
                               )}
                             </p>

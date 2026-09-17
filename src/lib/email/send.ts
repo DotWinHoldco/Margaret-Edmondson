@@ -1,6 +1,7 @@
 import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
+import { normalizeColorHex } from '@/lib/orders/print-options'
 import { getEmailFromLine } from '@/lib/settings/accessor'
 
 const RESEND_API = 'https://api.resend.com/emails'
@@ -57,11 +58,35 @@ export async function sendEmail({ to, subject, html, replyTo, headers, idempoten
 }
 
 // ─── Order Confirmation ──────────────────────────────────────────────
-interface OrderItem {
+/**
+ * One purchased line as the emails describe it (P7). `variant`, `options` and
+ * `colorHex` all come from the FROZEN purchase_spec, never the live catalog.
+ */
+export interface OrderEmailLine {
   name: string
+  variant?: string
+  /** "Wrap: Solid Color Wrap · Hardware: Sawtooth"; omitted when there are none. */
+  options?: string
+  /** A `#rrggbb` wrap colour; anything else is dropped before it reaches the HTML. */
+  colorHex?: string | null
+}
+
+interface OrderItem extends OrderEmailLine {
   quantity: number
   price: number
-  variant?: string
+}
+
+/** The frozen configuration under a line's name: escaped text, plus a colour chip. */
+function lineDetailHtml(item: OrderEmailLine): string {
+  const muted = 'color: #888; font-size: 12px;'
+  const hex = normalizeColorHex(item.colorHex)
+  return [
+    item.variant ? `<br><span style="${muted}">${escapeHtml(item.variant)}</span>` : '',
+    item.options ? `<br><span style="${muted}">${escapeHtml(item.options)}</span>` : '',
+    hex
+      ? `<br><span style="display: inline-block; width: 12px; height: 12px; border: 1px solid #ddd; vertical-align: middle; background-color: ${hex};"></span> <span style="${muted}">${escapeHtml(hex)}</span>`
+      : '',
+  ].join('')
 }
 
 export async function sendOrderConfirmation(
@@ -76,7 +101,7 @@ export async function sendOrderConfirmation(
     .map(
       (i) =>
         `<tr>
-          <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;">${escapeHtml(i.name)}${i.variant ? `<br><span style="color: #888; font-size: 12px;">${escapeHtml(i.variant)}</span>` : ''}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;">${escapeHtml(i.name)}${lineDetailHtml(i)}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">${i.quantity}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">$${i.price.toFixed(2)}</td>
         </tr>`
@@ -177,7 +202,8 @@ export async function sendWelcomeSubscriber(
 export async function sendShippingUpdate(
   email: string,
   orderId: string,
-  trackingUrl?: string
+  trackingUrl?: string,
+  items?: OrderEmailLine[]
 ) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
 
@@ -185,12 +211,23 @@ export async function sendShippingUpdate(
     ? ctaButton(trackingUrl, 'Track Your Shipment')
     : `<p style="text-align: center; color: #666; font-size: 14px;">Tracking details will be available shortly.</p>`
 
+  // P7: name what shipped from each line's frozen configuration.
+  const itemBlock = items?.length
+    ? `<div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 24px; border: 1px solid #e5e0d8;">${items
+        .map(
+          (i) =>
+            `<p style="margin: 0 0 8px; font-size: 14px;">${escapeHtml(i.name)}${lineDetailHtml(i)}</p>`
+        )
+        .join('')}</div>`
+    : ''
+
   const html = brandedShell(
     `
     <h2 style="font-size: 20px; font-weight: 400; text-align: center; margin-bottom: 8px;">Your Art Is On Its Way!</h2>
     <p style="text-align: center; color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
       Great news, order #${orderId.slice(0, 8).toUpperCase()} has shipped.
     </p>
+    ${itemBlock}
     ${trackingBlock}
     <p style="text-align: center; color: #999; font-size: 12px;">
       Questions? Reply to this email or visit <a href="${siteUrl}" style="color: #3A7D7B;">artbyme.studio</a>

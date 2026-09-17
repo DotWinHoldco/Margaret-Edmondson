@@ -136,6 +136,13 @@ export const cartTrackingInputSchema = z.object({
     title: z.string().trim().max(300).optional(),
     price: z.number().finite().min(0).max(1_000_000).optional(),
     quantity: z.number().int().min(1).max(99),
+    // The configured print's customer summary, so an abandonment record (and its
+    // reminder email) names what was in the cart. Identity only; never a price input.
+    selection: z.object({
+      summary: z.string().trim().max(300),
+      subcategoryLabel: z.string().trim().max(120).optional(),
+      lineHash: z.string().regex(/^[0-9a-f]{64}$/),
+    }).optional(),
   })).max(50).optional().default([]),
   subtotal: z.number().finite().min(0).max(50_000_000).optional().default(0),
 })
@@ -146,7 +153,15 @@ export const shippingQuoteInputSchema = z.object({
   items: z.array(z.object({
     variantId: z.string().uuid(),
     quantity: z.number().int().min(1).max(99),
-  })).min(1).max(50),
+    // A configured print (ADR-2): the same fields checkout takes, so the cart's
+    // shipping quote re-prices the exact configuration, per line.
+    subcategoryRef: z.string().uuid().optional(),
+    optionIds: z.array(z.number().int().positive()).max(32).optional(),
+    solidHex: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  })).min(1).max(50).refine(
+    (items) => items.filter((item) => item.subcategoryRef).length <= 12,
+    { message: 'Too many configured prints in one quote.' },
+  ),
   cartToken: optionalCartToken.optional().default(null),
 })
 

@@ -136,6 +136,17 @@ export default function CheckoutPage() {
         productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
+        // A configured print (ADR-2) is charged as the exact configuration the shopper
+        // saw: the server re-quotes it and refuses a drift (F9) instead of silently
+        // charging the plain variant.
+        ...(item.selection
+          ? {
+              subcategoryRef: item.selection.subcategoryRef,
+              optionIds: item.selection.optionIds,
+              ...(item.selection.solidHex ? { solidHex: item.selection.solidHex } : {}),
+              expectedPriceCents: Math.round(item.price * 100),
+            }
+          : {}),
       })),
       email: h.email || state.email || undefined,
       cartToken: state.cartToken,

@@ -1,6 +1,6 @@
 import { paidTotalMatches } from '@/lib/tax/config'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
-import { snapshotOrderItem } from '@/lib/checkout/snapshot'
+import { hasPurchaseSnapshot, snapshotOrderItem } from '@/lib/checkout/snapshot'
 import type { ValidatedCheckoutItem } from '@/lib/checkout/validation'
 import { getStripe, webhookSecretFor } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -10,6 +10,7 @@ import { notifyOrderNeedsAttention } from '@/lib/fulfillment/alerts'
 import { sendOrderConfirmation } from '@/lib/email/send'
 import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { escapeHtml } from '@/lib/email/escape'
+import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 import { recordOrder } from '@/lib/crm/contacts'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { checkFulfillable } from '@/lib/fulfillment/fulfillability'
@@ -150,12 +151,12 @@ async function loadSnapshotItems(supabase: SupabaseClient, paymentRef: string, r
   const { data, error } = await supabase.from('checkout_snapshots').select('items').eq('payment_ref', paymentRef).maybeSingle()
   if (error) throw error
   const items = Array.isArray(data?.items) ? data.items as OiCartItem[] : null
-  if (required && (!items?.length || items.some(i => i.snapshotVersion !== 2 || !i.purchaseSpec))) throw new Error('Paid checkout snapshot missing or incomplete')
+  if (required && (!items?.length || items.some(i => !hasPurchaseSnapshot(i) || !i.purchaseSpec))) throw new Error('Paid checkout snapshot missing or incomplete')
   return items
 }
 
 async function shippingProblem(supabase: SupabaseClient, paymentRef: string, items: OiCartItem[], address: { country?: string | null; postal_code?: string | null; state?: string | null } | null | undefined) {
-  if (!items.some(i => i.snapshotVersion === 2)) return null
+  if (!items.some(i => hasPurchaseSnapshot(i))) return null
   const { data, error } = await supabase.from('checkout_snapshots').select('shipping_destination').eq('payment_ref', paymentRef).single()
   if (error) throw error
   return paidShippingProblem(items as Partial<ValidatedCheckoutItem>[], data.shipping_destination, address)
@@ -164,7 +165,7 @@ async function shippingProblem(supabase: SupabaseClient, paymentRef: string, ite
 // A refund/dispute webhook may arrive before payment success. Read the charge
 // before releasing new work so event delivery order cannot ship refunded art.
 async function refreshPaymentStanding(supabase:SupabaseClient,stripe:Stripe,orderId:string,paymentIntentId:string,items:OiCartItem[],paymentReference=paymentIntentId) {
-  if(!items.some(i=>i.snapshotVersion===2))return
+  if(!items.some(i=>hasPurchaseSnapshot(i)))return
   const intent=await stripe.paymentIntents.retrieve(paymentIntentId,{expand:['latest_charge']})
   const charge=typeof intent.latest_charge==='object'?intent.latest_charge:null
   if(charge?.refunded || charge?.disputed){
@@ -210,23 +211,34 @@ async function recordFunnelPurchase(
 
 /** PostgREST embed rows for the confirmation-email item list. */
 interface OrderEmailItemRow {
-  purchase_spec?: { title?: string; option_name?: string }
+  purchase_spec?: unknown
   quantity: number
   unit_price: number
   product: { title: string | null } | Array<{ title: string | null }> | null
   variant: { name: string | null } | Array<{ name: string | null }> | null
 }
 
-/** Flatten order_items embed rows into the confirmation email's item shape. */
+/**
+ * Flatten order_items embed rows into the confirmation email's item shape. The
+ * line is described from the FROZEN purchase_spec (P7), so the receipt names the
+ * configuration that was bought, not whatever the catalog sells today.
+ */
 function toEmailItems(rows: OrderEmailItemRow[] | null) {
   return (rows || []).map((oi) => {
     const product = Array.isArray(oi.product) ? oi.product[0] : oi.product
     const variant = Array.isArray(oi.variant) ? oi.variant[0] : oi.variant
+    const spec = describePurchaseSpec(asPurchaseSpec(oi.purchase_spec), {
+      productTitle: product?.title,
+      variantName: variant?.name,
+    })
+    const options = specOptionsText(spec.options)
     return {
-      name: oi.purchase_spec?.title || product?.title || 'Artwork',
+      name: spec.title,
       quantity: oi.quantity,
       price: oi.unit_price * oi.quantity,
-      variant: oi.purchase_spec?.option_name || variant?.name || undefined,
+      variant: spec.line || undefined,
+      ...(options ? { options } : {}),
+      ...(spec.colorHex ? { colorHex: spec.colorHex } : {}),
     }
   })
 }
@@ -373,7 +385,7 @@ function buildOrderItemRow(
   v: OiVariant | null | undefined,
   mediumMap: Map<string, OiMedium>,
 ): Record<string, unknown> {
-  if (ci.snapshotVersion === 2) return snapshotOrderItem(orderId, ci as ValidatedCheckoutItem)
+  if (hasPurchaseSnapshot(ci)) return snapshotOrderItem(orderId, ci as ValidatedCheckoutItem)
   const price = v?.price ?? p?.base_price ?? 0
   const fulfillmentType = v?.variant_type === 'original' ? 'self_ship' : (p?.fulfillment_type || 'lumaprints')
   const id = crypto.randomUUID()
@@ -903,15 +915,17 @@ export async function handleCheckoutCompleted(
     }
 
     // FIN-1: idempotent on webhook replay/resume. A duplicate
-    // (order_id, product_id, variant_id) is ignored rather than inserting a
-    // second item row (which would double-submit to fulfillment + skew totals).
+    // (order_id, product_id, variant_id, line_hash) is ignored rather than inserting a
+    // second item row (which would double-submit to fulfillment + skew totals). The line
+    // hash is '' for a legacy line and the configuration identity for a configured print
+    // (ADR-2), so two configurations of one variant are two rows, never a "replay".
     // P2-4: inspect the upsert error. ignoreDuplicates makes a replay a no-op, so a
     // returned error is a REAL write failure — throw (→ 500, Stripe redelivers)
     // rather than reconciling / enqueueing fulfillment / running side effects on a
     // partial item set. The resume path re-runs this loop idempotently.
     const { error: itemUpsertErr } = await supabase.from('order_items').upsert(
       buildOrderItemRow(orderId, ci, p, v, mediumMap),
-      { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
+      { onConflict: 'order_id,product_id,variant_id,line_hash', ignoreDuplicates: true },
     )
     if (itemUpsertErr) {
       throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
@@ -948,7 +962,7 @@ export async function handleCheckoutCompleted(
     for (const ci of cartItems) {
       const p = productMap.get(ci.productId)
       const v = ci.variantId ? variantMap.get(ci.variantId) : null
-      if (ci.snapshotVersion === 2) continue
+      if (hasPurchaseSnapshot(ci)) continue
       const fz = printItemFulfillability(p, v, mediumMap)
       if (!fz.ok && fz.reason) attention.add(fz.reason)
     }
@@ -1285,15 +1299,17 @@ async function handleElementsPaymentSucceeded(
     }
 
     // FIN-1: idempotent on webhook replay/resume. A duplicate
-    // (order_id, product_id, variant_id) is ignored rather than inserting a
-    // second item row (which would double-submit to fulfillment + skew totals).
+    // (order_id, product_id, variant_id, line_hash) is ignored rather than inserting a
+    // second item row (which would double-submit to fulfillment + skew totals). The line
+    // hash is '' for a legacy line and the configuration identity for a configured print
+    // (ADR-2), so two configurations of one variant are two rows, never a "replay".
     // P2-4: inspect the upsert error. ignoreDuplicates makes a replay a no-op, so a
     // returned error is a REAL write failure — throw (→ 500, Stripe redelivers)
     // rather than reconciling / enqueueing fulfillment / running side effects on a
     // partial item set. The resume path re-runs this loop idempotently.
     const { error: itemUpsertErr } = await supabase.from('order_items').upsert(
       buildOrderItemRow(orderId, ci, p, v, mediumMap),
-      { onConflict: 'order_id,product_id,variant_id', ignoreDuplicates: true },
+      { onConflict: 'order_id,product_id,variant_id,line_hash', ignoreDuplicates: true },
     )
     if (itemUpsertErr) {
       throw new Error(`order_items upsert failed for product ${ci.productId}: ${itemUpsertErr.message}`)
@@ -1330,7 +1346,7 @@ async function handleElementsPaymentSucceeded(
     for (const ci of cartItems) {
       const p = productMap.get(ci.productId)
       const v = ci.variantId ? variantMap.get(ci.variantId) : null
-      if (ci.snapshotVersion === 2) continue
+      if (hasPurchaseSnapshot(ci)) continue
       const fz = printItemFulfillability(p, v, mediumMap)
       if (!fz.ok && fz.reason) attention.add(fz.reason)
     }

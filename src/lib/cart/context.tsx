@@ -4,6 +4,25 @@ import { applyQuotedPrices, type QuotedPrice } from './quoted-prices'
 import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { track } from '@/lib/meta/track'
 
+/**
+ * A configured print line (plan ADR-2). Present only on lines added through the
+ * configurator; a legacy line (no selection) keeps its variant as its whole identity.
+ * Everything here is what the server answered at quote time: the client never derives an
+ * identity or a price of its own.
+ */
+export interface CartLineSelection {
+  subcategoryRef: string
+  /** Every group's chosen id after the server filled defaults (read back from the quote's labels). */
+  optionIds: number[]
+  solidHex?: string
+  /** Server line identity: sha256(subcategoryRef ‖ sorted optionIds ‖ solidHex). */
+  lineHash: string
+  /** Customer copy for the cart and the Stripe line title, e.g. "1.25in Oak frame · 2in White mat". */
+  summary: string
+  /** The subcategory's customer label, e.g. "1.25in Stretched Canvas". */
+  subcategoryLabel: string
+}
+
 export interface CartItem {
   productId: string
   variantId?: string
@@ -15,6 +34,17 @@ export interface CartItem {
   fulfillmentType: string
   shippingMode?: 'included' | 'flat' | 'integration'
   shippingFeeCents?: number
+  selection?: CartLineSelection
+}
+
+/**
+ * Line identity (ADR-2, F1/F23). Two cart lines for the same variant with different
+ * configurations are two lines; a legacy line's key is its variant (or product) alone, so
+ * carts persisted before configurations existed keep working unchanged.
+ */
+export function cartLineKey(item: Pick<CartItem, 'productId' | 'variantId' | 'selection'>): string {
+  const base = item.variantId || item.productId
+  return item.selection?.lineHash ? `${base}|${item.selection.lineHash}` : base
 }
 
 interface CartState {
@@ -33,7 +63,7 @@ interface CartState {
 type CartAction =
   | { type: 'ADD_ITEM'; payload: CartItem }
   | { type: 'REMOVE_ITEM'; payload: string }
-  | { type: 'UPDATE_QUANTITY'; payload: { productId: string; variantId?: string; quantity: number } }
+  | { type: 'UPDATE_QUANTITY'; payload: { productId: string; variantId?: string; lineKey?: string; quantity: number } }
   | { type: 'CLEAR' }
   | { type: 'TOGGLE_CART' }
   | { type: 'SET_OPEN'; payload: boolean }
@@ -45,17 +75,15 @@ type CartAction =
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const key = action.payload.variantId || action.payload.productId
-      const existing = state.items.find(
-        (i) => (i.variantId || i.productId) === key
-      )
+      const key = cartLineKey(action.payload)
+      const existing = state.items.find((i) => cartLineKey(i) === key)
       if (existing) {
         const maxQty = action.payload.variantType === 'original' ? 1 : Infinity
         return {
           ...state,
           isOpen: true,
           items: state.items.map((i) =>
-            (i.variantId || i.productId) === key
+            cartLineKey(i) === key
               ? { ...i, quantity: Math.min(i.quantity + action.payload.quantity, maxQty) }
               : i
           ),
@@ -63,22 +91,22 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       }
       return { ...state, isOpen: true, items: [...state.items, action.payload] }
     }
+    // The payload is a line key (`cartLineKey`); for a legacy line that is the variant id
+    // callers have always passed, so nothing that removes an unconfigured line changes.
     case 'REMOVE_ITEM':
       return {
         ...state,
-        items: state.items.filter(
-          (i) => (i.variantId || i.productId) !== action.payload
-        ),
+        items: state.items.filter((i) => cartLineKey(i) !== action.payload),
       }
     case 'UPDATE_QUANTITY': {
-      const key = action.payload.variantId || action.payload.productId
+      const key = action.payload.lineKey ?? (action.payload.variantId || action.payload.productId)
       if (action.payload.quantity <= 0) {
-        return { ...state, items: state.items.filter((i) => (i.variantId || i.productId) !== key) }
+        return { ...state, items: state.items.filter((i) => cartLineKey(i) !== key) }
       }
       return {
         ...state,
         items: state.items.map((i) =>
-          (i.variantId || i.productId) === key ? { ...i, quantity: action.payload.quantity } : i
+          cartLineKey(i) === key ? { ...i, quantity: action.payload.quantity } : i
         ),
       }
     }
@@ -227,6 +255,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             title: i.title,
             price: i.price,
             quantity: i.quantity,
+            // What the configured line is, for the abandonment record; identity only.
+            ...(i.selection
+              ? { selection: { summary: i.selection.summary, subcategoryLabel: i.selection.subcategoryLabel, lineHash: i.selection.lineHash } }
+              : {}),
           })),
           subtotal,
         }),

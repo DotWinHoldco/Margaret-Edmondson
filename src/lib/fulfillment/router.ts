@@ -11,6 +11,11 @@ import {
 import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
 import { createHash } from 'node:crypto'
 import { notifyFulfillmentFailures, notifyOrderNeedsAttention } from '@/lib/fulfillment/alerts'
+import { providerGuard } from './provider-guard'
+import { isFramedSubcategory } from './fulfillability'
+import { catalogHost } from '@/lib/catalog/walk'
+import { loadCatalog } from '@/lib/catalog/load'
+import type { Catalog } from '@/lib/catalog/types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +47,7 @@ interface MasterArtwork {
 
 interface OrderItem {
   policy_version?: number | null
+  created_at?: string | null
   id: string
   order_id: string
   product_id: string
@@ -66,6 +72,9 @@ interface OrderItem {
   lumaprints_option_ids: number[] | null
   print_storage_path: string | null
   external_item_id: string | null
+  // Configured prints (P5): the frozen wrap colour and the line identity.
+  solid_color_hex?: string | null
+  line_hash?: string | null
 }
 
 interface Variant {
@@ -173,8 +182,79 @@ interface ValidationOk {
   height: number
   externalItemId: string
   quantity: number
+  /** Solid Color wrap: the customer's #rrggbb, sent as `solidColorHexCode`. */
+  solidColorHex?: string
 }
 type ValidationResult = ValidationOk | ValidationFailure
+
+/** What every LumaPrints validation needs beyond the item: the order's payment mode and the catalog tree. */
+interface LumaprintsValidationContext {
+  /** `orders.stripe_mode`; a 'test' order may only reach a sandbox host (P5 guard). */
+  stripeMode: string | null
+  /** The full catalog tree, or null when it could not be read (legacy checks then apply). */
+  catalog: Catalog | null
+}
+
+/**
+ * The context for one order: the test-mode guard input and one catalog read. A
+ * catalog read failure is logged and degrades to the legacy checks rather than
+ * blocking a paid order; the guard never degrades.
+ */
+async function lumaprintsValidationContext(
+  supabase: SupabaseClient,
+  stripeMode: string | null | undefined,
+): Promise<LumaprintsValidationContext> {
+  let catalog: Catalog | null = null
+  try {
+    catalog = await loadCatalog(supabase, { includeDisabled: true })
+  } catch (e) {
+    console.warn('fulfillment: catalog read failed, using legacy option checks:', e instanceof Error ? e.message : e)
+  }
+  return { stripeMode: stripeMode ?? null, catalog }
+}
+
+/**
+ * Data-driven required-group check (ADR-4, F13): every `required` group of the
+ * item's subcategory must have one of its options in the frozen option set, and a
+ * `needs_hex` option must travel with a colour. Falls back to the 102xxx arithmetic
+ * only when the catalog has no row for the subcategory (a family never synced).
+ */
+function checkFrozenOptions(
+  catalog: Catalog | null,
+  subcategoryId: number,
+  optionIds: number[],
+  solidColorHex: string | null | undefined,
+  purchasedAt: string | null | undefined,
+): ValidationFailure | null {
+  const subcategory = catalog?.subcategories.find((row) => row.subcategory_id === subcategoryId) ?? null
+  // A paid line is judged by the catalog as it stood at purchase (ADR-5): a group or an
+  // option the provider added afterwards cannot be required of an order placed before it.
+  const purchased = purchasedAt ? Date.parse(purchasedAt) : Number.NaN
+  const existedAtPurchase = (row: { first_seen_at: string }) =>
+    !Number.isFinite(purchased) || !row.first_seen_at || Date.parse(row.first_seen_at) <= purchased
+  if (!subcategory) {
+    if (isFramedSubcategory(subcategoryId) && optionIds.length === 0) {
+      return { ok: false, reason: `framed subcategory ${subcategoryId} has no frame-style option in the snapshot` }
+    }
+    return null
+  }
+  const chosen = new Set(optionIds)
+  for (const group of subcategory.groups) {
+    if (group.required !== true || group.removed_from_api === true || !existedAtPurchase(group)) continue
+    const satisfied = group.options.some((option) => chosen.has(option.option_id))
+    if (!satisfied) {
+      return { ok: false, reason: `required option group "${group.display_label}" has no option in the snapshot` }
+    }
+  }
+  for (const group of subcategory.groups) {
+    for (const option of group.options) {
+      if (chosen.has(option.option_id) && option.geometry?.needs_hex === true && existedAtPurchase(option) && !solidColorHex) {
+        return { ok: false, reason: `option "${option.display_label}" needs a solid colour and the snapshot has none` }
+      }
+    }
+  }
+  return null
+}
 
 // Validate a print order_item using its PURCHASE-TIME SNAPSHOT (Phase 6.3):
 // subcategory, options, width/height, and the print master path all come from
@@ -184,7 +264,14 @@ async function validateLumaprintsItem(
   item: OrderItem & { product: Product; variant: Variant | null },
   mediumsByKey: Map<string, LumaprintsMedium>,
   shippingAddress: ShippingAddress,
+  context: LumaprintsValidationContext,
 ): Promise<ValidationResult> {
+  // P5 guard, before anything else: a Stripe test-mode order never reaches a
+  // non-sandbox provider host. Preview and production share one database and one
+  // webhook, and the deployed app holds the production key.
+  const guard = providerGuard({ stripeMode: context.stripeMode, host: catalogHost() })
+  if (!guard.allowed) return { ok: false, reason: guard.reason }
+
   if (!item.product) return { ok: false, reason: 'product missing' }
 
   const medium = item.medium ?? item.variant?.medium ?? null
@@ -210,6 +297,10 @@ async function validateLumaprintsItem(
     item.policy_version != null || (item.lumaprints_option_ids && item.lumaprints_option_ids.length)
       ? item.lumaprints_option_ids || []
       : cfg?.option_ids || []
+
+  const solidColorHex = item.solid_color_hex || null
+  const frozenProblem = checkFrozenOptions(context.catalog, subcategoryId, optionIds, solidColorHex, item.created_at ?? null)
+  if (frozenProblem) return frozenProblem
 
   if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postal_code) {
     return { ok: false, reason: 'shipping address incomplete' }
@@ -256,6 +347,7 @@ async function validateLumaprintsItem(
     height: Number(height),
     externalItemId: item.external_item_id || item.id,
     quantity: item.quantity,
+    ...(solidColorHex ? { solidColorHex } : {}),
   }
 }
 
@@ -351,6 +443,9 @@ async function submitToLumaprints(
     // lazily re-fetching the (expiring) signed URL later.
     file: { imageUrl: validated.imageUrl, saveImage: true },
     orderItemOptions: validated.optionIds,
+    // The colour of a Solid Color wrap; the provider never echoes it (P16), the
+    // order row is the record.
+    ...(validated.solidColorHex ? { solidColorHexCode: validated.solidColorHex } : {}),
   }))
 
   const submissionExternalId = lumaprintsExternalId(orderId, validatedItems.map((v) => v.item.id))
@@ -461,7 +556,7 @@ export async function routeOrderToFulfillment(
   // Fetch order
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, shipping_address, fulfillment_hold_reason')
+    .select('id, shipping_address, fulfillment_hold_reason, stripe_mode')
     .eq('id', orderId)
     .single()
 
@@ -549,10 +644,11 @@ export async function routeOrderToFulfillment(
           }
 
           const typedItems = items as Array<OrderItem & { product: Product; variant: Variant | null }>
+          const context = await lumaprintsValidationContext(supabase, order.stripe_mode as string | null)
           const validations = await Promise.all(
             typedItems.map(async (it) => ({
               item: it,
-              result: await validateLumaprintsItem(it, mediumsByKey, shippingAddress),
+              result: await validateLumaprintsItem(it, mediumsByKey, shippingAddress, context),
             })),
           )
           const passing = validations.filter(
@@ -762,7 +858,7 @@ export async function retryFulfillmentForItem(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, shipping_address, fulfillment_hold_reason')
+    .select('id, shipping_address, fulfillment_hold_reason, stripe_mode')
     .eq('id', item.order_id)
     .single()
 
@@ -801,10 +897,12 @@ export async function retryFulfillmentForItem(
           mediumsByKey.set(row.medium, row)
         }
 
+        const context = await lumaprintsValidationContext(supabase, order.stripe_mode as string | null)
         const validation = await validateLumaprintsItem(
           enrichedItem,
           mediumsByKey,
           shippingAddress,
+          context,
         )
         if (!validation.ok) {
           await supabase

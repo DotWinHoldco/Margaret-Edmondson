@@ -7,6 +7,12 @@ import {
   type StudioJob,
   type StudioStage,
 } from '@/lib/fulfillment/studio'
+import {
+  asPurchaseSpec,
+  describePurchaseSpec,
+  shortLineHash,
+  specOptionsText,
+} from '@/lib/orders/print-options'
 
 export default async function StudioQueue({
   stage,
@@ -145,7 +151,13 @@ export default async function StudioQueue({
             automatically.
           </p>
         ) : (
-          visible.map((job) => (
+          visible.map((job) => {
+            // P7: the queue names the FROZEN purchased configuration.
+            const frozen = asPurchaseSpec(job.item.purchase_spec)
+            const spec = describePurchaseSpec(frozen)
+            const options = specOptionsText(spec.options)
+            const hash = shortLineHash(frozen)
+            return (
             <Link
               key={job.id}
               href={`/admin/orders/${job.order_id}`}
@@ -159,17 +171,32 @@ export default async function StudioQueue({
                   · {job.order?.email}
                 </p>
                 <h2 className="mt-1 font-display text-xl">
-                  {job.item.purchase_spec.title || 'Artwork'}
+                  {spec.title}
                   {job.replacement_of ? ' · Replacement' : ''}
                 </h2>
                 <p className="mt-1 font-body text-sm text-charcoal/70">
-                  {job.item.purchase_spec.option_name ||
-                    job.item.purchase_spec.kind ||
-                    'Artwork'}{' '}
-                  · Qty {job.quantity}
+                  {spec.line ? `${spec.line} · ` : ''}Qty {job.quantity}
                 </p>
+                {options ? (
+                  <p className="mt-1 font-body text-sm text-charcoal/70">
+                    {options}
+                  </p>
+                ) : null}
+                {spec.colorHex ? (
+                  <p className="mt-1 flex items-center gap-1.5 font-body text-sm text-charcoal/70">
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                      style={{ backgroundColor: spec.colorHex }}
+                    />
+                    {spec.colorHex}
+                  </p>
+                ) : null}
                 <p className="mt-1 font-body text-xs text-charcoal/60">
                   Assigned to {job.assignee}
+                  {hash ? (
+                    <span className="ml-2 font-mono text-charcoal/45">{hash}</span>
+                  ) : null}
                 </p>
               </div>
               <div className="sm:text-right">
@@ -193,7 +220,8 @@ export default async function StudioQueue({
                 )}
               </div>
             </Link>
-          ))
+            )
+          })
         )}
       </div>
       <div className="flex items-center justify-between font-body text-sm text-charcoal/60">

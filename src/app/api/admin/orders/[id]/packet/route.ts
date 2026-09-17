@@ -1,6 +1,13 @@
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, dbFail } from '@/lib/api/respond'
 import { escapeHtml as escape } from '@/lib/email/escape'
+import {
+  DESCRIBED_DETAIL_KEYS,
+  asPurchaseSpec,
+  describePurchaseSpec,
+  shortLineHash,
+  specOptionsText,
+} from '@/lib/orders/print-options'
 
 // Render printable purchased specifications; packing slips exclude internal production notes.
 export async function GET(
@@ -37,6 +44,17 @@ export async function GET(
     .map((i: Record<string, unknown>) => {
       const spec = (i.purchase_spec || {}) as Record<string, unknown>,
         details = (spec.details || {}) as Record<string, string>
+      // P7: the packet states the FROZEN purchase, never the live catalog.
+      const frozen = asPurchaseSpec(i.purchase_spec)
+      const described = describePurchaseSpec(frozen, {
+        productTitle: (i.products as { title?: string })?.title,
+        variantName: (i.product_variants as { name?: string })?.name,
+      })
+      const options = specOptionsText(described.options)
+      const hash = shortLineHash(frozen)
+      const colorBlock = described.colorHex
+        ? `<p><span style="display:inline-block;width:12px;height:12px;border:1px solid #ccc;vertical-align:middle;background-color:${described.colorHex}"></span> ${escape(described.colorHex)}</p>`
+        : ''
       const jobs = (
         order.studio_jobs as Array<{
           order_item_id: string
@@ -47,11 +65,15 @@ export async function GET(
           replacement_of: string | null
         }>
       ).filter((j) => j.order_item_id === i.id)
-      return `<section><h2>${escape(String(spec.title || (i.products as { title?: string })?.title || 'Artwork'))}</h2><p>${escape(String(spec.option_name || (i.product_variants as { name?: string })?.name || ''))} · Quantity ${Number(i.quantity)}</p><p>${escape(String(spec.medium || ''))} ${spec.width_in && spec.height_in ? `${Number(spec.width_in)} × ${Number(spec.height_in)} in` : escape(String(spec.size_label || ''))}</p>${Object.entries(
+      return `<section><h2>${escape(described.title)}</h2><p>${escape(described.line)} · Quantity ${Number(i.quantity)}</p>${options ? `<p>${escape(options)}</p>` : ''}${colorBlock}${hash ? `<p style="font-family:ui-monospace,monospace;color:#6b736f">${escape(hash)}</p>` : ''}<p>${escape(String(spec.medium || ''))} ${spec.width_in && spec.height_in ? `${Number(spec.width_in)} × ${Number(spec.height_in)} in` : escape(String(spec.size_label || ''))}</p>${Object.entries(
         details,
       )
         .filter(
-          ([k, v]) => v && (work || !['source', 'instructions'].includes(k)),
+          ([k, v]) =>
+            v &&
+            (typeof v === 'string' || typeof v === 'number') &&
+            !DESCRIBED_DETAIL_KEYS.includes(k) &&
+            (work || !['source', 'instructions'].includes(k)),
         )
         .map(([k, v]) => `<p><b>${escape(k)}:</b> ${escape(v)}</p>`)
         .join(

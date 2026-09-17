@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useCart } from '@/lib/cart/context'
+import { cartLineKey, useCart } from '@/lib/cart/context'
 import CartItemTitle from '@/components/shared/CartItemTitle'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -70,7 +70,15 @@ export default function CartPage() {
     try {
       const variantItems = state.items
         .filter((i) => i.variantId)
-        .map((i) => ({ variantId: i.variantId!, quantity: i.quantity }))
+        .map((i) => ({
+          variantId: i.variantId!,
+          quantity: i.quantity,
+          // A configured print re-quotes as the exact configuration (ADR-2); a legacy
+          // line sends nothing extra.
+          ...(i.selection
+            ? { subcategoryRef: i.selection.subcategoryRef, optionIds: i.selection.optionIds, ...(i.selection.solidHex ? { solidHex: i.selection.solidHex } : {}) }
+            : {}),
+        }))
       if (variantItems.length === 0) return
       const res = await fetch('/api/cart/shipping-quote', {
         signal:controller.signal,
@@ -137,7 +145,9 @@ export default function CartPage() {
     setPromoError('')
   }
 
-  const quoteItemsKey = state.items.map(i=>`${i.variantId}:${i.quantity}`).join('|')
+  // Keyed per LINE: changing one configuration's quantity must invalidate the quote
+  // even when another line sells the same variant.
+  const quoteItemsKey = state.items.map(i=>`${cartLineKey(i)}:${i.quantity}`).join('|')
   useEffect(()=>{setSurcharge(null);quoteRequest.current?.abort()},[quoteItemsKey,zip])
 
   function handleCheckout() {
@@ -233,7 +243,9 @@ export default function CartPage() {
           {/* Items */}
           <div className="space-y-3">
             {state.items.map((item) => {
-              const key = item.variantId || item.productId
+              // Line identity, not variant identity (ADR-2): two configurations of one
+              // size are two lines, and editing one must never touch the other.
+              const key = cartLineKey(item)
               const lineTotal = item.price * item.quantity
               return (
                 <article
@@ -254,14 +266,14 @@ export default function CartPage() {
 
                   <div className="flex flex-1 flex-col justify-between min-w-0">
                     <div>
-                      <h3 className="font-body text-base font-medium text-charcoal leading-snug"><CartItemTitle title={item.title} /></h3>
+                      <h3 className="font-body text-base font-medium text-charcoal leading-snug"><CartItemTitle title={item.title} selection={item.selection} /></h3>
                       <p className="mt-1 font-body text-sm text-charcoal/55">{formatUsd(item.price)} each</p>
                     </div>
                     <div className="mt-3 flex items-center gap-3">
                       <div className="inline-flex items-center rounded-sm border border-charcoal/15 bg-white">
                         <button
                           type="button"
-                          onClick={() => dispatch({ type: 'UPDATE_QUANTITY', payload: { productId: item.productId, variantId: item.variantId, quantity: item.quantity - 1 } })}
+                          onClick={() => dispatch({ type: 'UPDATE_QUANTITY', payload: { productId: item.productId, variantId: item.variantId, lineKey: key, quantity: item.quantity - 1 } })}
                           aria-label="Decrease quantity"
                           className="flex h-8 w-8 items-center justify-center text-charcoal/55 hover:text-charcoal"
                         >
@@ -270,7 +282,7 @@ export default function CartPage() {
                         <span className="w-8 text-center font-body text-sm text-charcoal">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => dispatch({ type: 'UPDATE_QUANTITY', payload: { productId: item.productId, variantId: item.variantId, quantity: item.quantity + 1 } })}
+                          onClick={() => dispatch({ type: 'UPDATE_QUANTITY', payload: { productId: item.productId, variantId: item.variantId, lineKey: key, quantity: item.quantity + 1 } })}
                           aria-label="Increase quantity"
                           className="flex h-8 w-8 items-center justify-center text-charcoal/55 hover:text-charcoal"
                         >

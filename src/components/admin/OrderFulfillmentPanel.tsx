@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation'
 
 export interface FulfillmentItem {
   id: string
+  /** All four description fields come from the line's FROZEN purchase_spec (P7). */
   title: string
+  line?: string
+  options?: string
+  colorHex?: string | null
+  lineHash?: string | null
   fulfillment_type: string
   fulfillment_status: string
   tracking_number: string | null
@@ -47,8 +52,29 @@ function ItemRow({ item }: { item: FulfillmentItem }) {
   return (
     <div className="rounded-lg border border-charcoal/10 bg-white p-4">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="font-body text-sm font-medium text-charcoal">{item.title}</p>
-        <span className="inline-flex rounded-full bg-charcoal/5 px-2 py-0.5 font-body text-xs capitalize text-charcoal/60">
+        <div>
+          <p className="font-body text-sm font-medium text-charcoal">{item.title}</p>
+          {item.line && (
+            <p className="mt-0.5 font-body text-xs text-charcoal/70">{item.line}</p>
+          )}
+          {item.options && (
+            <p className="mt-0.5 font-body text-xs text-charcoal/70">{item.options}</p>
+          )}
+          {item.colorHex && (
+            <p className="mt-0.5 flex items-center gap-1.5 font-body text-xs text-charcoal/70">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                style={{ backgroundColor: item.colorHex }}
+              />
+              {item.colorHex}
+            </p>
+          )}
+          {item.lineHash && (
+            <p className="mt-0.5 font-mono text-xs text-charcoal/45">{item.lineHash}</p>
+          )}
+        </div>
+        <span className="inline-flex shrink-0 self-start rounded-full bg-charcoal/5 px-2 py-0.5 font-body text-xs capitalize text-charcoal/60">
           {item.fulfillment_status.replace(/_/g, ' ')}
         </span>
       </div>

@@ -16,7 +16,7 @@ import type { Medium } from '@/lib/pricing/mediums'
 import type { MediumConfig } from '@/lib/pricing/medium-config'
 import type { Catalog } from '@/lib/catalog/types'
 import { loadCatalog } from '@/lib/catalog/load'
-import { subcategoryRefForMedium } from '@/lib/catalog/availability'
+import { defaultSubcategoryForMedium, subcategoryRefForMedium } from '@/lib/catalog/availability'
 import { quoteDefaultConfiguration } from '@/lib/pricing/quote'
 import { getCachedPrice, refreshCachedPrice } from '@/lib/pricing/lumaprints-cache'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
@@ -57,6 +57,13 @@ export interface PricedVariantArgs {
    * loaded per row; a bulk caller should load it once and pass it here.
    */
   catalog?: Catalog
+  /**
+   * Pin the catalog subcategory (row id) this variant prices and freezes by. Omitted, the
+   * medium's default subcategory is used: the legacy `cfg.subcategory_id` while it is
+   * sellable, else the first sellable subcategory of the medium (P3, multi-subcategory
+   * mediums), else the legacy medium-level price path.
+   */
+  subcategoryRef?: string
 }
 
 /**
@@ -94,9 +101,16 @@ export async function buildPricedVariantRow(
   // default set (sorted, defaults filled for every group); the legacy config's pinned
   // list is the fallback for a family the catalog has not been synced for yet.
   let option_ids: number[] = cfg.option_ids
+  // The provider subcategory the fulfillment snapshot freezes: the legacy medium id unless
+  // the catalog resolves the medium to a different sellable subcategory.
+  let provider_subcategory_id: number | null = cfg.subcategory_id
   try {
     const catalog = args.catalog ?? (await loadCatalog(supabase, { includeDisabled: true }))
-    const subcategoryRef = subcategoryRefForMedium(catalog, medium, cfg.subcategory_id)
+    const pinned = args.subcategoryRef
+      ? (catalog.subcategories.find((subcategory) => subcategory.id === args.subcategoryRef) ?? null)
+      : defaultSubcategoryForMedium(catalog, medium, cfg.subcategory_id)
+    const subcategoryRef = pinned ? pinned.id : subcategoryRefForMedium(catalog, medium, cfg.subcategory_id)
+    if (pinned) provider_subcategory_id = pinned.subcategory_id
     if (subcategoryRef) {
       // The default configuration of the medium's subcategory: the same numbers the
       // configurator quotes with no options touched, through one cache and one set
@@ -182,7 +196,7 @@ export async function buildPricedVariantRow(
     variant_type: legacyType,
     fulfillment_metadata: {
       size: size_label,
-      lumaprints_subcategory_id: cfg.subcategory_id,
+      lumaprints_subcategory_id: provider_subcategory_id,
       lumaprints_option_ids: option_ids,
     },
   }

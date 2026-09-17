@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const result = await validateAndPriceCheckoutItems(client, lines, policy)
     if (!result.ok) return apiError(result.error.message, result.error.status, result.error.code)
     const cents = await calculateCheckoutShipping(result.data, { country, zip }, policy)
-    return Response.json({ surcharge: cents / 100, shippingCents: cents, zone: 'US', items: result.data.map(i => ({variantId:i.variantId, quantity:i.quantity, price:i.price, shippingMode:i.shippingMode, shippingFeeCents:i.shippingFeeCents, fulfillmentType:i.fulfillmentType})), policyVersion: policy.version })
+    return Response.json({ surcharge: cents / 100, shippingCents: cents, zone: 'US', items: result.data.map(i => ({variantId:i.variantId, quantity:i.quantity, price:i.price, shippingMode:i.shippingMode, shippingFeeCents:i.shippingFeeCents, fulfillmentType:i.fulfillmentType, ...(i.purchaseSpec?.line_hash ? { lineKey: `${i.variantId}|${i.purchaseSpec.line_hash}` } : {})})), policyVersion: policy.version })
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Could not verify shipping.', 400, 'SHIPPING_UNAVAILABLE')
   }

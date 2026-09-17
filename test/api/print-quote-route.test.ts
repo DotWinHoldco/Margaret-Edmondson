@@ -229,6 +229,37 @@ describe('POST /api/products/[id]/print-quote', () => {
     expect(quoteConfigurationMock).not.toHaveBeenCalled()
   })
 
+  it('closes on a preview when the environment override says off, without reading the flag', async () => {
+    // The route asks `isConfiguratorOpen`, which owns the flag AND the non-production
+    // override; a route reading `site_settings` for itself could not be closed this way.
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    vi.stubEnv('PRINT_CONFIGURATOR_FORCE', 'off')
+    try {
+      const response = await call(body())
+
+      expect(response.status).toBe(404)
+      expect(await response.json()).toEqual({ ok: false, code: 'not_found', error: 'Not found' })
+      expect(selectedColumns).toEqual([])
+      expect(quoteConfigurationMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('opens on a preview when the override says on, even with the stored flag off', async () => {
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    vi.stubEnv('PRINT_CONFIGURATOR_FORCE', 'on')
+    tableResults.set('site_settings', { data: { print_configurator_enabled: false }, error: null })
+    try {
+      const response = await call(body())
+
+      expect(response.status).toBe(200)
+      expect(quoteConfigurationMock).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('reads the flag before it parses the body', async () => {
     tableResults.set('site_settings', { data: { print_configurator_enabled: false }, error: null })
 

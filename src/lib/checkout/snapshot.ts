@@ -1,6 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ValidatedCheckoutItem } from './validation'
 
+/**
+ * The oldest checkout snapshot the order path still accepts. Version 2 froze the
+ * purchase spec; version 3 (P5) adds the configured-print fields (subcategory, line
+ * hash, labeled options, colour). Every gate reads `>= SNAPSHOT_VERSION_MIN`, never
+ * `=== 2`, so a newer snapshot can never brick order creation (F22).
+ */
+export const SNAPSHOT_VERSION_MIN = 2
+
+export function hasPurchaseSnapshot(item: { snapshotVersion?: number | null }): boolean {
+  return typeof item.snapshotVersion === 'number' && item.snapshotVersion >= SNAPSHOT_VERSION_MIN
+}
+
 // Private source references are written only to the service-only checkout snapshot.
 // This capture happens before Stripe can charge, never on a delayed webhook.
 export async function captureProductionSources(
@@ -42,7 +54,7 @@ export function snapshotOrderItem(
   item: ValidatedCheckoutItem,
 ) {
   if (
-    item.snapshotVersion !== 2 ||
+    !hasPurchaseSnapshot(item) ||
     !item.purchaseSpec ||
     !Number.isFinite(item.price) ||
     item.price <= 0
@@ -70,5 +82,8 @@ export function snapshotOrderItem(
     lumaprints_option_ids: spec.option_ids,
     print_storage_path: item.printStoragePath,
     external_item_id: id,
+    // Line identity (ADR-2): '' for a legacy line keeps the upsert key unchanged.
+    line_hash: spec.line_hash ?? '',
+    solid_color_hex: spec.solid_color_hex ?? null,
   }
 }

@@ -11,6 +11,8 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Medium } from '@/lib/pricing/mediums'
+import type { Catalog, CatalogSubcategory } from '@/lib/catalog/types'
+import { defaultSubcategoryForMedium } from '@/lib/catalog/availability'
 import { getMediumConfig, type MediumConfig } from '@/lib/pricing/medium-config'
 import { boundsForSubcategory, type SubcategoryBounds } from '@/lib/pricing/subcategory-bounds'
 
@@ -19,10 +21,28 @@ export interface BuilderContext {
   printH: number
   ratio: number
   cfg: MediumConfig
+  /**
+   * Size limits the builder gates against: the medium's default catalog subcategory
+   * when a catalog tree was supplied and it resolves, else the seeded legacy hint.
+   */
   bounds: SubcategoryBounds
   dpi: number
+  /** The seeded per-subcategory hint, whatever the catalog says. Never null. */
+  legacyBounds: SubcategoryBounds
+  /** The medium's default sellable catalog subcategory, when a tree was supplied. */
+  subcategory: CatalogSubcategory | null
   /** true when print_storage_path dims were used (a real crop exists). */
   hasPrintMaster: boolean
+}
+
+export interface LoadBuilderContextOptions {
+  /**
+   * The full catalog tree, already loaded by the caller. Supplied, the published
+   * bounds and required DPI of the medium's default subcategory replace the seeded
+   * hint, so the server gates a size against the same numbers the catalog shows the
+   * admin. Omitted, nothing is loaded and the legacy hint stands.
+   */
+  catalog?: Catalog
 }
 
 export type BuilderContextResult =
@@ -33,6 +53,7 @@ export async function loadBuilderContext(
   supabase: SupabaseClient,
   productId: string,
   medium: Medium,
+  opts: LoadBuilderContextOptions = {},
 ): Promise<BuilderContextResult> {
   const { data: product } = await supabase
     .from('products')
@@ -80,9 +101,35 @@ export async function loadBuilderContext(
     }
   }
 
-  const bounds = boundsForSubcategory(cfg.subcategory_id)
+  const legacyBounds = boundsForSubcategory(cfg.subcategory_id)
+  // The catalog publishes the provider's real bounds and DPI per print type; the
+  // seeded table is a hint that only covers the five mapped canvas subcategories.
+  // Prefer the catalog for the medium's default print type when the caller has a tree.
+  const subcategory = opts.catalog
+    ? defaultSubcategoryForMedium(opts.catalog, medium, cfg.subcategory_id)
+    : null
+  const bounds: SubcategoryBounds = subcategory
+    ? {
+        minW: Number(subcategory.min_width_in),
+        maxW: Number(subcategory.max_width_in),
+        minH: Number(subcategory.min_height_in),
+        maxH: Number(subcategory.max_height_in),
+        requiredDPI: Number(subcategory.required_dpi),
+      }
+    : legacyBounds
+
   return {
     ok: true,
-    ctx: { printW, printH, ratio: printW / printH, cfg, bounds, dpi: bounds.requiredDPI, hasPrintMaster },
+    ctx: {
+      printW,
+      printH,
+      ratio: printW / printH,
+      cfg,
+      bounds,
+      dpi: bounds.requiredDPI,
+      legacyBounds,
+      subcategory,
+      hasPrintMaster,
+    },
   }
 }

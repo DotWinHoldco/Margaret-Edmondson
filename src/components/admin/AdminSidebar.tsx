@@ -36,6 +36,26 @@ const navItems = [
     mobileOrder: 2,
   },
   {
+    label: 'Print Catalog',
+    href: '/admin/catalog',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5v13.5H3.75V5.25Zm3 3h10.5v7.5H6.75v-7.5Z" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
+    label: 'Print Coverage',
+    href: '/admin/products/coverage',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75V3.75Zm0 5.5h16.5m-16.5 5.5h16.5M9.25 3.75v16.5m5.5-16.5v16.5" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
     label: 'Orders',
     href: '/admin/orders',
     icon: (

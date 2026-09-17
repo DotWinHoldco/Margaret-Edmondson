@@ -8,6 +8,46 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #p8-cleanup — Phase 8: help articles for the print store, operator docs, retired-symbols gate
+
+- **Date:** 2026-09-17
+- **Module:** src/lib/help/articles.ts (+ new guide `06a-print-catalog-toggles`; HelpIndex counts from `helpArticles.length`) · docs/catalog-management.md · docs/print-configurator.md · docs/product-setup-prints.md · scripts/check-retired-symbols.mjs (+ build-check gate `retired-symbols`, `npm run check:retired`) · deleted src/lib/pricing/{canvas-prints,wholesale-lookup}.ts
+- **Category:** docs + gate (R1); no customer-visible behaviour change while the door is dark
+- **Summary:** Every help article that described frames, mats, bleed, DPI or "what the buyer gets" now matches the store (F27); the two dead hardcoded pricing modules are gone and seven symbols are registered as retired (2 pending on `subcategory-bounds.ts`, which builder-context still falls back to). Deferred by plan: the legacy `lumaprints_mediums` column reads and the legacy PDP picker retire one release after the flag is on.
+- **Verify:** `node scripts/check-retired-symbols.mjs` pass (7 retired · 2 pending · 647 files) · test/help-articles-print-store.test.ts.
+
+## #full-catalog #p7-order-surfaces — Phase 7: the frozen configuration on every order surface
+
+- **Date:** 2026-09-17
+- **Module:** src/lib/orders/print-options.ts (`describePurchaseSpec`) · emails (send.ts line cell + shipped email lines) · /order/[session] · /account/orders/[id] · CustomerShipments · admin StudioOrderPanel / OrderFulfillmentPanel / StudioQueue / orders/[id] / packet route · webhook email line builder
+- **Category:** order surfaces (R1); reads `purchase_spec` only, never the live catalog (ADR-5)
+- **Summary:** One pure helper describes a spec (line, "Group: Option" list, validated colour chip, kind); every surface renders it; admin surfaces add the 8-char line hash. Fixed in passing: the studio panel and packet dumped `details` unfiltered, which would have thrown on a v3 line's `print_options` array. `vitest.config.mts` gained a `server-only` alias to a test stub so a server component can be rendered under test.
+- **Verify:** test/orders (18 tests) · full suite 987/987 · eslint 0.
+
+## #full-catalog #p5-money-path — Phases 5 + 6: line identity v3, checkout re-quote, snapshot gate sweep, test-mode router guard, fulfillment v2
+
+- **Date:** 2026-09-17
+- **Module:** migration 20260917110000 (order_items.line_hash default '' + solid_color_hex CHECK; unique (order_id, product_id, variant_id, line_hash) NULLS NOT DISTINCT) · src/lib/checkout/validation.ts (schema v3, `checkoutLineKey`, `ConfiguredLineQuotes`, `expectedPriceCents`, purchaseSpec v3) · snapshot.ts (`hasPurchaseSnapshot`, `SNAPSHOT_VERSION_MIN`) · webhooks/stripe (7 gates → `>= 2`, both upsert keys) · cart/context.tsx + quoted-prices.ts + shipping-quote + cart track (selection passthrough) · checkout page (sends the configuration + the price shown) · src/lib/fulfillment/provider-guard.ts · router.ts (`lumaprintsValidationContext`, `checkFrozenOptions`, hex passthrough)
+- **Category:** money path + fulfillment seam (R2/S) — all architect-written
+- **Summary:** A configured print is charged only at the server's fresh quote through the same engine the PDP used; a shown-vs-charged drift is refused per line (F9); two configurations of one variant are two lines at every layer (F1/F23) and a replayed webhook still no-ops (F16). A Stripe test-mode order never reaches a non-sandbox provider host, on the order path and the single-item retry. Required groups and `needs_hex` are checked from the catalog tree with the legacy 102xxx arithmetic only as the no-row fallback (F13); a paid line submits even after its option is switched off (ADR-5).
+- **Verify:** test/checkout-validation-v3 (dual depth-only lines, drift, no quote, no policy) · test/checkout-snapshot-v3 · test/fulfillment/provider-guard · test/fulfillment/router-guard (the real router against a fake client: production host refuses, sandbox submits with `solidColorHexCode`, frame group missing refuses, colour missing refuses, disabled-after-purchase submits) · migration applied to production (0 order_items).
+
+## #full-catalog #p4-configurator — Phase 4: storefront print configurator behind the door
+
+- **Date:** 2026-09-17
+- **Module:** src/components/shop/PrintConfigurator/** (cards → finish chips → sizes → option groups → hex → live quote → FramePreview) · src/lib/catalog/storefront.ts (browser allow-list: no cost, no admin reason, `blocked` boolean only) · src/lib/catalog/door.ts (site flag; `PRINT_CONFIGURATOR_FORCE` honoured only off production) · ProductDetail + shop/art/[slug] mount · print-quote route reads the door · CartDrawer / cart page / CartItemTitle on line keys
+- **Category:** storefront UI behind a dark flag (R1); the door is DB + env
+- **Summary:** The shopper flow of plan §7.1 with the pure rules applied client-side before any quote (per-size mat reasons, dependency-hidden groups, blocked options with customer copy, hex required), server price only, aria radiogroups, the mobile preview accordion. Production stays dark; Vercel preview carries `PRINT_CONFIGURATOR_FORCE=on` (added 2026-09-17 through the REST API, plain value, no trailing newline).
+- **Verify:** test/shop (28 tests) · test/catalog/storefront + door · test/cart-line-identity · print-quote route tests through the door · owed: the preview walk (recorded in the blueprint Proof when walked).
+
+## #full-catalog #p3-admin-catalog — Phase 3: catalog manager, VariantsTab v2, offer coverage — write path live on production
+
+- **Date:** 2026-09-17
+- **Module:** migration 20260917100000 (RPCs `catalog_admin_patch_{subcategory,group,option}`, `catalog_admin_set_default_option`, `catalog_admin_set_medium_enabled`; aal2 + `is_admin_or_artist()`; audit_log rows; in-tx `lumaprints_pricing_cache` eviction; ADR-4 blocked ON refused) · /admin/catalog (+7 routes under api/admin/catalog) · VariantsTab v2 + generate-defaults + custom (catalog bounds/DPI, fits chips) · api/admin/variants/coverage + /admin/products/coverage + scripts/generate-offer-coverage.mjs · bulk-create multi-subcategory · shared `defaultSubcategoryForMedium`, `subcategory-tiers.ts`, `variant-insert.subcategoryRef`
+- **Category:** admin write path + variant generation (R2/S)
+- **Summary:** Browser roles keep SELECT only; every admin write is an RPC. Live proof on production: anon 42501, aal1 admin 42501, non-admin aal2 42501, blocked ON P0001, sync-owned field 22023, change+revert = 8 audit rows, default moved and restored, swatch set/cleared, bad hex 22023. Security pass (1 blocking, 4 should-fix) closed in migration 20260917120000: pricing cache + audit log aal2-only for browser roles (no anon, no TRUNCATE), `swatch.image_path` CHECK, check route 30/min, script host allowlist, zips length guard. Owed: a unique (product_id, medium, size_label) index once the 5 existing duplicate groups are cleaned; `ProjectHubClient` no longer carries the stats strip CLAUDE.md mentions.
+- **Verify:** build-check GREEN · route tests 29 + RTL 7 + coverage 24 + variants v2 11 · `apply_migration` ×3 on klwkajukicsoiwpsgftt · types regenerated (supabase CLI).
+
 ## #full-catalog #orchestration — session 15e819c2 handoff: P0–P2 landed, session usage ceiling reached
 
 - **Date:** 2026-09-17

@@ -7,6 +7,7 @@ import { getEffectiveProductMargin } from '@/lib/pricing/margin'
 import { buildPricedVariantRow } from '@/lib/pricing/variant-insert'
 import { loadBuilderContext } from '@/lib/pricing/builder-context'
 import { validateCustomSize, sizeLabel } from '@/lib/pricing/size-tiers'
+import { loadCatalog } from '@/lib/catalog/load'
 import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability'
 
 const Body = z.object({
@@ -30,12 +31,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!parsed.ok) return parsed.response
   const { medium, name, width_in, height_in, margin_override_pct, manual_price_override_cents, is_active } = parsed.data
 
-  const ctxRes = await loadBuilderContext(auth.supabase, product_id, medium)
+  // One load for the request: the size gate below and the priced row further down
+  // both read this tree, so the bounds the admin was shown, the bounds the server
+  // enforces and the configuration the row freezes are one set of numbers.
+  const catalog = await loadCatalog(auth.supabase, { includeDisabled: true })
+  const ctxRes = await loadBuilderContext(auth.supabase, product_id, medium, { catalog })
   if (!ctxRes.ok) return apiError(ctxRes.message, ctxRes.status, ctxRes.code)
-  const { printW, printH, ratio, cfg, bounds, dpi } = ctxRes.ctx
+  const { printW, printH, ratio, cfg, bounds, dpi, subcategory } = ctxRes.ctx
 
   // Server-side guard: never persist a size that fails bounds / resolution /
-  // the 1% aspect rule (it would 406 at LumaPrints submit).
+  // the 1% aspect rule (it would 406 at LumaPrints submit). `bounds` and `dpi` are
+  // the default print type's published limits when the catalog resolves it.
   const check = validateCustomSize(
     { widthIn: width_in, heightIn: height_in },
     { ratio, bounds, printPx: { width: printW, height: printH }, dpi },
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select('shipping_quote_zips')
     .eq('id', true)
     .single()
-  const zips: string[] = settings?.shipping_quote_zips || ['33101', '98101', '04401', '92101']
+  const zips: string[] = Array.isArray(settings?.shipping_quote_zips) && settings.shipping_quote_zips.length > 0 ? settings.shipping_quote_zips : ['33101', '98101', '04401', '92101']
   const productDefaultMargin = await getEffectiveProductMargin(auth.supabase, product_id)
 
   const wantLive = is_active === true
@@ -66,6 +72,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     productDefaultMargin,
     cfg,
     zips,
+    catalog,
+    subcategoryRef: subcategory?.id,
     margin_override_pct: margin_override_pct ?? null,
     manual_price_override_cents: manual_price_override_cents ?? null,
     // P3-2: always create as Draft; a Live flip must pass the gate below.

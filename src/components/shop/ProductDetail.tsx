@@ -10,6 +10,11 @@ import { cheapestPrintPrice, isPurchasableOriginal } from '@/lib/product-utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import WishlistButton from './WishlistButton'
 import PrintVariantPicker from './PrintVariantPicker'
+import PrintConfigurator from './PrintConfigurator/PrintConfigurator'
+import PrintClarityBanner from './PrintConfigurator/PrintClarityBanner'
+import { MEDIUM_GROUP_LABEL } from './PrintConfigurator/medium-labels'
+import type { ConfiguratorProp } from '@/lib/catalog/storefront'
+import type { CartItem } from '@/lib/cart/context'
 import { printSizeLabel, printSizeCartLabel } from '@/lib/pricing/print-size-label'
 
 /* ─── Types ─── */
@@ -41,19 +46,6 @@ interface ProductVariant {
   shipping_fee_cents?: number
   lead_days?: number
   is_lumaprints_available?: boolean
-}
-
-// Friendly storefront labels per Lumaprints medium (the variants carry the raw
-// medium key; the dimension/tier detail is in each variant's name).
-const MEDIUM_GROUP_LABEL: Record<string, string> = {
-  canvas: 'Stretched Canvas',
-  framed_canvas: 'Framed Canvas',
-  fine_art_paper: 'Fine Art Paper',
-  framed_fine_art_paper: 'Framed Fine Art Paper',
-  foam_mounted_fine_art_paper: 'Foam-Mounted Print',
-  metal: 'Metal Print',
-  peel_and_stick: 'Peel & Stick',
-  rolled_canvas: 'Rolled Canvas',
 }
 
 interface PrintGroup {
@@ -450,19 +442,7 @@ function VariantSelector({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-3 flex items-start gap-3 px-4 py-3 bg-teal/5 border border-teal/15 rounded-sm">
-              <svg className="w-5 h-5 text-teal flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-              </svg>
-              <div>
-                <p className="font-body text-sm text-charcoal/80">
-                  You&apos;re purchasing a <strong>print reproduction</strong>
-                </p>
-                <p className="font-body text-xs text-charcoal/50 mt-0.5">
-                  Gallery-quality stretched canvas of &ldquo;{product.title}&rdquo; by Margaret Edmondson
-                </p>
-              </div>
-            </div>
+            <PrintClarityBanner title={product.title} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -490,9 +470,17 @@ function VariantSelector({
 export default function ProductDetail({
   product,
   relatedProducts,
+  configurator,
 }: {
   product: Product
   relatedProducts: RelatedProduct[]
+  /**
+   * The print configurator's door (ADR-8), decided on the server. `open` carries the
+   * storefront catalog tree for this product's mediums; anything else, including a
+   * database the page could not read, arrives closed and the legacy size picker renders
+   * exactly as it does today.
+   */
+  configurator?: ConfiguratorProp
 }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -555,6 +543,12 @@ export default function ProductDetail({
   // Default variant: original if available, else the smallest print.
   const defaultVariant = originalAvailable ? originalVariant : printVariants[0]
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(defaultVariant?.id)
+  // The door can also close under the page: if the store switches the configurator off
+  // mid-session the quote route answers "not found", and the panel falls back rather
+  // than leaving a shopper looking at controls that cannot be priced.
+  const [doorClosed, setDoorClosed] = useState(false)
+  const [buyMode, setBuyMode] = useState<'original' | 'print'>(originalAvailable ? 'original' : 'print')
+  const handleDoorClosed = useCallback(() => setDoorClosed(true), [])
 
   const selectedVariant = useMemo(() => {
     const all = [...(originalVariant ? [originalVariant] : []), ...printVariants]
@@ -563,6 +557,18 @@ export default function ProductDetail({
 
   const price = selectedVariant?.price ?? product.base_price
   const isOriginalSelected = selectedVariant?.variant_type === 'original'
+
+  // The configurator replaces the PRINT half of the picker only, and only when the
+  // page was handed an open door, this artwork actually sells prints, and the door has
+  // not closed since. Everything else keeps the legacy control.
+  const configuratorOpen =
+    configurator?.open === true &&
+    !doorClosed &&
+    hasPrints &&
+    !isCommission &&
+    !printsUnavailable &&
+    configurator.catalog.length > 0
+  const configuratorActive = configuratorOpen && (buyMode === 'print' || !originalAvailable)
 
   const badge = getProductBadge(product)
 
@@ -601,6 +607,17 @@ export default function ProductDetail({
       content_ids: [product.id],
       content_type: 'product',
       value: price,
+      currency: 'USD',
+    }, eventId)
+  }
+
+  function addConfiguredToCart(item: CartItem) {
+    const eventId = crypto.randomUUID()
+    dispatch({ type: 'ADD_ITEM', payload: item })
+    trackEvent('AddToCart', {
+      content_ids: [product.id],
+      content_type: 'product',
+      value: item.price,
       currency: 'USD',
     }, eventId)
   }
@@ -665,6 +682,7 @@ export default function ProductDetail({
             )}
 
             {/* Price display */}
+            {!configuratorActive && (
             <div className="mt-6 mb-6">
               {printsUnavailable ? (
                 <span className="font-body text-sm font-semibold uppercase tracking-[0.18em] text-charcoal/55">
@@ -710,9 +728,10 @@ export default function ProductDetail({
                 </>
               )}
             </div>
+            )}
 
             {/* Variant Selector Dropdown */}
-            {!isCommission && !printsUnavailable && (
+            {!isCommission && !printsUnavailable && !configuratorOpen && (
               <VariantSelector
                 product={product}
                 originalVariant={originalAvailable ? originalVariant : undefined}
@@ -722,8 +741,52 @@ export default function ProductDetail({
               />
             )}
 
+            {/* Original or print: one control above the configurator, so the
+                one-of-a-kind piece is never buried under print options. */}
+            {configuratorOpen && originalAvailable && originalVariant && (
+              <div role="radiogroup" aria-label="Original or print" className="flex gap-2">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={buyMode === 'original'}
+                  onClick={() => { setBuyMode('original'); setSelectedVariantId(originalVariant.id) }}
+                  className={`flex-1 rounded-sm border px-3 py-2.5 font-body text-sm transition-colors focus-visible:outline-2 focus-visible:outline-teal ${
+                    buyMode === 'original' ? 'border-teal bg-teal/5 text-charcoal' : 'border-charcoal/15 bg-white text-charcoal/80'
+                  }`}
+                >
+                  Original Artwork (1 of 1)
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={buyMode === 'print'}
+                  onClick={() => setBuyMode('print')}
+                  className={`flex-1 rounded-sm border px-3 py-2.5 font-body text-sm transition-colors focus-visible:outline-2 focus-visible:outline-teal ${
+                    buyMode === 'print' ? 'border-teal bg-teal/5 text-charcoal' : 'border-charcoal/15 bg-white text-charcoal/80'
+                  }`}
+                >
+                  Print
+                </button>
+              </div>
+            )}
+
+            {configuratorActive && configurator?.open === true && (
+              <PrintConfigurator
+                product={{ id: product.id, title: product.title }}
+                image={{
+                  url: (images.find((i) => i.is_primary) || images[0])?.url || '',
+                  alt: (images.find((i) => i.is_primary) || images[0])?.alt_text || product.title,
+                }}
+                variants={printVariants}
+                catalog={configurator.catalog}
+                onAddToCart={addConfiguredToCart}
+                {...(selectedVariant?.medium ? { initialVariantId: selectedVariant.id } : {})}
+                onDoorClosed={handleDoorClosed}
+              />
+            )}
+
             {/* Add to Cart */}
-            {!isSold && selectedVariant && (
+            {!isSold && selectedVariant && !configuratorActive && (
               <>
               {selectedVariant && <p className="mb-3 font-body text-sm text-teal">{selectedVariant.shipping_mode === 'flat' ? `$${((selectedVariant.shipping_fee_cents || 0) / 100).toFixed(2)} shipping per item` : selectedVariant.shipping_mode === 'included' ? 'Shipping included' : 'Shipping included in the contiguous US'}{selectedVariant.fulfillment_type === 'self_ship' && selectedVariant.lead_days != null ? ` · Ships within ${selectedVariant.lead_days} days` : ''}</p>}
               <button

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     .eq('id', true)
     .single()
   const siteDefault = Number(settings?.default_margin_pct ?? 100)
-  const zips: string[] = settings?.shipping_quote_zips || ['33101', '98101', '04401', '92101']
+  const zips: string[] = Array.isArray(settings?.shipping_quote_zips) && settings.shipping_quote_zips.length > 0 ? settings.shipping_quote_zips : ['33101', '98101', '04401', '92101']
 
   let query = auth.supabase
     .from('product_variants')

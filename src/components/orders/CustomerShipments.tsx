@@ -1,6 +1,7 @@
 import 'server-only'
 import type { CustomerProgress } from '@/lib/orders/customer-progress'
 import { carrierTrackingUrl } from '@/lib/fulfillment/tracking'
+import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 
 // Render only after the parent has verified account ownership or the receipt
 // capability. Explicit projection excludes notes, assignees, costs, and files.
@@ -26,12 +27,29 @@ export default function CustomerShipments({
       <div className="mt-3 space-y-2">
         {jobs?.map((job) => {
           const item = Array.isArray(job.item) ? job.item[0] : job.item
+          const spec = describePurchaseSpec(
+            asPurchaseSpec((item as { purchase_spec?: unknown } | null)?.purchase_spec),
+          )
+          const options = specOptionsText(spec.options)
           return (
-            <p key={job.id} className="font-body text-sm text-charcoal/70">
-              {String(item?.title || 'Artwork')} ·{' '}
-              {String(item?.option_name || '')} · Qty {job.quantity} —{' '}
-              {labels[job.status] || 'Preparing'}
-            </p>
+            <div key={job.id} className="font-body text-sm text-charcoal/70">
+              <p>
+                {spec.title}
+                {spec.line ? ` · ${spec.line}` : ''} · Qty {job.quantity} —{' '}
+                {labels[job.status] || 'Preparing'}
+              </p>
+              {options ? <p className="text-charcoal/60">{options}</p> : null}
+              {spec.colorHex ? (
+                <p className="flex items-center gap-1.5 text-charcoal/60">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-3 w-3 rounded-sm border border-charcoal/20"
+                    style={{ backgroundColor: spec.colorHex }}
+                  />
+                  {spec.colorHex}
+                </p>
+              ) : null}
+            </div>
           )
         })}
       </div>

@@ -1,0 +1,69 @@
+{
+  "authored_by": "DotWin",
+  "step": "V7",
+  "title": "Production launch gate (audit/FULL-CATALOG-BUILD-PLAN.md §10 V7)",
+  "note": "The one hand-maintained file in this directory. Every other file here is written by a script. An item is 'green' only once its evidence line names a printed receipt (a run, a query result, a dashboard reading); 'human' marks a gate a person performs and records, which is never auto-checked and never counted as green; 'owed' blocks the launch verdict.",
+  "statuses": ["green", "owed", "human"],
+  "items": [
+    {
+      "id": "V7.1",
+      "title": "Production catalog sync run, zero unmapped rows",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.2",
+      "title": "V2 production pricing sweep green; five configurations spot-checked against the provider dashboard",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.3",
+      "title": "Margin defaults set per medium (gate: no enabled configuration priced below cost plus shipping)",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.4",
+      "title": "Swatch completeness: no enabled frame or mat option without a swatch",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.5",
+      "title": "Billing address configured on the production provider account and the webhook subscription live",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.6",
+      "title": "DB invariants query pack: one default per enabled required group, no enabled option under a disabled group, no live variant on a disabled subcategory, cache hygiene",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.7",
+      "title": "Kill-switch drill: fulfillment flag off and on in production, pause and resume confirmed",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.8",
+      "title": "Rollback drill on preview: storefront flag off returns the legacy product page",
+      "status": "owed",
+      "evidence": ""
+    },
+    {
+      "id": "V7.9",
+      "title": "One real production QC order on live keys, verified in the provider dashboard and on arrival",
+      "status": "human",
+      "evidence": ""
+    },
+    {
+      "id": "FLAG",
+      "title": "Production flag flip, then per-medium enablement of the launch selection",
+      "status": "human",
+      "evidence": ""
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCart } from '@/lib/cart/context'
+import { cartLineKey, useCart } from '@/lib/cart/context'
 import CartItemTitle from '@/components/shared/CartItemTitle'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -62,7 +62,9 @@ export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included
               ) : (
                 <ul className="space-y-4">
                   {state.items.map((item) => {
-                    const key = item.variantId || item.productId
+                    // Line identity, not variant identity: two configurations of one
+                    // size are two lines, and removing one must never take the other.
+                    const key = cartLineKey(item)
                     return (
                       <li key={key} className="flex gap-4">
                         <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-charcoal/5">
@@ -75,7 +77,7 @@ export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-body text-sm font-medium leading-snug"><CartItemTitle title={item.title} /></h3>
+                          <h3 className="font-body text-sm font-medium leading-snug"><CartItemTitle title={item.title} selection={item.selection} /></h3>
                           <p className="text-sm text-charcoal/60 font-body mt-0.5">
                             ${item.price.toFixed(2)}
                           </p>
@@ -84,7 +86,7 @@ export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included
                               onClick={() =>
                                 dispatch({
                                   type: 'UPDATE_QUANTITY',
-                                  payload: { productId: item.productId, variantId: item.variantId, quantity: item.quantity - 1 },
+                                  payload: { productId: item.productId, variantId: item.variantId, lineKey: key, quantity: item.quantity - 1 },
                                 })
                               }
                               className="h-6 w-6 rounded border border-charcoal/20 flex items-center justify-center text-xs hover:bg-charcoal/5"
@@ -96,7 +98,7 @@ export default function CartDrawer({ tax }: { tax?: { enabled: boolean; included
                               onClick={() =>
                                 dispatch({
                                   type: 'UPDATE_QUANTITY',
-                                  payload: { productId: item.productId, variantId: item.variantId, quantity: item.quantity + 1 },
+                                  payload: { productId: item.productId, variantId: item.variantId, lineKey: key, quantity: item.quantity + 1 },
                                 })
                               }
                               className="h-6 w-6 rounded border border-charcoal/20 flex items-center justify-center text-xs hover:bg-charcoal/5"

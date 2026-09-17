@@ -16,9 +16,9 @@ export async function loadCustomerProgress(
         .order('shipped_at'),
       db
         .from('studio_jobs')
-        .select(
-          'id,status,quantity,item:order_items(purchase_spec->title,purchase_spec->option_name)',
-        )
+        // The whole frozen spec, so the customer sees the configuration they
+        // bought (P7). Only the described fields are rendered.
+        .select('id,status,quantity,item:order_items(purchase_spec)')
         .eq('order_id', orderId),
     ])
   if (error || jobsError) return { shipments: [], jobs: [] }
