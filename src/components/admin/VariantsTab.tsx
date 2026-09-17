@@ -155,7 +155,7 @@ function FitsChips({
           <span
             key={subcategory.id}
             title={fits ? `fits ${subcategory.display_label}` : `does not fit ${subcategory.display_label}`}
-            className={`rounded-full px-1.5 py-0.5 font-body text-[9px] ${
+            className={`inline-block max-w-[11rem] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 font-body text-[9px] ${
               fits ? 'bg-teal/15 text-deep-teal' : 'bg-charcoal/8 text-charcoal/45'
             }`}
           >
@@ -624,7 +624,7 @@ export default function VariantsTab({
                               <span className="block text-[9px] text-charcoal/35">as of {new Date(v.last_priced_at).toLocaleDateString()}</span>
                             )}
                           </td>
-                          <td className="min-w-56 px-3 py-2">
+                          <td className="min-w-48 px-3 py-2">
                             {hasManual && (!hasKnownCost || cost + ship <= 0) ? (
                               <p className="text-xs text-charcoal/65">Set costs to calculate markup and gross margin.</p>
                             ) : <MarkupMarginFields

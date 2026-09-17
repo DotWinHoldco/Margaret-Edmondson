@@ -8,6 +8,14 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #admin-ux — Product editor uses the full admin width; the sizes table no longer scrolls sideways on ordinary screens
+
+- **Date:** 2026-09-17
+- **Module:** src/app/(admin)/admin/products/[id]/edit/page.tsx (content column `max-w-4xl` → `max-w-7xl`, the admin layout's own width) · src/components/admin/VariantsTab.tsx (markup cell `min-w-48`; Fits chips single-line, truncated with the full name on hover)
+- **Category:** admin UX (R0)
+- **Summary:** Owner feedback: the Variants tab needed a horizontal scroll inside its box. The editor was pinned to 896px while the layout allows 1280px; the table's nine columns fit at the wider width on laptop and desktop screens, and the long framed-paper profile names no longer wrap into four-line chips. The `overflow-x-auto` wrapper stays as the fallback for narrow windows.
+- **Verify:** tsc 0 · six VariantsTab suites 30/30.
+
 ## #full-catalog #admin-ux — Print Catalog and Print Coverage say where the switches are and whether shoppers can see them yet
 
 - **Date:** 2026-09-17
