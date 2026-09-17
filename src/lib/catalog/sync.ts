@@ -132,6 +132,20 @@ export function classifySyncError(err: unknown): SyncErrorClass {
   return 'internal'
 }
 
+/**
+ * Chunks that end on a provider throttle (429), a provider outage (5xx) or our own
+ * key-wide budget are transient: the cursor is left exactly where it was and the run
+ * stays `running`, so the next tick (cron, or the admin loop after a pause) retries the
+ * same chunk once the provider's window has passed. Only this many CONSECUTIVE transient
+ * chunks fail the run; a good chunk resets the count. A 4xx that is not a throttle is a
+ * real defect and fails the run immediately.
+ */
+export const MAX_TRANSIENT_FAILURES = 5
+
+export function isTransientSyncError(cls: SyncErrorClass): boolean {
+  return cls === 'budget_exhausted' || cls === 'provider_error:429' || /^provider_error:5\d\d$/.test(cls)
+}
+
 export interface StartSyncOptions {
   host: string
   dryRun?: boolean
@@ -861,10 +875,23 @@ async function runChunk(
     }
   } catch (err) {
     // The class is persisted; the detail is logged and expires with the log.
-    console.error('[catalog-sync] chunk failed:', err instanceof Error ? err.message : err)
+    const cls = classifySyncError(err)
+    console.error('[catalog-sync] chunk failed:', cls, err instanceof Error ? err.message : err)
+    const consecutive = (run.stats.transientFailures ?? 0) + 1
+    if (isTransientSyncError(cls) && consecutive < MAX_TRANSIENT_FAILURES) {
+      // Transient: keep the cursor where it was; the run stays running for the next tick.
+      const paused = await store.updateRun(run.id, {
+        stats: {
+          ...addStats(run.stats, { ...emptyStats(), requests: budget.requests, chunks: 1 }),
+          transientFailures: consecutive,
+        },
+        error: null,
+      })
+      return { ...paused, claimed: true, transient: true }
+    }
     const failed = await store.updateRun(run.id, {
       status: 'failed',
-      error: classifySyncError(err),
+      error: cls,
       finished_at: new Date().toISOString(),
     })
     return { ...failed, claimed: true }
@@ -876,7 +903,7 @@ async function runChunk(
   const done = cursor.stage === 'done'
   const saved = await store.updateRun(run.id, {
     cursor,
-    stats: addStats(run.stats, ctx.stats),
+    stats: { ...addStats(run.stats, ctx.stats), transientFailures: 0 },
     ...(run.dry_run ? { diff: mergeDiff(run.diff ?? emptyDiff(), ctx.diff) } : {}),
     ...(done ? { status: 'completed' as const, finished_at: new Date().toISOString() } : {}),
   })
@@ -892,7 +919,7 @@ async function runChunk(
  * another invocation holds the run and this one did nothing, which is a normal
  * outcome under an overlapping cron, not an error.
  */
-export type ClaimedRun = CatalogSyncRunRow & { claimed: boolean }
+export type ClaimedRun = CatalogSyncRunRow & { claimed: boolean; transient?: boolean }
 
 /** A `running` run with no heartbeat for this long is presumed dead. */
 export const STALE_RUN_MS = 15 * 60 * 1000

@@ -560,6 +560,69 @@ describe('catalog sync v2 — mass-tombstone guard', () => {
   })
 })
 
+describe('catalog sync v2 — transient provider conditions', () => {
+  function throttledClient(failTimes: number): CatalogProviderClient & { calls: number } {
+    let failures = 0
+    const client = {
+      calls: 0,
+      getCategories: async () => {
+        client.calls += 1
+        if (failures < failTimes) {
+          failures += 1
+          throw new errors.LumaprintsApiError(429, '{"statusCode":429,"message":"ThrottlerException: Too Many Requests"}')
+        }
+        return liveProviderClient.getCategories()
+      },
+      getSubcategories: (id: number) => liveProviderClient.getSubcategories(id),
+      getSubcategoryOptions: (id: number) => liveProviderClient.getSubcategoryOptions(id),
+      getProductsCost: (items: Parameters<CatalogProviderClient['getProductsCost']>[0]) => liveProviderClient.getProductsCost(items),
+    }
+    return client
+  }
+
+  it('pauses on a 429 with the cursor untouched, then finishes on the next chunk', async () => {
+    const store = createMemoryCatalogStore()
+    const client = throttledClient(1)
+    const paused = await startCatalogSync(store, client, { host: HOST, ...FAST })
+    expect(paused.status).toBe('running')
+    expect(paused.error).toBeNull()
+    expect(paused.stats.transientFailures).toBe(1)
+    expect(paused.cursor).toEqual({ stage: 'categories' })
+    expect((paused as { transient?: boolean }).transient).toBe(true)
+
+    const resumed = await continueCatalogSync(store, client, paused.id, FAST)
+    expect(resumed.status).toBe('running')
+    expect(resumed.cursor.stage).not.toBe('categories')
+    expect(resumed.stats.transientFailures).toBe(0)
+  })
+
+  it('fails the run only after five consecutive transient chunks, never on a 400', async () => {
+    const store = createMemoryCatalogStore()
+    const client = throttledClient(99)
+    let run = await startCatalogSync(store, client, { host: HOST, ...FAST })
+    for (let i = 0; i < 3; i++) {
+      run = await continueCatalogSync(store, client, run.id, FAST)
+      expect(run.status).toBe('running')
+    }
+    run = await continueCatalogSync(store, client, run.id, FAST)
+    expect(run.status).toBe('failed')
+    expect(run.error).toBe('provider_error:429')
+    expect(run.stats.transientFailures).toBe(4)
+
+    const bad: CatalogProviderClient = {
+      getCategories: async () => {
+        throw new errors.LumaprintsApiError(400, 'bad request')
+      },
+      getSubcategories: async () => [],
+      getSubcategoryOptions: async () => [],
+      getProductsCost: async () => [],
+    }
+    const immediate = await startCatalogSync(createMemoryCatalogStore(), bad, { host: HOST, ...FAST })
+    expect(immediate.status).toBe('failed')
+    expect(immediate.error).toBe('provider_error:400')
+  })
+})
+
 describe('catalog sync v2 — chunked and resumable', () => {
   it('reaches the same catalog whether it runs in one chunk or many', async () => {
     const oneShot = createMemoryCatalogStore()
@@ -1017,7 +1080,12 @@ describe('catalog sync v2 — provider text never reaches the database', () => {
       getSubcategoryOptions: async () => [],
       getProductsCost: async () => [],
     }
-    expect((await startCatalogSync(store, overBudget, { host: HOST, ...FAST })).error).toBe('budget_exhausted')
+    // A budget refusal is transient: the run pauses on the same cursor instead of failing.
+    const paused = await startCatalogSync(store, overBudget, { host: HOST, ...FAST })
+    expect(paused.status).toBe('running')
+    expect(paused.error).toBeNull()
+    expect(paused.stats.transientFailures).toBe(1)
+    expect(paused.cursor).toEqual({ stage: 'categories' })
 
     const off = createMemoryCatalogStore()
     const disabled: CatalogProviderClient = {

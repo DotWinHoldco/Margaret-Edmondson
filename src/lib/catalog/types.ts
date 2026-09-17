@@ -159,6 +159,8 @@ export interface SyncStats {
   updated: number
   tombstoned: number
   chunks: number
+  /** Consecutive chunks that ended on a transient provider condition (429/5xx/budget). Reset by a good chunk. */
+  transientFailures?: number
 }
 
 /** Dry-run output: what a real run WOULD change, never applied. */
