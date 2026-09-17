@@ -55,6 +55,17 @@ and RLS, a cron route, an admin route, the public product page.
    loader already reads; a tile whose product is no longer live is dropped.
 7. **Settings card**: readiness line ("Prices ready for N of M sizes"), "Warm prices now",
    and a warning in the switch-on confirmation while sizes are missing.
+8. **Print-master crop, added mid-session** (owner hit "Could not upload the cropped print
+   file" on The Dual; Keepsake had failed the same way on 09-15): the worker keeps a master's
+   previous print file IN SERVICE when a re-crop fails (`failedJobState`: status back to
+   `ready`, the failure in `print_error`), because every consumer reads `print_status =
+   'ready'` and a failed re-crop used to take the product off the shelf; the upload error
+   now carries the storage service's own answer and file size; a new admin route
+   `POST /api/admin/master-artworks/[id]/crop/revert` makes the uncropped original the
+   print file again (crop cleared, fresh request stamp fences out an in-flight job), with a
+   "Revert to original" button in the crop editor. Root cause of the upload failures is a
+   Supabase PROJECT upload cap (every crop that ever uploaded is < 48 MB; the two failures
+   are 62 and 130 megapixel PNGs) — an owner dashboard change, recorded in Close.
 
 ## Contracts
 
@@ -109,7 +120,34 @@ and RLS, a cron route, an admin route, the public product page.
 
 ## Examine
 
-(receipts appended at close)
+- **Runner:** `npm run build-check` → `status: GREEN`, 15 gates ✓ / 0 ✗, docs 0 blocking (runs
+  2, 3 and 4 in this session; run 1 failed on one route handler without an intent comment and
+  one component test written for the old instant-error behaviour, both fixed).
+- **Security pass (1 `security-reviewer`, Opus, 17 tool calls, diff pasted by path):** 11
+  findings. Fixed in commit `381e930`: S1 redirect rows readable for drafts → policy predicate
+  on `products.status` (migration 20260917140000, live); S2 retry ladder amplifies charged
+  refusals → `retryAfterMs` from the budget through the 503 body + `Retry-After` to the hook,
+  plus jitter; S3 stale answer counted as priced → pass ends with `stale_fallback`; S4 freight
+  failure priced with shipping 0 → refuses; S5 search_path pin → `''` (DEFINER stays: products
+  has an admin UPDATE policy, so the reviewer's "unnecessary" claim was checked live and is
+  wrong); S6 redirect target encoded + slug shape enforced both sides; S7 id list chunked,
+  coverage is one paged read; S9 lease 280 s + released in `finally` on both routes.
+  Triaged by the architect against live facts, no refuter spent: S8 (`sold` invisible to anon)
+  is the pre-existing products policy, out of scope, noted; S10 (slug takeover via `on conflict
+  do update`) cannot occur — `products.slug` is UNIQUE and the trigger deletes the row before
+  any product can hold the slug again, so the "update" branch is unreachable in that sequence;
+  S11 (`select('*')` in getPageBlocks) is the pre-existing query moved, and only three fields
+  reach the tile — recorded as debt.
+- **Correctness review:** a second `reviewer` agent was refused by the governor (the previous
+  program's blueprint was still `executing`; closed in this PR), so the architect examined the
+  seams directly: the warmer's default key is computed by the server's own normalizer from an
+  empty selection, which is exactly what the public route normalizes a shopper's first request
+  to; the hook's stale-key derivation makes a late answer from an aborted request unreachable;
+  checkout accepts a stale quote (no `stale` check in validation.ts), so a warmed-then-expired
+  row never blocks a sale.
+- **Crop unit (8):** examined inline; the readiness rule is enforced in five consumers
+  (`product-utils`, `checkout/snapshot`, `checkout/validation`, `fulfillability`, the RPC), so
+  the fix keeps `print_status = 'ready'` semantics and changes what a failure writes instead.
 
 ## Proof
 

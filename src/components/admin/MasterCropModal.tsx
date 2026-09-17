@@ -184,6 +184,32 @@ export default function MasterCropModal({
     }
   }
 
+  // The way back: the uncropped original becomes the print file again. Always available,
+  // because the original upload is never modified; a crop that failed or went wrong is
+  // never a dead end for the products behind it.
+  const [confirmRevert, setConfirmRevert] = useState(false)
+  const [reverting, setReverting] = useState(false)
+  const hasCropToRevert = Boolean(master.crop_box) || status === 'failed' || Boolean(master.print_error)
+  async function revert() {
+    setReverting(true)
+    setError('')
+    try {
+      await apiSend(`/api/admin/master-artworks/${master.id}/crop/revert`, 'POST', {})
+      setStatus('ready')
+      setUnsavedCrop(false)
+      toast.success('Print master reverted to the uncropped original.')
+      onSaved({ print_status: 'ready', border_mode: 'full_bleed', border_color: '#ffffff' })
+      onClose()
+    } catch (err) {
+      const message = errorMessage(err)
+      setError(message)
+      toast.error(message)
+    } finally {
+      setReverting(false)
+      setConfirmRevert(false)
+    }
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -306,7 +332,46 @@ export default function MasterCropModal({
           {error && <p className="font-body text-xs text-coral text-center">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-charcoal/10 p-4">
+        {confirmRevert && (
+          <div className="border-t border-charcoal/10 bg-cream px-4 py-3" role="dialog" aria-label="Revert crop">
+            <p className="font-body text-sm font-semibold text-charcoal">Revert to the uncropped original?</p>
+            <p className="mt-1 font-body text-xs text-charcoal/65">
+              The full original file becomes the print file for every product linked to this master, and the crop is
+              cleared. Existing print sizes must be checked again afterwards. The original is never changed, so you can
+              crop again at any time.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={revert}
+                disabled={reverting}
+                className="rounded-lg bg-charcoal px-4 py-1.5 font-body text-sm font-medium text-cream hover:bg-charcoal/85 disabled:opacity-50"
+              >
+                {reverting ? 'Reverting…' : 'Yes, revert'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmRevert(false)}
+                disabled={reverting}
+                className="rounded-lg px-4 py-1.5 font-body text-sm text-charcoal/70 hover:bg-charcoal/5"
+              >
+                Keep the crop
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2 border-t border-charcoal/10 p-4">
+          <button
+            type="button"
+            onClick={() => setConfirmRevert(true)}
+            disabled={!hasCropToRevert || reverting || saving}
+            title={hasCropToRevert ? 'Make the uncropped original the print file again' : 'No crop to revert: the original is already the print file'}
+            className="rounded-lg px-3 py-2 font-body text-sm font-medium text-charcoal/70 hover:bg-charcoal/5 disabled:opacity-40"
+          >
+            Revert to original
+          </button>
+          <div className="flex items-center gap-2">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 font-body text-sm font-medium text-charcoal/70 hover:bg-charcoal/5">
             Cancel
           </button>
@@ -318,6 +383,7 @@ export default function MasterCropModal({
           >
             {saving ? 'Saving…' : status === 'pending' || status === 'processing' ? 'Processing crop…' : 'Save crop'}
           </button>
+          </div>
         </div>
       </div>
     </div>,

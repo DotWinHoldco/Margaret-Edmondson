@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { processMasterCrop, recoverInterruptedCrops, MAX_CROP_SOURCE_BYTES } from '@/lib/artwork/crop-worker'
+import { processMasterCrop, recoverInterruptedCrops, uploadErrorDetail, MAX_CROP_SOURCE_BYTES } from '@/lib/artwork/crop-worker'
 
 function database() {
   const row: Record<string, unknown> = {
@@ -21,6 +21,8 @@ function database() {
       update: (value: Record<string, unknown>) => { patch = value; return query },
       eq: (key: string, value: unknown) => { matches.push(() => row[key] === value); return query },
       lt: (key: string, value: string) => { matches.push(() => String(row[key]) < value); return query },
+      is: (key: string, value: unknown) => { matches.push(() => (value === null ? row[key] == null : row[key] === value)); return query },
+      not: (key: string, _op: string, value: unknown) => { matches.push(() => (value === null ? row[key] != null : row[key] !== value)); return query },
       select: () => query,
       maybeSingle: async () => { const result = execute(); return { ...result, data: result.data[0] || null } },
       then: (resolve: (value: unknown) => void) => Promise.resolve(execute()).then(resolve),
@@ -62,21 +64,53 @@ describe('automatic crop job ownership', () => {
     expect(row.print_status).toBe('pending')
     expect(row.print_error).toBeNull()
   })
-  it('fails an oversized source before downloading and preserves the previous version', async () => {
+  it('fails an oversized source before downloading and keeps the previous print file IN SERVICE', async () => {
     const { row, sb } = database()
     row.file_size_bytes = MAX_CROP_SOURCE_BYTES + 1
     const render = vi.fn()
     expect(await processMasterCrop(sb, 'master', requestedAt, render)).toBe('failed')
     expect(render).not.toHaveBeenCalled()
-    expect(row).toMatchObject({ print_status: 'failed', print_storage_path: 'print/previous.png' })
-    expect(row.print_error).toMatch(/100 MB/)
+    // The previous file is untouched, so the products behind it stay sellable: status
+    // returns to ready and the failure is recorded where the admin sees it.
+    expect(row).toMatchObject({ print_status: 'ready', print_storage_path: 'print/previous.png' })
+    expect(row.print_error).toMatch(/Last crop failed: .*100 MB/)
+    expect(row.print_error).toMatch(/previous print file is still in use/)
   })
-  it('marks interrupted old jobs failed without touching active jobs', async () => {
+  it('leaves a master that never had a print file as failed', async () => {
+    const { row, sb } = database()
+    row.print_storage_path = null
+    const render = vi.fn().mockRejectedValue(new Error('Could not upload the cropped print file: the storage service answered 413 for a 96 MB file. Try saving the crop again.'))
+    expect(await processMasterCrop(sb, 'master', requestedAt, render)).toBe('failed')
+    expect(row).toMatchObject({ print_status: 'failed', print_storage_path: null })
+    expect(row.print_error).toMatch(/answered 413/)
+    expect(row.print_error).not.toMatch(/still in use/)
+  })
+  it('reports the storage service’s own answer when an upload fails', () => {
+    const detailed = Object.assign(new Error('tus: unexpected response'), {
+      originalResponse: { getStatus: () => 413, getBody: () => '{"statusCode":"413","error":"Payload too large","message":"The object exceeded the maximum allowed size"}' },
+    })
+    expect(uploadErrorDetail(detailed, 96 * 1048576)).toBe(
+      'the storage service answered 413 ({"statusCode":"413","error":"Payload too large","message":"The object exceeded the maximum allowed size"}) for a 96 MB file',
+    )
+    expect(uploadErrorDetail(new Error('socket hang up'), 5 * 1048576)).toBe('socket hang up for a 5 MB file')
+    expect(uploadErrorDetail(null, 0)).toBe('unknown error for a 0 MB file')
+  })
+  it('recovers interrupted old jobs without touching active jobs, keeping a previous print file in service', async () => {
     const { row, sb } = database()
     row.print_status = 'processing'
     expect(await recoverInterruptedCrops(sb, new Date('2026-09-14T18:09:00Z'))).toBe(0)
     expect(row.print_status).toBe('processing')
     expect(await recoverInterruptedCrops(sb, new Date('2026-09-14T18:11:00Z'))).toBe(1)
     expect(row.print_error).toMatch(/save the crop again/)
+    // This master had a print file before the interrupted job: it stays sellable.
+    expect(row.print_status).toBe('ready')
+  })
+  it('recovers an interrupted first crop as failed when there is no previous print file', async () => {
+    const { row, sb } = database()
+    row.print_status = 'processing'
+    row.print_storage_path = null
+    expect(await recoverInterruptedCrops(sb, new Date('2026-09-14T18:11:00Z'))).toBe(1)
+    expect(row.print_status).toBe('failed')
+    expect(row.print_error).not.toMatch(/still in use/)
   })
 })

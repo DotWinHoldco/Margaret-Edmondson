@@ -14,7 +14,7 @@ export const MAX_CROP_SOURCE_BYTES = 100 * 1024 * 1024
 const MAX_OUTPUT_BYTES = 350 * 1024 * 1024
 const MAX_INPUT_PIXELS = 180_000_000
 const BUCKET = 'print-masters'
-const COLUMNS = 'id, storage_path, file_size_bytes, width_px, height_px, dpi, crop_box, border_mode, border_color, print_requested_at'
+const COLUMNS = 'id, storage_path, file_size_bytes, width_px, height_px, dpi, crop_box, border_mode, border_color, print_requested_at, print_storage_path'
 // One memory-heavy job per warm runtime; other queued jobs are picked up by cron.
 let busy = false
 
@@ -23,6 +23,39 @@ export interface CropJob {
   width_px: number; height_px: number; dpi: number | null
   crop_box: { x: number; y: number; w: number; h: number }
   border_mode: string; border_color: string | null; print_requested_at: string
+  /** The print file in service before this job; null for a master that never had one. */
+  print_storage_path?: string | null
+}
+
+/**
+ * What a failed job leaves behind. A master that already has a print file KEEPS it in
+ * service (`print_status` back to `ready`, the failure recorded in `print_error`), because
+ * every consumer — the storefront listing, the quote route, checkout, fulfillment — reads
+ * `print_status = 'ready'` and a failed re-crop used to take the product off the shelf until
+ * someone noticed (2026-09-17: two artworks unsellable for days over an upload that never
+ * touched the old file). A master with no file yet is simply `failed`.
+ */
+export function failedJobState(previousPrintPath: string | null | undefined, message: string) {
+  const text = message.slice(0, 500)
+  return previousPrintPath
+    ? { print_status: 'ready', print_error: `Last crop failed: ${text} The previous print file is still in use.`.slice(0, 500) }
+    : { print_status: 'failed', print_error: text }
+}
+
+/**
+ * The upload library reports every failure as one callback; the storage service's own
+ * answer (413 for a file over the project's upload limit, 401 for an expired token) is
+ * the part worth reading, so it is pulled out of the error and put in the log and the
+ * message the admin sees.
+ */
+export function uploadErrorDetail(err: unknown, sizeBytes: number): string {
+  const e = err as { message?: string; originalResponse?: { getStatus?: () => number; getBody?: () => string } | null } | null
+  const status = e?.originalResponse?.getStatus?.()
+  const body = (e?.originalResponse?.getBody?.() ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
+  const mb = (sizeBytes / 1048576).toFixed(0)
+  if (status) return `the storage service answered ${status}${body ? ` (${body})` : ''} for a ${mb} MB file`
+  const message = (e?.message ?? (err == null ? '' : String(err))).slice(0, 160)
+  return `${message || 'unknown error'} for a ${mb} MB file`
 }
 
 export function validateCropJob(job: CropJob) {
@@ -86,7 +119,11 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
         headers: { 'x-signature': upload.token },
         metadata: { bucketName: BUCKET, objectName, contentType: 'image/png', cacheControl: '3600' },
         chunkSize: 6 * 1024 * 1024, retryDelays: [0, 1000, 3000], storeFingerprintForResuming: false,
-        onError: () => finish(new Error('Could not upload the cropped print file. Try saving the crop again.')),
+        onError: (err) => {
+          const detail = uploadErrorDetail(err, size)
+          console.error('[crop] upload failed', JSON.stringify({ master: job.id, objectName, sizeBytes: size, detail }))
+          finish(new Error(`Could not upload the cropped print file: ${detail}. Try saving the crop again.`))
+        },
         onSuccess: () => finish(),
       })
       const timer = setTimeout(() => {
@@ -129,7 +166,7 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Processing failed. Try saving the crop again.'
       const { error: statusError } = await supabase.from('master_artworks')
-        .update({ print_status: 'failed', print_error: message.slice(0, 500), updated_at: new Date().toISOString() })
+        .update({ ...failedJobState(job.print_storage_path, message), updated_at: new Date().toISOString() })
         .eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt)
       if (statusError) throw new Error('Could not save crop failure status')
       return 'failed' as const
@@ -141,9 +178,15 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
 
 export async function recoverInterruptedCrops(supabase: SupabaseClient, now = new Date()) {
   const cutoff = new Date(now.getTime() - 10 * 60_000).toISOString()
-  const { data, error } = await supabase.from('master_artworks').update({
-    print_status: 'failed', print_error: 'Processing was interrupted. Open Crop and save the crop again to retry.', updated_at: now.toISOString(),
-  }).eq('print_status', 'processing').lt('updated_at', cutoff).select('id')
-  if (error) throw new Error('Could not recover interrupted crops')
-  return data?.length || 0
+  const message = 'Processing was interrupted. Open Crop and save the crop again to retry.'
+  // Two updates, one per outcome: a master with a print file keeps it in service.
+  const { data: kept, error: keptError } = await supabase.from('master_artworks').update({
+    ...failedJobState('previous', message), updated_at: now.toISOString(),
+  }).eq('print_status', 'processing').lt('updated_at', cutoff).not('print_storage_path', 'is', null).select('id')
+  if (keptError) throw new Error('Could not recover interrupted crops')
+  const { data: failed, error: failedError } = await supabase.from('master_artworks').update({
+    ...failedJobState(null, message), updated_at: now.toISOString(),
+  }).eq('print_status', 'processing').lt('updated_at', cutoff).is('print_storage_path', null).select('id')
+  if (failedError) throw new Error('Could not recover interrupted crops')
+  return (kept?.length || 0) + (failed?.length || 0)
 }
