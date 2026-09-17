@@ -393,7 +393,7 @@ describe('catalog sync v2 — full run on the sandbox snapshot', () => {
   it('enables exactly the configuration the live store sells today, and nothing else', () => {
     const d = store.dump()
     const enabledSubs = d.subcategories.filter((s) => s.enabled).map((s) => s.subcategory_id).sort()
-    expect(enabledSubs).toEqual([101002, 102002])
+    expect(enabledSubs).toEqual([101002, 102002, 103001, 105005, 108001])
 
     const subById = new Map(d.subcategories.map((s) => [s.id, s]))
     const enabledGroups = d.groups
@@ -406,21 +406,32 @@ describe('catalog sync v2 — full run on the sandbox snapshot', () => {
       '102002:canvas_border',
       '102002:frame_style',
       '102002:hanging_hardware',
+      '103001:bleed_size',
+      '105005:backing',
+      '105005:glazing',
+      '105005:hanging_hardware',
+      '105005:mat_color',
+      '105005:mat_size',
+      '105005:paper_type',
+      '105005:print_mounting',
+      '108001:bleed_size',
     ])
 
     const enabled = flatten(store)
       .filter((f) => f.option.enabled)
       .map((f) => `${f.subcategory_id}:${f.option.option_id}`)
       .sort()
-    expect(enabled).toEqual(['101002:11', '101002:2', '102002:2', '102002:27', '102002:28'])
+    expect(enabled).toEqual(
+      ['101002:11', '101002:2', '102002:2', '102002:27', '102002:28', '103001:39', '105005:146', '105005:148', '105005:64', '105005:74', '105005:83', '105005:94', '105005:96', '108001:39'].sort(),
+    )
   })
 
   it('arrives with everything else off and unacknowledged', () => {
     const d = store.dump()
     const offSubs = d.subcategories.filter((s) => !s.enabled)
-    expect(offSubs).toHaveLength(48)
+    expect(offSubs).toHaveLength(45)
     expect(d.subcategories.every((s) => s.acknowledged_at === null)).toBe(true)
-    expect(d.options.filter((o) => o.enabled)).toHaveLength(5)
+    expect(d.options.filter((o) => o.enabled)).toHaveLength(14)
   })
 
   it('spends one provider request per category, per subcategory, plus two', () => {
@@ -548,7 +559,7 @@ describe('catalog sync v2 — mass-tombstone guard', () => {
     expect(after.groups.filter((g) => g.removed_from_api)).toHaveLength(0)
     expect(after.options.filter((o) => o.removed_from_api)).toHaveLength(0)
     // The live bootstrap set is untouched by the failed run.
-    expect(after.subcategories.filter((s) => s.enabled).map((s) => s.subcategory_id).sort()).toEqual([101002, 102002])
+    expect(after.subcategories.filter((s) => s.enabled).map((s) => s.subcategory_id).sort()).toEqual([101002, 102002, 103001, 105005, 108001])
   })
 
   it('still tombstones a handful of genuine removals (under the half-catalog floor)', async () => {
@@ -936,7 +947,7 @@ describe('catalog sync v2 — the live bootstrap is a one shot', () => {
   it('seeds today only on the first completed walk, never again', async () => {
     const store = createMemoryCatalogStore()
     await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
-    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(5)
+    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(14)
 
     // An admin takes the whole catalog off sale.
     for (const row of store.dump().subcategories) store.patchSubcategory(row.id, { enabled: false })
@@ -957,7 +968,7 @@ describe('catalog sync v2 — the live bootstrap is a one shot', () => {
     await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, dryRun: true, ...FAST })
     await sleep(5)
     await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
-    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(5)
+    expect(store.dump().options.filter((o) => o.enabled)).toHaveLength(14)
   })
 
   it('never switches on a row the provider no longer lists', async () => {
@@ -966,8 +977,8 @@ describe('catalog sync v2 — the live bootstrap is a one shot', () => {
     const cat102 = state.catalog.categories.find((c) => c.id === 102)!
     cat102.subcategories = cat102.subcategories.filter((x) => x.subcategoryId !== 102002)
     await runCatalogSyncToCompletion(store, liveProviderClient, { host: HOST, ...FAST })
-    const enabled = store.dump().subcategories.filter((x) => x.enabled).map((x) => x.subcategory_id)
-    expect(enabled).toEqual([101002])
+    const enabled = store.dump().subcategories.filter((x) => x.enabled).map((x) => x.subcategory_id).sort()
+    expect(enabled).toEqual([101002, 103001, 105005, 108001])
   })
 })
 
