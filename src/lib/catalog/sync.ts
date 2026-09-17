@@ -634,6 +634,9 @@ interface ProviderDefaults {
 
 const REQUIRES_OPTIONS = /options are required/i
 
+/** Provider maximum for one /pricing/products call (documented: 1 to 50 items). */
+export const PROVIDER_BATCH_MAX = 50
+
 async function probeProviderDefaults(ctx: ChunkContext, rows: CatalogSubcategoryRow[]): Promise<ProviderDefaults> {
   const items: ProductCostRequestItem[] = rows.map((r) => ({
     subcategoryId: r.subcategory_id,
@@ -646,7 +649,15 @@ async function probeProviderDefaults(ctx: ChunkContext, rows: CatalogSubcategory
     options: [],
   }))
 
-  const results = items.length ? await ctx.budget.request(() => ctx.client.getProductsCost(items)) : []
+  // The provider caps one pricing batch at 50 items ("Array must contain between 1 and 50
+  // items", 400). Production has 51 subcategories, so the probe is split; each batch is one
+  // paced request against the chunk budget.
+  const results: ProductCostResult[] = []
+  for (let i = 0; i < items.length; i += PROVIDER_BATCH_MAX) {
+    const batch = items.slice(i, i + PROVIDER_BATCH_MAX)
+    const part = await ctx.budget.request(() => ctx.client.getProductsCost(batch))
+    results.push(...(part ?? []))
+  }
   const resolved = new Map<number, Set<number>>()
   const requiresOptions = new Set<number>()
 
