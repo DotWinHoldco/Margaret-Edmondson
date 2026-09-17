@@ -26,8 +26,17 @@ import type { PricingCacheRowV2 } from '@/lib/pricing/quote-types'
 const CACHE_COLS =
   'id, subcategory_ref, width_in, height_in, price_key_hash, shipping_class_hash, cost_cents, shipping_cents, option_breakdown, base_cents, fetched_at, expires_at'
 
-/** How long a priced row is served without asking the provider again. */
-export const QUOTE_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+/**
+ * How long a priced row is served without asking the provider again.
+ *
+ * Three days, not one: provider prices move on the order of months, the production key
+ * is throttled far below the published 40/min, and the warmer (`warm.ts`) has to
+ * re-price every offered size once per life. A day made that 985 requests a day for
+ * nothing; three days is a third of that, and an expired row is still served stale
+ * when the provider cannot answer, so the price a shopper sees never gets OLDER than
+ * this plus the outage.
+ */
+export const QUOTE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000
 
 export interface QuoteCacheKey {
   subcategoryRef: string
@@ -115,6 +124,43 @@ export async function readCacheRowsForSize(
     .eq('height_in', heightIn)
   if (error || !data) return []
   return (data as Array<Record<string, unknown>>).map(normalizeRow)
+}
+
+/**
+ * Every row of the given subcategories, paged (PostgREST caps a response at 1,000 rows
+ * and says nothing), for callers that need the whole surface at once — the warmer reads
+ * its coverage this way rather than one row per offered size. Best effort like every
+ * read here: an error is an empty page, never a throw.
+ */
+export async function readCacheRowsForSubcategories(
+  client: SupabaseClient,
+  subcategoryRefs: readonly string[],
+): Promise<PricingCacheRowV2[]> {
+  const refs = [...new Set(subcategoryRefs)]
+  const out: PricingCacheRowV2[] = []
+  const PAGE = 1000
+  const REFS_PER_QUERY = 50
+  for (let i = 0; i < refs.length; i += REFS_PER_QUERY) {
+    const chunk = refs.slice(i, i + REFS_PER_QUERY)
+    let from = 0
+    for (;;) {
+      const { data, error } = await client
+        .from('lumaprints_pricing_cache')
+        .select(CACHE_COLS)
+        .in('subcategory_ref', chunk)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
+      if (error || !data) {
+        console.warn('quote-cache: could not read subcategory rows', error?.message ?? 'no data')
+        break
+      }
+      const page = (data as Array<Record<string, unknown>>).map(normalizeRow)
+      out.push(...page)
+      if (page.length < PAGE) break
+      from += PAGE
+    }
+  }
+  return out
 }
 
 /**

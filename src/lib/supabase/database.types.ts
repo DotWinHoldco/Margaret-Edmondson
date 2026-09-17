@@ -3104,6 +3104,32 @@ export type Database = {
           },
         ]
       }
+      product_slug_redirects: {
+        Row: {
+          created_at: string
+          old_slug: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          old_slug: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          old_slug?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_slug_redirects_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           aspect_ratio: number | null

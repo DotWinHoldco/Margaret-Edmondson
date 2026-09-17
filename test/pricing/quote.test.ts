@@ -38,6 +38,8 @@ vi.mock('@/lib/supabase/server', () => ({
 const providerCalls = vi.hoisted(() => [] as Array<Array<{ subcategoryId: number; size: { width: number; height: number }; options?: number[] }>>)
 const shippingCalls = vi.hoisted(() => [] as Array<{ subcategoryId: number; orderItemOptions: number[] }>)
 const providerState = vi.hoisted(() => ({ throws: null as unknown, configured: true }))
+// Freight can fail on its own: the pricing batch answers, the shipping quote does not.
+const shippingState = vi.hoisted(() => ({ throws: null as unknown }))
 
 vi.mock('@/lib/integrations/lumaprints', () => {
   class LumaprintsApiError extends Error {
@@ -51,9 +53,11 @@ vi.mock('@/lib/integrations/lumaprints', () => {
     }
   }
   class LumaprintsBudgetError extends Error {
-    constructor() {
+    readonly retryAfterMs: number
+    constructor(retryAfterMs = 0) {
       super('provider budget exhausted')
       this.name = 'LumaprintsBudgetError'
+      this.retryAfterMs = retryAfterMs
     }
   }
   class LumaprintsDisabledError extends Error {
@@ -79,6 +83,7 @@ vi.mock('@/lib/pricing/shipping-quote', () => ({
   quoteWorstCaseCONUS: async (descriptor: { subcategoryId: number; orderItemOptions: number[] }) => {
     shippingCalls.push({ subcategoryId: descriptor.subcategoryId, orderItemOptions: descriptor.orderItemOptions })
     if (providerState.throws) throw providerState.throws
+    if (shippingState.throws) throw shippingState.throws
     return { worstCase: SHIPPING_DOLLARS[descriptor.subcategoryId] ?? 10, quotesByZip: {} }
   },
 }))
@@ -444,6 +449,7 @@ beforeEach(() => {
   shippingCalls.length = 0
   providerState.throws = null
   providerState.configured = true
+  shippingState.throws = null
 })
 
 function quote(subcategoryRef: string, widthIn: number, heightIn: number, optionIds: number[] = [], solidHex?: string) {
@@ -612,6 +618,64 @@ describe('quoteConfiguration: provider trouble', () => {
   })
 
   it('raises QuoteUnavailableError when nothing is cached at all', async () => {
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+    await expect(quote(CANVAS, 8, 10)).rejects.toBeInstanceOf(QuoteUnavailableError)
+  })
+
+  it('names the class that refused, so the log line says whether the provider was ever called', async () => {
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+    await expect(quote(CANVAS, 8, 10)).rejects.toMatchObject({ reason: 'LumaprintsBudgetError' })
+  })
+
+  it("carries the budget's own reset time, so a retry never lands inside the window that refused it", async () => {
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError(41_000)
+    await expect(quote(CANVAS, 8, 10)).rejects.toMatchObject({ retryAfterMs: 41_000 })
+  })
+
+  it('refuses to price without freight when only the shipping quote fails and nothing is cached', async () => {
+    // A freight error that is NOT a provider outage used to price the print with 0 shipping.
+    shippingState.throws = new Error('zip 33101 is not serviceable')
+    await expect(quote(CANVAS, 8, 10)).rejects.toMatchObject({ reason: 'Error' })
+    expect(db.tables.lumaprints_pricing_cache.some((row) => Number(row.shipping_cents) === 0 && row.price_key_hash)).toBe(false)
+  })
+
+  it('serves the last row with its own freight when only the shipping quote fails', async () => {
+    await quote(CANVAS, 8, 10)
+    for (const row of db.tables.lumaprints_pricing_cache) {
+      row.expires_at = new Date(Date.now() - 1000).toISOString()
+    }
+    shippingState.throws = new Error('zip 33101 is not serviceable')
+    const result = await quote(CANVAS, 8, 10)
+    expect(result.stale).toBe(true)
+    expect(result.shippingCents).toBe(1234)
+  })
+
+  it('never serves a stale price with free freight: a frame swap whose row has none takes the highest freight quoted for the size', async () => {
+    // The default black frame writes the batch (the oak swap row among it, freight 0)
+    // and stamps the worst-case freight on the default row alone.
+    await quote(FRAMED, 16, 20)
+    for (const row of db.tables.lumaprints_pricing_cache) {
+      row.expires_at = new Date(Date.now() - 1000).toISOString()
+    }
+    const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
+    providerState.throws = new LumaprintsBudgetError()
+
+    const result = await quote(FRAMED, 16, 20, [91])
+    expect(result.available).toBe(true)
+    expect(result.stale).toBe(true)
+    // Before 2026-09-17 this answered 0 and sold the oak frame with shipping included for free.
+    expect(result.shippingCents).toBe(2250)
+  })
+
+  it('refuses a stale answer when no row for the size carries freight at all', async () => {
+    await quote(CANVAS, 8, 10)
+    for (const row of db.tables.lumaprints_pricing_cache) {
+      row.expires_at = new Date(Date.now() - 1000).toISOString()
+      row.shipping_cents = 0
+    }
     const { LumaprintsBudgetError } = await import('@/lib/integrations/lumaprints')
     providerState.throws = new LumaprintsBudgetError()
     await expect(quote(CANVAS, 8, 10)).rejects.toBeInstanceOf(QuoteUnavailableError)

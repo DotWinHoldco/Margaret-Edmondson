@@ -1,7 +1,8 @@
 import { getProductBySlug, getProducts } from '@/lib/supabase/queries'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import ProductDetail from '@/components/shop/ProductDetail'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { findProductSlugRedirect } from '@/lib/products/slug-redirect'
 import { isConfiguratorOpen } from '@/lib/catalog/door'
 import { getPublicCatalog } from '@/lib/catalog/load'
 import { storefrontCatalogFor, type ConfiguratorProp } from '@/lib/catalog/storefront'
@@ -51,7 +52,13 @@ export default async function ProductPage(
   const { slug } = await props.params
   const product = await getProductBySlug(slug)
 
-  if (!product) notFound()
+  if (!product) {
+    // A slug this product used to have (renamed in the editor) redirects for good; the
+    // table is written by a trigger on every rename, so no link ever goes stale again.
+    const current = await findProductSlugRedirect(await createClient(), slug)
+    if (current) permanentRedirect(`/shop/art/${encodeURIComponent(current)}`)
+    notFound()
+  }
 
   const { products: related } = await getProducts({ limit: 4 })
   const relatedProducts = related.filter((p) => p.id !== product.id).slice(0, 4)

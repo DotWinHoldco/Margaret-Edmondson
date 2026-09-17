@@ -57,3 +57,37 @@ describe('PrintConfiguratorSection', () => {
     expect(screen.getByText('Print configurator is off')).toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Price readiness (2026-09-17): the card says how much of the surface is priced, warns in
+// the switch-on confirmation while sizes are missing, and starts a pass on request.
+// ---------------------------------------------------------------------------
+
+describe('PrintConfiguratorSection: price readiness', () => {
+  const coverage = { surface: 197, fresh: 120, stale: 5, missing: 72, expiringSoon: 3, lastWarmedAt: null }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET'
+      calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined })
+      if (url === '/api/admin/catalog/warm' && method === 'GET') return { ok: true, status: 200, json: async () => ({ ok: true, ...coverage }) }
+      if (url === '/api/admin/catalog/warm' && method === 'POST') return { ok: true, status: 200, json: async () => ({ ok: true, started: true }) }
+      return { ok: true, status: 200, json: async () => ({ enabled: false, updatedAt: null }) }
+    }))
+  })
+
+  it('shows the readiness line, warns before switching on with unpriced sizes, and starts a pass', async () => {
+    render(<PrintConfiguratorSection />)
+    const line = await screen.findByTestId('warm-coverage')
+    expect(line).toHaveTextContent('ready for 125 of 197 sizes')
+    expect(line).toHaveTextContent('72 not priced yet')
+    expect(line).toHaveTextContent('5 older than three days')
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Print configurator' }))
+    expect(screen.getByTestId('warm-warning')).toHaveTextContent('72 of 197 sizes have no price yet')
+
+    fireEvent.click(screen.getByText('Price sizes now'))
+    await waitFor(() => expect(calls.some((c) => c.url === '/api/admin/catalog/warm' && c.method === 'POST')).toBe(true))
+    expect(await screen.findByText('Pricing started. This card updates as sizes are priced.')).toBeInTheDocument()
+  })
+})

@@ -112,9 +112,21 @@ const bodySchema = z
   })
   .strict()
 
-function fail(status: number, code: PublicPrintQuoteError['code'], error: string): Response {
+function fail(
+  status: number,
+  code: PublicPrintQuoteError['code'],
+  error: string,
+  retryAfterMs: number | null = null,
+): Response {
   const body: PublicPrintQuoteError = { ok: false, code, error }
-  return Response.json(body, { status })
+  const headers: Record<string, string> = {}
+  if (retryAfterMs !== null && retryAfterMs > 0) {
+    // The budget's own reset time: the browser waits at least this long before asking
+    // again, so a refusal never costs a second refusal inside the same window.
+    body.retryAfterMs = retryAfterMs
+    headers['Retry-After'] = String(Math.ceil(retryAfterMs / 1000))
+  }
+  return Response.json(body, { status, headers })
 }
 
 interface ProductRow {
@@ -278,8 +290,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Both of these mean "the provider cannot answer right now and no cache row can
     // stand in". They are the same sentence to a customer: try again shortly.
     if (err instanceof QuoteUnavailableError || err instanceof LumaprintsDisabledError) {
-      console.error('[print-quote] provider unavailable:', err instanceof Error ? err.message : String(err))
-      return fail(503, 'provider_busy', BUSY_COPY)
+      // The reason is the class that refused (our budget, the provider, the kill switch):
+      // without it a day of these lines cannot say whether LumaPrints was ever called.
+      const reason = err instanceof QuoteUnavailableError ? err.reason : err.name
+      const retryAfterMs = err instanceof QuoteUnavailableError ? err.retryAfterMs : null
+      console.error(`[print-quote] provider unavailable (${reason}):`, err.message)
+      return fail(503, 'provider_busy', BUSY_COPY, retryAfterMs)
     }
     return apiFail(err, { context: 'products/[id]/print-quote POST' })
   }
