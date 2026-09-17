@@ -2230,33 +2230,62 @@ export type Database = {
       }
       lumaprints_pricing_cache: {
         Row: {
+          base_cents: number | null
           cost_cents: number
           expires_at: string
           fetched_at: string
+          height_in: number | null
           id: string
-          medium: string
+          medium: string | null
+          option_breakdown: Json | null
+          price_key_hash: string | null
           shipping_cents: number
-          size_label: string
+          shipping_class_hash: string
+          size_label: string | null
+          subcategory_ref: string | null
+          width_in: number | null
         }
         Insert: {
+          base_cents?: number | null
           cost_cents: number
           expires_at?: string
           fetched_at?: string
+          height_in?: number | null
           id?: string
-          medium: string
+          medium?: string | null
+          option_breakdown?: Json | null
+          price_key_hash?: string | null
           shipping_cents: number
-          size_label: string
+          shipping_class_hash?: string
+          size_label?: string | null
+          subcategory_ref?: string | null
+          width_in?: number | null
         }
         Update: {
+          base_cents?: number | null
           cost_cents?: number
           expires_at?: string
           fetched_at?: string
+          height_in?: number | null
           id?: string
-          medium?: string
+          medium?: string | null
+          option_breakdown?: Json | null
+          price_key_hash?: string | null
           shipping_cents?: number
-          size_label?: string
+          shipping_class_hash?: string
+          size_label?: string | null
+          subcategory_ref?: string | null
+          width_in?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lumaprints_pricing_cache_subcategory_ref_fkey"
+            columns: ["subcategory_ref"]
+            isOneToOne: false
+            referencedRelation: "lumaprints_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lumaprints_subcategories: {
         Row: {
@@ -3737,6 +3766,7 @@ export type Database = {
           og_image_url: string | null
           order_notification_email: string | null
           pinterest_url: string | null
+          print_configurator_enabled: boolean
           printful_enabled: boolean | null
           seo_description: string | null
           seo_title: string | null
@@ -3787,6 +3817,7 @@ export type Database = {
           og_image_url?: string | null
           order_notification_email?: string | null
           pinterest_url?: string | null
+          print_configurator_enabled?: boolean
           printful_enabled?: boolean | null
           seo_description?: string | null
           seo_title?: string | null
@@ -3837,6 +3868,7 @@ export type Database = {
           og_image_url?: string | null
           order_notification_email?: string | null
           pinterest_url?: string | null
+          print_configurator_enabled?: boolean
           printful_enabled?: boolean | null
           seo_description?: string | null
           seo_title?: string | null

@@ -1,17 +1,9 @@
 // Authored by DotWin
-// Catalog loader: the three catalog tables plus the medium switch, assembled into the
-// `Catalog` tree of types.ts with ADR-5 effective availability and ADR-4 blocked
-// reasons already resolved, so no caller ever re-derives the cascade.
-//
-// The cascade is AND all the way down and includes tombstones:
-//   subcategory.effective = medium_enabled AND enabled AND NOT removed
-//                           AND every `required` group still has >= 1 effective option
-//   group.effective       = group.enabled AND NOT removed AND subcategory.effective
-//   option.effective      = option.enabled AND NOT removed AND group.effective
-//                           AND blocked_reason === null
-// A blocked option (ADR-4: needs a bleed the masters do not carry, or a probe still
-// owed) is never effective even when the DB row says enabled: the admin toggle also
-// refuses, and this is the belt to that pair of braces.
+// Catalog loader: the three catalog tables plus the medium switch, read for one API
+// host and handed to `assembleCatalog` (assemble.ts), which resolves ADR-5 effective
+// availability and the ADR-4 blocked reasons. This file owns the I/O and the caching;
+// the cascade itself has one pure implementation next door, so a script or a test can
+// build the same tree from fixture rows without a database.
 //
 // The storefront tree (`includeDisabled: false`) is filtered at the QUERY on every
 // level, not only on subcategories: a disabled or tombstoned group or option is not
@@ -20,7 +12,7 @@
 // canvas whose frame styles are all off is not sellable and the rows proving it are
 // exactly the ones being filtered away. So the guard reads its own small census of
 // required groups, which is sellability data the storefront needs rather than catalog
-// metadata it displays.
+// metadata it displays, and passes it to the assembler.
 //
 // Reads are plain PostgREST selects. The supabase-js builder is PromiseLike, so every
 // query is awaited and its `{ data, error }` read; nothing is chained off it.
@@ -32,6 +24,12 @@ import type { Medium } from '@/lib/pricing/mediums'
 import { createServiceClient } from '@/lib/supabase/server'
 import { CATALOG_CACHE_TAG } from '@/lib/catalog/cache-tag'
 import { catalogHost } from '@/lib/catalog/walk'
+import {
+  assembleCatalog,
+  BLOCKED_NEEDS_BLEED,
+  optionBlockedReason,
+  type RequiredGroupCensusRow,
+} from '@/lib/catalog/assemble'
 import type {
   Catalog,
   CatalogOption,
@@ -41,6 +39,10 @@ import type {
   CatalogSubcategory,
   CatalogSubcategoryRow,
 } from '@/lib/catalog/types'
+
+// The cascade moved to assemble.ts; both names keep their old import path so the
+// admin table and the tests are unaffected by where the logic now lives.
+export { BLOCKED_NEEDS_BLEED, optionBlockedReason }
 
 // Explicit column lists (house security gate: never select('*')); they mirror the Row
 // types in types.ts, so a schema change shows up here as a type error, not a silent extra field.
@@ -57,13 +59,6 @@ const IN_CHUNK = 200
 
 /** How long the storefront tree may be served before a background refresh (seconds). */
 const CATALOG_REVALIDATE_SECONDS = 300
-
-/**
- * Customer-visible copy for the two ADR-4 blocks. Plain sentences: these strings reach
- * a shopper on the configurator, not only the admin table.
- */
-export const BLOCKED_NEEDS_BLEED =
-  'This finish needs a print file with extra bleed. Our print files keep the whole artwork, so it is not available.'
 
 export interface LoadCatalogOptions {
   /** API host whose ids this tree is built from; defaults to the configured provider host. */
@@ -87,10 +82,9 @@ function unwrap<T>(result: { data: unknown; error: { message?: string } | null }
   return (result.data ?? []) as T[]
 }
 
-async function readMediumSwitch(client: SupabaseClient): Promise<Map<string, boolean>> {
+async function readMediumSwitch(client: SupabaseClient): Promise<Array<{ medium: string; enabled: boolean }>> {
   const result = await client.from('lumaprints_mediums').select('medium, enabled')
-  const rows = unwrap<{ medium: string; enabled: boolean }>(result, 'mediums')
-  return new Map(rows.map((row) => [row.medium, row.enabled === true]))
+  return unwrap<{ medium: string; enabled: boolean }>(result, 'mediums')
 }
 
 async function readSubcategories(
@@ -133,14 +127,6 @@ async function readOptions(
   return rows
 }
 
-/** The subset of a group row the sellability guard needs. */
-interface RequiredGroupCensusRow {
-  id: string
-  subcategory_ref: string
-  group_key: string
-  display_label: string
-}
-
 /**
  * Every `required` group the provider still lists, whatever its own toggle says.
  *
@@ -163,54 +149,6 @@ async function readRequiredGroupCensus(
     rows.push(...unwrap<RequiredGroupCensusRow>(result, 'required option groups'))
   }
   return rows
-}
-
-// ---------------------------------------------------------------------------
-// Assembly
-// ---------------------------------------------------------------------------
-
-function byOrderThenName(aOrder: number, aName: string, bOrder: number, bName: string): number {
-  const orderA = Number.isFinite(aOrder) ? aOrder : 0
-  const orderB = Number.isFinite(bOrder) ? bOrder : 0
-  if (orderA !== orderB) return orderA - orderB
-  return aName.localeCompare(bName)
-}
-
-/**
- * ADR-4: why an option can never be turned on, independent of its `enabled` column.
- * Computed for every option (including disabled ones) because the admin table shows
- * the reason next to a toggle that refuses.
- */
-export function optionBlockedReason(row: Pick<CatalogOptionRow, 'geometry'>): string | null {
-  const geometry = row.geometry
-  if (!geometry) return null
-  if (typeof geometry.requires_file_bleed_in === 'number') return BLOCKED_NEEDS_BLEED
-  if (typeof geometry.probe_owed === 'string' && geometry.probe_owed.length > 0) return geometry.probe_owed
-  return null
-}
-
-/** An option that could be sold if everything above it were on. */
-function optionSelfOk(option: CatalogOption): boolean {
-  return option.enabled === true && option.removed_from_api !== true && option.blocked_reason === null
-}
-
-function groupSelfOk(group: CatalogOptionGroupRow): boolean {
-  return group.enabled === true && group.removed_from_api !== true
-}
-
-function subcategoryBlockedReason(
-  row: CatalogSubcategoryRow,
-  mediumEnabled: boolean,
-  emptyRequiredGroup: { display_label: string } | null,
-): string | null {
-  // Only a row an admin believes is on needs an explanation for why it is not.
-  if (row.enabled !== true) return null
-  if (row.removed_from_api === true)
-    return 'The print provider no longer lists this option, so it cannot be sold.'
-  if (!mediumEnabled) return 'This medium is turned off, so nothing under it is offered.'
-  if (emptyRequiredGroup)
-    return `No option is available in the required group "${emptyRequiredGroup.display_label}", so this cannot be offered. Turn at least one of its options on.`
-  return null
 }
 
 /**
@@ -244,75 +182,17 @@ export async function loadCatalog(
       ? await readRequiredGroupCensus(client, subcategoryRefs)
       : []
 
-  const optionsByGroup = new Map<string, CatalogOption[]>()
-  for (const row of optionRows) {
-    const option: CatalogOption = {
-      ...row,
-      blocked_reason: optionBlockedReason(row),
-      effective_enabled: false,
-    }
-    const bucket = optionsByGroup.get(row.group_ref)
-    if (bucket) bucket.push(option)
-    else optionsByGroup.set(row.group_ref, [option])
-  }
-  for (const bucket of optionsByGroup.values()) {
-    bucket.sort((a, b) => byOrderThenName(a.sort_order, a.display_label, b.sort_order, b.display_label))
-  }
-
-  const groupsBySubcategory = new Map<string, CatalogOptionGroup[]>()
-  for (const row of groupRows) {
-    const options = optionsByGroup.get(row.id) ?? []
-    const group: CatalogOptionGroup = {
-      ...row,
-      options,
-      effective_enabled: false,
-      default_option_id: options.find((option) => option.is_default === true)?.option_id ?? null,
-    }
-    const bucket = groupsBySubcategory.get(row.subcategory_ref)
-    if (bucket) bucket.push(group)
-    else groupsBySubcategory.set(row.subcategory_ref, [group])
-  }
-  for (const bucket of groupsBySubcategory.values()) {
-    bucket.sort((a, b) => byOrderThenName(a.sort_order, a.display_label, b.sort_order, b.display_label))
-  }
-
-  const subcategories: CatalogSubcategory[] = subcategoryRows.map((row) => {
-    const groups = groupsBySubcategory.get(row.id) ?? []
-    const mediumEnabled = mediumSwitch.get(row.medium) === true
-
-    // A required group with nothing sellable in it takes the whole subcategory down:
-    // there is no valid order to place for it (F20). Read from the census, so a group
-    // the storefront filter dropped still counts against the subcategory.
-    const emptyRequiredGroup =
-      requiredCensus
-        .filter((census) => census.subcategory_ref === row.id)
-        .find((census) => {
-          const assembled = groups.find((candidate) => candidate.id === census.id)
-          return !assembled || !groupSelfOk(assembled) || !assembled.options.some(optionSelfOk)
-        }) ?? null
-
-    const effective =
-      mediumEnabled && row.enabled === true && row.removed_from_api !== true && emptyRequiredGroup === null
-
-    for (const group of groups) {
-      group.effective_enabled = effective && groupSelfOk(group)
-      for (const option of group.options) {
-        option.effective_enabled = group.effective_enabled && optionSelfOk(option)
-      }
-    }
-
-    return {
-      ...row,
-      groups,
-      medium_enabled: mediumEnabled,
-      effective_enabled: effective,
-      blocked_reason: subcategoryBlockedReason(row, mediumEnabled, emptyRequiredGroup),
-    }
-  })
-
-  subcategories.sort((a, b) => byOrderThenName(a.sort_order, a.name, b.sort_order, b.name))
-
-  return { host, loaded_at: new Date().toISOString(), subcategories }
+  return assembleCatalog(
+    {
+      host,
+      mediums: mediumSwitch,
+      subcategories: subcategoryRows,
+      groups: groupRows,
+      options: optionRows,
+      requiredGroupCensus: requiredCensus,
+    },
+    { includeDisabled },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -333,6 +213,30 @@ export const getPublicCatalog = cache(async (): Promise<Catalog> => {
   const read = unstable_cache(
     async () => loadCatalog(await createServiceClient(), { host, includeDisabled: false }),
     ['lumaprints-catalog', host],
+    { tags: [CATALOG_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+  )
+  return read()
+})
+
+/**
+ * The FULL tree (disabled and tombstoned rows included), cached exactly like the
+ * storefront one: same tag, same revalidate, memoized per request.
+ *
+ * Pricing needs this tree rather than the storefront's. The storefront read drops
+ * disabled groups, and a disabled group is precisely the one whose geometry-hostile
+ * provider default has to be overridden, so quoting against the filtered tree would
+ * send the provider an omission it resolves into a 406 after payment. The public quote
+ * route serves one request per keystroke on the configurator, and an uncached load is
+ * four table reads each time, so it reads this instead.
+ *
+ * It is server-only data: it carries rows an admin has switched off, and nothing here
+ * may be serialized into a browser payload. Callers send prices and labels, not the tree.
+ */
+export const getFullCatalogCached = cache(async (): Promise<Catalog> => {
+  const host = catalogHost()
+  const read = unstable_cache(
+    async () => loadCatalog(await createServiceClient(), { host, includeDisabled: true }),
+    ['lumaprints-catalog-full', host],
     { tags: [CATALOG_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
   )
   return read()
