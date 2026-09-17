@@ -43,6 +43,9 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 > (stretcher-bar depth), matched by the floater frame; frame colours are the options under each depth. This session
 > reached the governor's usage ceiling during that unit (the security pass was refused; examined inline, receipts in the
 > blueprint) — the NEXT session must be fresh.
+> THIRD UNIT (PR #22 → main 4a60b85, live): a size chip never shows raw decimals — the familiar-size label falls back to
+> the nearest whole inch under the SAME half-inch / 2.5% tolerance when no standard size matches (16 × 32.05 → "16 × 32 in"
+> with the actual size beneath; 14.95 × 30 → "15 × 30 in"); a standard size still wins when both fit. Display only.
 > Owner flags: two Live variants carry a 2% margin override (Flower Power 20x20 paper, Think Again 12x9 canvas);
 > production has 5 duplicate (product, medium, size) variant groups (clean before adding the unique index);
 > a Print Catalog screenshot for the new help article is owed.
