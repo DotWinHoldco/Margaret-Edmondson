@@ -12,6 +12,7 @@ import FulfillmentSettings from '@/components/admin/FulfillmentSettings'
 import SocialLinksSection from '@/components/admin/settings/SocialLinksSection'
 import SiteConfigSection from '@/components/admin/settings/SiteConfigSection'
 import SalesTaxSection from '@/components/admin/settings/SalesTaxSection'
+import PrintConfiguratorSection from '@/components/admin/settings/PrintConfiguratorSection'
 import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
 
 const supabase = createBrowserClient(
@@ -54,6 +55,7 @@ export default function SettingsClient() {
       <AccountSection />
       <SiteSettingsSection />
       <SiteAccessSection />
+      <PrintConfiguratorSection />
       <StripeModeSection />
       <PricingSettingsSection />
       <SalesTaxSection />
