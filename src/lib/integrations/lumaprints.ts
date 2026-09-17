@@ -1,5 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
+import { acquireProviderSlot, LumaprintsBudgetError } from '@/lib/integrations/lumaprints-budget'
+
+// The key-wide request budget is shared by every caller of this client (quotes, sync,
+// walker, fulfillment). Re-exported here so existing importers can branch on it
+// without reaching past the client they already depend on.
+export { LumaprintsBudgetError }
 
 export class LumaprintsDisabledError extends Error {
   constructor() { super('Lumaprints is off. Orders are fulfilled by the studio.'); this.name = 'LumaprintsDisabledError' }
@@ -44,6 +50,10 @@ export class LumaprintsApiError extends Error {
 async function request(path: string, options: RequestInit = {}, attempt = 0): Promise<unknown> {
   const policy = await getFulfillmentPolicy(await createServiceClient())
   if (!policy.lumaprints_enabled) throw new LumaprintsDisabledError()
+  // One slot per REAL HTTP attempt. The kill switch is checked first, so a disabled
+  // provider never spends budget; the retry below re-enters this function, so a
+  // retried request is charged again rather than slipping past the counter.
+  await acquireProviderSlot()
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
