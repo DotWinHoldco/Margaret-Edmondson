@@ -8,6 +8,40 @@ Append-only, greppable history. Newest first. `STATE.md` references entries by t
 
 <!-- dotwin:log-entries -->
 
+## #full-catalog #p1-schema-sync — Phase 1: catalog v2 schema, chunked sync, loader, provider budget — LIVE on production
+
+- **Date:** 2026-09-17
+- **Module:** supabase/migrations/20260917000100_lumaprints_catalog_v2 · src/lib/catalog/{types,keys,hash,cache-tag,store,sync,seed-rules,sync-runs,load}.ts · src/lib/integrations/{lumaprints,lumaprints-budget}.ts · /api/admin/lumaprints/catalog-sync · /api/cron/lumaprints-catalog-sync · vercel.json
+- **Category:** schema + system process (R2/S); no customer-visible change (storefront flag dark)
+- **Summary:** Four tables (subcategories / option groups / options / sync runs) with RLS: public
+  reads enabled non-tombstoned rows, admins read all, NO browser-role write grant or policy (P3
+  toggles will be aal2-checked SECURITY DEFINER RPCs; sync writes as the service role). Sync v2 is
+  cursor-resumable (≤ 8 provider requests per chunk at 12/min inside a 45 s budget), merges without
+  ever touching admin fields, tombstones without touching `enabled`, refuses a walk that saw < half
+  the known subcategories, learns provider defaults + the 3 required framed-canvas groups from ONE
+  batched probe (≤ 50 items, the provider cap), and bootstraps today's live configuration once.
+  Throttled chunks pause (cursor kept) instead of failing. Key-wide provider budget: every real
+  HTTP attempt, retries included, takes a slot from a 25/min shared bucket. Production state after
+  run bf79e8ce (11 chunks, 69 requests, 0 tombstones) + the five-medium bootstrap correction: 51
+  subcategories / 225 groups / 1,265 options; exactly one default per group (225); 3 required
+  groups; enabled = the five subcategories the store sells (101002, 102002, 103001, 105005,
+  108001) with only their legacy option sets ([2,11] [27,2,28] [39] [64,74,83,94,96,146,148]
+  [39]). Dry run 1f4b624a: 62 requests, 0 new / 0 removed / 0 changed. Plan §1 CORRECTED: the
+  store sells FIVE mediums today (94 / 91 / 34 / 30 / 29 active variants), not two.
+- **Verify:** `npm run build-check` GREEN (14/14 incl. build) on every PR (#3 #4 #5 #6 #7) · vitest
+  test/catalog test/rls test/integrations 9 files / 140+ passed / 0 skipped (8 live RLS denies print
+  SKIPPED without a test instance) · live production proof: anon INSERT/UPDATE/DELETE 42501 on all four
+  tables, catalog_sync_runs unreadable, `has_table_privilege(authenticated, …)` = false ·
+  V6.1 parity on production 834/834 (278 active print variants: price, subcategory id, default set).
+- **Findings folded in:** provider throttles the production key far below 40/min (ThrottlerException
+  after ~10/min) → transient chunks; provider caps a pricing batch at 50 items → batched probe;
+  two independent security passes (P0 route, P1 schema/sync) closed: 13 findings, 3 blocking.
+- **Ops:** governor override active for this session (`.dotwin/governor-override`, reason recorded,
+  expires 2026-09-17T05:50Z) because the blueprint's 12-agent budget was consumed by P0–P2 review
+  rounds; remove at close. Production sync is driven from the admin session for now; the 5-minute
+  cron (08–10 UTC) advances runs from the next window.
+
+
 ## #full-catalog #p0-discovery — P0b: production catalog snapshot + id diff (F12 closed)
 
 - **Date:** 2026-09-16

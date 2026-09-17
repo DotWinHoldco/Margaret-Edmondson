@@ -743,7 +743,10 @@ async function applyDefaultsToSubcategory(
 // ---------------------------------------------------------------------------
 
 /**
- * The exact configuration the live store sells today, expressed by NAME.
+ * The exact configuration the live store sells today, expressed by NAME: the five
+ * subcategories with active variants (1.25in canvas, 1.25in framed canvas, archival matte
+ * paper, foam-mounted archival matte, 1.25w x 0.875h black-frame paper) and, on each, only the
+ * option ids the legacy medium rows pin: [2,11], [27,2,28], [39], [39], [64,74,83,94,96,146,148].
  *
  * It is applied only when this host has no enabled subcategory at all, which is
  * true exactly once: the first run after the tables are created. The result is
@@ -761,6 +764,31 @@ const LIVE_BOOTSTRAP: Array<{ subcategory: RegExp; groups: string[]; options: Re
     subcategory: /^1\.25in Framed Canvas$/i,
     groups: ['canvas_border', 'hanging_hardware', 'frame_style'],
     options: [/^Mirror Wrap$/i, /^Hanging Wire installed$/i, /^1\.25in Black Floating Frame$/i],
+  },
+  // The store has sold these three paper mediums since June 2026 as well (91 / 30 / 34 active
+  // variants on 2026-09-17), each pinned to one geometry-neutral default set.
+  {
+    subcategory: /^Archival Matte Fine Art Paper$/i,
+    groups: ['bleed_size'],
+    options: [/^No Bleed/i],
+  },
+  {
+    subcategory: /^Foam-mounted Archival Matte Fine Art Paper$/i,
+    groups: ['bleed_size'],
+    options: [/^No Bleed/i],
+  },
+  {
+    subcategory: /^1\.25w x 0\.875h Black Frame$/i,
+    groups: ['mat_size', 'paper_type', 'hanging_hardware', 'backing', 'mat_color', 'glazing', 'print_mounting'],
+    options: [
+      /^No Mat$/i,
+      /^Archival Matte Fine Art Paper$/i,
+      /^Hanging Wire installed on frame$/i,
+      /^No Backing$/i,
+      /^White$/i,
+      /^Acrylic Glass/i,
+      /^Dry Mounted to Foam Core$/i,
+    ],
   },
 ]
 

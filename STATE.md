@@ -1,23 +1,31 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Last updated: 2026-09-16 (Full LumaPrints catalog program — P0 discovery done; P1 next)
+Last updated: 2026-09-17 (Full LumaPrints catalog program — P0 + P1 live on production; P2 in review)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
 `52a406b..0988e4c` on `origin/main`. Full record: `audit/BUILDER-REBUILD-LOG.md`.
 Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 
-> **Current truth (2026-09-16) — FULL LUMAPRINTS CATALOG PROGRAM STARTED (plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3; P0 done).**
-> Trunk: `main` fast-forwarded to the live commit 67d5054 (production had been running the CLI-promoted
-> Codex branch `DotWin-cx/sales-tax-help`; `main` was 21 commits behind). Phase branches `catalog/p<N>-*` →
-> PR → merge to `main` → git-triggered production deploy (productionBranch=main, verified READY).
-> Env: Vercel LumaPrints production pair (sensitive, unpullable) targets production ONLY; preview =
-> rotated sandbox pair + `LUMAPRINTS_BASE_URL` sandbox + Supabase public vars. Local `.env.luma` =
-> sandbox. Production-key operations run inside the deployed app behind `requireAdmin` (aal2).
-> P0 (this entry): sandbox catalog snapshot + 16-probe matrix in `fixtures/lumaprints/` (see
-> BUILD_LOG `#p0-discovery`); plan §2/§4.1/ADR-3/ADR-4/§7.1/§8/§9 revised to recorded facts.
-> P0b DONE: production snapshot + id diff (ids identical by name on both hosts; F12 closed). NEXT: P1 schema
-> + sync v2 (in flight on `catalog/p1-schema-sync`). Storefront flag stays OFF until V6.1 parity is cents-exact. Live-fire guard owed before
-> any Stripe test purchase: router must never submit `stripe_mode='test'` orders to a non-sandbox host.
+> **Current truth (2026-09-17) — FULL LUMAPRINTS CATALOG PROGRAM: P0 + P1 LIVE, P2 IN REVIEW (plan `audit/FULL-CATALOG-BUILD-PLAN.md` rev 3, blueprint `docs/blueprints/2026-09-16-full-catalog.md`).**
+> Trunk: `main` (fast-forwarded to the live commit on 09-16; git-triggered production deploys). PRs #1–#7
+> merged. Production DB carries the catalog v2 tables (migration 20260917000100) and the pricing cache v2
+> columns + `site_settings.print_configurator_enabled = false` (20260917000200). Production catalog synced
+> (51 subcategories / 225 groups / 1,265 options; one default per group; 3 required groups); enabled = the
+> FIVE subcategories the store sells today with their legacy option sets — the plan's "two mediums" premise
+> was wrong (94 canvas / 91 paper / 34 framed paper / 30 foam / 29 framed canvas active variants).
+> V6.1 parity 834/834 on production. Dry-run sync: 0 destructive diffs.
+> Env: Vercel production LumaPrints pair (sensitive) targets production ONLY; preview = sandbox pair +
+> sandbox base URL + Supabase public vars. Production-key operations run inside the app behind
+> `requireAdmin` (aal2) and are driven from the admin browser session. The production key is throttled
+> far below 40/min by the provider (ThrottlerException); sync treats throttles as transient chunks.
+> **GOVERNOR OVERRIDE ACTIVE** for session 15e819c2 (`.dotwin/governor-override` + `~/.dotwin/`), +12 agents,
+> expires 2026-09-17T05:50Z, reason recorded in the file; remove at program close.
+> IN FLIGHT: P2 (rules engine, quote engine + cache v2, public print-quote route, verification harness) on
+> `catalog/p2-pricing-engine` — security pass done, 3 blocking findings being closed (flag gate + fulfillment
+> reserve, label delta leak, variant overrides). Full sandbox V2 sweep: 4,261 assertions pass; 12 framed-paper
+> profiles are unpriceable on the sandbox host (F36, being classified). NEXT: land P2 → P3 admin catalog
+> manager + coverage generator → P4 configurator (flag OFF in prod) → P5 money path (test-mode router guard
+> FIRST) → P6 → P7 → P8 → P9 report. Two human gates remain at the end (V7.9 real order; flag flip).
 
 > **Current truth (2026-08-01 later) — OWNER LAUNCH SEQUENCE + ADMIN-CONTROLLED GATE SHIPPED (`55a6506`), live-verified.**
 > The password gate is now DB-driven: `site_settings.gate_enabled/gate_password/gate_secret/
