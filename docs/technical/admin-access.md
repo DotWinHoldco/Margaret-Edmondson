@@ -33,3 +33,16 @@ tests, build, and required repository gates). The migration rehearsal passed on 
 project in a rolled-back transaction. An additional live grant-boundary audit reported
 pre-existing findings (1 critical, 19 high, 5 null-WITH-CHECK policies); this change preserves
 all existing grants. The audit is skipped by the standard runner without management credentials.
+
+Production completion: the app and migration are live, all six Supabase MFA enrollment/
+verification settings are disabled, and all three enrolled factors were removed through the
+Admin MFA API. A follow-up query confirmed zero remaining factors, factor-dependent policies,
+or factor-dependent public functions. Both legacy authenticator URLs return 308 to `/admin`.
+The existing storefront password gate continues to apply independently of account sign-in.
+
+The dependency audit initially found 36 advisories. Next.js and its ESLint config were updated
+to 16.3.5, Tiptap to 3.31.3, Vitest/coverage to 4.1.11, and affected transitive packages were
+refreshed within their compatible ranges. `npm audit --audit-level=high` then reported zero
+vulnerabilities. These dependency findings are separate from the existing database grant-audit
+findings above.
+The full `npm run build-check` also reported GREEN after the dependency updates.
