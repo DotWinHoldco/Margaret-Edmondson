@@ -11,8 +11,8 @@ import { REQUEST_PATH_HEADER } from '@/lib/navigation/request-path'
  * call rather than snapshotted once, because `setAll` below writes refreshed
  * auth cookies back onto the request and that mutation must survive into the
  * forwarded headers. Two extras ride along: the current path stamped as
- * REQUEST_PATH_HEADER (server layouts get no URL access; the MFA guard needs
- * an accurate "return here after step-up" link) and `extraRequestHeaders`,
+ * REQUEST_PATH_HEADER (server layouts get no URL access; sign-in needs
+ * an accurate return destination) and `extraRequestHeaders`,
  * the per-request CSP nonce material minted in `src/proxy.ts`.
  */
 export async function updateSession(
@@ -73,7 +73,7 @@ export async function updateSession(
     return NextResponse.redirect(url)
   }
 
-  // Optimistic filter for /admin routes. The authoritative gate (role + MFA)
+  // Optimistic filter for /admin routes. The authoritative session and role gate
   // is the (admin) server layout and requireAdmin; this only saves a render.
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {

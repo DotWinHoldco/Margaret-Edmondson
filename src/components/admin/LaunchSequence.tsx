@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import type { FulfillmentPolicy } from '@/lib/fulfillment/policy'
 import { prepSteps, type LaunchPath, type LaunchStepKey } from '@/lib/launch/steps'
 import type { LaunchState } from '@/lib/launch/types'
@@ -18,9 +18,7 @@ async function jsonRequest(url: string, body?: unknown, signal?: AbortSignal) {
 
 /** Available throughout the admin workspace; closing affects only this mounted visit. */
 export default function LaunchSequence() {
-  const pathname = usePathname()
   const router = useRouter()
-  const skip = pathname.startsWith('/admin/security/mfa')
   const [state, setState] = useState<LaunchState | null>(null)
   const stateRef = useRef<LaunchState | null>(null)
   const [policy, setPolicy] = useState<FulfillmentPolicy | null>(null)
@@ -57,17 +55,16 @@ export default function LaunchSequence() {
   }, [acceptState])
 
   useEffect(() => {
-    if (skip) return
     const controller = new AbortController()
     void load(controller.signal).catch(() => {
       if (!controller.signal.aborted) setError('The launch guide could not load. Use the Launch guide button to try again.')
     })
     return () => controller.abort()
-  }, [load, skip])
+  }, [load])
   useEffect(() => {
     const node = dialog.current
-    if (open && state && !skip && node && !node.open) node.showModal()
-  }, [open, state, skip])
+    if (open && state && node && !node.open) node.showModal()
+  }, [open, state])
   useEffect(() => {
     heading.current?.focus({ preventScroll: true })
     const panel = heading.current?.closest('section')
@@ -119,7 +116,6 @@ export default function LaunchSequence() {
   async function reopen() {
     await run(async () => { await load(); setOpen(true) })
   }
-  if (skip) return null
   if (!state || !policy || !open) return <div className="fixed bottom-6 right-4 z-[90] max-w-[calc(100%_-_2rem)] sm:right-6">
     {error && <p role="alert" className="mb-2 max-w-sm rounded-lg border border-coral/30 bg-white p-3 font-body text-sm text-charcoal">{error}</p>}
     <button type="button" disabled={navigationBlocked} onClick={() => void reopen()} className="min-h-12 rounded-full bg-teal px-6 py-3 font-body font-semibold text-white shadow-lg hover:bg-deep-teal disabled:opacity-50">{busy ? 'Opening guide…' : 'Launch guide'}</button>

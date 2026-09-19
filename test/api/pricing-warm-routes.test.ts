@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Authored by DotWin
 // The warmer's two doors: the cron (secret-guarded, fail closed, leased) and the admin
-// route (aal2, coverage on GET, a pass after the response on POST).
+// route (admin/artist, coverage on GET, a pass after the response on POST).
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 

@@ -1,6 +1,6 @@
 # Launch guide API
 
-All endpoints require the existing admin/artist role and MFA checks. Database work uses the request-scoped RLS client. The guide does not broaden access for ordinary customer logins.
+All endpoints require the existing session and admin/artist role checks. Database work uses the request-scoped RLS client. The guide does not broaden access for ordinary customer logins.
 
 ## GET /api/admin/launch
 

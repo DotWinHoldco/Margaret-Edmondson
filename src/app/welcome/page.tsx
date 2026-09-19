@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-/** Retire old welcome links into the current guide behind the admin role/MFA gate. */
+/** Retire old welcome links into the current guide behind the admin role gate. */
 export default function WelcomePage() {
   redirect('/admin')
 }

@@ -9,7 +9,7 @@
 //        card polls GET to watch `missing` fall. The lease refuses a second pass while one
 //        is running (cron or admin) and says how long until it may run.
 //
-// Admin only (aal2). The pass itself runs as the service role: it writes the pricing cache,
+// Admin/artist only. The pass itself runs as the service role: it writes the pricing cache,
 // which browser roles cannot, and it must see the FULL catalog tree.
 
 import { after } from 'next/server'

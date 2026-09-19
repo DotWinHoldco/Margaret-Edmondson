@@ -4,9 +4,9 @@ The guide presents the website as built and awaiting Margaret’s business decis
 
 ## Visibility and access
 
-`LaunchSequence` mounts in the shared admin layout, so it opens on a fresh admin visit from any admin page. Closing affects the mounted visit only; a floating **Launch guide** button reopens it. Navigating within the admin workspace retains that session state. The guide ignores the legacy global hidden flag and remains available after the public store opens. MFA enrollment/challenge pages do not display it. The dashboard no longer redirects first-time visitors to the old welcome letter based on browser storage. Existing `/welcome` links redirect server-side to `/admin`, which applies the normal sign-in, role, and MFA checks before showing the current guide. Old welcome-dismissal flags have no effect on the launch guide.
+`LaunchSequence` mounts in the shared admin layout, so it opens on a fresh admin visit from any admin page. Closing affects the mounted visit only; a floating **Launch guide** button reopens it. Navigating within the admin workspace retains that session state. The guide ignores the legacy global hidden flag and remains available after the public store opens. The dashboard no longer redirects first-time visitors to the old welcome letter based on browser storage. Existing `/welcome` links redirect server-side to `/admin`, which applies the normal sign-in and role checks before showing the current guide. Old welcome-dismissal flags have no effect on the launch guide.
 
-The existing store’s `launch_modal_hidden` was set to `false` on September 11, 2026, making the existing deployed guide visible immediately. The revised guide is for authenticated admin/artist accounts after MFA. Customer accounts cannot read private contact plans, provider sign-in notes, or change fulfillment. No credentials are embedded in the bundle or fixture.
+The existing store’s `launch_modal_hidden` was set to `false` on September 11, 2026, making the existing deployed guide visible immediately. The revised guide is for authenticated admin/artist accounts. Customer accounts cannot read private contact plans, provider sign-in notes, or change fulfillment. No credentials are embedded in the bundle or fixture.
 
 ## Two paths
 

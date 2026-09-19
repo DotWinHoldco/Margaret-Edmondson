@@ -63,6 +63,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async redirects() {
     return [
+      // Retired authenticator links return to the normal admin sign-in flow.
+      { source: '/admin/security/mfa/:path*', destination: '/admin', permanent: true },
       // "Sometime" was renamed to "Royal" — keep any old links working.
       { source: '/shop/art/sometime', destination: '/shop/art/royal', permanent: true },
     ];

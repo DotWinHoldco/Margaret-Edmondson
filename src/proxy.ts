@@ -30,7 +30,7 @@ async function gateCheck(
     pathname.startsWith('/gate') ||
     pathname.startsWith('/api/gate') ||
     // Account recovery must remain reachable while the storefront is gated.
-    // These pages still rely on Supabase session verification and MFA.
+    // These pages still rely on Supabase session verification.
     pathname === '/login' ||
     pathname === '/forgot-password' ||
     pathname === '/reset-password' ||

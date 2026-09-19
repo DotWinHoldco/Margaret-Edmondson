@@ -71,7 +71,7 @@ describe('admin login landing and current launch guide', () => {
     await waitFor(() => expect(screen.getByRole('dialog', { name: 'Your website is built, Margaret.' })).toBeDefined())
     expect(router.replace).not.toHaveBeenCalled()
   })
-  it('sends old welcome bookmarks to the role- and MFA-protected admin route', () => {
+  it('sends old welcome bookmarks to the role-protected admin route', () => {
     expect(() => WelcomePage()).toThrow('REDIRECT:/admin')
     expect(redirect).toHaveBeenCalledWith('/admin')
   })

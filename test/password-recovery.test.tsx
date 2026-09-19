@@ -137,36 +137,15 @@ describe('set new password', () => {
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
 
-  it('requires the enrolled authenticator before updating the password', async () => {
-    auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' }, error: null })
+  it('updates without an authenticator prompt even when the old factor APIs would fail', async () => {
+    auth.mfa.getAuthenticatorAssuranceLevel.mockRejectedValue(new Error('MFA is disabled'))
     render(<ResetPasswordForm />)
     await fillPasswords()
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } })
+    expect(screen.queryByLabelText('Authenticator code')).not.toBeInTheDocument()
     submit()
     await screen.findByRole('heading', { name: 'Your password is updated' })
-    expect(auth.mfa.challenge).toHaveBeenCalledWith({ factorId: 'fixture-factor' })
-    expect(auth.mfa.verify).toHaveBeenCalledWith({ factorId: 'fixture-factor', challengeId: 'fixture-challenge', code: '123456' })
-    expect(auth.mfa.verify.mock.invocationCallOrder[0]).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0])
-  })
-
-  it('does not update after an incorrect authenticator code', async () => {
-    auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' }, error: null })
-    auth.mfa.verify.mockResolvedValue({ error: { message: 'Incorrect authenticator code' } })
-    render(<ResetPasswordForm />)
-    await fillPasswords()
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } })
-    submit()
-    expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect authenticator code')
-    expect(auth.updateUser).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Save new password' })).toBeEnabled()
-  })
-
-  it('fails closed when assurance lookup fails', async () => {
-    auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ error: { message: 'Could not verify session' } })
-    render(<ResetPasswordForm />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not verify session')
-    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
-    expect(auth.updateUser).not.toHaveBeenCalled()
+    expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: 'fixture-new-password' })
+    for (const method of Object.values(auth.mfa)) expect(method).not.toHaveBeenCalled()
   })
 
   it('shows password policy errors and allows retry', async () => {
