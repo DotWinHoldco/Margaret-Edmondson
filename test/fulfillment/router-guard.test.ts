@@ -214,6 +214,7 @@ describe('routeOrderToFulfillment test-mode guard', () => {
           file_name: 'raw-original.tif',
           mime_type: 'image/tiff',
         },
+        product_images: [{ url: '/images/listing.jpg', sort_order: 0, print_master_path: 'legacy/old-print.png' }],
       },
     })]
 

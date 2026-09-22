@@ -163,9 +163,13 @@ async function mintSignedUrl(path: string): Promise<string> {
 // fallback: once a master has a crop, sending storage_path would silently send
 // the uncropped artwork and the provider would validate it against dimensions
 // that describe the cropped file.  Legacy product-image masters remain a safe
-// fallback for rows created before master_artworks was introduced.
+// fallback only for rows created before a master_artworks row was linked.
 function productMasterPath(product: Product): string {
   const masterPath = product.master_artwork?.print_storage_path
+  // A linked master is authoritative even while its new print file is pending
+  // or failed. Do not silently revive an unrelated legacy product-image file in
+  // that case; doing so pairs a different image with the ordered dimensions.
+  if (product.master_artwork) return masterPath || ''
   const legacyPath = product.product_images
     ?.slice()
     .sort((a: ProductImage, b: ProductImage) => a.sort_order - b.sort_order)
