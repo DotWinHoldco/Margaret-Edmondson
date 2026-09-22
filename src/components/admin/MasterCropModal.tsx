@@ -21,6 +21,7 @@ export interface MasterCropTarget {
   border_color?: string | null
   print_error?: string | null
   print_status?: string | null
+  print_requested_at?: string | null
 }
 
 /** Fit a standard source-pixel ratio into a scaled preview without distorting it. */
@@ -66,6 +67,16 @@ export default function MasterCropModal({
   const [saving, setSaving] = useState(false)
   const [unsavedCrop, setUnsavedCrop] = useState(Boolean(initialAspectRatio))
   const [status, setStatus] = useState<string | null>(master.print_status ?? null)
+  const [progress, setProgress] = useState<{
+    requestedAt: string | null
+    state: 'preparing' | 'complete' | 'failed'
+  } | null>(() => {
+    const state = ['pending', 'processing'].includes(master.print_status || '')
+      ? 'preparing'
+      : master.print_status === 'ready' && master.crop_box && !master.print_error ? 'complete' : null
+    return state ? { requestedAt: master.print_requested_at ?? null, state } : null
+  })
+  const submitting = useRef(false)
   const [error, setError] = useState('')
   const [confirmSave, setConfirmSave] = useState(false)
   const [pendingSave, setPendingSave] = useState<{
@@ -74,7 +85,26 @@ export default function MasterCropModal({
     border_color: string
   } | null>(null)
   const toast = useToast()
-  useEffect(() => { setStatus(master.print_status ?? null) }, [master.print_status])
+  useEffect(() => {
+    // A delayed response for the previous crop must not confirm a newer save.
+    if (progress?.state === 'preparing' && progress.requestedAt && master.print_requested_at !== progress.requestedAt) return
+    setStatus(master.print_status ?? null)
+    if (progress?.state !== 'preparing') return
+    if (master.print_status !== 'ready' && master.print_status !== 'failed') return
+    // Failed recrops restore the previous file to ready, with print_error set.
+    if (master.print_error || master.print_status === 'failed') {
+      setProgress({ ...progress, state: 'failed' })
+      toast.error('This crop could not be finished. Your original is safe. Please try again.')
+    } else {
+      setProgress({ ...progress, state: 'complete' })
+      toast.success('Crop saved. Your new print file is ready.')
+    }
+  }, [master.print_status, master.print_error, master.print_requested_at, progress, toast])
+
+  const preparing = progress?.state === 'preparing'
+  const completed = progress?.state === 'complete'
+  const showDone = completed && !unsavedCrop
+  const duplicateSave = preparing && !unsavedCrop
 
   const onLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -161,7 +191,7 @@ export default function MasterCropModal({
   }
 
   function askSave() {
-    if (!crop || !disp || previewMismatch || previewError) return
+    if (submitting.current || duplicateSave || showDone || !crop || !disp || previewMismatch || previewError) return
     // Keep the normalized coordinates in the confirmation state. The worker reads
     // these as fractions of the original master, regardless of preview size.
     setPendingSave({
@@ -178,27 +208,30 @@ export default function MasterCropModal({
   }
 
   async function save() {
-    if (!pendingSave) return
+    if (!pendingSave || submitting.current) return
+    submitting.current = true
     setSaving(true)
     setError('')
     try {
-      const data = await apiSend<{ print_status?: string }>(
+      const data = await apiSend<{ print_status?: string; print_requested_at?: string }>(
         `/api/admin/master-artworks/${master.id}/crop`,
         'POST',
         pendingSave,
       )
       const next = data?.print_status || 'pending'
+      setProgress({ requestedAt: data.print_requested_at ?? null, state: 'preparing' })
       setStatus(next)
       setUnsavedCrop(false)
       setConfirmSave(false)
       setPendingSave(null)
-      toast.success('Print master queued for processing.')
+      toast.info('Crop received. We’ll confirm when your print file is ready.')
       onSaved({ print_status: next, border_mode: pendingSave.border_mode, border_color: pendingSave.border_color })
     } catch (err) {
       const message = errorMessage(err)
       setError(message)
       toast.error(message)
     } finally {
+      submitting.current = false
       setSaving(false)
     }
   }
@@ -377,7 +410,20 @@ export default function MasterCropModal({
             )}
           </div>
 
-          {master.print_error && <p role="alert" className="text-sm text-coral">{friendlyCropError(master.print_error)} Review the crop and save again to retry.</p>}
+          {preparing && (
+            <div role="status" className="w-full rounded-lg border border-teal/25 bg-teal/5 p-4 font-body text-sm text-charcoal">
+              <p className="font-semibold">Preparing your print file…</p>
+              <p className="mt-1">Your crop was received. We’re preparing the file and checking print sizes. You don’t need to save again. You can close this window; preparation will continue.</p>
+              {unsavedCrop && <p className="mt-2">You’ve made more changes. Save them only if you want to replace the crop being prepared.</p>}
+            </div>
+          )}
+          {completed && (
+            <div role="status" className="w-full rounded-lg border border-teal/30 bg-teal/10 p-4 font-body text-sm text-charcoal">
+              <p className="font-semibold">✓ Crop saved — your print file is ready.</p>
+              <p className="mt-1">{unsavedCrop ? 'You’ve made more changes since saving. Save again to apply those changes.' : 'You’re finished here. Choose Done to review your print sizes and prices. You can return to crop again anytime.'}</p>
+            </div>
+          )}
+          {!preparing && master.print_error && <p role="alert" className="text-sm text-coral">{friendlyCropError(master.print_error)} Review the crop and save again to retry.</p>}
           {error && <p className="font-body text-xs text-coral text-center">{error}</p>}
         </div>
 
@@ -440,15 +486,15 @@ export default function MasterCropModal({
           </button>
           <div className="flex items-center gap-2">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 font-body text-sm font-medium text-charcoal/70 hover:bg-charcoal/5">
-            Cancel
+            {preparing ? 'Close — keep preparing' : completed ? 'Close' : 'Cancel'}
           </button>
           <button
             type="button"
-            onClick={askSave}
-            disabled={saving || !crop || previewMismatch || !!previewError}
+            onClick={showDone ? onClose : askSave}
+            disabled={!showDone && (saving || duplicateSave || !crop || previewMismatch || !!previewError)}
             className="rounded-lg bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save crop'}
+            {saving ? 'Saving…' : showDone ? 'Done' : duplicateSave ? 'Preparing…' : 'Save crop'}
           </button>
           </div>
         </div>

@@ -33,6 +33,7 @@ interface MasterApiRow {
   border_color?: string | null
   print_error?: string | null
   print_status?: string | null
+  print_requested_at?: string | null
   print_storage_path?: string | null
   print_width_px?: number | null
   print_height_px?: number | null
@@ -52,6 +53,7 @@ function mapMaster(d: MasterApiRow) {
     border_mode: d.border_mode ?? null,
     border_color: d.border_color ?? null,
     print_status: d.print_status ?? null,
+    print_requested_at: d.print_requested_at ?? null,
     print_error: d.print_error ?? null,
     print_storage_path: d.print_storage_path ?? null,
     print_width_px: d.print_width_px ?? null,
@@ -279,7 +281,8 @@ export default function EditProductPage({
     border_mode?: 'full_bleed' | 'matte' | null
     border_color?: string | null
     print_error?: string | null
-  print_status?: string | null
+    print_status?: string | null
+    print_requested_at?: string | null
     print_storage_path?: string | null
     print_width_px?: number | null
     print_height_px?: number | null
@@ -1385,6 +1388,7 @@ export default function EditProductPage({
             border_mode: masterArtwork.border_mode ?? null,
             border_color: masterArtwork.border_color ?? null,
             print_status: masterArtwork.print_status ?? null,
+            print_requested_at: masterArtwork.print_requested_at ?? null,
             print_error: masterArtwork.print_error ?? null,
           }}
           onClose={() => setShowMasterCrop(false)}
