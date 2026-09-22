@@ -379,6 +379,27 @@ async function newRow(cfg: MediumConfig, medium: Medium, size: string, widthIn: 
 }
 
 describe('buildPricedVariantRow parity with the legacy engine', () => {
+  it('prices a prepared crop while processing, but refuses sizes beyond its actual detail', async () => {
+    db.tables.master_artworks[0].print_status = 'processing'
+    const args = {
+      product_id: PRODUCT, medium: 'canvas' as const, size_label: '8x10',
+      width_in: 8, height_in: 10, productDefaultMargin: 100,
+      cfg: CANVAS_CFG, zips: ZIPS, is_active: true,
+    }
+    const readySize = await buildPricedVariantRow(db.client, {
+      ...args, master: { printWidthPx: 1600, printHeightPx: 2000 },
+    })
+    expect(readySize.is_active).toBe(true)
+    expect(readySize.lumaprints_cost_cents).toBeGreaterThan(0)
+    const calls = providerCalls.length
+    const tooLarge = await buildPricedVariantRow(db.client, {
+      ...args, master: { printWidthPx: 800, printHeightPx: 1000 },
+    })
+    expect(tooLarge.is_active).toBe(false)
+    expect(tooLarge.lumaprints_cost_cents).toBe(0)
+    expect(providerCalls).toHaveLength(calls)
+  })
+
   const canvasSizes: Array<[string, number, number]> = [
     ['8x10', 8, 10],
     ['12x16', 12, 16],

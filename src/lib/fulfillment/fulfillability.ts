@@ -64,7 +64,7 @@ export function checkFulfillable(f: FulfillabilityFacts): FulfillabilityResult {
     if (drift > 0.01) {
       return {
         ok: false,
-        reason: `Variant aspect ${variantAspect.toFixed(3)} no longer matches the cropped master ${masterAspect.toFixed(3)} (over 1%). Re-crop the master or regenerate the variant.`,
+        reason: `This print size no longer matches the artwork's shape (aspect). Update the size or choose a crop that fits it.`,
       }
     }
   }

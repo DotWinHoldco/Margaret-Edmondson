@@ -5,8 +5,10 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const h = vi.hoisted(() => ({ admin: vi.fn(), from: vi.fn() }))
+const h = vi.hoisted(() => ({ admin: vi.fn(), from: vi.fn(), after: vi.fn(), reconcile: vi.fn() }))
 vi.mock('@/lib/auth/require-admin', () => ({ requireAdmin: h.admin }))
+vi.mock('@/lib/pricing/reconcile-variants', () => ({ reconcileVariantsForMaster: h.reconcile }))
+vi.mock('next/server', async (importOriginal) => ({ ...await importOriginal<object>(), after: h.after }))
 
 import { POST } from '@/app/api/admin/master-artworks/[id]/crop/revert/route'
 
@@ -68,7 +70,7 @@ describe('POST /api/admin/master-artworks/[id]/crop/revert', () => {
       print_storage_path: 'masters/cactuses/the-dual.jpg',
       print_width_px: 5988,
       print_height_px: 12004,
-      print_status: 'ready',
+      print_status: 'processing',
       print_error: null,
     })
     // A fresh request stamp: the worker's final write is fenced on the stamp it claimed.
@@ -76,6 +78,6 @@ describe('POST /api/admin/master-artworks/[id]/crop/revert', () => {
     expect(patch?.print_updated_at).toBe(patch?.print_requested_at)
     expect(filters).toContainEqual(['id', 'master'])
     const body = await response.json()
-    expect(body.data).toMatchObject({ reverted: true, print_status: 'ready' })
+    expect(body.data).toMatchObject({ reverted: true, print_status: 'processing' })
   })
 })

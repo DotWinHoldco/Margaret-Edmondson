@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
@@ -90,6 +90,31 @@ export const COMMON_PRINT_SIZES = ['5x7', '7x5', '8x10', '10x8', '8x8', '11x14',
 export function builderPrintGeometry(master: MasterPrintInfo | null) {
   const hasPrintMaster = master?.print_status === 'ready' && Boolean(master?.print_width_px && master?.print_height_px)
   return { hasPrintMaster, printW: hasPrintMaster ? master!.print_width_px : master?.width_px ?? null, printH: hasPrintMaster ? master!.print_height_px : master?.height_px ?? null }
+}
+
+/**
+ * Turn the pixel ratio into copy an artist can use.  The ratio is still used by
+ * the sizing rules, but exposing a decimal such as "0.714" in the editor made
+ * the owner think she had to understand an implementation detail.  Familiar
+ * print proportions get their usual names; unusual artwork is described by its
+ * orientation and a simple "wide for every tall" comparison.
+ */
+export function artworkShapeCopy(printW: number, printH: number): string {
+  if (!(printW > 0) || !(printH > 0) || !Number.isFinite(printW) || !Number.isFinite(printH)) return 'the artwork shape'
+  const ratio = printW / printH
+  const known: Array<[number, string]> = [
+    [1, 'square'],
+    [4 / 5, 'portrait (4 × 5)'],
+    [3 / 4, 'portrait (3 × 4)'],
+    [5 / 7, 'portrait (5 × 7)'],
+    [5 / 4, 'landscape (5 × 4)'],
+    [4 / 3, 'landscape (4 × 3)'],
+    [7 / 5, 'landscape (7 × 5)'],
+  ]
+  const match = known.find(([value]) => Math.abs(ratio / value - 1) <= 0.01)
+  if (match) return match[1]
+  if (ratio > 1) return `landscape (${trimIn(ratio)} wide for every 1 tall)`
+  return `portrait (1 wide for every ${trimIn(1 / ratio)} tall)`
 }
 
 const TIER_NAME: Record<SizeTier, string> = { S: 'Small', M: 'Medium', L: 'Large' }
@@ -272,7 +297,7 @@ export default function VariantsTab({
   // Print master geometry (prefers the cropped print master, falls back to the raw scan).
   const { printW, printH, hasPrintMaster } = builderPrintGeometry(master)
   // A variant can only go Live once the print master is READY (cropped/processed).
-  const masterReady = master?.print_status === 'ready'
+  const masterReady = master?.print_status === 'ready' && hasPrintMaster
   const aspect = printW && printH ? aspectFromMaster(printW, printH) : null
   const repDpi = 200 // canvas required DPI, used for the banner's max-size readout
   const maxPrintIn = printW && printH
@@ -289,6 +314,25 @@ export default function VariantsTab({
     } catch { /* keep optimistic state */ }
     router.refresh()
   }, [productId, router])
+
+  // A crop is processed outside this component. When the master becomes ready,
+  // the worker may have resized and repriced existing variants; reload them so the
+  // owner sees the production sizes without refreshing the whole page.
+  const previousMaster = useRef({
+    status: master?.print_status ?? null,
+    width: master?.print_width_px ?? null,
+    height: master?.print_height_px ?? null,
+  })
+  useEffect(() => {
+    const next = {
+      status: master?.print_status ?? null,
+      width: master?.print_width_px ?? null,
+      height: master?.print_height_px ?? null,
+    }
+    const changed = next.status !== previousMaster.current.status || next.width !== previousMaster.current.width || next.height !== previousMaster.current.height
+    previousMaster.current = next
+    if (changed && next.status === 'ready' && next.width && next.height) void reload()
+  }, [master?.print_status, master?.print_width_px, master?.print_height_px, reload])
 
   const grouped = useMemo(() => {
     const out: Record<string, Variant[]> = {}
@@ -424,7 +468,10 @@ export default function VariantsTab({
 
   // Configured mediums = those Lumaprints has priced (subcategory + sizes).
   const cropProcessing = master?.print_status === 'pending' || master?.print_status === 'processing'
-  const sizeActionsDisabled = !printW || !printH || cropProcessing
+  // A raw scan is useful while the crop editor is open, but it is not the file
+  // Lumaprints will print.  Do not let a failed/uncropped master create sizes that
+  // will immediately fail at checkout; the owner can always open Crop and retry.
+  const sizeActionsDisabled = !printW || !printH || !masterReady || cropProcessing
 
   return (
     <section className="rounded-xl border border-charcoal/10 bg-white p-6 shadow-sm">
@@ -458,11 +505,12 @@ export default function VariantsTab({
         {printW && printH && aspect && maxPrintIn ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-body text-xs text-charcoal/80">
-              {hasPrintMaster ? 'Print master' : 'Master (uncropped)'}: <strong>{printW}×{printH}px</strong> @ {repDpi}DPI
-              {' · '}aspect <strong>{aspect.ratio.toFixed(3)}</strong> ({aspect.orientation})
-              {' · '}max at {repDpi} DPI: <strong>{maxPrintIn.w}×{maxPrintIn.h} in</strong>
-              {' · '}border: {master?.border_mode === 'matte' ? 'Matte' : 'Full bleed'}
-              {master?.print_status && master.print_status !== 'none' ? ` · ${master.print_status}` : ''}
+              {hasPrintMaster ? 'Print master ready' : 'Original artwork'}: <strong>{artworkShapeCopy(printW, printH)}</strong>
+              {' · '}largest supported print: <strong>{maxPrintIn.w} × {maxPrintIn.h} in</strong>
+              {' · '}{master?.border_mode === 'matte' ? 'matte border' : 'full bleed'}
+              {master?.print_status === 'pending' && ' · preparing the new print file'}
+              {master?.print_status === 'processing' && ' · preparing the new print file'}
+              {master?.print_status === 'failed' && ' · crop needs another try'}
             </p>
             {onEditCrop && (
               <button type="button" onClick={() => onEditCrop()} className="shrink-0 rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors">
@@ -473,7 +521,7 @@ export default function VariantsTab({
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-body text-xs text-amber-800">
-              No print-ready master yet — crop the master / set the print area before generating print sizes.
+              Your print file is not ready yet. Open Crop, review the artwork, and save the print area before adding sizes.
             </p>
             {onEditCrop && (
               <button type="button" onClick={() => onEditCrop()} className="shrink-0 rounded-md border border-amber-400 px-3 py-1.5 font-body text-[11px] font-medium text-amber-800 hover:bg-amber-100 transition-colors">
@@ -623,7 +671,12 @@ export default function VariantsTab({
                       // whatever the medium switch says.
                       const fitsNone =
                         sellable.length > 0 && fittingSubcategories(sellable, size, masterPx).length === 0
-                      const liveBlocked = !(masterReady && configured) || fitsNone
+                      const variantAspect = size ? size.widthIn / size.heightIn : null
+                      const masterAspect = printW && printH ? printW / printH : null
+                      const shapeMismatch = Boolean(
+                        variantAspect && masterAspect && Math.abs(variantAspect / masterAspect - 1) > 0.01,
+                      )
+                      const liveBlocked = !(masterReady && configured) || fitsNone || shapeMismatch
                       return (
                         <tr key={v.id} className={!v.is_active ? 'bg-charcoal/[0.015]' : ''}>
                           <td className="px-3 py-2">
@@ -638,7 +691,9 @@ export default function VariantsTab({
                                     ? 'Crop the master / set the print area before going Live.'
                                     : darkMedium
                                       ? 'Turn on a print type of this medium in Print Catalog first.'
-                                      : fitsNone
+                                      : shapeMismatch
+                                        ? 'This size no longer follows the artwork shape. Save a new crop or choose a size that follows the artwork.'
+                                        : fitsNone
                                         ? 'No print type of this medium takes this size.'
                                         : 'Run the Lumaprints sync to enable this medium first.'
                                   : v.is_active
@@ -660,6 +715,11 @@ export default function VariantsTab({
                             {sizeDisplay.dimensions}
                             <span className="ml-1.5 inline-block rounded-full bg-charcoal/8 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-charcoal/55">{v.size_tier || 'Custom'}</span>
                             {sizeDisplay.actualNote && <span className="block text-[9px] leading-4 text-charcoal/70">{sizeDisplay.actualNote}</span>}
+                            {shapeMismatch && (
+                              <span className="block text-[10px] leading-4 text-coral" title="This size no longer matches the current print crop">
+                                Update this size to match the artwork
+                              </span>
+                            )}
                           </td>
                           {sellable.length > 0 && (
                             <td className="px-3 py-2">
@@ -896,11 +956,11 @@ function CustomSizeModal({
   const pricingValid = useManual ? manualPriceValid : markupValid
   const blocked = !check.ok || loadingPrice || !pricingValid
   const blockingReason = !check.boundsOk
-    ? check.reasons.find((r) => /exceeds|below/.test(r))
+    ? 'Choose a size within the available print limits.'
     : !check.resolutionOk
-      ? check.reasons.find((r) => /Too large/.test(r))
+      ? `Choose a smaller size (up to ${maxW} × ${maxH} inches) so the print stays clear.`
       : !check.aspectOk
-        ? check.reasons.find((r) => /shape/.test(r))
+        ? 'Choose “Custom — follow the artwork shape” or prepare a crop for this frame size.'
         : null
 
   async function save(publish: boolean) {
@@ -952,7 +1012,7 @@ function CustomSizeModal({
       <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-lg bg-cream shadow-2xl">
         <div className="p-6 max-h-[80vh] overflow-y-auto">
           <h2 className="font-display text-xl font-light text-charcoal">Add {mediumName} print size</h2>
-          <p className="mt-1 font-body text-xs leading-relaxed text-charcoal/60">Choose a standard size for a common frame, or keep the shape of your artwork with a custom size. Standard sizes stay exactly as selected. If the file has a different shape, prepare and review its crop first.</p>
+          <p className="mt-1 font-body text-xs leading-relaxed text-charcoal/60">Choose a familiar frame size, or let the measurements follow this artwork. A familiar size may require a crop so no part of the print is stretched or cut off.</p>
           <label className="mt-4 block text-sm">Print size
             <select aria-label="Print size" value={sizeChoice} onChange={event => chooseSize(event.target.value)} className="mt-1 block w-full rounded border border-charcoal/15 bg-white px-3 py-2">
               {COMMON_PRINT_SIZES.map(size => <option key={size} value={size}>{size.replace('x', ' × ')} in</option>)}
@@ -960,7 +1020,7 @@ function CustomSizeModal({
             </select>
           </label>
           {sizeChoice !== 'custom' && !check.aspectOk && <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-charcoal">
-            <p>Your selected size is <strong>{widthIn} × {heightIn} inches</strong>. This file has a different shape. We will not change your selection to {widthIn} × {partnerDimension(widthIn, 'width', ratio)} or stretch the art. Crop the print file to match, or have a print professional prepare a file with a border at this exact size.</p>
+            <p>Your selected size is <strong>{widthIn} × {heightIn} inches</strong>, but the artwork has a different shape. Save a crop for this size, or choose “Custom — follow the artwork shape.” The image will never be stretched.</p>
             {onPrepareCrop && <button type="button" onClick={() => onPrepareCrop(widthIn / heightIn)} className="mt-2 font-semibold text-teal underline">Prepare crop for {widthIn} × {heightIn}</button>}
             <p className="mt-2">You will review the crop before saving. After it finishes processing, return here, choose this size again, and review its price. A change to a shared master can affect other print options.</p>
           </div>}
@@ -975,7 +1035,7 @@ function CustomSizeModal({
               <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Height (in)</span>
               <input type="number" disabled={sizeChoice !== 'custom'} step={DEFAULT_SIZE_STEP} value={heightIn} onChange={(e) => setHeight(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
             </label>
-            <span className="pb-2.5 font-mono text-[11px] text-charcoal/50">{sizeChoice === 'custom' ? `🔒 artwork shape ${ratio.toFixed(3)}` : 'Exact size'}</span>
+            <span className="pb-2.5 font-body text-[11px] text-charcoal/50">{sizeChoice === 'custom' ? 'Follows artwork shape' : 'Exact frame size'}</span>
             <label className="block flex-1">
               <span className="block font-body text-xs uppercase tracking-wider text-charcoal/60 mb-1">Width (in)</span>
               <input type="number" disabled={sizeChoice !== 'custom'} step={DEFAULT_SIZE_STEP} value={widthIn} onChange={(e) => setWidth(Number(e.target.value))} className="w-full rounded border border-charcoal/15 px-3 py-2 font-body text-sm" />
@@ -984,9 +1044,9 @@ function CustomSizeModal({
 
           {/* Validation row */}
           <div className="mt-3 space-y-1 rounded-md bg-charcoal/[0.03] px-3 py-2">
-            <Checkline ok={check.resolutionOk} text={check.resolutionOk ? `Master supports up to ${maxW}×${maxH} in` : `Too large — master supports up to ${maxW}×${maxH} in at ${dpi} DPI.`} />
-            <Checkline ok={check.boundsOk} text={check.boundsOk ? `Within Lumaprints limits (${bounds.minW}–${bounds.maxW} × ${bounds.minH}–${bounds.maxH} in)` : check.reasons.find((r) => /exceeds|below/.test(r)) || 'Outside Lumaprints limits.'} />
-            <Checkline ok={check.aspectOk} text={check.aspectOk ? `Matches the artwork (${check.aspectDeltaPct.toFixed(1)}% off)` : `${check.aspectDeltaPct.toFixed(1)}% off the artwork’s shape — prepare the matching crop or choose a custom size.`} />
+            <Checkline ok={check.resolutionOk} text={check.resolutionOk ? `The artwork has enough detail for prints up to ${maxW} × ${maxH} inches` : `This is larger than the artwork can print clearly. Try a smaller size (up to ${maxW} × ${maxH} inches).`} />
+            <Checkline ok={check.boundsOk} text={check.boundsOk ? 'Within the available print size limits' : check.reasons.find((r) => /exceeds|below/.test(r)) || 'This size is outside the available print size limits.'} />
+            <Checkline ok={check.aspectOk} text={check.aspectOk ? 'The shape matches the artwork' : 'This size has a different shape. Choose a custom size or prepare a matching crop.'} />
             {subcategories.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="font-body text-[10px] uppercase tracking-wider text-charcoal/50">Fits</span>

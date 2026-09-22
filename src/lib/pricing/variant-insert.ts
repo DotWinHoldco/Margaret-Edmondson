@@ -15,6 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Medium } from '@/lib/pricing/mediums'
 import type { MediumConfig } from '@/lib/pricing/medium-config'
 import type { Catalog } from '@/lib/catalog/types'
+import type { RuleMaster } from '@/lib/catalog/rules'
 import { loadCatalog } from '@/lib/catalog/load'
 import { defaultSubcategoryForMedium, subcategoryRefForMedium } from '@/lib/catalog/availability'
 import { quoteDefaultConfiguration } from '@/lib/pricing/quote'
@@ -57,6 +58,8 @@ export interface PricedVariantArgs {
    * loaded per row; a bulk caller should load it once and pass it here.
    */
   catalog?: Catalog
+  /** Prepared crop dimensions, including while the worker is reconciling sizes. */
+  master?: RuleMaster
   /**
    * Pin the catalog subcategory (row id) this variant prices and freezes by. Omitted, the
    * medium's default subcategory is used: the legacy `cfg.subcategory_id` while it is
@@ -126,7 +129,7 @@ export async function buildPricedVariantRow(
           // and the price written on the row below are one number, not two.
           variantPricing: { margin_override_pct, manual_price_override_cents },
         },
-        { catalog, zips, refresh, marginPct: productDefaultMargin },
+        { catalog, zips, refresh, marginPct: productDefaultMargin, ...(args.master ? { master: args.master } : {}) },
       )
       if (quote.available && quote.selection) {
         cost_cents = quote.costCents

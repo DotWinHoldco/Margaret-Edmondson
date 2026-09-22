@@ -9,6 +9,7 @@ import { pipeline } from 'node:stream/promises'
 import sharp from 'sharp'
 import { Upload } from 'tus-js-client'
 import { applyMasterCropFile } from '../../../scripts/lib/crop-transform.mjs'
+import { reconcileVariantsForMaster } from '@/lib/pricing/reconcile-variants'
 
 export const MAX_CROP_SOURCE_BYTES = 100 * 1024 * 1024
 const MAX_OUTPUT_BYTES = 350 * 1024 * 1024
@@ -96,17 +97,35 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
       dpi: job.dpi || 300, widthPx: job.width_px, heightPx: job.height_px,
       limitInputPixels: MAX_INPUT_PIXELS, timeoutSeconds: 150, verifyDimensions: true,
     }, MAX_OUTPUT_BYTES)
-    // Signed upload tokens preserve admin RLS for the immediate worker. The cron
-    // obtains its token with its legitimate service-role client, never a user key.
-    const { data: upload, error: uploadError } = await supabase.storage.from(BUCKET).createSignedUploadUrl(objectName)
-    if (uploadError || !upload) throw new Error('Could not save the print file. Try saving the crop again.')
     const size = (await stat(output)).size
-    const storageUrl = new URL(upload.signedUrl)
-    if (storageUrl.hostname.endsWith('.supabase.co') && !storageUrl.hostname.endsWith('.storage.supabase.co')) {
-      storageUrl.hostname = storageUrl.hostname.replace('.supabase.co', '.storage.supabase.co')
+    // A signed upload token is for the Storage REST upload endpoint. It is not a
+    // TUS authorization token: sending it as `x-signature` to the resumable
+    // endpoint makes Storage try to parse it as a JWT and return
+    // "Invalid Compact JWS" (the error shown in the crop editor). The resumable
+    // endpoint must receive the same Bearer credential as the Storage client.
+    // The cron uses the service role; an in-request worker falls back to the
+    // authenticated admin session. The user path is policy-checked; the cron
+    // path is the explicitly authorized service worker. Both preserve versioned
+    // output paths.
+    // Prefer the request's admin session so an editor save remains subject to
+    // the same RLS policy as the rest of the request. The cron's service-role
+    // client has no user session, so it uses the service key as its legitimate
+    // worker credential.
+    let sessionToken = ''
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      sessionToken = session.session?.access_token || ''
+    } catch {
+      // Service-role clients do not have a user session; getSession can also
+      // fail when a request cookie has expired. The worker can still use the
+      // cron's service credential below.
     }
-    storageUrl.pathname = '/storage/v1/upload/resumable'
-    storageUrl.search = ''
+    const accessToken = sessionToken || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || ''
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
+    if (!accessToken || !supabaseUrl) {
+      throw new Error('The print file could not be saved because storage access is not configured. Ask support to check the storage settings.')
+    }
+    const endpoint = `${supabaseUrl}/storage/v1/upload/resumable`
     await new Promise<void>((resolve, reject) => {
       const stream = createReadStream(output)
       const finish = (error?: Error) => {
@@ -115,8 +134,10 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
         if (error) reject(error); else resolve()
       }
       const task = new Upload(stream, {
-        endpoint: storageUrl.toString(), uploadSize: size,
-        headers: { 'x-signature': upload.token },
+        endpoint, uploadSize: size,
+        // Every crop gets a unique object name, so an insert-only upload is
+        // sufficient and does not require a storage UPDATE policy.
+        headers: { authorization: `Bearer ${accessToken}`, 'x-upsert': 'false' },
         metadata: { bucketName: BUCKET, objectName, contentType: 'image/png', cacheControl: '3600' },
         chunkSize: 6 * 1024 * 1024, retryDelays: [0, 1000, 3000], storeFingerprintForResuming: false,
         onError: (err) => {
@@ -155,13 +176,30 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
     try {
       validateCropJob(job)
       const result = await render(supabase, job)
-      const { data: saved, error: saveError } = await supabase.from('master_artworks').update({
+      // Publish the new file and dimensions while the master remains processing.
+      // The final ready transition happens after variants are reconciled, so the
+      // storefront and editor never observe a ready crop paired with old sizes.
+      const { data: prepared, error: saveError } = await supabase.from('master_artworks').update({
         print_storage_path: result.objectName, print_width_px: result.width, print_height_px: result.height,
-        print_status: 'ready', print_error: null, print_updated_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        print_error: null, print_updated_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       }).eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt).select('id').maybeSingle()
       if (saveError) throw new Error('The print file was made, but its status could not be saved. Try saving the crop again.')
+      if (!prepared) return 'superseded' as const
       // Keep even superseded versioned outputs; deleting after an uncertain DB
       // response could break an order that already captured this exact path.
+      try {
+        const reconciled = await reconcileVariantsForMaster(supabase, id, result.width, result.height)
+        console.info('[crop] reconciled print sizes', { master: id, ...reconciled })
+      } catch (error) {
+        // The print file is still valid even when a provider quote is temporarily
+        // unavailable. The next admin price refresh can complete the same work;
+        // never turn a successful crop into a failed crop because of that follow-up.
+        console.error('[crop] could not reconcile print sizes', { master: id, error })
+      }
+      const { data: saved, error: readyError } = await supabase.from('master_artworks').update({
+        print_status: 'ready', print_error: null, updated_at: new Date().toISOString(),
+      }).eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt).select('id').maybeSingle()
+      if (readyError) throw new Error('The print file was made, but its status could not be saved. Try saving the crop again.')
       return saved ? 'ready' as const : 'superseded' as const
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Processing failed. Try saving the crop again.'

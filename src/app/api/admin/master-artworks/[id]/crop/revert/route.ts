@@ -6,9 +6,12 @@
 // this decision (the worker's final write is fenced on the stamp it claimed).
 
 import { requireAdmin } from '@/lib/auth/require-admin'
+import { after } from 'next/server'
 import { apiOk, apiError, dbFail } from '@/lib/api/respond'
+import { reconcileVariantsForMaster } from '@/lib/pricing/reconcile-variants'
 
 export const runtime = 'nodejs'
+export const maxDuration = 300
 
 // POST /api/admin/master-artworks/[id]/crop/revert — admin only. Makes the uncropped
 // original the print file for every product linked to this master and clears the crop.
@@ -38,7 +41,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       print_storage_path: master.storage_path,
       print_width_px: master.width_px,
       print_height_px: master.height_px,
-      print_status: 'ready',
+      // Keep the product unavailable until its existing sizes have been moved
+      // onto the original artwork's shape below.
+      print_status: 'processing',
       print_error: null,
       print_requested_at: now,
       print_updated_at: now,
@@ -48,5 +53,26 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .select('id, print_status, print_width_px, print_height_px, border_mode, border_color, crop_box')
     .single()
   if (error) return dbFail(error)
+  after(async () => {
+    let printError: string | null = null
+    try {
+      const reconciled = await reconcileVariantsForMaster(auth.supabase, id, Number(master.width_px), Number(master.height_px))
+      console.info('[crop] reconciled print sizes after revert', { master: id, ...reconciled })
+    } catch (reconcileError) {
+      // Reverting the source file is complete even if a provider quote is briefly
+      // unavailable. The owner can refresh prices from Print sizes afterward.
+      console.error('[crop] could not reconcile print sizes after revert', { master: id, error: reconcileError })
+      printError = 'The original is back in use, but print sizes still need to be refreshed before selling them.'
+    }
+    const { error: readyError } = await auth.supabase
+      .from('master_artworks')
+      .update({ print_status: 'ready', print_error: printError, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('print_status', 'processing')
+      .eq('print_requested_at', now)
+    if (readyError) {
+      console.error('[crop] could not finish revert status update', { master: id, error: readyError })
+    }
+  })
   return apiOk({ ...data, reverted: true })
 }

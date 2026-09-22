@@ -58,6 +58,7 @@ export default function MasterCropModal({
   const [lockedAspect, setLockedAspect] = useState(initialAspectRatio || 0)
   const [sourceAspect, setSourceAspect] = useState(1)
   const [previewMismatch, setPreviewMismatch] = useState(false)
+  const [previewError, setPreviewError] = useState('')
   const [disp, setDisp] = useState<{ w: number; h: number } | null>(null)
   const [crop, setCrop] = useState<Rect | null>(null)
   const [borderMode, setBorderMode] = useState<BorderMode>(master.border_mode ?? 'full_bleed')
@@ -66,6 +67,12 @@ export default function MasterCropModal({
   const [unsavedCrop, setUnsavedCrop] = useState(Boolean(initialAspectRatio))
   const [status, setStatus] = useState<string | null>(master.print_status ?? null)
   const [error, setError] = useState('')
+  const [confirmSave, setConfirmSave] = useState(false)
+  const [pendingSave, setPendingSave] = useState<{
+    crop_box: Rect
+    border_mode: BorderMode
+    border_color: string
+  } | null>(null)
   const toast = useToast()
   useEffect(() => { setStatus(master.print_status ?? null) }, [master.print_status])
 
@@ -153,28 +160,40 @@ export default function MasterCropModal({
     }
   }
 
-  async function save() {
-    if (!crop || !disp || previewMismatch) return
-    setSaving(true)
-    setError('')
-    try {
-      // Normalize to 0..1 of the ORIGINAL (the worker reads regions by fraction).
-      const crop_box = {
+  function askSave() {
+    if (!crop || !disp || previewMismatch || previewError) return
+    // Keep the normalized coordinates in the confirmation state. The worker reads
+    // these as fractions of the original master, regardless of preview size.
+    setPendingSave({
+      crop_box: {
         x: round4(crop.x / disp.w),
         y: round4(crop.y / disp.h),
         w: round4(crop.w / disp.w),
         h: round4(crop.h / disp.h),
-      }
+      },
+      border_mode: borderMode,
+      border_color: borderColor,
+    })
+    setConfirmSave(true)
+  }
+
+  async function save() {
+    if (!pendingSave) return
+    setSaving(true)
+    setError('')
+    try {
       const data = await apiSend<{ print_status?: string }>(
         `/api/admin/master-artworks/${master.id}/crop`,
         'POST',
-        { crop_box, border_mode: borderMode, border_color: borderColor },
+        pendingSave,
       )
       const next = data?.print_status || 'pending'
       setStatus(next)
       setUnsavedCrop(false)
+      setConfirmSave(false)
+      setPendingSave(null)
       toast.success('Print master queued for processing.')
-      onSaved({ print_status: next, border_mode: borderMode, border_color: borderColor })
+      onSaved({ print_status: next, border_mode: pendingSave.border_mode, border_color: pendingSave.border_color })
     } catch (err) {
       const message = errorMessage(err)
       setError(message)
@@ -195,10 +214,10 @@ export default function MasterCropModal({
     setError('')
     try {
       await apiSend(`/api/admin/master-artworks/${master.id}/crop/revert`, 'POST', {})
-      setStatus('ready')
+      setStatus('processing')
       setUnsavedCrop(false)
       toast.success('Print master reverted to the uncropped original.')
-      onSaved({ print_status: 'ready', border_mode: 'full_bleed', border_color: '#ffffff' })
+      onSaved({ print_status: 'processing', border_mode: 'full_bleed', border_color: '#ffffff' })
       onClose()
     } catch (err) {
       const message = errorMessage(err)
@@ -212,11 +231,17 @@ export default function MasterCropModal({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      if (confirmSave) {
+        setConfirmSave(false)
+        setPendingSave(null)
+      } else {
+        onClose()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [confirmSave, onClose])
 
   if (typeof document === 'undefined') return null
 
@@ -241,12 +266,35 @@ export default function MasterCropModal({
               const ratio = Number(event.target.value); setLockedAspect(ratio); setUnsavedCrop(true)
               if (ratio && disp) setCrop(centeredAspectCrop(disp.w, disp.h, ratio, sourceAspect))
             }} className="ml-3 rounded border border-charcoal/20 bg-white px-3 py-2">
-              <option value={0}>Free crop</option>
-              {[...new Set([initialAspectRatio, 4/5, 5/4, 5/7, 7/5, 11/14, 14/11, 3/4, 4/3, 1].filter((n): n is number => typeof n === 'number' && n > 0))].map(ratio => <option key={ratio} value={ratio}>{ratio === 4/5 ? '4:5 portrait — 8 × 10, 16 × 20' : ratio === 5/4 ? '5:4 landscape — 10 × 8, 20 × 16' : ratio === 1 ? 'Square' : `Locked shape ${ratio.toFixed(3)}`}</option>)}
+              <option value={0}>Choose any shape</option>
+              {[...new Set([initialAspectRatio, 4/5, 5/4, 5/7, 7/5, 11/14, 14/11, 3/4, 4/3, 1].filter((n): n is number => typeof n === 'number' && n > 0))].map(ratio => {
+                const label = ratio === 4/5
+                  ? 'Portrait 4:5 — 8 × 10 or 16 × 20'
+                  : ratio === 5/4
+                    ? 'Landscape 5:4 — 10 × 8 or 20 × 16'
+                    : ratio === 5/7
+                      ? 'Portrait 5:7 — 10 × 14'
+                      : ratio === 7/5
+                        ? 'Landscape 7:5 — 14 × 10'
+                        : ratio === 11/14
+                          ? 'Portrait 11:14 — 11 × 14'
+                          : ratio === 14/11
+                            ? 'Landscape 14:11 — 14 × 11'
+                            : ratio === 3/4
+                              ? 'Portrait 3:4 — 12 × 16 or 18 × 24'
+                              : ratio === 4/3
+                                ? 'Landscape 4:3 — 16 × 12 or 24 × 18'
+                                : ratio === 1
+                                  ? 'Square — 8 × 8 or 12 × 12'
+                                  : 'Match the selected print size'
+                return <option key={ratio} value={ratio}>{label}</option>
+              })}
             </select>
           </label>
-          {previewMismatch && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">This preview has a different shape from the original print file. It may already be cropped. Choose an uncropped preview of the same artwork before saving a print crop.</p>}
-          <p className="w-full text-xs leading-relaxed text-charcoal/65">The preview must show the same uncropped artwork as the original print file. The box shows the art that will remain. A locked shape keeps standard print proportions while you move or resize it. Review all edges before saving. Saving changes this master for every linked product; existing sizes must be checked again after processing.</p>
+          {previewMismatch && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">The original master’s saved dimensions do not match its preview. Refresh the editor or replace/check the master before saving a print crop.</p>}
+          {previewError && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">{previewError}</p>}
+          <p className="w-full text-xs text-charcoal/55">Preview: original master artwork used for printing. Product photos do not change this crop.</p>
+          <p className="w-full text-xs leading-relaxed text-charcoal/65">The preview shows the original artwork used for printing. The box shows what will remain. Choose a print shape to keep familiar proportions, or choose any shape and adjust it freely. Review every edge before saving. Saving changes this artwork for every linked product; existing sizes will be checked again after processing.</p>
           <div
             ref={wrapRef}
             className="relative select-none touch-none"
@@ -259,6 +307,7 @@ export default function MasterCropModal({
               src={master.proxyUrl}
               alt={master.title}
               onLoad={onLoad}
+              onError={() => setPreviewError('The original master could not be loaded. Refresh the editor and try again, or ask support to prepare a browser-friendly preview.')}
               draggable={false}
               className="block"
               style={{ width: disp?.w, height: disp?.h }}
@@ -320,17 +369,35 @@ export default function MasterCropModal({
             </p>
             {status && (
               <p className="font-body text-[11px] text-charcoal/55">
-                Print master: <span className="font-medium">{status}</span>
-                {status === 'pending' && ' — queued for processing. Print sizes will be available when this file is ready.'}
-                {status === 'processing' && ' — creating the print file. You can leave this editor open; the size information refreshes automatically.'}
-                {status === 'ready' && (unsavedCrop ? ' — this is the previous saved file. Save crop to apply your new selection.' : ' — print-ready master generated. Close this window to add your print sizes.')}
+                Print file: <span className="font-medium">{status === 'pending' ? 'waiting to be prepared' : status === 'processing' ? 'being prepared' : status === 'ready' ? 'ready' : status}</span>
+                {status === 'pending' && ' — print sizes will be available when the new file is ready.'}
+                {status === 'processing' && ' — the new file is being created. You can still edit and save a newer crop; the size information refreshes automatically.'}
+                {status === 'ready' && (unsavedCrop ? ' — this is the previous saved file. Apply the new crop to use your current selection.' : ' — ready to use. Close this window to add or review print sizes.')}
               </p>
             )}
           </div>
 
-          {master.print_error && <p role="alert" className="text-sm text-coral">{master.print_error} Review the crop and save again to retry.</p>}
+          {master.print_error && <p role="alert" className="text-sm text-coral">{friendlyCropError(master.print_error)} Review the crop and save again to retry.</p>}
           {error && <p className="font-body text-xs text-coral text-center">{error}</p>}
         </div>
+
+        {confirmSave && pendingSave && (
+          <div className="fixed inset-0 z-[140] flex items-center justify-center bg-charcoal/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="confirm-crop-title">
+            <div className="w-full max-w-md rounded-lg bg-cream shadow-2xl">
+              <div className="p-6">
+                <h2 id="confirm-crop-title" className="font-display text-xl font-light text-charcoal">Apply this print crop?</h2>
+                <p className="mt-3 font-body text-sm leading-relaxed text-charcoal/70">
+                  This replaces the print file for every product linked to “{master.title}”. The original upload stays safe. Existing print sizes will be adjusted to follow the new artwork shape and repriced when the new file is ready. If another crop is already being prepared, this one replaces it. Products may be unavailable while it is being prepared.
+                </p>
+                <p className="mt-2 font-body text-sm leading-relaxed text-charcoal/70">Make sure the important edges of the artwork are inside the box before continuing.</p>
+              </div>
+              <div className="flex items-center justify-end gap-3 rounded-b-lg border-t border-charcoal/10 bg-white/40 p-4">
+                <button type="button" onClick={() => { setConfirmSave(false); setPendingSave(null) }} className="rounded-sm px-4 py-2 font-body text-sm text-charcoal/70 hover:text-charcoal">Keep editing</button>
+                <button type="button" onClick={save} disabled={saving} className="rounded-sm bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50">{saving ? 'Saving…' : 'Yes, apply crop'}</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {confirmRevert && (
           <div className="border-t border-charcoal/10 bg-cream px-4 py-3" role="dialog" aria-label="Revert crop">
@@ -377,11 +444,11 @@ export default function MasterCropModal({
           </button>
           <button
             type="button"
-            onClick={save}
-            disabled={saving || !crop || previewMismatch || status === 'pending' || status === 'processing'}
+            onClick={askSave}
+            disabled={saving || !crop || previewMismatch || !!previewError}
             className="rounded-lg bg-teal px-5 py-2 font-body text-sm font-medium text-cream hover:bg-deep-teal disabled:opacity-50"
           >
-            {saving ? 'Saving…' : status === 'pending' || status === 'processing' ? 'Processing crop…' : 'Save crop'}
+            {saving ? 'Saving…' : 'Save crop'}
           </button>
           </div>
         </div>
@@ -393,4 +460,18 @@ export default function MasterCropModal({
 
 function round4(n: number): number {
   return Math.round(n * 1e4) / 1e4
+}
+
+/** Turn storage/worker details into a message an artist can act on. */
+function friendlyCropError(message: string): string {
+  if (/invalid compact jws|accessdenied|unauthorized|expired token/i.test(message)) {
+    return 'The new print file could not be saved because storage access expired. Your previous print file is still safe and in use. Try saving the crop again.'
+  }
+  if (/too large|over 100 mb|350 mb/i.test(message)) {
+    return 'This artwork is too large for automatic cropping. The original is safe; ask support to prepare this print file.'
+  }
+  if (/could not download|read the original/i.test(message)) {
+    return 'The original artwork could not be read. Check that the master is still in your library, then try again.'
+  }
+  return message
 }

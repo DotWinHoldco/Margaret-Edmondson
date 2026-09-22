@@ -112,6 +112,27 @@ interface FulfillmentResult {
   error?: string
 }
 
+/**
+ * Keep provider responses in logs for diagnosis, but give the studio owner a
+ * useful next step instead of exposing provider JSON or internal status text.
+ */
+function friendlyFulfillmentError(error: unknown): string {
+  if (error instanceof LumaprintsDisabledError) return error.message
+  if (error instanceof LumaprintsApiError) {
+    if (error.status === 400 || error.status === 406) {
+      return 'The print provider rejected this artwork size or image. Update the crop or choose a size that follows the artwork, then try again.'
+    }
+    if (error.status === 401 || error.status === 403) {
+      return 'The print provider connection needs attention. Check the Lumaprints connection before trying this order again.'
+    }
+    if (error.status === 429 || error.status >= 500) {
+      return 'The print provider is temporarily unavailable. Try this order again in a few minutes.'
+    }
+    return 'The print provider could not accept this order. Review the print setup and try again.'
+  }
+  return 'The order could not be sent. Review the print setup and try again.'
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -341,7 +362,10 @@ async function validateLumaprintsItem(
     })
   } catch (e) {
     if (e instanceof LumaprintsApiError && (e.status === 406 || e.status === 400)) {
-      return { ok: false, reason: `image check failed (${e.status}): ${e.body.slice(0, 200)}` }
+      return {
+        ok: false,
+        reason: 'The print provider rejected this artwork size or image. Update the crop or choose a size that follows the artwork, then try again.',
+      }
     }
     console.warn(
       `checkImageConfig unavailable for item ${item.id} (proceeding to submit):`,
@@ -769,8 +793,8 @@ export async function routeOrderToFulfillment(
         } as unknown as Record<string, unknown>,
       })
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage = friendlyFulfillmentError(err)
+      const diagnosticMessage = err instanceof Error ? err.message : String(err)
       // A 406 = LumaPrints rejected the image dimensions/aspect. Treat it as a
       // validation failure (admin can re-crop the master + refire), not a
       // transient failure, and capture the expected-vs-actual dims in the log.
@@ -778,7 +802,7 @@ export async function routeOrderToFulfillment(
       const failStatus = err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed'
       console.error(
         `Fulfillment submission failed for ${provider}:`,
-        errorMessage,
+        diagnosticMessage,
       )
 
       // Log the failure
@@ -789,6 +813,7 @@ export async function routeOrderToFulfillment(
           order_id: orderId,
           provider,
           error: errorMessage,
+          diagnostic_error: diagnosticMessage,
           ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
         } as unknown as Record<string, unknown>,
       })
@@ -995,9 +1020,10 @@ export async function retryFulfillmentForItem(
 
     return result
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+    const errorMessage = friendlyFulfillmentError(err)
+    const diagnosticMessage = err instanceof Error ? err.message : String(err)
     const is406 = err instanceof LumaprintsApiError && err.status === 406
-    console.error(`Fulfillment retry failed for item ${itemId}:`, errorMessage)
+    console.error(`Fulfillment retry failed for item ${itemId}:`, diagnosticMessage)
 
     // Move the claimed item out of 'submitting' so it isn't stuck. A 406 (image
     // dims/aspect) is a validation failure the admin fixes by re-cropping.
@@ -1014,6 +1040,7 @@ export async function retryFulfillmentForItem(
         order_id: order.id,
         provider,
         error: errorMessage,
+        diagnostic_error: diagnosticMessage,
         ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
       } as unknown as Record<string, unknown>,
     })

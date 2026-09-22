@@ -650,7 +650,7 @@ export default function EditProductPage({
             <h2 id="product-setup-title" className="mt-2 font-display text-2xl font-semibold text-charcoal">Finish setting up your product</h2>
             <p className="mt-3 text-sm leading-6 text-charcoal/65">Your product now has its own saved draft. Add its pictures and details here. Keep Status set to Draft until your prices and fulfillment are ready.</p>
             <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <li><a href="#product-images" className="font-semibold text-teal underline underline-offset-4">1. Add product images</a><p className="mt-1 text-charcoal/60">Add the pictures customers see. A product picture is also needed for the print crop preview.</p></li>
+              <li><a href="#product-images" className="font-semibold text-teal underline underline-offset-4">1. Add product images</a><p className="mt-1 text-charcoal/60">Add the pictures customers see. The print crop editor uses the selected master artwork itself.</p></li>
               <li><a href={setupProfile === 'lumaprints' ? '#product-master' : '#product-fulfillment'} className="font-semibold text-teal underline underline-offset-4">{setupProfile === 'lumaprints' ? '2. Choose and save master artwork' : '2. Check fulfillment details'}</a><p className="mt-1 text-charcoal/60">{setupProfile === 'lumaprints' ? 'Choose the print file, press Save Changes, then crop the master and set the print area.' : 'Check the selected provider and how this artwork will be made and shipped.'}</p></li>
               <li><a href={setupProfile === 'printful' ? '#product-pricing' : '#product-print-options'} className="font-semibold text-teal underline underline-offset-4">3. Set pricing and product options</a><p className="mt-1 text-charcoal/60">{setupProfile === 'lumaprints' ? 'Lumaprints is selected below. Generate print sizes after the artwork and catalog are ready.' : setupProfile === 'studio' ? 'My studio is selected below. Set your selling prices, sizes, and shipping.' : 'Set the Base Price and verify the Printful product mapping before publishing.'}</p></li>
               <li><a href="#product-publication" className="font-semibold text-teal underline underline-offset-4">4. Review and publish</a><p className="mt-1 text-charcoal/60">Check the details and each selling price. When everything is ready, choose Active and press Save Changes.</p></li>
@@ -1184,7 +1184,7 @@ export default function EditProductPage({
               <div>
                 <h2 className="font-display text-lg font-semibold text-charcoal">Artwork source</h2>
                 <p className="mt-1 font-body text-sm text-charcoal/60">
-                  The high-resolution file Lumaprints prints from. Choose a file from your library or upload one, then press Save Changes to attach it to this product before generating sizes. Add a product image above to unlock the crop preview.
+                  The high-resolution file Lumaprints prints from. Choose a file from your library or upload one, then press Save Changes to attach it to this product before generating sizes. The crop editor previews this original master file.
                 </p>
               </div>
               <button
@@ -1214,7 +1214,6 @@ export default function EditProductPage({
                     <button
                       type="button"
                       onClick={() => { setCropAspectRatio(undefined); setShowMasterCrop(true) }}
-                      disabled={!(images.find((i) => i.is_primary)?.url ?? images[0]?.url)}
                       className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-40"
                     >
                       {masterArtwork.crop_box ? 'Edit print crop' : 'Crop master / set print area'}
@@ -1240,11 +1239,6 @@ export default function EditProductPage({
                       </span>
                     )}
                   </div>
-                  {!(images.find((i) => i.is_primary)?.url ?? images[0]?.url) && (
-                    <p className="mt-2 font-body text-[11px] text-charcoal/45">
-                      Add a product image first — it is used as the crop preview.
-                    </p>
-                  )}
                 </div>
               ) : (
                 <p className="mt-4 font-body text-sm text-charcoal/50">Loading artwork details…</p>
@@ -1282,7 +1276,7 @@ export default function EditProductPage({
                 : null
             }
             onEditCrop={
-              masterArtwork && (images.find((i) => i.is_primary)?.url ?? images[0]?.url)
+              masterArtwork
                 ? (aspectRatio?: number) => { setCropAspectRatio(aspectRatio); setShowMasterCrop(true) }
                 : undefined
             }
@@ -1384,7 +1378,7 @@ export default function EditProductPage({
           master={{
             id: masterArtwork.id,
             title: masterArtwork.title,
-            proxyUrl: images.find((i) => i.is_primary)?.url ?? images[0]?.url ?? '',
+            proxyUrl: `/api/admin/master-artworks/${masterArtwork.id}/preview`,
             sourceWidthPx: masterArtwork.width_px,
             sourceHeightPx: masterArtwork.height_px,
             crop_box: masterArtwork.crop_box ?? null,
