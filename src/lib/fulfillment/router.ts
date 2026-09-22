@@ -318,7 +318,10 @@ async function validateLumaprintsItem(
   const path = item.print_storage_path || productMasterPath(item.product)
   const imageUrl = await mintSignedUrl(path)
   if (!imageUrl) {
-    return { ok: false, reason: 'could not mint signed URL for print master' }
+    return {
+      ok: false,
+      reason: 'The print file is not available. Open the artwork, save the print crop, and try again.',
+    }
   }
 
   // P3-1: pre-submit aspect/DPI safety net. LumaPrints' checkImageConfig validates

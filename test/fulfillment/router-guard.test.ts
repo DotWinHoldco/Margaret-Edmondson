@@ -222,7 +222,7 @@ describe('routeOrderToFulfillment test-mode guard', () => {
 
     expect(state.submits).toHaveLength(0)
     expect(results[0]).toMatchObject({ itemId: ITEM_ID, success: false })
-    expect(results[0].error).toMatch(/could not mint signed URL for print master/)
+    expect(results[0].error).toMatch(/print file is not available/i)
   })
 
   describe('frozen-option checks against the catalog tree (ADR-4, F13)', () => {
