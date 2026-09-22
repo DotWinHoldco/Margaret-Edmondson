@@ -159,9 +159,13 @@ async function mintSignedUrl(path: string): Promise<string> {
 }
 
 // Live-product fallback path when an order_item has no snapshotted
-// print_storage_path: cropped print master → raw master scan → legacy per-image.
+// print_storage_path.  A raw master scan is deliberately *not* a production
+// fallback: once a master has a crop, sending storage_path would silently send
+// the uncropped artwork and the provider would validate it against dimensions
+// that describe the cropped file.  Legacy product-image masters remain a safe
+// fallback for rows created before master_artworks was introduced.
 function productMasterPath(product: Product): string {
-  const masterPath = product.master_artwork?.print_storage_path || product.master_artwork?.storage_path
+  const masterPath = product.master_artwork?.print_storage_path
   const legacyPath = product.product_images
     ?.slice()
     .sort((a: ProductImage, b: ProductImage) => a.sort_order - b.sort_order)

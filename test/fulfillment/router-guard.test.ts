@@ -196,6 +196,34 @@ describe('routeOrderToFulfillment test-mode guard', () => {
     expect(orderItems[0].orderItemOptions).toEqual([2, 11])
   })
 
+  it('does not fall back to the uncropped master source when a line has no snapshot path', async () => {
+    state.host = 'us.api.lumaprints.com'
+    state.order = { id: ORDER_ID, shipping_address: address, fulfillment_hold_reason: null, stripe_mode: 'live' }
+    // A legacy line can have no frozen print_storage_path. The raw source is the
+    // artist's uncropped upload and must never be sent against a print size after
+    // the master has been cropped. The router should stop with a clear validation
+    // failure instead of minting a URL for storage_path.
+    state.items = [printItem({
+      print_storage_path: null,
+      product: {
+        ...printItem().product,
+        master_artwork: {
+          id: 'master-1',
+          storage_path: 'masters/raw-original.tif',
+          print_storage_path: null,
+          file_name: 'raw-original.tif',
+          mime_type: 'image/tiff',
+        },
+      },
+    })]
+
+    const results = await routeOrderToFulfillment(ORDER_ID, { suppressFailureAlert: true })
+
+    expect(state.submits).toHaveLength(0)
+    expect(results[0]).toMatchObject({ itemId: ITEM_ID, success: false })
+    expect(results[0].error).toMatch(/could not mint signed URL for print master/)
+  })
+
   describe('frozen-option checks against the catalog tree (ADR-4, F13)', () => {
     beforeEach(() => {
       state.host = 'us.api.lumaprints.com'
