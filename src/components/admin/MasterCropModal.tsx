@@ -327,7 +327,7 @@ export default function MasterCropModal({
           {previewMismatch && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">The original master’s saved dimensions do not match its preview. Refresh the editor or replace/check the master before saving a print crop.</p>}
           {previewError && <p role="alert" className="w-full rounded border border-coral/30 bg-coral/10 p-3 text-sm text-charcoal">{previewError}</p>}
           <p className="w-full text-xs text-charcoal/55">Preview: original master artwork used for printing. Product photos do not change this crop.</p>
-          <p className="w-full text-xs leading-relaxed text-charcoal/65">The preview shows the original artwork used for printing. The box shows what will remain. Choose a print shape to keep familiar proportions, or choose any shape and adjust it freely. Review every edge before saving. Saving changes this artwork for every linked product; existing sizes will be checked again after processing.</p>
+          <p className="w-full text-xs leading-relaxed text-charcoal/65">The preview shows the original artwork used for printing. The box shows what will remain. Choose a print shape to keep familiar proportions, or choose any shape and adjust it freely. Review every edge before saving. Paper orders automatically receive a white border of at least ⅛ inch on every side; you do not need to add it here. Saving changes this artwork for every linked product; existing sizes will be checked again after processing.</p>
           <div
             ref={wrapRef}
             className="relative select-none touch-none"

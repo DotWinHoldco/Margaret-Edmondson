@@ -28,6 +28,18 @@ export default function HexPicker({
       <label htmlFor={`${id}-hex`} className="block font-body text-xs text-charcoal/70">
         {label} color
       </label>
+      <div role="group" aria-label="Canvas side color" className="mt-2 flex gap-2">
+        {[['Black', '#000000'], ['Grey', '#808080'], ['White', '#ffffff']].map(([name, color]) => (
+          <button key={color} type="button" aria-pressed={value.toLowerCase() === color}
+            onClick={() => onChange(color)}
+            className={`flex items-center gap-2 rounded-sm border px-3 py-2 font-body text-sm ${value.toLowerCase() === color ? 'border-teal bg-teal/5' : 'border-charcoal/20 bg-white'}`}>
+            <span aria-hidden="true" className="h-4 w-4 rounded-full border border-charcoal/20" style={{ backgroundColor: color }} />
+            {name}
+          </button>
+        ))}
+      </div>
+      <details className="mt-2">
+      <summary className="cursor-pointer font-body text-xs text-charcoal/60">Custom color</summary>
       <div className="mt-1 flex items-center gap-2">
         <input
           id={`${id}-hex`}
@@ -57,6 +69,7 @@ export default function HexPicker({
           ? 'Your wrap color is set.'
           : 'That color is not a valid six digit hex code, for example #1a1a1a.'}
       </p>
+      </details>
     </div>
   )
 }

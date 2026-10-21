@@ -1,3 +1,6 @@
+// Paper derivatives finish before payment; subsequent checkouts reuse the immutable file.
+export const maxDuration = 300
+
 import { discountedHostedLines } from '@/lib/checkout/hosted-prices'
 import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
 import { calculateCheckoutShipping } from '@/lib/checkout/shipping'

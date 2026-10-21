@@ -81,7 +81,7 @@ const collections = [
   { num: '02', name: 'Cactuses', slug: 'cactuses', img: art.solo },
   { num: '03', name: 'Beach & Coastal', slug: 'beach-and-sc', img: art.dolphinWatch },
   { num: '04', name: 'Encouragement Series', slug: 'encouragement-series', img: art.seeds },
-  { num: '05', name: 'Custom Portraits', slug: 'custom-portraits', img: art.customPet },
+  { num: '05', name: 'Commissions', slug: 'custom-portraits', img: art.customPet },
 ]
 
 /* ════════════════════════════════════════════════════════════════

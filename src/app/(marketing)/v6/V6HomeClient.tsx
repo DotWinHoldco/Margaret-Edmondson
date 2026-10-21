@@ -503,7 +503,7 @@ const collections = [
   { name: 'Cactuses', count: 4, src: '/Margaret Edmondson/ARTWORK/Cactuses/Hot Air_1.jpg', rotation: 1, slug: 'cactuses' },
   { name: 'Beach & Coastal', count: 6, src: '/Margaret Edmondson/ARTWORK/Beach and SC/Seaside with Seagull_1.jpg', rotation: -2, slug: 'beach-and-sc' },
   { name: 'Encouragement', count: 6, src: '/Margaret Edmondson/ARTWORK/Encouragement Series/Grow.png', rotation: 1, slug: 'encouragement-series' },
-  { name: 'Custom Portraits', count: 3, src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_1.jpg', rotation: -1, slug: 'custom-portraits' },
+  { name: 'Commissions', count: 3, src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Custom Pet Portrait Example_1.jpg', rotation: -1, slug: 'custom-portraits' },
 ]
 
 function CollectionsSection() {

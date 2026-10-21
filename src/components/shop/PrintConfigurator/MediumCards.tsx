@@ -30,7 +30,7 @@ export default function MediumCards({
       <div
         role="radiogroup"
         aria-labelledby="print-medium-label"
-        className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3"
+        className="mt-1.5 grid grid-cols-2 gap-2"
         onKeyDown={(event) => {
           const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
           if (buttons.length === 0) return

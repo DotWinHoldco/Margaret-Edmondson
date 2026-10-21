@@ -293,7 +293,7 @@ describe('catalog sync v2 — full run on the sandbox snapshot', () => {
     expect(optionOf(store, 105005, 96).is_default).toBe(true) // Mat Color: White
     expect(optionOf(store, 105005, 146).is_default).toBe(true) // Acrylic Glass
     expect(optionOf(store, 105005, 148).is_default).toBe(true) // Dry Mounted to Foam Core
-    expect(optionOf(store, 105005, 94).is_default).toBe(true) // No Backing
+    expect(optionOf(store, 105005, 95).is_default).toBe(true) // Kraft Paper
     expect(optionOf(store, 105005, 83).is_default).toBe(true) // Wire on frame
     expect(optionOf(store, 106001, 31).is_default).toBe(true) // Inset Frame
     expect(optionOf(store, 101005, 19).is_default).toBe(true) // 2in rolled border

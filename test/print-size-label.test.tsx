@@ -12,10 +12,10 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('familiar print labels are display only', () => {
   it('preserves orientation and shows the exact size beneath a nearby familiar size', () => {
     const input = Object.freeze({ width_in: 15.85, height_in: 20, name: 'Medium — 15.85 × 20 in', size_tier: 'M' as const })
-    expect(printSizeLabel(input)).toMatchObject({ title: 'Medium — 16 × 20 in', actualNote: '(actual cropped size: 15.85 × 20 in)' })
+    expect(printSizeLabel(input)).toMatchObject({ title: '16 × 20 in', actualNote: '(actual cropped size: 15.85 × 20 in)' })
     expect(printSizeLabel({ ...input, width_in: 20, height_in: 15.85 }).dimensions).toBe('20 × 16 in')
     expect(input.width_in).toBe(15.85)
-    expect(printSizeCartLabel(input)).toBe('Medium — 16 × 20 in (actual cropped size: 15.85 × 20 in)')
+    expect(printSizeCartLabel(input)).toBe('16 × 20 in (actual cropped size: 15.85 × 20 in)')
   })
   it('respects both edge thresholds, including 2.5% for larger prints, without distant snapping', () => {
     expect(printSizeLabel({ width_in: 15.5, height_in: 20 }).dimensions).toBe('16 × 20 in')
@@ -36,7 +36,7 @@ describe('familiar print labels are display only', () => {
       isApproximate: true,
     })
     expect(printSizeLabel({ width_in: 14.95, height_in: 30, size_tier: 'L' })).toMatchObject({
-      title: 'Large — 15 × 30 in',
+      title: '15 × 30 in',
       actualNote: '(actual cropped size: 14.95 × 30 in)',
     })
     expect(printSizeLabel({ width_in: 7.4, height_in: 12 }).dimensions).toBe('7 × 12 in')
@@ -45,8 +45,8 @@ describe('familiar print labels are display only', () => {
     // A standard size still wins when both fit.
     expect(printSizeLabel({ width_in: 15.85, height_in: 20 }).dimensions).toBe('16 × 20 in')
   })
-  it('retains custom names without duplicate dimensions and handles legacy missing dimensions', () => {
-    expect(printSizeLabel({ width_in: 15.85, height_in: 20, name: 'Collector edition — 15.85x20 in' }).title).toBe('Collector edition — 16 × 20 in')
+  it('shows dimensions only while keeping the legacy missing-dimensions fallback', () => {
+    expect(printSizeLabel({ width_in: 15.85, height_in: 20, name: 'Collector edition — 15.85x20 in' }).title).toBe('16 × 20 in')
     expect(printSizeLabel({ width_in: null, height_in: null, name: 'Legacy original' }).title).toBe('Legacy original')
     expect(printSizeLabel({ width_in: Number.NaN, height_in: 20 }).isApproximate).toBe(false)
   })
@@ -69,8 +69,8 @@ describe('two-line storefront choice and cart', () => {
     const trigger = screen.getByRole('button', { name: /Choose artwork or print size/ })
     fireEvent.keyDown(trigger, { key: 'ArrowDown' })
     const list = screen.getByRole('listbox')
-    expect(within(list).getByRole('group', { name: 'Fine Art Paper' })).toBeInTheDocument()
-    const option = within(list).getByRole('option', { name: /Collector — 16 × 20 in.*actual cropped size: 15.85 × 20 in/ })
+    expect(within(list).getByRole('group', { name: 'Archival Paper Prints' })).toBeInTheDocument()
+    const option = within(list).getByRole('option', { name: /16 × 20 in.*actual cropped size: 15.85 × 20 in/ })
     fireEvent.keyDown(list, { key: 'End' })
     expect(option).toHaveFocus()
     fireEvent.click(option)
@@ -78,7 +78,7 @@ describe('two-line storefront choice and cart', () => {
     expect(trigger).toHaveFocus()
     expect(within(trigger).getByText('(actual cropped size: 15.85 × 20 in)')).toHaveClass('text-[9px]')
     fireEvent.click(screen.getByRole('button', { name: 'Add Print to Cart — $99.00' }))
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_ITEM', payload: expect.objectContaining({ variantId: 'near', price: 99, title: 'Test artwork — Collector — 16 × 20 in (actual cropped size: 15.85 × 20 in)' }) }))
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_ITEM', payload: expect.objectContaining({ variantId: 'near', price: 99, title: 'Test artwork — 16 × 20 in (actual cropped size: 15.85 × 20 in)' }) }))
     expect(product).toEqual(before)
     fireEvent.click(trigger)
     fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' })

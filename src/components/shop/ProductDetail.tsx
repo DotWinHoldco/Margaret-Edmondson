@@ -421,7 +421,7 @@ function VariantSelector({
           value={selectedVariantId}
           onSelect={(id) => { const variant = allVariants.find((v) => v.id === id); if (variant) onSelect(variant) }}
           groups={[
-            ...(originalVariant && !isSold ? [{ label: 'Original', options: [{ id: originalVariant.id, title: 'Original Artwork (1 of 1)', actualNote: null, price: originalVariant.price }] }] : []),
+            ...(originalVariant && !isSold ? [{ label: 'Original', options: [{ id: originalVariant.id, title: 'Original Artwork', actualNote: null, price: originalVariant.price }] }] : []),
             ...printGroups.map((group) => ({ label: group.label, options: group.variants.map((variant) => ({ id: variant.id, ...printSizeLabel(variant), price: variant.price })) })),
           ]}
         />
@@ -544,14 +544,14 @@ export default function ProductDetail({
   const isCommission = !isSold && !originalVariant && !hasPrints && !product.is_original && !product.prints_enabled
   const printsUnavailable = !isSold && !originalAvailable && product.prints_enabled && !hasPrints
 
-  // Default variant: original if available, else the smallest print.
-  const defaultVariant = originalAvailable ? originalVariant : printVariants[0]
+  // Lead with the smallest available print; originals remain one click away.
+  const defaultVariant = printVariants[0] ?? (originalAvailable ? originalVariant : undefined)
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(defaultVariant?.id)
   // The door can also close under the page: if the store switches the configurator off
   // mid-session the quote route answers "not found", and the panel falls back rather
   // than leaving a shopper looking at controls that cannot be priced.
   const [doorClosed, setDoorClosed] = useState(false)
-  const [buyMode, setBuyMode] = useState<'original' | 'print'>(originalAvailable ? 'original' : 'print')
+  const [buyMode, setBuyMode] = useState<'original' | 'print'>(hasPrints ? 'print' : 'original')
   const handleDoorClosed = useCallback(() => setDoorClosed(true), [])
 
   const selectedVariant = useMemo(() => {
@@ -721,7 +721,7 @@ export default function ProductDetail({
                   </span>
                   {isOriginalSelected && (
                     <span className="ml-2 font-body text-xs text-gold font-medium uppercase tracking-wide">
-                      One-of-a-kind original
+                      Original
                     </span>
                   )}
                   {!isOriginalSelected && hasPrints && originalAvailable && (
@@ -745,10 +745,20 @@ export default function ProductDetail({
               />
             )}
 
-            {/* Original or print: one control above the configurator, so the
-                one-of-a-kind piece is never buried under print options. */}
+            {/* Prints lead; the original remains available beside them. */}
             {configuratorOpen && originalAvailable && originalVariant && (
               <div role="radiogroup" aria-label="Original or print" className="flex gap-2">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={buyMode === 'print'}
+                  onClick={() => { setBuyMode('print'); setSelectedVariantId(printVariants[0]?.id) }}
+                  className={`flex-1 rounded-sm border px-3 py-2.5 font-body text-sm transition-colors focus-visible:outline-2 focus-visible:outline-teal ${
+                    buyMode === 'print' ? 'border-teal bg-teal/5 text-charcoal' : 'border-charcoal/15 bg-white text-charcoal/80'
+                  }`}
+                >
+                  Prints
+                </button>
                 <button
                   type="button"
                   role="radio"
@@ -758,18 +768,7 @@ export default function ProductDetail({
                     buyMode === 'original' ? 'border-teal bg-teal/5 text-charcoal' : 'border-charcoal/15 bg-white text-charcoal/80'
                   }`}
                 >
-                  Original Artwork (1 of 1)
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={buyMode === 'print'}
-                  onClick={() => setBuyMode('print')}
-                  className={`flex-1 rounded-sm border px-3 py-2.5 font-body text-sm transition-colors focus-visible:outline-2 focus-visible:outline-teal ${
-                    buyMode === 'print' ? 'border-teal bg-teal/5 text-charcoal' : 'border-charcoal/15 bg-white text-charcoal/80'
-                  }`}
-                >
-                  Print
+                  Original Artwork
                 </button>
               </div>
             )}

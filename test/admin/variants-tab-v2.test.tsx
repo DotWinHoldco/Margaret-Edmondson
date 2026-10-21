@@ -223,7 +223,7 @@ describe('variants tab sections follow the print catalog', () => {
   it('names the family in the section title, never one print type', () => {
     show()
     expect(within(screen.getByTestId('medium-canvas')).getByRole('heading', { level: 3 })).toHaveTextContent(/^Canvas/)
-    expect(within(screen.getByTestId('medium-fine_art_paper')).getByRole('heading', { level: 3 })).toHaveTextContent(/^Fine Art Paper/)
+    expect(within(screen.getByTestId('medium-fine_art_paper')).getByRole('heading', { level: 3 })).toHaveTextContent(/^Archival Paper Prints/)
   })
 
   it('marks a size no print type takes as not sellable and blocks its Live toggle', () => {

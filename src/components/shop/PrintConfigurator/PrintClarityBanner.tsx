@@ -14,7 +14,7 @@ export default function PrintClarityBanner({ title }: { title: string }) {
           You&apos;re purchasing a <strong>print reproduction</strong>
         </p>
         <p className="font-body text-xs text-charcoal/50 mt-0.5">
-          Gallery-quality stretched canvas of &ldquo;{title}&rdquo; by Margaret Edmondson
+          Archival reproduction of &ldquo;{title}&rdquo; by Margaret Edmondson
         </p>
       </div>
     </div>

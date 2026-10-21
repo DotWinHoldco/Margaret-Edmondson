@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-const h = vi.hoisted(() => ({ auth: vi.fn(), config: vi.fn(), readiness: vi.fn(), quote: vi.fn(), settings: vi.fn(), from: vi.fn(), upsert: vi.fn(), write: vi.fn(), retrieve: vi.fn(), update: vi.fn(), create: vi.fn(), parsedCheckout: vi.fn() }))
+const h = vi.hoisted(() => ({ auth: vi.fn(), config: vi.fn(), readiness: vi.fn(), quote: vi.fn(), settings: vi.fn(), from: vi.fn(), upsert: vi.fn(), write: vi.fn(), retrieve: vi.fn(), update: vi.fn(), create: vi.fn(), parsedCheckout: vi.fn(), capture: vi.fn(), sessionCreate: vi.fn() }))
 vi.mock('@/lib/auth/require-admin', () => ({ requireAdmin: h.auth }))
 vi.mock('@/lib/tax/server', () => ({ getCheckoutTaxConfig: h.config, getTaxReadiness: h.readiness, calculateCheckoutTax: h.quote }))
 vi.mock('@/lib/settings/accessor', () => ({ getSiteSettings: h.settings, clearSettingsCache: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ from: h.from }), createServiceClient: async () => ({ from: h.from }) }))
-vi.mock('@/lib/stripe', () => ({ getStripe: async () => ({ paymentIntents: { retrieve: h.retrieve, update: h.update, create: h.create } }), getStripeMode: async () => 'test', isStripeKeyConfigured: () => true }))
+vi.mock('@/lib/stripe', () => ({ getStripe: async () => ({ checkout: { sessions: { create: h.sessionCreate } }, paymentIntents: { retrieve: h.retrieve, update: h.update, create: h.create } }), getStripeMode: async () => 'test', isStripeKeyConfigured: () => true }))
 vi.mock('@/lib/fulfillment/policy', () => ({ getFulfillmentPolicy: async () => ({ version: 1, ship_akhi: true }) }))
 vi.mock('@/lib/checkout/shipping', () => ({ calculateCheckoutShipping: async () => 0 }))
-vi.mock('@/lib/checkout/snapshot', () => ({ captureProductionSources: vi.fn() }))
+vi.mock('@/lib/checkout/snapshot', () => ({ captureProductionSources: h.capture }))
 vi.mock('@/lib/checkout/validation', () => ({ parseCheckoutRequest: h.parsedCheckout, validateAndPriceCheckoutItems: async (_db: unknown, items: unknown) => ({ ok: true, data: items }) }))
 vi.mock('@/lib/api/rate-limit', () => ({ rateLimit: async () => ({ ok: true }), rateLimitResponse: vi.fn() }))
 vi.mock('@/lib/meta/capi', () => ({ sendServerEvent: vi.fn(), hashSHA256: vi.fn() }))
@@ -17,6 +17,7 @@ vi.mock('@/lib/checkout/holds', () => ({ holdOriginals: vi.fn(), originalVariant
 vi.mock('@/lib/cart/token', () => ({ resolveCartToken: vi.fn() }))
 import { PATCH } from '@/app/api/admin/settings/route'
 import { POST as verify } from '@/app/api/checkout/verify/route'
+import { POST as hosted } from '@/app/api/checkout/route'
 import { POST as intent } from '@/app/api/checkout/intent/route'
 const secret = 'pi_fixture_secret_1234567890'
 const item = { productId: 'product', variantId: 'variant', price: 100, quantity: 1, fulfillmentType: 'self_ship' }
@@ -24,6 +25,7 @@ const destination = { country: 'US', zip: '78701', state: 'TX', city: 'Austin', 
 const request = (path: string, body: unknown, method = 'POST') => new NextRequest(`https://example.test${path}`, { method, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } })
 beforeEach(() => {
   vi.clearAllMocks()
+  h.capture.mockReset()
   const snapshot = { items: [item], policy_version: 1, subtotal_cents: 10000, discount_cents: 0, surcharge_cents: 0 }
   h.from.mockImplementation(() => {
     const q = { select: () => q, eq: () => q, single: async () => ({ data: snapshot, error: null }), update: (value: unknown) => { h.write(value); return { eq: async () => ({ error: null }) } }, upsert: h.upsert }
@@ -88,5 +90,19 @@ describe('tax payment routes', () => {
     expect((await verify(request('/api/checkout/verify', { clientSecret: 'pi_fixture_secret_wrong12345', destination }))).status).toBe(403)
     expect(h.quote).not.toHaveBeenCalled()
     expect(h.update).not.toHaveBeenCalled()
+  })
+})
+
+// Both payment paths must stop before creating a chargeable session if a paper file fails.
+describe('production file failure before payment', () => {
+  it.each([['embedded', intent], ['hosted', hosted]] as const)('blocks %s checkout when paper preparation fails', async (_name, handler) => {
+    h.capture.mockRejectedValueOnce(new Error('private storage detail'))
+    const response = await handler(request('/api/checkout', {}))
+    expect(response.status).toBe(500)
+    expect(JSON.stringify(await response.json())).not.toContain('private storage detail')
+    expect(h.capture).toHaveBeenCalledOnce()
+    expect(h.create).not.toHaveBeenCalled()
+    expect(h.sessionCreate).not.toHaveBeenCalled()
+    expect(h.upsert).not.toHaveBeenCalled()
   })
 })

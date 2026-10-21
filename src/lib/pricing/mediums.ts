@@ -32,8 +32,8 @@ export type Medium = (typeof MEDIUMS)[number]
 const MEDIUM_LABELS: Record<Medium, string> = {
   canvas: 'Canvas',
   framed_canvas: 'Framed Canvas',
-  fine_art_paper: 'Fine Art Paper',
-  framed_fine_art_paper: 'Framed Fine Art Paper',
+  fine_art_paper: 'Archival Paper Prints',
+  framed_fine_art_paper: 'Framed Paper Prints',
   foam_mounted_fine_art_paper: 'Foam-Mounted Fine Art Paper',
   metal: 'Metal Print',
   peel_and_stick: 'Peel & Stick Print',

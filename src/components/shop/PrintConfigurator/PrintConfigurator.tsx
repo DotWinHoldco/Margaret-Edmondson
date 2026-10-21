@@ -19,9 +19,11 @@
 //     disabled with the customer reason beside it; only sizes a finish cannot print at
 //     all are absent, and a medium with nothing sellable is not a card.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CartItem } from '@/lib/cart/context'
 import type { StorefrontSubcategory } from '@/lib/catalog/storefront'
+import { paperBorderIn } from '@/lib/artwork/paper-border'
+import { swatchForOption } from '@/lib/catalog/seed-rules'
 import { printSizeCartLabel } from '@/lib/pricing/print-size-label'
 import type { PrintQuoteRequest } from '@/lib/pricing/quote-types'
 import FramePreview, { type EdgeHint } from './FramePreview'
@@ -40,6 +42,7 @@ import {
   normalizeSelection,
   offerableFinishes,
   selectionAfterChoice,
+  selectionForFinish,
   sizesFor,
   variantSize,
   variantStoredSubcategoryId,
@@ -137,29 +140,16 @@ export default function PrintConfigurator({
     () => (subcategory && size ? availabilityAtSize(subcategory, size) : []),
     [subcategory, size],
   )
-  const [optionIds, setOptionIds] = useState<number[]>(() =>
+  const [desiredOptionIds, setOptionIds] = useState<number[]>(() =>
     subcategory ? normalizeSelection(subcategory, []) : [],
   )
-  const [hex, setHex] = useState('')
+  const [hex, setHex] = useState('#000000')
 
-  // A change of finish restarts the selection on that finish's own defaults; a change
-  // of size repairs it, because a mat that fits an 8 by 10 may break the glass at
-  // 36 by 24. Both run through the same normalizer, so the state is always one the
-  // rules engine would accept.
-  const settled = useRef<string>('')
-  useEffect(() => {
-    if (!subcategory || !size) return
-    const stamp = `${subcategory.id}|${size.widthIn}x${size.heightIn}`
-    const previous = settled.current
-    settled.current = stamp
-    const startsOver = previous.split('|')[0] !== subcategory.id
-    const next = normalizeSelection(subcategory, startsOver ? [] : optionIds, availability)
-    setOptionIds((current) => (current.join(',') === next.join(',') ? current : next))
-    if (startsOver) setHex('')
-    // `optionIds` is read, not depended on: this repairs the selection when the finish
-    // or the size changes, and a choice inside a finish repairs itself in the handler.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subcategory, size?.widthIn, size?.heightIn, availability])
+  // Derive a valid selection before rendering or quoting; no transient invalid request.
+  const optionIds = useMemo(
+    () => subcategory ? normalizeSelection(subcategory, desiredOptionIds, availability) : [],
+    [subcategory, desiredOptionIds, availability],
+  )
 
   const groups = subcategory ? visibleGroups(subcategory, optionIds) : []
   const hexNeeded = subcategory ? needsHex(subcategory, optionIds) : false
@@ -195,8 +185,9 @@ export default function PrintConfigurator({
     .map((group) => chosenOption(group, optionIds))
     .find((option) => typeof option?.swatch?.frame_face_in === 'number' || option?.swatch?.image_path)
   const isFramed = subcategory?.medium.startsWith('framed') === true
-  const faceIn = isFramed ? frameOption?.swatch?.frame_face_in ?? DEFAULT_FRAME_FACE_IN : 0
-  const frameColor = frameOption?.swatch?.color_hex ?? DEFAULT_FRAME_COLOR
+  const frameSwatch = frameOption?.swatch ?? (subcategory ? swatchForOption('frame_style', subcategory.display_label, subcategory.display_label) : null)
+  const faceIn = isFramed ? frameSwatch?.frame_face_in ?? DEFAULT_FRAME_FACE_IN : 0
+  const frameColor = frameSwatch?.color_hex ?? DEFAULT_FRAME_COLOR
   const matColorOption = subcategory?.groups
     .filter((group) => group.group_key.includes('color'))
     .map((group) => chosenOption(group, optionIds))
@@ -208,6 +199,10 @@ export default function PrintConfigurator({
       : WRAPPED_MEDIUMS.has(subcategory.medium)
         ? 'mirror'
         : 'none'
+
+  const matGroups = groups.filter((group) => group.group_key === 'mat_size' || group.group_key === 'mat_color')
+  const otherGroups = groups.filter((group) => !matGroups.includes(group))
+  const frameIsFinish = subcategory?.medium === 'framed_fine_art_paper'
 
   const [previewOpen, setPreviewOpen] = useState(false)
 
@@ -264,16 +259,18 @@ export default function PrintConfigurator({
           setMedium(next)
           setFinishRef(null)
           setVariantId(null)
+          setOptionIds([])
         }}
       />
 
-      {finishes.length > 1 && (
+      {finishes.length > 1 && !frameIsFinish && (
         <SubcategoryPicker
           subcategories={finishes}
           value={subcategory.id}
           onSelect={(ref) => {
             setFinishRef(ref)
-            setVariantId(null)
+            const next = finishes.find((finish) => finish.id === ref)
+            if (next) setOptionIds(selectionForFinish(subcategory, next, optionIds, availabilityAtSize(next, size)))
           }}
         />
       )}
@@ -291,7 +288,35 @@ export default function PrintConfigurator({
         }}
       />
 
-      {groups.map((group) => (
+      {matGroups.map((group) => (
+        <div key={group.id}>
+          <OptionGroupControl
+            group={group}
+            availability={availability.find((entry) => entry.groupKey === group.group_key)}
+            selectedId={chosenOption(group, optionIds)?.option_id ?? null}
+            onChoose={(optionId) =>
+              setOptionIds((current) => selectionAfterChoice(subcategory, current, group, optionId, availability))
+            }
+          />
+          {chosenOption(group, optionIds)?.geometry?.needs_hex === true && (
+            <HexPicker value={hex} onChange={setHex} label={group.display_label} />
+          )}
+        </div>
+      ))}
+
+      {finishes.length > 1 && frameIsFinish && (
+        <SubcategoryPicker
+          subcategories={finishes}
+          value={subcategory.id}
+          onSelect={(ref) => {
+            setFinishRef(ref)
+            const next = finishes.find((finish) => finish.id === ref)
+            if (next) setOptionIds(selectionForFinish(subcategory, next, optionIds, availabilityAtSize(next, size)))
+          }}
+        />
+      )}
+
+      {otherGroups.map((group) => (
         <div key={group.id}>
           <OptionGroupControl
             group={group}
@@ -323,11 +348,13 @@ export default function PrintConfigurator({
             imageAlt={image.alt}
             printW={size.widthIn}
             printH={size.heightIn}
+            paperBorderIn={paperBorderIn(subcategory.medium)}
             matIn={matIn}
             faceIn={faceIn}
             frameColor={frameColor}
             frameImage={frameOption?.swatch?.image_path ?? null}
             matColor={matColorOption?.swatch?.color_hex ?? DEFAULT_MAT_COLOR}
+            matCoreColor={/black core/i.test(matColorOption?.display_label ?? '') ? '#111111' : null}
             edgeHint={edgeHint}
             solidHex={isValidHex(hex) ? hex : null}
           />
@@ -357,6 +384,9 @@ export default function PrintConfigurator({
         )}
       </div>
 
+      {paperBorderIn(subcategory.medium) > 0 && (
+        <p className="mt-3 font-body text-xs text-charcoal/65">Paper prints include a white border of at least ⅛ inch on every side, within the selected paper size. A mat covers part of this border.</p>
+      )}
       <p className="mt-2 font-body text-sm text-teal">{shippingNote(variant)}</p>
 
       <button

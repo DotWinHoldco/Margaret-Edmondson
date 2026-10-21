@@ -17,7 +17,7 @@ interface CommissionFeatureConfig {
 export default function CommissionFeatureBlock({ config }: { config: Record<string, unknown> }) {
   const c = config as unknown as CommissionFeatureConfig
   const heading = c.heading || 'Commission a Piece'
-  const subheading = c.subheading || 'Custom pet & house portraits in your medium of choice.'
+  const subheading = c.subheading || 'Personal paintings inspired by your people, pets, home, places, and ideas.'
   const body = c.body || 'From a wedding portrait to a long-loved dog, Margaret will work with your photos and notes to create a one-of-a-kind painting for your home.'
   const imageUrl = c.image_url || 'https://klwkajukicsoiwpsgftt.supabase.co/storage/v1/object/public/product-images/web/custom-portrait-options/custom-pet-portrait-example_1.webp'
   const ctaText = c.cta_text || 'Request a Commission'

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ValidatedCheckoutItem } from './validation'
+import { paperBorderIn } from '@/lib/artwork/paper-border'
+import { preparePaperPrint } from '@/lib/artwork/prepare-paper-print'
 
 /**
  * The oldest checkout snapshot the order path still accepts. Version 2 froze the
@@ -46,6 +48,10 @@ export async function captureProductionSources(
       source?.print_status === 'ready' ? source.print_storage_path : null
     if (item.fulfillmentType === 'lumaprints' && !item.printStoragePath)
       throw new Error('The production file is not ready.')
+    if (item.fulfillmentType === 'lumaprints' && item.printStoragePath && item.purchaseSpec && paperBorderIn(item.purchaseSpec.medium)) {
+      item.printStoragePath = await preparePaperPrint(client, item.printStoragePath, Number(item.purchaseSpec.width_in), Number(item.purchaseSpec.height_in))
+      item.purchaseSpec.details = { ...item.purchaseSpec.details, paper_border_in: paperBorderIn(item.purchaseSpec.medium) }
+    }
   }
 }
 

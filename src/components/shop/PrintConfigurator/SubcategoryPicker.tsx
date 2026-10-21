@@ -24,7 +24,7 @@ export default function SubcategoryPicker({
   return (
     <div className="mt-4">
       <span id="print-finish-label" className="block font-body text-xs font-medium uppercase tracking-wide text-charcoal/60">
-        Choose a finish
+        {chosen?.medium === 'canvas' || chosen?.medium === 'framed_canvas' ? 'Canvas Depth' : chosen?.medium === 'framed_fine_art_paper' ? 'Choose a frame' : 'Choose a paper'}
       </span>
       <div
         role="radiogroup"

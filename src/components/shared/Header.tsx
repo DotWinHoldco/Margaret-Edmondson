@@ -7,6 +7,7 @@ import { useCart } from '@/lib/cart/context'
 
 const NAV_LINKS = [
   { href: '/shop', label: 'Shop' },
+  { href: '/gallery', label: 'Gallery' },
   { href: '/commissions', label: 'Commissions' },
   { href: '/classes', label: 'Classes' },
   { href: '/courses', label: 'Courses' },
@@ -37,7 +38,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}

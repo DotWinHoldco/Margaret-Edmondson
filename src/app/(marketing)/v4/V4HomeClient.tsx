@@ -109,7 +109,7 @@ const seriesData = [
   },
   {
     src: '/Margaret Edmondson/ARTWORK/Custom Portrait Options/Family Gift Painting.jpg',
-    title: 'Custom Portraits',
+    title: 'Commissions',
     count: 2,
     tall: true,
     slug: 'custom-portraits',

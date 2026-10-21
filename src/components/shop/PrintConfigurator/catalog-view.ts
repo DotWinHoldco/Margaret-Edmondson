@@ -161,7 +161,7 @@ export function visibleGroups(
 /** The option a group starts on: its marked default, else its first live option. */
 export function startingOptionFor(group: StorefrontGroup): number | null {
   const marked = group.options.find(
-    (option) => option.option_id === group.default_option_id && !option.blocked,
+    (option) => option.option_id === group.default_option_id && option.effective_enabled && !option.blocked,
   )
   if (marked) return marked.option_id
   const firstLive = group.options.find((option) => option.effective_enabled && !option.blocked)
@@ -197,14 +197,14 @@ export function normalizeSelection(
   for (const group of subcategory.groups) {
     const ids = new Set(group.options.map((option) => option.option_id))
     const wanted = desired.find((id) => ids.has(id))
-    if (wanted !== undefined && offerable(group.group_key, wanted)) {
+    if (wanted !== undefined && group.options.some((option) => option.option_id === wanted && option.effective_enabled && !option.blocked) && offerable(group.group_key, wanted)) {
       picked.set(group.group_key, wanted)
       continue
     }
     const marked = group.options.find(
       (option) =>
         option.option_id === group.default_option_id &&
-        !option.blocked &&
+        option.effective_enabled && !option.blocked &&
         offerable(group.group_key, option.option_id),
     )
     const fallback =
@@ -232,6 +232,27 @@ export function startingSelection(
   availability?: readonly GroupAvailability[],
 ): number[] {
   return normalizeSelection(subcategory, [], availability)
+}
+
+/** Keep compatible choices when comparing frames; provider IDs can differ by frame. */
+export function selectionForFinish(
+  previous: StorefrontSubcategory,
+  next: StorefrontSubcategory,
+  current: readonly number[],
+  availability?: readonly GroupAvailability[],
+): number[] {
+  const desired: number[] = []
+  if (previous.medium === next.medium) {
+    for (const group of next.groups) {
+      const prior = previous.groups.find((candidate) => candidate.group_key === group.group_key)
+      const choice = prior ? chosenOption(prior, current) : null
+      if (!choice) continue
+      const match = group.options.find((option) => option.option_id === choice.option_id)
+        ?? group.options.find((option) => option.display_label === choice.display_label)
+      if (match?.effective_enabled && !match.blocked) desired.push(match.option_id)
+    }
+  }
+  return normalizeSelection(next, desired, availability)
 }
 
 /** The selection after a choice in one group; the new id wins its group. */

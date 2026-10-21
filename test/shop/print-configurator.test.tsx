@@ -265,7 +265,7 @@ describe('choosing what to buy', () => {
     await settle()
 
     expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /Framed Fine Art Paper/ })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Framed Paper Prints/ })).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /Metal Print/ })).toBeNull()
     expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toHaveTextContent('from $180.00')
   })
@@ -274,12 +274,12 @@ describe('choosing what to buy', () => {
     mount()
     await settle()
 
-    expect(screen.queryByText('Choose a finish')).toBeNull()
+    expect(screen.queryByText('Choose a frame')).toBeNull()
 
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
 
-    expect(screen.getByText('Choose a finish')).toBeInTheDocument()
+    expect(screen.getByText('Choose a frame')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: '0.875 in Black Frame' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: '1.25 in Oak Frame' })).toBeInTheDocument()
     expect(screen.getByText('Framed pieces ship in a hard case.')).toBeInTheDocument()
@@ -314,7 +314,7 @@ describe('what reaches the server', () => {
     mount()
     await settle()
 
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
 
     // Backing is never rendered and still travels; mat colour does not, because a mat
@@ -331,7 +331,7 @@ describe('what reaches the server', () => {
   it('offers the dependent group once its parent applies, and sends it', async () => {
     mount()
     await settle()
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
 
     fireEvent.click(screen.getByRole('radio', { name: '2 in Mat' }))
@@ -340,6 +340,28 @@ describe('what reaches the server', () => {
     expect(screen.getByText('Mat Color')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'White' })).toHaveAttribute('aria-checked', 'true')
     expect(bodyOf(fetchMock.mock.calls.length - 1).optionIds).toEqual([84, 96, 148])
+  })
+
+  it('keeps the mat size and color when switching frames and presents mats first', async () => {
+    mount()
+    await settle()
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
+    await settle()
+    fireEvent.click(screen.getByRole('radio', { name: '3 in Mat' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Antique' }))
+    await settle()
+    const mat = screen.getByText('Mat Size'), frame = screen.getByText('Choose a frame')
+    expect(mat.compareDocumentPosition(frame) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    await settle()
+    expect(screen.getByRole('radio', { name: '3 in Mat' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'Antique' })).toHaveAttribute('aria-checked', 'true')
+    expect(bodyOf(fetchMock.mock.calls.length - 1)).toEqual({
+      subcategoryRef: 'sub-paper-b', variantId: 'v-paper-8x10', optionIds: [85, 94, 148],
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /36 × 24 in/ }))
+    await settle()
+    expect(bodyOf(fetchMock.mock.calls.length - 1).optionIds).toEqual([83, 148])
   })
 
   it('debounces a burst of changes into one quote', async () => {
@@ -361,7 +383,7 @@ describe('what cannot be chosen at this size', () => {
   it('disables a mat that would break the glass, with the reason beside it', async () => {
     mount()
     await settle()
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
 
     fireEvent.click(screen.getByRole('radio', { name: /36 × 24 in/ }))
@@ -388,7 +410,7 @@ describe('what cannot be chosen at this size', () => {
 })
 
 describe('the colour a wrap needs', () => {
-  it('asks for a hex and prices nothing until it is a real one', async () => {
+  it('starts solid sides at black and rejects invalid custom colors', async () => {
     mount()
     await settle()
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -398,18 +420,20 @@ describe('the colour a wrap needs', () => {
 
     const field = screen.getByLabelText('Wrap color')
     expect(field).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('button', { name: /add print to cart/i })).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(bodyOf(1).solidHex).toBe('#000000')
+    expect(screen.getByRole('button', { name: /add print to cart/i })).not.toBeDisabled()
 
     fireEvent.change(field, { target: { value: '#12' } })
     await settle()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('button', { name: /add print to cart/i })).toBeDisabled()
 
     fireEvent.change(field, { target: { value: '#123456' } })
     await settle()
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(bodyOf(1)).toEqual({
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(bodyOf(2)).toEqual({
       subcategoryRef: 'sub-canvas-125',
       variantId: 'v-canvas-11x14',
       optionIds: [3],
@@ -452,7 +476,7 @@ describe('adding the line', () => {
   it('names the finish in the summary when the medium sells more than one', async () => {
     const { onAddToCart } = mount()
     await settle()
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     answerWith(() =>
       jsonResponse(
         quoteBody({
@@ -592,7 +616,7 @@ describe('sizes per print type', () => {
         variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, excluded_subcategory_ids: [105001] }),
       ],
     })
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
     await settle()
     expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toBeInTheDocument()
@@ -606,9 +630,9 @@ describe('sizes per print type', () => {
         variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, excluded_subcategory_ids: [105001] }),
       ],
     })
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
-    expect(screen.queryByText('Choose a finish')).toBeNull()
+    expect(screen.queryByText('Choose a frame')).toBeNull()
     expect(screen.queryByRole('radio', { name: '1.25 in Oak Frame' })).toBeNull()
   })
 
@@ -619,7 +643,7 @@ describe('sizes per print type', () => {
         variant({ id: 'v-paper-36x24', medium: 'framed_fine_art_paper', width_in: 36, height_in: 24, price: 300, ...pricedFor105005 }),
       ],
     })
-    fireEvent.click(screen.getByRole('radio', { name: /Framed Fine Art Paper/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
     // Under the Black frame (the depth these were priced for) both chips carry their stored price.
     expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$88.00')

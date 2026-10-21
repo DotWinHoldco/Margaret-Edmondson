@@ -22,7 +22,7 @@ export default function DiscoverCTA({ className = '' }: { className?: string }) 
       <Link href="/commissions" className="group rounded-sm border border-charcoal/10 bg-white p-6 text-center hover:border-charcoal transition-colors">
         <p className="font-hand text-base text-gold uppercase tracking-wider">Connect</p>
         <h3 className="mt-1 font-display text-2xl font-light text-charcoal group-hover:text-teal transition-colors">Commission or say hi</h3>
-        <p className="mt-2 font-body text-sm text-charcoal/60">Custom portraits, questions, anything.</p>
+        <p className="mt-2 font-body text-sm text-charcoal/60">Commissions, questions, anything.</p>
       </Link>
     </section>
   )

@@ -390,7 +390,7 @@ function seededDefaultMatcher(groupKey: string, categoryId: number, subcategoryN
     case 'glazing':
       return /^acrylic glass/i
     case 'backing':
-      return /^no backing$/i
+      return categoryId === 105 ? /^kraft paper$/i : /^no backing$/i
     case 'print_mounting':
       return /^dry mounted to foam core$/i
     case 'metal_hardware':
@@ -398,7 +398,7 @@ function seededDefaultMatcher(groupKey: string, categoryId: number, subcategoryN
     case 'hanging_hardware':
       // Each family hangs differently, and the provider names the same hardware
       // differently per family, so the default is chosen per category.
-      if (categoryId === 101) return /^sawtooth hanger installed$/i
+      if (categoryId === 101) return /^hanging wire installed$/i
       if (categoryId === 102) return /^hanging wire installed$/i
       if (categoryId === 105) return /^hanging wire installed on frame$/i
       return null

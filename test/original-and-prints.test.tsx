@@ -22,12 +22,15 @@ const product = { id: 'art', title: 'Sunrise', slug: 'sunrise', description_html
 
 it('offers the original and Lumaprints print on one page with separate prices and providers', () => {
   render(<ProductDetail product={product} relatedProducts={[]} />)
+  expect(screen.getByRole('button', { name: 'Add Print to Cart — $60.00' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: /Choose artwork or print size/ }))
+  fireEvent.click(screen.getByRole('option', { name: /Original Artwork/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Add Original to Cart — $1200.00' }))
   expect(dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ payload: expect.objectContaining({
     variantId: 'original', fulfillmentType: 'self_ship', price: 1200, quantity: 1,
   }) }))
   fireEvent.click(screen.getByRole('button', { name: /Choose artwork or print size/ }))
-  fireEvent.click(screen.getByRole('option', { name: /Small — 8 × 10 in/ }))
+  fireEvent.click(screen.getByRole('option', { name: /8 × 10 in/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Add Print to Cart — $60.00' }))
   expect(dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ payload: expect.objectContaining({
     variantId: 'print', fulfillmentType: 'lumaprints', price: 60,
@@ -41,6 +44,6 @@ it.each(['disabled', 'sold inventory', 'sold listing'])('keeps prints purchasabl
   expect(screen.queryByRole('button', { name: /Add Original to Cart/ })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /Choose artwork or print size/ }))
   expect(screen.queryByRole('option', { name: /Original Artwork/ })).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole('option', { name: /Small — 8 × 10 in/ }))
+  fireEvent.click(screen.getByRole('option', { name: /8 × 10 in/ }))
   expect(screen.getByRole('button', { name: 'Add Print to Cart — $60.00' })).toBeEnabled()
 })

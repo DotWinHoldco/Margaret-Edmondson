@@ -99,7 +99,7 @@ export default function FeaturedGridBlock({ config }: { config: Record<string, u
 
         <motion.div {...scrollReveal} className="text-center mt-16">
           <Link
-            href="/shop"
+            href="/gallery"
             className="inline-flex items-center gap-2 font-body text-sm font-medium tracking-widest uppercase text-charcoal/70 hover:text-teal transition-colors"
           >
             View the full gallery

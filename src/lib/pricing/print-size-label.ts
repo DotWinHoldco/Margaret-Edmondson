@@ -37,11 +37,8 @@ export function printSizeLabel(value: SizeInput) {
   const [displayW, displayH] = candidates[0] || (withinTolerance(wholeInch) ? wholeInch : [w, h])
   const isApproximate = Math.abs(displayW - w) > 1e-9 || Math.abs(displayH - h) > 1e-9
   const dimensions = `${displayW} × ${displayH} in`
-  // Keep personal names and Small/Medium/Large; remove only an old dimension fragment.
-  const name = (value.name || '').replace(/\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?(?:\s*(?:inches|inch|in\b|[″"]))?/gi, '')
-    .replace(/^[\s—–\-:()]+|[\s—–\-:()]+$/g, '').trim()
-  const prefix = name || (value.size_tier ? { S: 'Small', M: 'Medium', L: 'Large' }[value.size_tier] : '')
-  return { dimensions, title: prefix ? `${prefix} — ${dimensions}` : dimensions,
+  // Customer-facing sizes are measurements only; tier/name remain admin metadata.
+  return { dimensions, title: dimensions,
     actualNote: isApproximate ? `(actual cropped size: ${w} × ${h} in)` : null, isApproximate }
 }
 

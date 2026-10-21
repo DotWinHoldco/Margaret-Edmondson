@@ -6,9 +6,9 @@
 
 export const MEDIUM_GROUP_LABEL: Record<string, string> = {
   canvas: 'Stretched Canvas',
+  fine_art_paper: 'Archival Paper Prints',
   framed_canvas: 'Framed Canvas',
-  fine_art_paper: 'Fine Art Paper',
-  framed_fine_art_paper: 'Framed Fine Art Paper',
+  framed_fine_art_paper: 'Framed Paper Prints',
   foam_mounted_fine_art_paper: 'Foam-Mounted Print',
   metal: 'Metal Print',
   peel_and_stick: 'Peel & Stick',

@@ -361,7 +361,7 @@ describe('seed rules — our default per group', () => {
     }
     expect(pick(101002, 'canvas_border')).toBe(2) // Mirror Wrap, never Image Wrap
     expect(pick(101002, 'hanging_hardware')).toBe(11) // Sawtooth (the only member)
-    expect(pick(101001, 'hanging_hardware')).toBe(4) // Sawtooth
+    expect(pick(101001, 'hanging_hardware')).toBe(5) // Installed wire
     expect(pick(101003, 'canvas_underlayer')).toBe(9) // No Canvas Underlayer
     expect(pick(101005, 'rolled_border_size')).toBe(19)
     expect(pick(102001, 'frame_style')).toBe(12) // 0.75in Black Floating
@@ -374,7 +374,7 @@ describe('seed rules — our default per group', () => {
     expect(pick(105005, 'mat_color')).toBe(96) // White, not White with Black Core
     expect(pick(105005, 'paper_type')).toBe(74)
     expect(pick(105005, 'glazing')).toBe(146)
-    expect(pick(105005, 'backing')).toBe(94)
+    expect(pick(105005, 'backing')).toBe(95) // Kraft Paper
     expect(pick(105005, 'print_mounting')).toBe(148)
     expect(pick(105005, 'hanging_hardware')).toBe(83) // Wire installed on frame
     expect(pick(106001, 'metal_hardware')).toBe(31) // Inset Frame, not Inset Frame with Wire

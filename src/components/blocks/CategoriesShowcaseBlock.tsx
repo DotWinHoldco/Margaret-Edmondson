@@ -13,7 +13,7 @@ const DEFAULT_CATEGORIES = [
     name: 'Beach',
     slug: 'beach',
     image: `${STORAGE_BASE}/beach-and-sc/dolphin-watch.webp`,
-    description: 'Coastal scenes & Southern charm',
+    description: 'Coastal scenes from FL, SC, AL & CA',
   },
   {
     name: 'Landscapes',

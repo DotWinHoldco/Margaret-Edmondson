@@ -70,9 +70,11 @@ export default async function CvPage() {
           <div className="flex gap-3 print:hidden">
             <a
               href="/cv.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md border border-charcoal/20 px-4 py-2 font-body text-sm font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
             >
-              Download PDF
+              View CV (PDF)
             </a>
           </div>
         </header>

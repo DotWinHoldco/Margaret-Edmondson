@@ -11,8 +11,6 @@ interface Product {
   slug: string
   medium: string | null
   dimensions: string | null
-  base_price: number
-  is_original: boolean
   product_images: Array<{ url: string; alt_text: string | null; is_primary: boolean }>
 }
 
@@ -47,7 +45,7 @@ export default function GalleryGrid({ products }: { products: Product[] }) {
       </div>
 
       {/* Masonry Grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start gap-6">
         {filtered.map((product, i) => {
           const primaryImage = product.product_images?.find((img) => img.is_primary) || product.product_images?.[0]
           if (!primaryImage) return null
@@ -69,11 +67,6 @@ export default function GalleryGrid({ products }: { products: Product[] }) {
                     mode="morph"
                     imageClassName="transition-transform duration-700 group-hover:scale-105"
                   />
-                  {product.is_original && (
-                    <span className="absolute top-3 left-3 px-2 py-0.5 bg-gold/90 text-white text-[10px] font-body font-semibold uppercase tracking-wider rounded-sm z-10">
-                      Original
-                    </span>
-                  )}
                 </div>
                 <div className="mt-3 pb-2">
                   <h3 className="font-body text-sm font-medium text-charcoal group-hover:text-teal transition-colors">
@@ -82,9 +75,7 @@ export default function GalleryGrid({ products }: { products: Product[] }) {
                   {product.medium && (
                     <p className="font-hand text-sm text-charcoal/50">{product.medium}</p>
                   )}
-                  <p className="font-body text-sm text-charcoal/70 mt-0.5">
-                    ${product.base_price.toFixed(2)}
-                  </p>
+
                 </div>
               </Link>
             </motion.div>

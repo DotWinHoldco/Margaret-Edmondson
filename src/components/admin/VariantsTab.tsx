@@ -342,14 +342,8 @@ export default function VariantsTab({
       out[key].push(v)
     }
     const area = (v: Variant) => (v.width_in || 0) * (v.height_in || 0)
-    const tierRank = (v: Variant) => (v.size_tier ? { S: 0, M: 1, L: 2 }[v.size_tier] : 3)
     for (const key of Object.keys(out)) {
-      out[key].sort((a, b) => {
-        const ta = tierRank(a)
-        const tb = tierRank(b)
-        if (ta !== tb) return ta - tb
-        return area(a) - area(b)
-      })
+      out[key].sort((a, b) => area(a) - area(b) || (a.width_in || 0) - (b.width_in || 0))
     }
     return out
   }, [variants])

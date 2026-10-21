@@ -93,6 +93,8 @@ export interface FramePreviewProps {
   /** A photographic frame corner the operator uploaded, tiled along the face. */
   frameImage?: string | null
   matColor: string
+  paperBorderIn?: number
+  matCoreColor?: string | null
   edgeHint: EdgeHint
   /** The wrap colour when the shopper picked a solid colour wrap. */
   solidHex?: string | null
@@ -124,6 +126,8 @@ export default function FramePreview({
   frameColor,
   frameImage: frameImageProp,
   matColor,
+  matCoreColor,
+  paperBorderIn = 0,
   edgeHint,
   solidHex,
   containerPx,
@@ -173,13 +177,13 @@ export default function FramePreview({
             className="relative flex h-full w-full items-center justify-center"
             style={{ backgroundColor: layout.matPx > 0 ? mat : 'transparent', padding: `${layout.matPx}px` }}
           >
-            <div className="relative h-full w-full overflow-hidden">
+            <div className="relative h-full w-full overflow-hidden" style={matCoreColor && matIn > 0 ? { outline: `2px solid ${matCoreColor}` } : undefined}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageUrl}
                 alt={imageAlt}
                 className="h-full w-full object-cover"
-                style={{ display: 'block' }}
+                style={{ display: 'block', objectFit: paperBorderIn > 0 ? 'contain' : 'cover', backgroundColor: '#ffffff', padding: `${paperBorderIn * layout.scale}px` }}
               />
               {edgeHint !== 'none' && layout.matPx === 0 && (
                 <>
