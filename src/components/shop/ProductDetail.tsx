@@ -557,7 +557,7 @@ export default function ProductDetail({
 
   const isSold = printVariants.length === 0 && (product.status === 'sold' || (!!originalVariant && !originalAvailable))
   const hasPrints = printVariants.length > 0
-  // A made-to-order commission example (e.g. Custom Portraits): active, no
+  // A made-to-order commission example: active, no
   // purchasable variants, no prints, not an original for sale. Shown with a
   // "commission" CTA instead of a price + cart.
   const isCommission = !isSold && !originalVariant && !hasPrints && !product.is_original && !product.prints_enabled

@@ -397,6 +397,17 @@ Related tag: #csp-enforce, #a-10
 
 ## Format
 
+### Unpatched transitive dependency advisories (2026-10-21)
+
+Severity: upstream high for development tooling; moderate for authenticated document import.
+Module: `eslint-config-next` → `fast-glob` → `micromatch` → `braces`; `mammoth` → `argparse` → `sprintf-js`.
+Description: `braces` has no published patched version for GHSA-vfj7-8cjw-p6xm. It is used by the development-only Next ESLint plugin, not the storefront runtime. `sprintf-js` has no published patch for GHSA-hp3w-g68c-fv3c and remains a Mammoth dependency. The suggested automatic fixes downgrade Next's lint configuration to version 14 and Mammoth to 0.3, so they are not compatible maintenance updates.
+Current status: OPEN. The available Next.js, sharp, sanitize-html, brace-expansion, source-map-js, and Vite patches were applied. The unmodified CI dependency audit still fails on the development-tool advisory; application build-check is a separate verdict. There are no high or critical production-dependency findings in the updated lockfile.
+Required fix: adopt compatible upstream patches or remove the affected dependencies after a focused compatibility review.
+Required check: `npm audit --audit-level=high` and `npm audit --omit=dev --audit-level=high`.
+References: https://github.com/advisories/GHSA-vfj7-8cjw-p6xm and https://github.com/advisories/GHSA-hp3w-g68c-fv3c.
+Related tag: #margaret-20261021-requests
+
 ### Risk
 
 Severity:

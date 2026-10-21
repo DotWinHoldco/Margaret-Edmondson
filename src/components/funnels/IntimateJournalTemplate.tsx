@@ -356,7 +356,7 @@ export default function IntimateJournalTemplate({ funnel, product, images, varia
                     <p className="font-hand text-lg text-teal -rotate-1 mb-3">The Original</p>
                     <p className="font-serif-display text-2xl text-charcoal">{product.title}</p>
                     <p className="mt-4 font-serif-body text-charcoal/65 leading-relaxed">
-                      {funnel.offer_original_description || `One of a kind. This original ${product.medium || 'artwork'} is the real thing — the paint Margaret touched, the surface that holds every intentional mark. It can never be replicated.`}
+                      {funnel.offer_original_description || `This original ${product.medium || 'artwork'} carries Margaret's own brushwork and every intentional mark.`}
                     </p>
                     <p className="mt-6 font-serif-display text-3xl text-charcoal">
                       ${originalVariant.price.toLocaleString()}
