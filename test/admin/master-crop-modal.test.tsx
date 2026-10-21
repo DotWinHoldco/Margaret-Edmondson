@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest'
 import MasterCropModal, { type MasterCropTarget } from '@/components/admin/MasterCropModal'
 
 const h = vi.hoisted(() => ({ send: vi.fn(), toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
-vi.mock('@/lib/api/client', () => ({ apiSend: h.send, errorMessage: (e: Error) => e.message }))
+vi.mock('@/lib/api/client', () => ({ apiSend: h.send, apiFetch: async () => ({ width: 1000, height: 1000 }), errorMessage: (e: Error) => e.message }))
 vi.mock('@/components/shared/toast/ToastProvider', () => ({ useToast: () => h.toast }))
 
 const requestStamp = '2026-09-22T18:32:00.000Z'
@@ -34,7 +34,8 @@ function editor(initial = master) {
 }
 
 async function submitCrop() {
-  fireEvent.change(screen.getByRole('combobox', { name: 'Print shape' }), { target: { value: '0.8' } })
+  fireEvent.change(screen.getByRole('combobox', { name: 'Target print size' }), { target: { value: '8x10' } })
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Save crop' })).toBeEnabled())
   fireEvent.click(screen.getByRole('button', { name: 'Save crop' }))
   fireEvent.click(screen.getByRole('button', { name: 'Yes, apply crop' }))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Preparing…' })).toBeDisabled())
@@ -65,7 +66,7 @@ describe('crop save completion', () => {
   it('allows a genuinely edited crop during preparation or after completion', async () => {
     const page = editor()
     await submitCrop()
-    fireEvent.change(screen.getByRole('combobox', { name: 'Print shape' }), { target: { value: '1' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Target print size' }), { target: { value: 'free' } })
     expect(screen.getByRole('button', { name: 'Save crop' })).toBeEnabled()
     page.update({ print_status: 'ready', print_requested_at: requestStamp })
     expect(screen.getByText(/You’ve made more changes since saving/)).toBeVisible()

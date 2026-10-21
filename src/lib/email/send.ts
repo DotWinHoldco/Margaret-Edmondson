@@ -2,7 +2,8 @@ import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { normalizeColorHex } from '@/lib/orders/print-options'
-import { getEmailFromLine } from '@/lib/settings/accessor'
+import { getBusinessEmail, getEmailFromLine } from '@/lib/settings/accessor'
+import { DEFAULT_STUDIO_EMAIL } from './identity'
 
 const RESEND_API = 'https://api.resend.com/emails'
 
@@ -23,13 +24,14 @@ export async function sendEmail({ to, subject, html, replyTo, headers, idempoten
 
   // From line comes from site settings; the env var is the fallback when the
   // setting is unreadable.
-  let from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
+  let from = process.env.EMAIL_FROM || `ArtByME <${DEFAULT_STUDIO_EMAIL}>`
   try {
     const line = await getEmailFromLine()
     if (line) from = line
   } catch {
     // settings unavailable — keep the env fallback
   }
+  const replyAddress = replyTo || await getBusinessEmail().catch(() => DEFAULT_STUDIO_EMAIL)
 
   const res = await fetch(RESEND_API, {
     method: 'POST',
@@ -43,7 +45,7 @@ export async function sendEmail({ to, subject, html, replyTo, headers, idempoten
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
-      ...(replyTo ? { reply_to: replyTo } : {}),
+      reply_to: replyAddress,
       ...(headers ? { headers } : {}),
     }),
   })
@@ -97,6 +99,7 @@ export async function sendOrderConfirmation(
   orderUrl?: string,
   tax?: { amount: number; included: boolean; state: string },
 ) {
+  const contactEmail = await getBusinessEmail().catch(() => DEFAULT_STUDIO_EMAIL)
   const itemRows = items
     .map(
       (i) =>
@@ -142,7 +145,7 @@ export async function sendOrderConfirmation(
     </p>` : ''}
     <p style="text-align: center; color: #666; font-size: 13px; line-height: 1.6;">
       Questions about your order? Reply to this email or reach out at
-      <a href="mailto:hello@artbyme.studio" style="color: #3A7D7B;">hello@artbyme.studio</a>
+      <a href="mailto:${escapeHtml(contactEmail)}" style="color: #3A7D7B;">${escapeHtml(contactEmail)}</a>
     </p>
   `,
     { hideUnsubscribe: true, preheader: `Order confirmed — total $${total.toFixed(2)}` }
@@ -152,7 +155,7 @@ export async function sendOrderConfirmation(
     to: email,
     subject: `ArtByME — Order Confirmed #${orderId.slice(0, 8).toUpperCase()}`,
     html,
-    replyTo: 'hello@artbyme.studio',
+    replyTo: contactEmail,
   })
 }
 
@@ -240,6 +243,5 @@ export async function sendShippingUpdate(
     to: email,
     subject: `ArtByME — Your Order Has Shipped #${orderId.slice(0, 8).toUpperCase()}`,
     html,
-    replyTo: 'hello@artbyme.studio',
   })
 }

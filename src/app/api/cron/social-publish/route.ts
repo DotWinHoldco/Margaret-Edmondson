@@ -15,7 +15,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { requireCron } from '@/lib/auth/require-cron'
 import { sendEmail } from '@/lib/email/send'
 import { brandedShell, ctaButton } from '@/lib/email/shell'
-import { getEmailFromAddress } from '@/lib/settings/accessor'
+import { getStudioNotificationEmail } from '@/lib/settings/accessor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -50,33 +50,6 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
-async function resolveOwnerEmail(
-  supabase: Awaited<ReturnType<typeof createServiceClient>>
-): Promise<string> {
-  // Prefer an explicit override, then the first admin/artist profile, then the
-  // studio's from-address as a last resort.
-  if (process.env.SOCIAL_REMINDER_EMAIL) return process.env.SOCIAL_REMINDER_EMAIL
-
-  const { data } = await supabase
-    .from('profiles')
-    .select('email, role')
-    .in('role', ['admin', 'artist'])
-    .not('email', 'is', null)
-    .order('role', { ascending: true })
-    .limit(1)
-
-  const owner = (data as Array<{ email: string | null }> | null)?.[0]?.email
-  if (owner) return owner
-
-  // Last resort: the configured from-address (settings first, env fallback).
-  try {
-    return await getEmailFromAddress()
-  } catch {
-    const from = process.env.EMAIL_FROM || 'ArtByME <hello@artbyme.studio>'
-    const match = from.match(/<([^>]+)>/)
-    return match ? match[1] : 'hello@artbyme.studio'
-  }
-}
 
 function buildReminderHtml(post: DuePost): string {
   const channelLabel = CHANNEL_LABEL[post.channel] || post.channel
@@ -159,7 +132,7 @@ export async function GET(request: Request) {
     })
   }
 
-  const ownerEmail = await resolveOwnerEmail(supabase)
+  const ownerEmail = await getStudioNotificationEmail()
   let sent = 0
   let processed = 0
 
@@ -187,7 +160,6 @@ export async function GET(request: Request) {
       to: ownerEmail,
       subject: `Time to post on ${CHANNEL_LABEL[post.channel] || post.channel}`,
       html: buildReminderHtml(post),
-      replyTo: 'hello@artbyme.studio',
     })
     if (result !== null) sent++
   }

@@ -3,7 +3,11 @@
 // size picker and the configurator both render it, from here, so the reassurance a
 // shopper reads does not depend on which purchase panel the store has switched on.
 
-export default function PrintClarityBanner({ title }: { title: string }) {
+import { mediumLabel } from './medium-labels'
+import PrintInformation from '../PrintInformation'
+
+export default function PrintClarityBanner({ title, medium }: { title: string; medium?: string | null }) {
+  const material = medium ? mediumLabel(medium).toLowerCase() : 'art print'
   return (
     <div className="mt-3 flex items-start gap-3 px-4 py-3 bg-teal/5 border border-teal/15 rounded-sm">
       <svg className="w-5 h-5 text-teal flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -14,8 +18,9 @@ export default function PrintClarityBanner({ title }: { title: string }) {
           You&apos;re purchasing a <strong>print reproduction</strong>
         </p>
         <p className="font-body text-xs text-charcoal/50 mt-0.5">
-          Archival reproduction of &ldquo;{title}&rdquo; by Margaret Edmondson
+          Gallery-quality {material} of &ldquo;{title}&rdquo; by Margaret Edmondson
         </p>
+        <PrintInformation medium={medium} />
       </div>
     </div>
   )

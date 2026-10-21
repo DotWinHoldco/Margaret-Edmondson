@@ -1,5 +1,8 @@
 'use client'
 
+import { priceDisplay } from '@/lib/price-display'
+
+
 // Authored by DotWin
 // Step one of the purchase panel (§7.1): the mediums this artwork is actually sold in,
 // each with the cheapest size it starts at. A medium only appears when the catalog can
@@ -10,7 +13,7 @@ export interface MediumCard {
   medium: string
   label: string
   /** Cheapest Live variant price in this medium, default configuration. */
-  fromPrice: number
+  fromPrice: number | null
 }
 
 export default function MediumCards({
@@ -69,7 +72,7 @@ export default function MediumCards({
             >
               <span className="block font-body text-sm font-medium text-charcoal">{card.label}</span>
               <span className="mt-0.5 block font-body text-xs text-charcoal/55">
-                from ${card.fromPrice.toFixed(2)}
+                {card.fromPrice === null ? 'Priced with your options' : `from $${priceDisplay(card.fromPrice)}`}
               </span>
             </button>
           )

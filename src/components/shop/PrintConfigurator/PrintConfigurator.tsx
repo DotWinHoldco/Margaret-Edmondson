@@ -19,13 +19,15 @@
 //     disabled with the customer reason beside it; only sizes a finish cannot print at
 //     all are absent, and a medium with nothing sellable is not a card.
 
+import { catalogWithProductMat, type ProductMatPreference } from '@/lib/catalog/product-mat'
+import { priceDisplay } from '@/lib/price-display'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CartItem } from '@/lib/cart/context'
 import type { StorefrontSubcategory } from '@/lib/catalog/storefront'
 import { paperBorderIn } from '@/lib/artwork/paper-border'
-import { swatchForOption } from '@/lib/catalog/seed-rules'
 import { printSizeCartLabel } from '@/lib/pricing/print-size-label'
 import type { PrintQuoteRequest } from '@/lib/pricing/quote-types'
+import type { RuleMaster } from '@/lib/catalog/rules'
 import FramePreview, { type EdgeHint } from './FramePreview'
 import HexPicker from './HexPicker'
 import MediumCards, { type MediumCard } from './MediumCards'
@@ -55,23 +57,24 @@ import {
   STALE_NOTE,
   useConfiguratorQuote,
 } from './useConfiguratorQuote'
+import { previewMaterials } from './preview-materials'
 
 export interface PrintConfiguratorProps {
   product: { id: string; title: string }
   image: { url: string; alt: string }
   /** Live print variants of this product, already filtered by the page. */
   variants: PrintVariant[]
+  matPreference?: ProductMatPreference | null
   catalog: StorefrontSubcategory[]
+  /** Public print-master pixel dimensions; the same resolution/shape gate as the quote route. */
+  master?: RuleMaster
   onAddToCart: (item: CartItem) => void
   initialVariantId?: string
   /** The store turned the configurator off under this page: fall back to the legacy picker. */
   onDoorClosed?: () => void
 }
 
-const DEFAULT_FRAME_FACE_IN = 0.75
-const DEFAULT_FRAME_COLOR = '#3b2f2f'
-const DEFAULT_MAT_COLOR = '#ffffff'
-const WRAPPED_MEDIUMS = new Set(['canvas', 'framed_canvas', 'rolled_canvas'])
+const WRAPPED_MEDIUMS = new Set(['canvas', 'framed_canvas'])
 
 /** The shipping sentence the product page already shows for a variant. */
 function shippingNote(variant: PrintVariant): string {
@@ -92,26 +95,31 @@ export default function PrintConfigurator({
   product,
   image,
   variants,
-  catalog,
+  catalog: baseCatalog,
+  matPreference = null,
+  master,
   onAddToCart,
   initialVariantId,
   onDoorClosed,
 }: PrintConfiguratorProps) {
+  const catalog = useMemo(() => catalogWithProductMat(baseCatalog, matPreference), [baseCatalog, matPreference])
   // --- Step 1: the mediums this artwork can actually be printed in ----------------
   const cards = useMemo<MediumCard[]>(() => {
     const mediums = [...new Set(variants.map((variant) => variant.medium).filter((m): m is string => !!m))]
     return mediums
-      .filter((medium) => offerableFinishes(catalog, medium, variants).length > 0)
+      .filter((medium) => offerableFinishes(catalog, medium, variants, master).length > 0)
       .map((medium) => {
-        const prices = variants.filter((variant) => variant.medium === medium).map((variant) => variant.price)
-        return { medium, label: mediumLabel(medium), fromPrice: Math.min(...prices) }
+        const prices = offerableFinishes(catalog, medium, variants, master)
+          .flatMap((finish) => sizesFor(finish, variants, master))
+          .map((variant) => variant.price)
+        return { medium, label: mediumLabel(medium), fromPrice: matPreference && medium === 'framed_fine_art_paper' ? null : Math.min(...prices) }
       })
       .sort((a, b) => {
         const ai = MEDIUM_ORDER.indexOf(a.medium)
         const bi = MEDIUM_ORDER.indexOf(b.medium)
         return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
       })
-  }, [catalog, variants])
+  }, [catalog, variants, master, matPreference])
 
   const initialMedium =
     variants.find((variant) => variant.id === initialVariantId)?.medium ?? cards[0]?.medium ?? null
@@ -121,14 +129,14 @@ export default function PrintConfigurator({
 
   // --- Step 2: the finishes of that medium ---------------------------------------
   const finishes = useMemo(
-    () => (medium ? offerableFinishes(catalog, medium, variants) : []),
-    [catalog, medium, variants],
+    () => (medium ? offerableFinishes(catalog, medium, variants, master) : []),
+    [catalog, medium, variants, master],
   )
   const [finishRef, setFinishRef] = useState<string | null>(null)
   const subcategory = finishes.find((finish) => finish.id === finishRef) ?? finishes[0] ?? null
 
   // --- Step 3: the sizes that finish can take ------------------------------------
-  const sizes = useMemo(() => (subcategory ? sizesFor(subcategory, variants) : []), [subcategory, variants])
+  const sizes = useMemo(() => (subcategory ? sizesFor(subcategory, variants, master) : []), [subcategory, variants, master])
   const [variantId, setVariantId] = useState<string | null>(initialVariantId ?? null)
   const variant = sizes.find((candidate) => candidate.id === variantId) ?? sizes[0] ?? null
   // Memoized so the size object's identity is stable between renders: it feeds the
@@ -174,24 +182,11 @@ export default function PrintConfigurator({
   }, [doorClosed, onDoorClosed])
 
   // --- The preview -----------------------------------------------------------------
-  const matOption = groups
-    .map((group) => chosenOption(group, optionIds))
-    .find((option) => typeof option?.geometry?.per_side_in === 'number')
+  const materials = previewMaterials(subcategory, optionIds, quote.status === 'quoted' ? quote.labels : [])
   const quotedMatIn =
-    quote.status === 'quoted' && size ? Math.max(0, (quote.outerWidthIn - size.widthIn) / 2) : null
-  const matIn = quotedMatIn ?? matOption?.geometry?.per_side_in ?? 0
-
-  const frameOption = subcategory?.groups
-    .map((group) => chosenOption(group, optionIds))
-    .find((option) => typeof option?.swatch?.frame_face_in === 'number' || option?.swatch?.image_path)
-  const isFramed = subcategory?.medium.startsWith('framed') === true
-  const frameSwatch = frameOption?.swatch ?? (subcategory ? swatchForOption('frame_style', subcategory.display_label, subcategory.display_label) : null)
-  const faceIn = isFramed ? frameSwatch?.frame_face_in ?? DEFAULT_FRAME_FACE_IN : 0
-  const frameColor = frameSwatch?.color_hex ?? DEFAULT_FRAME_COLOR
-  const matColorOption = subcategory?.groups
-    .filter((group) => group.group_key.includes('color'))
-    .map((group) => chosenOption(group, optionIds))
-    .find((option) => typeof option?.swatch?.color_hex === 'string')
+    subcategory?.medium === 'framed_fine_art_paper' && quote.status === 'quoted' && size
+      ? Math.max(0, (quote.outerWidthIn - size.widthIn) / 2) : null
+  const matIn = quotedMatIn ?? materials.matIn
   const edgeHint: EdgeHint = !subcategory
     ? 'none'
     : hexNeeded && isValidHex(hex)
@@ -226,11 +221,12 @@ export default function PrintConfigurator({
       shippingFeeCents: variant.shipping_fee_cents,
       selection: {
         subcategoryRef: quote.request.subcategoryRef,
-        // The normalized set the server priced (every group's chosen id after defaults were
-        // filled), read back from the labels, so the cart line carries the same ids the
-        // server hashed; the raw request ids are a subset and would make two lines of one
-        // configuration look different.
-        optionIds: quote.labels.length > 0 ? quote.labels.map((label) => label.option_id) : [...quote.request.optionIds],
+        // Re-submit the choices the server accepted, not its provider-only defaults.
+        // For example, No Mat still receives a default mat colour in the provider
+        // payload, but submitting that colour explicitly makes checkout reject the
+        // combination. The server's canonical lineHash already keeps equal
+        // configurations together and will restore the defaults when re-quoting.
+        optionIds: [...quote.request.optionIds],
         ...(quote.request.solidHex ? { solidHex: quote.request.solidHex } : {}),
         lineHash: quote.lineHash,
         summary,
@@ -239,11 +235,13 @@ export default function PrintConfigurator({
     })
   }, [quote, variant, subcategory, finishes.length, onAddToCart, product.id, product.title, image.url])
 
-  if (cards.length === 0 || !subcategory || !variant || !size) return null
+  if (cards.length === 0 || !subcategory || !variant || !size) {
+    return <p role="status" className="mt-4 font-body text-sm text-charcoal/70">Print sizes for this artwork are being updated. Please check back soon.</p>
+  }
 
   const priceLine =
     quote.status === 'quoted'
-      ? `$${(quote.priceCents / 100).toFixed(2)}`
+      ? `$${priceDisplay(quote.priceCents / 100)}`
       : quote.status === 'quoting'
         ? 'Pricing your choices…'
         : quote.status === 'retrying'
@@ -263,7 +261,7 @@ export default function PrintConfigurator({
         }}
       />
 
-      {finishes.length > 1 && !frameIsFinish && (
+      {!frameIsFinish && (finishes.length > 1 ? (
         <SubcategoryPicker
           subcategories={finishes}
           value={subcategory.id}
@@ -273,21 +271,36 @@ export default function PrintConfigurator({
             if (next) setOptionIds(selectionForFinish(subcategory, next, optionIds, availabilityAtSize(next, size)))
           }}
         />
-      )}
+      ) : (
+        <div className="mt-4">
+          <p className="font-body text-sm text-charcoal">{subcategory.display_label}</p>
+          {subcategory.description && (
+            <p className="mt-1.5 font-body text-xs text-charcoal/55">{subcategory.description}</p>
+          )}
+          {subcategory.customer_note && (
+            <p className="mt-1 font-body text-xs text-gold">{subcategory.customer_note}</p>
+          )}
+        </div>
+      ))}
 
       <SizePicker
         variants={sizes}
         value={variant.id}
         onSelect={setVariantId}
         priceFor={(candidate) => {
+          // The chosen size must agree with the purchase button, including add-ons
+          // and any provider price changes since the variant's stored price was saved.
+          if (candidate.id === variant.id) return quote.status === 'quoted' ? quote.priceCents / 100 : null
           // A chip's stored price is the size's default configuration in the depth it was
           // priced for. Under any other depth there is no honest number on the chip; the
           // configured price for the selected size is the server's, on the price line.
+          if (matPreference && subcategory.medium === 'framed_fine_art_paper') return null
           const stored = variantStoredSubcategoryId(candidate)
           return stored === null || stored === subcategory.subcategory_id ? candidate.price : null
         }}
       />
 
+      {subcategory?.mat_locked && <p className="rounded-md bg-teal/5 p-3 text-sm text-charcoal" role="note">Mat selected by the artist: {subcategory.groups.filter(g => g.group_key === 'mat_size' || g.group_key === 'mat_color').flatMap(g => g.options.filter(o => o.is_default).map(o => o.display_label)).join(' · ')}. This mat is fixed for this artwork.</p>}
       {matGroups.map((group) => (
         <div key={group.id}>
           <OptionGroupControl
@@ -332,6 +345,10 @@ export default function PrintConfigurator({
         </div>
       ))}
 
+      {hexNeeded && !groups.some((group) => chosenOption(group, optionIds)?.geometry?.needs_hex === true) && (
+        <HexPicker value={hex} onChange={setHex} label="Wrap" />
+      )}
+
       <div className="mt-5">
         <button
           type="button"
@@ -343,21 +360,30 @@ export default function PrintConfigurator({
           <span aria-hidden="true">{previewOpen ? '−' : '+'}</span>
         </button>
         <div className={previewOpen ? 'mt-2 block' : 'mt-2 hidden lg:block'}>
-          <FramePreview
+          {image.url ? <FramePreview
             imageUrl={image.url}
             imageAlt={image.alt}
             printW={size.widthIn}
             printH={size.heightIn}
             paperBorderIn={paperBorderIn(subcategory.medium)}
             matIn={matIn}
-            faceIn={faceIn}
-            frameColor={frameColor}
-            frameImage={frameOption?.swatch?.image_path ?? null}
-            matColor={matColorOption?.swatch?.color_hex ?? DEFAULT_MAT_COLOR}
-            matCoreColor={/black core/i.test(matColorOption?.display_label ?? '') ? '#111111' : null}
+            faceIn={materials.faceIn}
+            depthIn={materials.depthIn}
+            frameLabel={materials.frameLabel}
+            frameMedium={subcategory.medium === 'framed_canvas' || subcategory.medium === 'framed_fine_art_paper'
+              ? subcategory.medium : undefined}
+            floatingCanvas={materials.floatingCanvas}
+            gapIn={materials.gapIn}
+            geometryEstimated={materials.geometryEstimated}
+            frameColor={materials.frameColor}
+            frameImage={materials.frameImage}
+            matColor={materials.matColor}
+            matCoreColor={subcategory.groups.some(g => g.group_key === 'mat_color' && /black core/i.test(chosenOption(g, optionIds)?.display_label ?? '')) ? '#111111' : null}
             edgeHint={edgeHint}
             solidHex={isValidHex(hex) ? hex : null}
-          />
+          /> : <p role="status" className="rounded-sm border border-charcoal/10 bg-cream/60 px-5 py-8 text-center font-body text-sm text-charcoal/70">
+            The preview for this print is being prepared. Your selected dimensions and options are shown above.
+          </p>}
         </div>
       </div>
 
@@ -396,11 +422,11 @@ export default function PrintConfigurator({
         className="mt-3 w-full rounded-sm bg-teal py-3.5 font-body text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-deep-teal disabled:cursor-not-allowed disabled:opacity-50"
       >
         {quote.status === 'quoted'
-          ? `Add Print to Cart — $${(quote.priceCents / 100).toFixed(2)}`
+          ? `Add Print to Cart — $${priceDisplay(quote.priceCents / 100)}`
           : 'Add Print to Cart'}
       </button>
 
-      <PrintClarityBanner title={product.title} />
+      <PrintClarityBanner title={product.title} medium={medium} />
     </div>
   )
 }

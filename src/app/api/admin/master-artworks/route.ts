@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     .from('master_artworks')
     .select(
       `id, title, description, storage_path, file_name, file_size_bytes,
-       mime_type, width_px, height_px, dpi, created_at, updated_at,
+       mime_type, width_px, height_px, dpi, crop_output, created_at, updated_at,
        used_by:products(id)`,
       { count: 'exact' },
     )
@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       width_px: row.width_px,
       height_px: row.height_px,
       dpi: row.dpi,
+      crop_output: row.crop_output,
       created_at: row.created_at,
       updated_at: row.updated_at,
       usage_count: usageCount,

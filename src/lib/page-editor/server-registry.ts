@@ -462,6 +462,7 @@ const adapters: Record<string, ServerAdapter> = {
   commissions: pagesAdapterForSlug('commissions'),
   contact: pagesAdapterForSlug('contact'),
   home: homeAdapter,
+  'encouragement-series': pagesAdapterForSlug('encouragement-series'),
 }
 
 export function getServerAdapter(slug: string): ServerAdapter | null {

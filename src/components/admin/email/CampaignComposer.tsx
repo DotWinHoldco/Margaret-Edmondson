@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import RichTextEditor from '@/components/admin/RichTextEditor'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
@@ -65,7 +66,7 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
     subject: initial?.subject || '',
     preheader: initial?.preheader || '',
     from_name: initial?.from_name || 'Margaret Edmondson',
-    from_email: initial?.from_email || 'hello@artbyme.studio',
+    from_email: initial?.from_email || DEFAULT_STUDIO_EMAIL,
     content_html: initial?.content_html || '',
     audience_list_id: initial?.audience_list_id || null,
     promo_code_id: initial?.promo_code_id || null,

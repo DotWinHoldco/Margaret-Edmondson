@@ -1,5 +1,6 @@
 'use client'
 
+import { priceDisplay } from '@/lib/price-display'
 import { useEffect, useId, useRef, useState } from 'react'
 
 export interface PrintChoice { id: string; title: string; actualNote: string | null; price: number }
@@ -28,7 +29,7 @@ export default function PrintVariantPicker({ groups, value, onSelect, inlineMenu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
   function lines(option: PrintChoice) {
-    return <><span className="block">{option.title} <span className="whitespace-nowrap">— ${option.price.toFixed(2)}</span></span>{option.actualNote && <span className="block text-[9px] leading-4 text-charcoal/70">{option.actualNote}</span>}</>
+    return <><span className="block">{option.title} <span className="whitespace-nowrap">— ${priceDisplay(option.price)}</span></span>{option.actualNote && <span className="block text-[9px] leading-4 text-charcoal/70">{option.actualNote}</span>}</>
   }
   return <div ref={root} className="relative" onBlur={(event) => {
     if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false)

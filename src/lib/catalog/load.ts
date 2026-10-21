@@ -361,6 +361,8 @@ function hasHostileProviderDefault(group: CatalogOptionGroup): boolean {
  * marked `is_default`:
  *
  *  - when the group is live and that option is on, it is the neutral choice we sell;
+ *  - when the group is off and its marked option is the provider's own safe default,
+ *    it pins exactly what omission would order without adding a shopper control;
  *  - ALSO when the group is off, hidden, or its default has been switched off, BUT the
  *    provider would resolve the omission to a geometry-hostile option. Our default goes
  *    anyway, because it is our configuration rather than a customer's choice, and the
@@ -380,7 +382,10 @@ export function defaultSelection(subcategory: CatalogSubcategory): number[] {
     if (group.removed_from_api === true) continue
     const marked = group.options.find((option) => option.is_default === true)
     if (!marked || marked.removed_from_api === true || marked.blocked_reason !== null) continue
-    if ((group.effective_enabled && marked.enabled === true) || hasHostileProviderDefault(group)) {
+    // A switched-off control still orders the provider's own default. Preserve
+    // that exact safe default explicitly without exposing a new shopper choice.
+    const pinnedProviderDefault = group.enabled !== true && marked.provider_default === true
+    if ((group.effective_enabled && marked.enabled === true) || pinnedProviderDefault || hasHostileProviderDefault(group)) {
       ids.push(marked.option_id)
     }
   }

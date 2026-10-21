@@ -10,6 +10,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, dbFail } from '@/lib/api/respond'
 import { parseBody } from '@/lib/api/respond'
 import { commissionInputSchema } from '@/lib/api/public-input'
+import { getStudioNotificationEmail } from '@/lib/settings/accessor'
 
 const COMMISSION_STATUSES = [
   'inquiry',
@@ -118,7 +119,7 @@ export async function POST(request: Request) {
   )
 
   await sendEmail({
-    to: 'hello@artbyme.studio',
+    to: await getStudioNotificationEmail(),
     subject: `New Commission Request from ${client_name}`,
     html,
     replyTo: client_email,

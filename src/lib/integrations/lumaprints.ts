@@ -14,7 +14,6 @@ export class LumaprintsDisabledError extends Error {
 const API_KEY = process.env.LUMAPRINTS_API_KEY!
 const API_SECRET = process.env.LUMAPRINTS_API_SECRET!
 const BASE_URL = process.env.LUMAPRINTS_BASE_URL || 'https://us.api.lumaprints.com'
-const STORE_ID = process.env.LUMAPRINTS_STORE_ID!
 
 function getAuthHeader() {
   const encoded = Buffer.from(`${API_KEY}:${API_SECRET}`).toString('base64')
@@ -47,6 +46,16 @@ export class LumaprintsApiError extends Error {
   }
 }
 
+// Once an order POST starts, a dropped response or a gateway error does not
+// prove that creation failed. Hold the item for reconciliation instead of
+// creating a second physical print with an automatic retry.
+export class LumaprintsSubmissionUncertainError extends Error {
+  constructor(detail: string) {
+    super(`The print provider may have received this order. Check Lumaprints before retrying. ${detail}`)
+    this.name = 'LumaprintsSubmissionUncertainError'
+  }
+}
+
 async function request(path: string, options: RequestInit = {}, attempt = 0): Promise<unknown> {
   const policy = await getFulfillmentPolicy(await createServiceClient())
   if (!policy.lumaprints_enabled) throw new LumaprintsDisabledError()
@@ -54,14 +63,24 @@ async function request(path: string, options: RequestInit = {}, attempt = 0): Pr
   // provider never spends budget; the retry below re-enters this function, so a
   // retried request is charged again rather than slipping past the counter.
   await acquireProviderSlot()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Authorization: getAuthHeader(),
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  const createsOrder = path === '/api/v1/orders' && options.method === 'POST'
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        Authorization: getAuthHeader(),
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+  } catch (error) {
+    if (createsOrder) throw new LumaprintsSubmissionUncertainError(error instanceof Error ? error.message : 'Connection interrupted.')
+    throw error
+  }
+  if (createsOrder && res.status >= 500) {
+    throw new LumaprintsSubmissionUncertainError(`Provider returned ${res.status}.`)
+  }
   // Lumaprints sits behind Cloudflare, which 429s short bursts. Back off and
   // retry transient failures with exponential delay before giving up.
   if (RETRYABLE_STATUS.has(res.status)) {
@@ -90,7 +109,12 @@ async function request(path: string, options: RequestInit = {}, attempt = 0): Pr
     const error = await res.text()
     throw new LumaprintsApiError(res.status, error)
   }
-  return res.json()
+  try {
+    return await res.json()
+  } catch (error) {
+    if (createsOrder) throw new LumaprintsSubmissionUncertainError('The provider response could not be read.')
+    throw error
+  }
 }
 
 export async function getCategories() {
@@ -215,10 +239,11 @@ export interface LumaPrintsOrderResponse {
  * orderItems[{externalItemId, subcategoryId, quantity, width, height,
  * file:{imageUrl}, orderItemOptions}]. The submit auto-validates each image's
  * aspect within 1% of the ordered W:H (else 406) and enforces requiredDPI.
- * Throws LumaprintsApiError (with .status) on a non-2xx — callers branch on 406.
+ * Throws LumaprintsApiError for definitive rejections (callers branch on 406),
+ * or LumaprintsSubmissionUncertainError when creation needs reconciliation.
  */
 export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOrderResponse> {
-  const storeId = Number(STORE_ID)
+  const storeId = Number(process.env.LUMAPRINTS_STORE_ID)
   if (!Number.isFinite(storeId) || storeId <= 0) {
     // Guard: Number(undefined)=NaN (→null in JSON) and Number('')=0 are both
     // invalid store ids and would 400 at submit.
@@ -233,10 +258,14 @@ export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOr
     recipient: input.recipient,
     orderItems: input.orderItems,
   }
-  return request(`/api/v1/orders`, {
+  const response = await request(`/api/v1/orders`, {
     method: 'POST',
     body: JSON.stringify(body),
-  }) as Promise<LumaPrintsOrderResponse>
+  }) as LumaPrintsOrderResponse
+  if (!response?.orderNumber) {
+    throw new LumaprintsSubmissionUncertainError('The provider did not return an order number.')
+  }
+  return response
 }
 
 export async function getOrder(orderNumber: string | number): Promise<LumaPrintsOrderResponse> {

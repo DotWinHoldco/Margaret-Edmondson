@@ -77,7 +77,7 @@ describe('two-line storefront choice and cart', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     expect(trigger).toHaveFocus()
     expect(within(trigger).getByText('(actual cropped size: 15.85 × 20 in)')).toHaveClass('text-[9px]')
-    fireEvent.click(screen.getByRole('button', { name: 'Add Print to Cart — $99.00' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Print to Cart — $99' }))
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_ITEM', payload: expect.objectContaining({ variantId: 'near', price: 99, title: 'Test artwork — 16 × 20 in (actual cropped size: 15.85 × 20 in)' }) }))
     expect(product).toEqual(before)
     fireEvent.click(trigger)

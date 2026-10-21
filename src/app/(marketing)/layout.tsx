@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { headers } from 'next/headers'
 import Header from '@/components/shared/Header'
+import ArtworkProtection from '@/components/marketing/ArtworkProtection'
 import Footer from '@/components/shared/Footer'
 import CartDrawer from '@/components/shared/CartDrawer'
 import Providers from '@/components/shared/Providers'
@@ -97,6 +98,7 @@ export default async function MarketingLayout({
     <Providers>
       <PixelScript nonce={nonce} />
       <Header />
+      <ArtworkProtection />
       {showBanner ? (
         <>
           {/* Header is fixed, so the banner clears it with a matching margin

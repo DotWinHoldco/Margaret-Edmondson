@@ -1,3 +1,4 @@
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 

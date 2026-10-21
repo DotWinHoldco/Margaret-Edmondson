@@ -22,7 +22,7 @@ async function loadCv() {
       .order('display_order', { ascending: true })
       .order('title', { ascending: true }),
     supabase.from('cv_settings').select('intro, contact_email').eq('id', true).maybeSingle(),
-    supabase.from('products').select('slug, is_published').eq('is_published', true),
+    supabase.from('products').select('slug').eq('status', 'active'),
   ])
 
   const entries = (entriesRes.data || []) as CvEntry[]
@@ -30,7 +30,7 @@ async function loadCv() {
   return {
     entries,
     intro: settingsRes.data?.intro || 'Selected exhibitions, education, and teaching experience.',
-    contactEmail: settingsRes.data?.contact_email || 'hello@artbyme.studio',
+    contactEmail: settingsRes.data?.contact_email || 'margaret@artbyme.studio',
     liveSlugs,
   }
 }
@@ -121,10 +121,10 @@ function Entry({ entry, liveSlugs }: { entry: CvEntry; liveSlugs: Set<string> })
         ) : (
           <p className={titleClass}>{entry.title}</p>
         )}
-        {(entry.venue || entry.institution) && (
+        {(entry.venue || entry.institution || entry.location) && (
           <p className="font-body text-sm text-charcoal/70 mt-1">
             {[entry.venue, entry.institution].filter(Boolean).join(' · ')}
-            {entry.location ? ` — ${entry.location}` : ''}
+            {entry.location ? `${entry.venue || entry.institution ? ' — ' : ''}${entry.location}` : ''}
           </p>
         )}
         {entry.juror && (
@@ -133,9 +133,6 @@ function Entry({ entry, liveSlugs }: { entry: CvEntry; liveSlugs: Set<string> })
         {entry.award && (
           <p className="font-body text-sm italic mt-1 text-gold">
             {entry.award}
-            {entry.linked_artwork_slug && !linked && (
-              <span className="ml-2 not-italic text-charcoal/40">(artwork sold)</span>
-            )}
           </p>
         )}
         {entry.notes && (

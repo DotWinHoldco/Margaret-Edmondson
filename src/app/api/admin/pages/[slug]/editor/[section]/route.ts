@@ -6,6 +6,7 @@ import { apiError, apiOk } from '@/lib/api/respond'
 import { getServerAdapter } from '@/lib/page-editor/server-registry'
 import { recordRevision } from '@/lib/page-editor/revisions'
 import type { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 // PATCH /api/admin/pages/[slug]/editor/[section] — save edits to a page section and record a revision; admin only.
 export async function PATCH(
@@ -37,6 +38,9 @@ export async function PATCH(
     await recordRevision(auth.supabase, slug, section, previous, auth.user.id)
 
     await adapter.saveSection(auth.supabase, section, payload, auth.user.id)
+    revalidatePath(slug === 'home' ? '/' : slug === 'terms' ? '/tos' : `/${slug}`)
+    if (slug === 'cv') revalidatePath('/cv.pdf')
+    if (slug === 'encouragement-series') revalidatePath('/shop/mixed-media')
     const next = adapter.loadSection
       ? await adapter.loadSection(auth.supabase, section)
       : ((await adapter.load(auth.supabase)) as Record<string, unknown>)[section]

@@ -38,6 +38,7 @@ export default function CropModal({
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
   const [crop, setCrop] = useState<Rect | null>(null)
   const [saving, setSaving] = useState(false)
+  const submitting = useRef(false)
   const [error, setError] = useState('')
   const toast = useToast()
 
@@ -48,19 +49,19 @@ export default function CropModal({
   const onLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const el = e.currentTarget
     const nw = el.naturalWidth, nh = el.naturalHeight
-    const r = Math.min(MAX_W / nw, MAX_H / nh, 1)
+    const availableWidth = Math.max(120, (el.closest('[role="dialog"]')?.clientWidth || MAX_W + 40) - 40)
+    const r = Math.min(Math.min(MAX_W, availableWidth) / nw, MAX_H / nh, 1)
     const w = Math.round(nw * r), h = Math.round(nh * r)
     setNat({ w: nw, h: nh })
     setDisp({ w, h })
-    // default crop: centered 86%
-    const cw = Math.round(w * 0.86), ch = Math.round(h * 0.86)
-    setCrop({ x: Math.round((w - cw) / 2), y: Math.round((h - ch) / 2), w: cw, h: ch })
+    // Keep every edge until the artist explicitly chooses to crop it.
+    setCrop({ x: 0, y: 0, w, h })
   }, [])
 
   const clamp = useCallback((r: Rect, bw: number, bh: number): Rect => {
     let { x, y, w, h } = r
-    w = Math.max(MIN, Math.min(w, bw))
-    h = Math.max(MIN, Math.min(h, bh))
+    w = Math.max(Math.min(MIN, bw), Math.min(w, bw))
+    h = Math.max(Math.min(MIN, bh), Math.min(h, bh))
     x = Math.max(0, Math.min(x, bw - w))
     y = Math.max(0, Math.min(y, bh - h))
     return { x, y, w, h }
@@ -101,7 +102,8 @@ export default function CropModal({
   }
 
   async function apply() {
-    if (!crop || !disp || !nat || !imgRef.current) return
+    if (submitting.current || !crop || !disp || !nat || !imgRef.current) return
+    submitting.current = true
     setSaving(true)
     setError('')
     try {
@@ -130,6 +132,7 @@ export default function CropModal({
       setError(message)
       toast.error(message)
     } finally {
+      submitting.current = false
       setSaving(false)
     }
   }
@@ -147,7 +150,7 @@ export default function CropModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" className="w-full max-w-2xl rounded-xl bg-cream shadow-2xl">
+      <div role="dialog" aria-modal="true" className="max-h-[95vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-cream shadow-2xl">
         <div className="flex items-center justify-between border-b border-charcoal/10 p-4">
           <div>
             <h2 className="font-display text-lg font-semibold text-charcoal">Crop photo</h2>
@@ -171,16 +174,17 @@ export default function CropModal({
               crossOrigin="anonymous"
               alt={item.product_title}
               onLoad={onLoad}
+              onError={() => setError('This photo could not be loaded. Close the crop editor and try again.')}
               draggable={false}
               className="block"
               style={{ width: disp?.w, height: disp?.h }}
             />
+            {crop && disp && <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden"><div className="absolute" style={{ left: crop.x, top: crop.y, width: crop.w, height: crop.h, boxShadow: '0 0 0 9999px rgba(20,20,20,0.55)' }} /></div>}
             {crop && disp && (
               <div
                 className="absolute cursor-move"
                 style={{
                   left: crop.x, top: crop.y, width: crop.w, height: crop.h,
-                  boxShadow: '0 0 0 9999px rgba(20,20,20,0.55)',
                   outline: '1px solid rgba(255,255,255,0.9)',
                 }}
                 onPointerDown={onPointerDown('move')}
@@ -193,7 +197,7 @@ export default function CropModal({
                 <span onPointerDown={onPointerDown('se')} className={`${handle} -bottom-1.5 -right-1.5 cursor-nwse-resize`} />
               </div>
             )}
-            {!disp && <p className="py-16 font-body text-sm text-charcoal/40">Loading image…</p>}
+            {!disp && !error && <p className="py-16 font-body text-sm text-charcoal/40">Loading image…</p>}
           </div>
 
           {nat && crop && disp && (

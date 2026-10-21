@@ -1,6 +1,9 @@
 'use client'
 
+import { priceDisplay } from '@/lib/price-display'
 import Image from 'next/image'
+import { createPortal } from 'react-dom'
+import ProductNavigation from './ProductNavigation'
 import Link from 'next/link'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,6 +58,7 @@ interface PrintGroup {
 }
 
 interface Product {
+  mat_preference?: unknown
   id: string
   title: string
   slug: string
@@ -72,8 +76,8 @@ interface Product {
   product_images: ProductImage[]
   product_variants: ProductVariant[]
   master_artwork?:
-    | { print_status: string | null; print_storage_path: string | null }
-    | { print_status: string | null; print_storage_path: string | null }[]
+    | { print_status: string | null; print_storage_path: string | null; print_width_px?: number | null; print_height_px?: number | null; print_preview_url?: string | null }
+    | { print_status: string | null; print_storage_path: string | null; print_width_px?: number | null; print_height_px?: number | null; print_preview_url?: string | null }[]
     | null
 }
 
@@ -249,14 +253,24 @@ function Lightbox({
   onNavigate: (index: number) => void
 }) {
   const currentImage = images[currentIndex]
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const previous = document.body.style.overflow
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    return () => { document.body.style.overflow = previous; previousFocus?.focus() }
   }, [])
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Tab') {
+        const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button')
+        const first = buttons?.[0], last = buttons?.[buttons.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
+      }
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowLeft' && currentIndex > 0) onNavigate(currentIndex - 1)
       if (e.key === 'ArrowRight' && currentIndex < images.length - 1) onNavigate(currentIndex + 1)
@@ -265,13 +279,15 @@ function Lightbox({
     return () => window.removeEventListener('keydown', handleKey)
   }, [currentIndex, images.length, onClose, onNavigate])
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex flex-col bg-charcoal/95 backdrop-blur-sm"
+      role="dialog" aria-modal="true" aria-label={`${product.title} enlarged image`}
+      ref={dialogRef}
+      className="fixed inset-0 z-[200] grid h-[100dvh] grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-charcoal/95 pt-16 backdrop-blur-sm"
       onClick={onClose}
     >
       {/* Close button */}
@@ -286,7 +302,7 @@ function Lightbox({
       </button>
 
       {/* Image area */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 min-h-0" onClick={(e) => e.stopPropagation()}>
+      <div className="relative flex min-h-0 items-center justify-center px-12 py-2 sm:px-16" onClick={(e) => e.stopPropagation()}>
         {/* Left arrow */}
         {images.length > 1 && currentIndex > 0 && (
           <button
@@ -306,13 +322,13 @@ function Lightbox({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="max-w-[90vw] max-h-[70vh] flex items-center justify-center"
+          className="flex h-full min-h-0 w-full items-center justify-center"
         >
           {currentImage && (
             <img
               src={currentImage.url}
               alt={currentImage.alt_text || product.title}
-              className="max-w-full max-h-[70vh] object-contain"
+              className="block h-full max-h-full w-full object-contain"
             />
           )}
         </motion.div>
@@ -332,7 +348,7 @@ function Lightbox({
       </div>
 
       {/* Description below image */}
-      <div className="px-6 pb-8 text-center" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[25dvh] overflow-y-auto px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-display text-xl text-white">{product.title}</h3>
         {product.medium && (
           <p className="mt-1 font-body text-sm text-white/50 italic">{product.medium}</p>
@@ -353,6 +369,7 @@ function Lightbox({
               <button
                 key={img.id}
                 onClick={() => onNavigate(i)}
+                aria-label={`View image ${i + 1}`}
                 className={`relative h-10 w-10 overflow-hidden rounded-sm border transition-colors ${
                   currentIndex === i ? 'border-gold' : 'border-white/20 hover:border-white/40'
                 }`}
@@ -363,7 +380,7 @@ function Lightbox({
           </div>
         )}
       </div>
-    </motion.div>
+    </motion.div>, document.body
   )
 }
 
@@ -446,7 +463,7 @@ function VariantSelector({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <PrintClarityBanner title={product.title} />
+            <PrintClarityBanner title={product.title} medium={selectedVariant?.medium} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -475,7 +492,9 @@ export default function ProductDetail({
   product,
   relatedProducts,
   configurator,
+  collection,
 }: {
+  collection?: { name: string; slug: string } | null
   product: Product
   relatedProducts: RelatedProduct[]
   /**
@@ -572,6 +591,7 @@ export default function ProductDetail({
     !isCommission &&
     !printsUnavailable &&
     configurator.catalog.length > 0
+  const matNeedsConfigurator = Boolean(product.mat_preference && selectedVariant?.medium === 'framed_fine_art_paper' && selectedVariant.fulfillment_type !== 'self_ship')
   const configuratorActive = configuratorOpen && (buyMode === 'print' || !originalAvailable)
 
   const badge = getProductBadge(product)
@@ -590,7 +610,7 @@ export default function ProductDetail({
   }, [currentImage])
 
   function addToCart() {
-    if (!selectedVariant) return
+    if (!selectedVariant || matNeedsConfigurator) return
     const eventId = crypto.randomUUID()
     dispatch({
       type: 'ADD_ITEM',
@@ -637,12 +657,7 @@ export default function ProductDetail({
   return (
     <div className="py-8 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="mb-8 font-body text-sm text-charcoal/50">
-          <Link href="/shop" className="hover:text-teal transition-colors">Shop</Link>
-          <span className="mx-2">/</span>
-          <span className="text-charcoal">{product.title}</span>
-        </nav>
+        <ProductNavigation productId={product.id} title={product.title} collection={collection} />
 
         <div className={`grid grid-cols-1 gap-10 lg:gap-16 ${gridClass}`}>
           {/* ─── Image Column ─── */}
@@ -696,7 +711,7 @@ export default function ProductDetail({
                 Number(product.base_price) > 0 ? (
                   <>
                     <span className="font-body text-2xl font-semibold text-charcoal">
-                      From ${Number(product.base_price).toFixed(2)}
+                      From ${priceDisplay(Number(product.base_price))}
                     </span>
                     <span className="ml-2 font-body text-xs font-medium uppercase tracking-wide text-gold">
                       Made to order
@@ -713,11 +728,11 @@ export default function ProductDetail({
                       than the displayed price — typical "marked down from" UI. */}
                   {product.compare_at_price != null && product.compare_at_price > price && (
                     <span className="font-body text-base text-charcoal/40 line-through mr-2">
-                      ${Number(product.compare_at_price).toFixed(2)}
+                      ${priceDisplay(Number(product.compare_at_price))}
                     </span>
                   )}
                   <span className="font-body text-2xl font-semibold text-charcoal">
-                    ${price.toFixed(2)}
+                    ${priceDisplay(price)}
                   </span>
                   {isOriginalSelected && (
                     <span className="ml-2 font-body text-xs text-gold font-medium uppercase tracking-wide">
@@ -777,11 +792,15 @@ export default function ProductDetail({
               <PrintConfigurator
                 product={{ id: product.id, title: product.title }}
                 image={{
-                  url: (images.find((i) => i.is_primary) || images[0])?.url || '',
-                  alt: (images.find((i) => i.is_primary) || images[0])?.alt_text || product.title,
+                  url: master?.print_preview_url || '',
+                  alt: `${product.title} — print crop`,
                 }}
                 variants={printVariants}
                 catalog={configurator.catalog}
+                matPreference={configurator.matPreference}
+                {...(master?.print_width_px && master?.print_height_px
+                  ? { master: { printWidthPx: master.print_width_px, printHeightPx: master.print_height_px } }
+                  : {})}
                 onAddToCart={addConfiguredToCart}
                 {...(selectedVariant?.medium ? { initialVariantId: selectedVariant.id } : {})}
                 onDoorClosed={handleDoorClosed}
@@ -789,7 +808,8 @@ export default function ProductDetail({
             )}
 
             {/* Add to Cart */}
-            {!isSold && selectedVariant && !configuratorActive && (
+            {!isSold && selectedVariant && !configuratorActive && matNeedsConfigurator && <p className="mt-4 text-sm text-charcoal/70">Framing options are temporarily unavailable. Please try again shortly to order this artwork with its selected mat.</p>}
+            {!isSold && selectedVariant && !configuratorActive && !matNeedsConfigurator && (
               <>
               {selectedVariant && <p className="mb-3 font-body text-sm text-teal">{selectedVariant.shipping_mode === 'flat' ? `$${((selectedVariant.shipping_fee_cents || 0) / 100).toFixed(2)} shipping per item` : selectedVariant.shipping_mode === 'included' ? 'Shipping included' : 'Shipping included in the contiguous US'}{selectedVariant.fulfillment_type === 'self_ship' && selectedVariant.lead_days != null ? ` · Ships within ${selectedVariant.lead_days} days` : ''}</p>}
               <button
@@ -797,8 +817,8 @@ export default function ProductDetail({
                 className="mt-6 w-full py-3.5 bg-teal text-white font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-deep-teal transition-colors"
               >
                 {isOriginalSelected
-                  ? `Add Original to Cart — $${price.toFixed(2)}`
-                  : `Add Print to Cart — $${price.toFixed(2)}`
+                  ? `Add Original to Cart — $${priceDisplay(price)}`
+                  : `Add Print to Cart — $${priceDisplay(price)}`
                 }
               </button>
               </>
@@ -873,6 +893,8 @@ export default function ProductDetail({
               <div className="mt-6 border-t border-charcoal/10 pt-4">
                 <button
                   onClick={() => setShowStory(!showStory)}
+                  aria-expanded={showStory}
+                  aria-controls="product-story"
                   className="flex items-center justify-between w-full font-body text-sm font-medium text-charcoal hover:text-teal transition-colors"
                 >
                   <span>Story Behind This Piece</span>
@@ -886,13 +908,14 @@ export default function ProductDetail({
                 <AnimatePresence>
                   {showStory && (
                     <motion.div
+                      id="product-story"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
                       <div
-                        className="mt-3 font-body text-sm text-charcoal/60 leading-relaxed"
+                        className="rich-content mt-3 font-body text-sm text-charcoal/75 leading-relaxed [&_p]:mb-4"
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.story_html) }}
                       />
                     </motion.div>
@@ -916,12 +939,12 @@ export default function ProductDetail({
                 const rpHasPrints = hasPurchasablePrints(rp)
                 const rpOriginalPrice = availableOriginalPrice(rp)
                 const rpPrice = rpHasPrints
-                  ? `From $${(cheapestPrintPrice(rp) || 0).toFixed(2)}`
+                  ? `From $${priceDisplay(cheapestPrintPrice(rp) || 0)}`
                   : rpOriginalPrice !== null
-                    ? `$${rpOriginalPrice.toFixed(2)}`
+                    ? `$${priceDisplay(rpOriginalPrice)}`
                     : rp.prints_enabled
                       ? 'Prints coming soon'
-                      : `$${rp.base_price.toFixed(2)}`
+                      : `$${priceDisplay(rp.base_price)}`
                 return (
                   <Link key={rp.id} href={`/shop/art/${rp.slug}`} className="group block flex-shrink-0 w-56">
                     <div className="relative aspect-[4/5] overflow-hidden bg-charcoal/5 rounded-sm">

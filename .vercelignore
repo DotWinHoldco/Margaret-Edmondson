@@ -1,0 +1,12 @@
+.env*
+!.env.example
+node_modules
+.next
+.git
+audit
+output
+test
+todo-baseline.json
+
+.cowork-transfer/
+.env.local

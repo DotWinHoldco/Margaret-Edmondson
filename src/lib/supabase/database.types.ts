@@ -2379,6 +2379,7 @@ export type Database = {
           border_mode: string
           created_at: string
           crop_box: Json | null
+          crop_output: Json | null
           description: string | null
           dpi: number | null
           file_name: string
@@ -2389,6 +2390,7 @@ export type Database = {
           print_error: string | null
           print_height_px: number | null
           print_requested_at: string | null
+          print_preview_storage_path: string | null
           print_status: string
           print_storage_path: string | null
           print_updated_at: string | null
@@ -2404,6 +2406,7 @@ export type Database = {
           border_mode?: string
           created_at?: string
           crop_box?: Json | null
+          crop_output?: Json | null
           description?: string | null
           dpi?: number | null
           file_name: string
@@ -2414,6 +2417,7 @@ export type Database = {
           print_error?: string | null
           print_height_px?: number | null
           print_requested_at?: string | null
+          print_preview_storage_path?: string | null
           print_status?: string
           print_storage_path?: string | null
           print_updated_at?: string | null
@@ -2429,6 +2433,7 @@ export type Database = {
           border_mode?: string
           created_at?: string
           crop_box?: Json | null
+          crop_output?: Json | null
           description?: string | null
           dpi?: number | null
           file_name?: string
@@ -2439,6 +2444,7 @@ export type Database = {
           print_error?: string | null
           print_height_px?: number | null
           print_requested_at?: string | null
+          print_preview_storage_path?: string | null
           print_status?: string
           print_storage_path?: string | null
           print_updated_at?: string | null
@@ -3275,6 +3281,7 @@ export type Database = {
           is_original: boolean | null
           lumaprints_product_config: Json | null
           margin_pct: number | null
+          mat_preference: Json | null
           master_artwork_id: string | null
           medium: string | null
           printful_sync_product_id: string | null
@@ -3310,6 +3317,7 @@ export type Database = {
           is_original?: boolean | null
           lumaprints_product_config?: Json | null
           margin_pct?: number | null
+          mat_preference?: Json | null
           master_artwork_id?: string | null
           medium?: string | null
           printful_sync_product_id?: string | null
@@ -3345,6 +3353,7 @@ export type Database = {
           is_original?: boolean | null
           lumaprints_product_config?: Json | null
           margin_pct?: number | null
+          mat_preference?: Json | null
           master_artwork_id?: string | null
           medium?: string | null
           printful_sync_product_id?: string | null
@@ -4646,6 +4655,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_product_mat_preference: { Args: { p_product_id: string }; Returns: Json }
+      set_product_mat_preference: { Args: { p_product_id: string; p_preference: Json }; Returns: Json }
+      apply_master_crop_variant_updates: {
+        Args: { p_master_id: string; p_requested_at: string; p_updates: Json }
+        Returns: boolean
+      }
       book_class_session: {
         Args: {
           p_booking_id: string
@@ -4726,6 +4741,10 @@ export type Database = {
       }
       deliver_studio_shipment: { Args: { p_id: string }; Returns: undefined }
       get_fulfillment_policy: { Args: never; Returns: Json }
+      get_public_print_previews: {
+        Args: { p_product_ids: string[] }
+        Returns: { product_id: string; preview_storage_path: string }[]
+      }
       get_public_print_readiness: {
         Args: { p_product_ids: string[] }
         Returns: {

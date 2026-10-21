@@ -5,6 +5,20 @@ import type { Metadata } from 'next'
 import MasonryGrid, { type MasonryProduct } from '@/components/shop/MasonryGrid'
 import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 import CollectionTestimonial from '@/components/marketing/CollectionTestimonial'
+import CollectionStory from '@/components/shop/CollectionStory'
+import { createClient } from '@/lib/supabase/server'
+
+async function getCollectionStory(category: string) {
+  if (category !== 'mixed-media') return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('pages')
+    .select('title, content_html')
+    .eq('slug', 'encouragement-series')
+    .eq('is_published', true)
+    .maybeSingle()
+  return data
+}
 
 export async function generateMetadata(
   props: { params: Promise<{ category: string }> },
@@ -24,7 +38,7 @@ export default async function CategoryPage(
   const { category } = await props.params
   const { category: cat, products } = await getProductsByCategory(category)
   if (!cat) notFound()
-  const categories = await getCategories()
+  const [categories, series] = await Promise.all([getCategories(), getCollectionStory(category)])
 
   return (
     <div className="bg-cream pt-16 sm:pt-24 pb-28 sm:pb-36 texture-paper">
@@ -70,6 +84,10 @@ export default async function CategoryPage(
             )
           })}
         </nav>
+
+        {series?.content_html && (
+          <CollectionStory title={series.title} contentHtml={series.content_html} />
+        )}
 
         <MasonryGrid products={products as MasonryProduct[]} />
 

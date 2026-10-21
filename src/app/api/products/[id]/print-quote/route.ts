@@ -43,6 +43,7 @@
 // the only rows read are the public-safe projections: the product's own publish flags
 // and the bounded print-readiness RPC (master_artworks stays admin-only under RLS).
 
+import { readMatPreference } from '@/lib/catalog/product-mat'
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -131,6 +132,7 @@ function fail(
 }
 
 interface ProductRow {
+  mat_preference?: unknown
   id: string
   status: string | null
   prints_enabled: boolean | null
@@ -203,7 +205,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // prints switched off, is indistinguishable from one that does not exist.
     const productResult = await service
       .from('products')
-      .select('id, status, prints_enabled')
+      .select('id, status, prints_enabled, mat_preference')
       .eq('id', productId)
       .maybeSingle()
     if (productResult.error) return apiFail(productResult.error, { code: 'DATABASE_ERROR', context: 'print-quote product' })
@@ -272,6 +274,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
         {
           catalog,
+          matPreference: readMatPreference(product.mat_preference),
           ...(master.widthPx && master.heightPx
             ? { master: { printWidthPx: master.widthPx, printHeightPx: master.heightPx } }
             : {}),

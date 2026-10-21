@@ -8,13 +8,13 @@ import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
 // ---------------------------------------------------------------------------
 describe('grossMarginPct', () => {
   it('is (price − cost − shipping) / price', () => {
-    // landed 3895¢, 100% markup → price 7790¢; gross = 3895/7790 = 50%
+    // landed 3895¢, 100% markup → price rounds to 7800¢; gross reflects the rounded price
     const price = customerPriceCents(
       { lumaprints_cost_cents: 2595, shipping_cost_cents: 1300, margin_override_pct: null, manual_price_override_cents: null },
       100,
     )
-    expect(price).toBe(7790)
-    expect(grossMarginPct(price, 2595, 1300)).toBeCloseTo(50, 6)
+    expect(price).toBe(7800)
+    expect(grossMarginPct(price, 2595, 1300)).toBeCloseTo(50.06410256, 6)
   })
   it('is 0 for a non-positive price', () => {
     expect(grossMarginPct(0, 100, 50)).toBe(0)

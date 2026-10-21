@@ -64,7 +64,7 @@ async function uploadPaintinTheAss(serviceKey) {
 async function insertNewCategories() {
   const rows = [
     { slug: 'beach', name: 'Beach', desc: 'Coastal scenes, South Carolina landmarks, and beach life — vacations from Alabama to California.', sort: 1 },
-    { slug: 'landscapes', name: 'Landscapes', desc: 'Arizona deserts, Texas pastorals, mountain vistas, and quiet countryside.', sort: 2 },
+    { slug: 'landscapes', name: 'Landscapes', desc: 'Texas pastorals, mountain vistas, and quiet countryside.', sort: 2 },
     { slug: 'animals', name: 'Animals', desc: 'Cattle, horses, and dogs — the creatures who anchor a place.', sort: 3 },
     { slug: 'mixed-media', name: 'Mixed Media', desc: 'Collage and found-poetry works from the Encouragement Series and related projects.', sort: 4 },
   ]
@@ -152,7 +152,6 @@ async function updateHomeBlocks(donkeyId) {
   const unexpected = (await sql(`select id from products where slug='unexpected';`))[0].id
   const config = JSON.stringify({
     heading: 'Featured Work',
-    subheading: "Two pieces from the studio I'm proud of right now",
     product_ids: [donkeyId, unexpected],
   })
   await sql(`update page_blocks set config = '${esc(config)}'::jsonb, updated_at = now() where page='home' and block_type='featured_grid';`)

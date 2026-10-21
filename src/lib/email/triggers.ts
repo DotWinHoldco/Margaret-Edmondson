@@ -17,6 +17,7 @@ import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { buildUnsubscribeUrl } from './unsubscribe'
 import { isSuppressed } from './suppression'
+import { reviewInvitation } from './review-invitation'
 import { upsertContact } from '@/lib/crm/contacts'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
@@ -316,8 +317,8 @@ export async function sendPostPurchaseEmail(
         </p>`
     }
 
-    const html = brandedShell(body, { preheader, unsubscribeUrl })
-    const result = await sendEmail({ to: normalizedEmail, subject, html, replyTo: 'hello@artbyme.studio' })
+    const html = brandedShell(`${body}${reviewInvitation()}`, { preheader, unsubscribeUrl })
+    const result = await sendEmail({ to: normalizedEmail, subject, html })
 
     if (result !== null || !process.env.RESEND_API_KEY) {
       await recordSend(supabase, {

@@ -1,3 +1,4 @@
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import { escapeHtml } from '@/lib/email/escape'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 
@@ -6,7 +7,7 @@ import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 // same owner-facing notices instead of duplicating the markup. Every helper is
 // no-throw — alerting must never alter money-path or fulfillment control flow.
 
-const FALLBACK_NOTIFY = 'margaret117art@gmail.com'
+const FALLBACK_NOTIFY = DEFAULT_STUDIO_EMAIL
 
 // Email Margaret when a PAID order has a print item that can't auto-submit (no
 // print-ready master / unconfigured-disabled medium / missing framed option), or

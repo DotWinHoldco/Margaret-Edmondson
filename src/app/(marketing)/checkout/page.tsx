@@ -19,6 +19,7 @@ import { useCart } from '@/lib/cart/context'
 import CartItemTitle from '@/components/shared/CartItemTitle'
 import { readFunnelAttribution } from '@/lib/funnels/attribution'
 import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
+import { stripePublishableKey } from '@/lib/stripe/publishable-key'
 
 // NEXT_PUBLIC_* vars are inlined at build time — reference both literally and
 // pick at runtime based on the mode the server resolved from site settings.
@@ -28,7 +29,7 @@ const PK_TEST = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST || ''
 let stripePromise: Promise<StripeJs | null> | null = null
 let stripePromiseKey = ''
 function getStripeJs(mode: 'test' | 'live'): Promise<StripeJs | null> | null {
-  const pk = mode === 'live' ? PK_LIVE || PK_TEST : PK_TEST || PK_LIVE
+  const pk = stripePublishableKey(mode, { live: PK_LIVE, test: PK_TEST })
   if (!pk) return null
   if (!stripePromise || stripePromiseKey !== pk) {
     stripePromise = loadStripe(pk)
@@ -270,11 +271,11 @@ export default function CheckoutPage() {
     return (
       <div className="bg-cream min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-sm border border-charcoal/10 bg-white p-8 text-center">
-          <h1 className="font-display text-3xl font-light text-charcoal">Checkout unavailable</h1>
+          <h1 className="font-display text-3xl font-light text-charcoal">{missingKey ? 'Secure checkout' : 'Checkout unavailable'}</h1>
           <div className="mx-auto mt-3 w-12 h-px bg-gold" />
           <p className="mt-4 font-body text-sm text-charcoal/70 leading-relaxed">
             {missingKey
-              ? 'On-site payment is not configured yet — you can still pay securely on Stripe.'
+              ? 'Continue to Stripe to complete your purchase securely.'
               : errorMsg || 'I could not start the on-site checkout.'}
           </p>
           <button
@@ -289,7 +290,7 @@ export default function CheckoutPage() {
                 Redirecting…
               </>
             ) : (
-              'Try express checkout'
+              missingKey ? 'Continue to secure checkout' : 'Try express checkout'
             )}
           </button>
           {expressError && (

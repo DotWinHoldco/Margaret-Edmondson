@@ -15,6 +15,7 @@
 import type { Medium } from '@/lib/pricing/mediums'
 import { canonicalGroupKey, DEPENDENT_GROUPS } from './keys'
 import type { DisplayKind, Geometry, PricingMode, Swatch } from './types'
+import { frameProfileForLabel } from './frame-profile'
 
 /** The minimum an option must carry for these rules to run. */
 export interface NamedOption {
@@ -316,20 +317,11 @@ function firstColor(table: Array<[RegExp, string]>, name: string): string | unde
 }
 
 /**
- * Visible face width of a frame, in inches, so the preview scales one frame
- * against another truthfully. Frame options name their own depth ("1.25in Black
- * Floating Frame") or their profile ("0.875x1.125 Black Frame"); on framed paper
- * the profile is the SUBCATEGORY ("1.25w x 0.875h Black Frame"), so that is the
- * last fallback.
+ * Visible molding width. A canvas-depth prefix is never a frame-face measurement.
+ * Framed paper carries its molding profile on the subcategory instead of an option.
  */
 export function frameFaceIn(optionName: string, subcategoryName: string): number | undefined {
-  const depth = optionName.match(/^(\d+(?:\.\d+)?)in/i)
-  if (depth) return Number(depth[1])
-  const profile = optionName.match(/^(\d+(?:\.\d+)?)x/i)
-  if (profile) return Number(profile[1])
-  const fromSubcategory = subcategoryName.match(/(\d+(?:\.\d+)?)w x/i)
-  if (fromSubcategory) return Number(fromSubcategory[1])
-  return undefined
+  return frameProfileForLabel(optionName).faceIn ?? frameProfileForLabel(subcategoryName).faceIn
 }
 
 export function swatchForOption(groupKey: string, optionName: string, subcategoryName: string): Swatch | null {
@@ -342,6 +334,8 @@ export function swatchForOption(groupKey: string, optionName: string, subcategor
     if (hex) s.color_hex = hex
     const face = frameFaceIn(optionName, subcategoryName)
     if (face !== undefined) s.frame_face_in = face
+    const depth = frameProfileForLabel(optionName).depthIn ?? frameProfileForLabel(subcategoryName).depthIn
+    if (depth !== undefined) s.frame_depth_in = depth
   }
   return Object.keys(s).length ? s : null
 }

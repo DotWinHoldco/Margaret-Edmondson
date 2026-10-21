@@ -2,7 +2,9 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { timingSafeEqual } from 'crypto'
 import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
 import { notifyShipped } from '@/lib/email/triggers'
-import { carrierTrackingUrl } from '@/lib/fulfillment/tracking'
+import { carrierTrackingUrl, lumaprintsShipmentForItem, type LumaprintsShipment } from '@/lib/fulfillment/tracking'
+import { providerTracksStripeMode } from '@/lib/fulfillment/provider-guard'
+import { catalogHost } from '@/lib/catalog/walk'
 
 export const runtime = 'nodejs'
 
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
   let payload: {
     orderNumber?: string | number
     externalId?: string
-    shipments?: Array<{ carrier?: string; trackingNumber?: string; shipmentDate?: string }>
+    shipments?: LumaprintsShipment[]
   }
   try {
     payload = JSON.parse(body)
@@ -63,36 +65,41 @@ export async function POST(request: Request) {
     return Response.json({ received: true })
   }
 
-  const shipment = payload.shipments?.[0]
-  const trackingNumber = shipment?.trackingNumber || null
-  const carrier = shipment?.carrier || null
-  const trackingUrl = carrierTrackingUrl(carrier, trackingNumber)
-
-  // Only advance still-in-flight items, so a redelivered webhook is a no-op.
-  const { error: updateError } = await supabase
+  const { data: items, error: readError } = await supabase
     .from('order_items')
-    .update({
-      fulfillment_status: 'shipped',
-      tracking_number: trackingNumber,
-      tracking_url: trackingUrl,
-      carrier,
-      shipped_at: new Date().toISOString(),
-    })
+    .select('id, order_id, external_item_id, shipped_at, order:orders!inner(stripe_mode)')
     .eq('external_order_id', orderNumber)
     .eq('fulfillment_type', 'lumaprints')
-    .in('fulfillment_status', ['submitting', 'submitted', 'in_production'])
-  if (updateError) console.error('Lumaprints inbound: order_items update failed:', updateError.message)
+    .in('fulfillment_status', ['submitting', 'submitted', 'in_production', 'shipped'])
+  if (readError) return Response.json({ error: 'Could not read shipment items' }, { status: 500 })
+
+  const changedOrders = new Map<string, string | null>()
+  const host = catalogHost()
+  for (const item of items || []) {
+    const order = Array.isArray(item.order) ? item.order[0] : item.order
+    if (!order || !providerTracksStripeMode(order.stripe_mode, host)) continue
+    const shipment = lumaprintsShipmentForItem(payload.shipments || [], item.external_item_id || item.id)
+    if (!shipment) continue
+    const trackingUrl = carrierTrackingUrl(shipment.carrier, shipment.trackingNumber)
+    const providerDate = shipment.shipmentDate ? Date.parse(shipment.shipmentDate) : Number.NaN
+    const patch: Record<string, unknown> = {
+      fulfillment_status: 'shipped',
+      ...(!item.shipped_at ? { shipped_at: Number.isFinite(providerDate) ? new Date(providerDate).toISOString() : new Date().toISOString() } : {}),
+      ...(shipment.trackingNumber ? { tracking_number: shipment.trackingNumber } : {}),
+      ...(shipment.carrier ? { carrier: shipment.carrier } : {}),
+      ...(trackingUrl ? { tracking_url: trackingUrl } : {}),
+    }
+    const { error: updateError } = await supabase.from('order_items').update(patch).eq('id', item.id)
+      .in('fulfillment_status', ['submitting', 'submitted', 'in_production', 'shipped'])
+    if (updateError) {
+      console.error('Lumaprints inbound: order_items update failed:', updateError.message)
+      return Response.json({ error: 'Could not save shipment update' }, { status: 500 })
+    }
+    changedOrders.set(item.order_id, trackingUrl || changedOrders.get(item.order_id) || null)
+  }
 
   // Resolve our order + buyer, notify (replay-safe), roll up status.
-  const { data: oi } = await supabase
-    .from('order_items')
-    .select('order_id')
-    .eq('external_order_id', orderNumber)
-    .eq('fulfillment_type', 'lumaprints')
-    .limit(1)
-    .maybeSingle()
-  const orderId = (oi?.order_id as string) || ''
-  if (orderId) {
+  for (const [orderId, trackingUrl] of changedOrders) {
     const { data: order } = await supabase.from('orders').select('email').eq('id', orderId).maybeSingle()
     if (order?.email) await notifyShipped(supabase, { orderId, email: order.email as string, trackingUrl })
     await recomputeOrderStatus(supabase, orderId)

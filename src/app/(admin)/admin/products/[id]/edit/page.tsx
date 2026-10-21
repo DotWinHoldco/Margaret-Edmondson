@@ -19,6 +19,7 @@ import { resolveMarginPct } from '@/lib/pricing/variant-pricing'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 import MarkupMarginFields, { PricingRelationship } from '@/components/admin/MarkupMarginFields'
+import type { MasterCropOutput } from '@/lib/artwork/crop-geometry.mjs'
 
 interface MasterApiRow {
   id: string
@@ -29,6 +30,7 @@ interface MasterApiRow {
   width_px?: number | null
   height_px?: number | null
   crop_box?: { x: number; y: number; w: number; h: number } | null
+  crop_output?: MasterCropOutput | null
   border_mode?: 'full_bleed' | 'matte' | null
   border_color?: string | null
   print_error?: string | null
@@ -50,6 +52,7 @@ function mapMaster(d: MasterApiRow) {
     width_px: d.width_px ?? null,
     height_px: d.height_px ?? null,
     crop_box: d.crop_box ?? null,
+    crop_output: d.crop_output ?? null,
     border_mode: d.border_mode ?? null,
     border_color: d.border_color ?? null,
     print_status: d.print_status ?? null,
@@ -278,6 +281,7 @@ export default function EditProductPage({
     width_px: number | null
     height_px: number | null
     crop_box?: { x: number; y: number; w: number; h: number } | null
+    crop_output?: MasterCropOutput | null
     border_mode?: 'full_bleed' | 'matte' | null
     border_color?: string | null
     print_error?: string | null
@@ -1214,13 +1218,19 @@ export default function EditProductPage({
                   </p>
                   {/* Print master crop — sets the area every variant prints from. */}
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-charcoal/10 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => { setCropAspectRatio(undefined); setShowMasterCrop(true) }}
-                      className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-40"
-                    >
-                      {masterArtwork.crop_box ? 'Edit print crop' : 'Crop master / set print area'}
-                    </button>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => { setCropAspectRatio(undefined); setShowMasterCrop(true) }}
+                        aria-describedby="master-print-settings-description"
+                        className="rounded-md border border-charcoal/20 px-3 py-1.5 font-body text-[11px] font-medium text-charcoal hover:bg-charcoal hover:text-cream transition-colors disabled:opacity-40"
+                      >
+                        Edit master print settings
+                      </button>
+                      <p id="master-print-settings-description" className="mt-1 font-body text-[11px] text-charcoal/60">
+                        Manage aspect ratio, cropping, and default mat options.
+                      </p>
+                    </div>
                     {masterArtwork.print_status && masterArtwork.print_status !== 'none' ? (
                       <span
                         className={`font-body text-[11px] ${
@@ -1254,7 +1264,7 @@ export default function EditProductPage({
           </section>
 
           {cropRefreshError && <p role="status" className="text-sm text-coral">{cropRefreshError}</p>}
-          {masterArtwork?.print_status === 'failed' && masterArtwork.print_error && <p role="alert" className="rounded-lg border border-coral/30 p-4 font-body text-sm text-coral">{masterArtwork.print_error} Open Edit print crop and save again to retry.</p>}
+          {masterArtwork?.print_status === 'failed' && masterArtwork.print_error && <p role="alert" className="rounded-lg border border-coral/30 p-4 font-body text-sm text-coral">{masterArtwork.print_error} Open Edit master print settings and save again to retry.</p>}
           <div id="product-print-options" className="scroll-mt-8">
           {setupMode && setupProfile === 'printful' && fulfillmentType === 'printful' ? (
             <section className="rounded-xl border border-charcoal/10 bg-white p-5 font-body"><h2 className="font-display text-xl">Printful product setup</h2><p className="mt-2 text-sm leading-6 text-charcoal/65">You selected Printful. Add your product images and Base Price above. Keep this draft unpublished until the Printful product and variant mapping is ready; this editor does not create that provider mapping.</p><a href="#product-fulfillment" className="mt-3 inline-block text-sm font-medium text-teal underline">Review Fulfillment Type</a></section>
@@ -1377,6 +1387,7 @@ export default function EditProductPage({
 
       {showMasterCrop && masterArtwork && (
         <MasterCropModal
+          productId={id}
           initialAspectRatio={cropAspectRatio}
           master={{
             id: masterArtwork.id,
@@ -1385,6 +1396,7 @@ export default function EditProductPage({
             sourceWidthPx: masterArtwork.width_px,
             sourceHeightPx: masterArtwork.height_px,
             crop_box: masterArtwork.crop_box ?? null,
+            crop_output: masterArtwork.crop_output ?? null,
             border_mode: masterArtwork.border_mode ?? null,
             border_color: masterArtwork.border_color ?? null,
             print_status: masterArtwork.print_status ?? null,
@@ -1395,7 +1407,7 @@ export default function EditProductPage({
           onSaved={(next) => {
             setMasterArtwork((prev) =>
               prev
-                ? { ...prev, print_status: next.print_status, border_mode: next.border_mode, border_color: next.border_color }
+                ? { ...prev, print_status: next.print_status, border_mode: next.border_mode, border_color: next.border_color, crop_output: next.crop_output ?? null }
                 : prev,
             )
             // Re-fetch so a completed worker run (print px / status) shows through.

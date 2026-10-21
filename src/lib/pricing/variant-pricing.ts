@@ -33,7 +33,8 @@ export function customerPriceCents(
   if (v.manual_price_override_cents != null) return v.manual_price_override_cents
   const margin = (v.margin_override_pct ?? productDefaultMarginPct) / 100
   const landedCost = v.lumaprints_cost_cents + v.shipping_cost_cents
-  return Math.round(landedCost * (1 + margin))
+  // Round the amount actually charged, not just the storefront label.
+  return Math.round(landedCost * (1 + margin) / 100) * 100
 }
 
 /**

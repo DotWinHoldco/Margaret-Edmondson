@@ -3,9 +3,11 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiOk, dbFail, apiFail } from '@/lib/api/respond'
+import { randomUUID } from 'node:crypto'
+import sharp from 'sharp'
 
 // Save a crop of a product photo. The client sends the already-cropped webp
-// (canvas output) plus its dimensions. We upload it to a SEPARATE crops/<id>.webp
+// (canvas output) plus its dimensions. We upload it to a unique crop object
 // key (the original object is never touched), remember the pre-crop url on the
 // first crop, then point the product image at the crop. The site updates on
 // revalidation.
@@ -29,22 +31,31 @@ export async function POST(
   const file = form.get('file')
   const width = Number(form.get('width'))
   const height = Number(form.get('height'))
-  if (!(file instanceof File) || !width || !height) {
+  if (!(file instanceof File) || !Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
     return apiError('Missing crop image or dimensions', 400, 'BAD_REQUEST')
   }
+  if (file.size > 25 * 1024 * 1024) return apiError('This crop is too large. Choose a smaller photo and try again.', 413, 'CROP_TOO_LARGE')
   const buf = Buffer.from(await file.arrayBuffer())
+  try {
+    const metadata = await sharp(buf, { limitInputPixels: 180_000_000 }).metadata()
+    if (metadata.format !== 'webp' || metadata.width !== width || metadata.height !== height) {
+      return apiError('The cropped photo does not match its dimensions. Reopen the crop editor and try again.', 400, 'INVALID_CROP')
+    }
+  } catch {
+    return apiError('The cropped photo could not be read. Reopen the crop editor and try again.', 400, 'INVALID_CROP')
+  }
 
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const PUB = `${base}/storage/v1/object/public/product-images/`
-  const key = `crops/${id}.webp`
+  // Never overwrite the photo currently in service before the database save
+  // succeeds. Unique URLs also prevent a stale CDN image after repeated crops.
+  const key = `crops/${id}-${randomUUID()}.webp`
   const up = await sb.storage.from('product-images').upload(key, buf, {
     contentType: 'image/webp',
-    upsert: true,
+    upsert: false,
   })
   if (up.error) return apiFail(up.error, { code: 'STORAGE_ERROR', publicMessage: 'We could not save that image. Please try again.' })
 
   const patch: Record<string, unknown> = {
-    url: `${PUB}${key}?v=${Date.now()}`,
+    url: `${sb.storage.from('product-images').getPublicUrl(key).data.publicUrl}?v=${Date.now()}`,
     width,
     height,
   }

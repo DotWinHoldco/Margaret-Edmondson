@@ -9,6 +9,7 @@ import sharp from 'sharp'
 import { createWriteStream } from 'node:fs'
 import { Transform } from 'node:stream'
 import { pipeline as streamPipeline } from 'node:stream/promises'
+import { planMasterCrop } from '../../src/lib/artwork/crop-geometry.mjs'
 
 export const MATTE_FRACTION = 0.05 // per-side border = 5% of each axis (preserves aspect)
 
@@ -16,25 +17,31 @@ const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(v)))
 
 async function prepareMasterCrop(
   srcBuffer,
-  { cropBox, borderMode = 'full_bleed', borderColor = '#ffffff', dpi = 300, widthPx, heightPx, matteFraction = MATTE_FRACTION, limitInputPixels = false, timeoutSeconds = 0, verifyDimensions = false },
+  { cropBox, cropOutput = null, borderMode = 'full_bleed', borderColor = '#ffffff', dpi = 300, widthPx, heightPx, matteFraction = MATTE_FRACTION, limitInputPixels = false, timeoutSeconds = 0, verifyDimensions = false },
 ) {
   const meta = await sharp(srcBuffer, { limitInputPixels }).metadata()
-  if (verifyDimensions && ((widthPx && widthPx !== meta.width) || (heightPx && heightPx !== meta.height))) {
+  if ((verifyDimensions || cropOutput !== null) && ((widthPx && widthPx !== meta.width) || (heightPx && heightPx !== meta.height))) {
     throw new Error('The master file dimensions do not match its saved dimensions. Check the master artwork before retrying.')
   }
   const W = widthPx || meta.width
   const H = heightPx || meta.height
   if (!W || !H) throw new Error('could not determine source dimensions')
 
-  const left = clampInt(cropBox.x * W, 0, W - 1)
-  const top = clampInt(cropBox.y * H, 0, H - 1)
-  const width = clampInt(cropBox.w * W, 1, W - left)
-  const height = clampInt(cropBox.h * H, 1, H - top)
+  // A null output retains the legacy operator path, including its separately
+  // configured large-source limit and matte behavior. Exact output plans are
+  // bounded at 180MP before any extraction/padding allocation is requested.
+  const plan = cropOutput === null ? null : planMasterCrop({ sourceWidth: W, sourceHeight: H, cropBox, output: cropOutput })
+  const left = plan?.extract.left ?? clampInt(cropBox.x * W, 0, W - 1)
+  const top = plan?.extract.top ?? clampInt(cropBox.y * H, 0, H - 1)
+  const width = plan?.extract.width ?? clampInt(cropBox.w * W, 1, W - left)
+  const height = plan?.extract.height ?? clampInt(cropBox.h * H, 1, H - top)
 
   let pipeline = sharp(srcBuffer, { limitInputPixels }).extract({ left, top, width, height })
-  let outW = width
-  let outH = height
-  if (borderMode === 'matte') {
+  let outW = plan?.width ?? width
+  let outH = plan?.height ?? height
+  if (plan && plan.addedPixels > 0) {
+    pipeline = pipeline.extend({ ...plan.padding, background: '#ffffff' })
+  } else if (!plan && borderMode === 'matte') {
     const bx = Math.round(width * matteFraction)
     const by = Math.round(height * matteFraction)
     pipeline = pipeline.extend({ top: by, bottom: by, left: bx, right: bx, background: borderColor })
@@ -45,7 +52,10 @@ async function prepareMasterCrop(
   const d = dpi && dpi > 0 ? Math.round(dpi) : 300
   if (timeoutSeconds) pipeline = pipeline.timeout({ seconds: timeoutSeconds })
   pipeline = pipeline
-    .withMetadata({ density: d })
+    // The editor's preview and source dimensions use raw source coordinates.
+    // Clear any EXIF orientation only for the new explicit-output workflow so
+    // a finished crop is not rotated a second time by image viewers/providers.
+    .withMetadata({ density: d, ...(plan ? { orientation: 1 } : {}) })
     .png({ compressionLevel: 9 })
   return { pipeline, width: outW, height: outH, dpi: d }
 }

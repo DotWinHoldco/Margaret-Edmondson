@@ -5,6 +5,12 @@ import { getMediumConfig } from '@/lib/pricing/medium-config'
 import { loadCatalog } from '@/lib/catalog/load'
 import { resizeVariantToMaster } from '@/lib/pricing/variant-resize'
 import { MEDIUMS, type Medium } from '@/lib/pricing/mediums'
+import { defaultSubcategoryForMedium } from '@/lib/catalog/availability'
+import { evaluateSelection } from '@/lib/catalog/rules'
+import type { Catalog } from '@/lib/catalog/types'
+import type { MasterCropOutput } from '@/lib/artwork/crop-geometry.mjs'
+import { standardSizeForShape } from '@/lib/pricing/standard-print-sizes'
+import { displaySize, sizeLabel } from '@/lib/pricing/size-tiers'
 
 type VariantRow = {
   id: string
@@ -19,6 +25,8 @@ type VariantRow = {
   is_active: boolean
   margin_override_pct: number | null
   manual_price_override_cents: number | null
+  lumaprints_cost_cents: number | null
+  fulfillment_metadata: { lumaprints_subcategory_id?: number; lumaprints_option_ids?: number[] } | null
 }
 
 export interface ReconcileResult {
@@ -39,20 +47,32 @@ export async function reconcileVariantsForMaster(
   masterId: string,
   printWidthPx: number,
   printHeightPx: number,
+  preparedCatalog?: Catalog,
+  cropOutput?: MasterCropOutput | null,
+  requestedAt?: string,
 ): Promise<ReconcileResult> {
   const result: ReconcileResult = { updated: 0, skipped: 0, failed: 0 }
+  const patches: Record<string, unknown>[] = []
+  async function saveVariant(id: string, patch: Record<string, unknown>) {
+    if (requestedAt) { patches.push({ id, ...patch }); return }
+    const { error } = await supabase.from('product_variants').update(patch).eq('id', id)
+    if (error) throw error
+  }
   const { data: products, error: productsError } = await supabase
     .from('products')
     .select('id')
     .eq('master_artwork_id', masterId)
   if (productsError) throw productsError
 
-  let catalog: Awaited<ReturnType<typeof loadCatalog>> | undefined
-  try {
-    catalog = await loadCatalog(supabase, { includeDisabled: true })
-  } catch (error) {
-    console.warn('variant reconciliation: catalog unavailable; prices will refresh on the next admin refresh', error)
+  let catalog = preparedCatalog
+  if (!catalog) {
+    try {
+      catalog = await loadCatalog(supabase, { includeDisabled: true })
+    } catch (error) {
+      console.warn('variant reconciliation: catalog unavailable; prices will refresh on the next admin refresh', error)
+    }
   }
+  const mediumConfigs = new Map<Medium, Awaited<ReturnType<typeof getMediumConfig>>>()
 
   let zips = ['33101', '98101', '04401', '92101']
   const { data: settings } = await supabase
@@ -67,7 +87,7 @@ export async function reconcileVariantsForMaster(
   for (const product of products ?? []) {
     const { data: variants, error: variantsError } = await supabase
       .from('product_variants')
-      .select('id, product_id, medium, width_in, height_in, size_label, name, is_custom_size, size_tier, is_active, margin_override_pct, manual_price_override_cents')
+      .select('id, product_id, medium, width_in, height_in, size_label, name, is_custom_size, size_tier, is_active, margin_override_pct, manual_price_override_cents, lumaprints_cost_cents, fulfillment_metadata')
       .eq('product_id', product.id)
       .not('medium', 'is', null)
     if (variantsError) throw variantsError
@@ -85,7 +105,14 @@ export async function reconcileVariantsForMaster(
         result.skipped += 1
         continue
       }
-      const resized = resizeVariantToMaster(variant, printWidthPx, printHeightPx)
+      const standard = cropOutput ? standardSizeForShape(variant.width_in, variant.height_in, cropOutput) : null
+      const resized = standard ? {
+        width_in: standard.width_in, height_in: standard.height_in,
+        size_label: sizeLabel(standard.width_in, standard.height_in),
+        aspect_ratio: printWidthPx / printHeightPx,
+        // Keep the artist's size name, replacing only its embedded dimensions.
+        name: variant.name?.replace(/\d+(?:\.\d+)?\s*[×x]\s*\d+(?:\.\d+)?(?:\s*in)?/i, displaySize(standard.width_in, standard.height_in)),
+      } : resizeVariantToMaster(variant, printWidthPx, printHeightPx)
       if (!resized) {
         result.skipped += 1
         continue
@@ -97,21 +124,41 @@ export async function reconcileVariantsForMaster(
           continue
         }
         const medium = variant.medium as Medium
-        const cfg = await getMediumConfig(supabase, medium)
+        if (!mediumConfigs.has(medium)) mediumConfigs.set(medium, await getMediumConfig(supabase, medium))
+        const cfg = mediumConfigs.get(medium)
+        const sameSize = Math.abs(Number(variant.width_in) - resized.width_in) < 0.000001
+          && Math.abs(Number(variant.height_in) - resized.height_in) < 0.000001
+          && (!standard || Boolean(variant.is_custom_size) === standard.is_custom_size)
+        const subcategory = catalog && cfg ? defaultSubcategoryForMedium(catalog, medium, cfg.subcategory_id) : null
+        if (sameSize && Number(variant.lumaprints_cost_cents) > 0 && subcategory) {
+          const evaluation = evaluateSelection(subcategory, {
+            widthIn: resized.width_in, heightIn: resized.height_in,
+          }, [], undefined, { printWidthPx, printHeightPx })
+          const saved = variant.fulfillment_metadata
+          const previousOptions = [...(saved?.lumaprints_option_ids ?? [])].sort((a, b) => a - b)
+          if (evaluation.violations.length === 0
+            && saved?.lumaprints_subcategory_id === subcategory.subcategory_id
+            && JSON.stringify(previousOptions) === JSON.stringify(evaluation.normalizedOptionIds)) {
+            // A new file with the same valid inches/options changes no provider
+            // cost. Preserve its price and avoid spending the shared API budget.
+            result.skipped += 1
+            continue
+          }
+        }
         if (!cfg || !cfg.subcategory_id) {
           // Geometry still needs to follow the master even when a catalog row is
           // temporarily unavailable. The next price refresh can fill the cost.
-          const { error } = await supabase.from('product_variants').update({
+          await saveVariant(variant.id, {
             width_in: resized.width_in,
             height_in: resized.height_in,
             size_label: resized.size_label,
             aspect_ratio: resized.aspect_ratio,
+            ...(standard ? { is_custom_size: standard.is_custom_size } : {}),
             is_active: false,
             is_lumaprints_available: false,
             ...(resized.name ? { name: resized.name } : {}),
             updated_at: new Date().toISOString(),
-          }).eq('id', variant.id)
-          if (error) throw error
+          })
           result.updated += 1
           continue
         }
@@ -127,23 +174,25 @@ export async function reconcileVariantsForMaster(
           zips,
           margin_override_pct: variant.margin_override_pct,
           manual_price_override_cents: variant.manual_price_override_cents,
-          // Refresh the provider quote because changing the dimensions changes
-          // both the production cost and the customer price.
-          refresh: true,
+          // The quote cache is keyed by exact dimensions and option choices.
+          // A fresh quote for the NEW size is safe to reuse; only a cache miss
+          // should spend provider budget during a shared-master reconciliation.
+          refresh: false,
           master: { printWidthPx, printHeightPx },
           is_active: variant.is_active,
-          is_custom_size: Boolean(variant.is_custom_size),
+          is_custom_size: standard?.is_custom_size ?? Boolean(variant.is_custom_size),
           size_tier: variant.size_tier,
           aspect_ratio: resized.aspect_ratio,
           name: resized.name ?? variant.name ?? undefined,
           ...(catalog ? { catalog } : {}),
         })
         const freshCost = Number(priced.lumaprints_cost_cents) > 0
-        const { error } = await supabase.from('product_variants').update({
+        await saveVariant(variant.id, {
           width_in: resized.width_in,
           height_in: resized.height_in,
           size_label: resized.size_label,
           aspect_ratio: resized.aspect_ratio,
+          ...(standard ? { is_custom_size: standard.is_custom_size } : {}),
           ...(resized.name ? { name: resized.name } : {}),
           // A temporary provider outage must not overwrite a known-good price
           // with zero. Keep the old price while marking the resized row Draft;
@@ -164,14 +213,22 @@ export async function reconcileVariantsForMaster(
             is_lumaprints_available: false,
           }),
           updated_at: new Date().toISOString(),
-        }).eq('id', variant.id)
-        if (error) throw error
+        })
         result.updated += 1
       } catch (error) {
         result.failed += 1
         console.error('variant reconciliation failed', { variantId: variant.id, error })
       }
     }
+  }
+  if (requestedAt && patches.length) {
+    // A late worker must not overwrite sizes belonging to a newer crop. The
+    // database locks the master and checks its request before this whole batch.
+    const { data: applied, error } = await supabase.rpc('apply_master_crop_variant_updates', {
+      p_master_id: masterId, p_requested_at: requestedAt, p_updates: patches,
+    })
+    if (error) throw error
+    if (!applied) throw new Error('A newer crop replaced this size update. Its print sizes will be prepared separately.')
   }
   return result
 }

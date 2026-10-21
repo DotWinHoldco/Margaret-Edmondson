@@ -382,8 +382,8 @@ describe('catalog sync v2 — full run on the sandbox snapshot', () => {
   })
 
   it('seeds preview swatches on frames and mats', () => {
-    expect(optionOf(store, 102002, 27).swatch).toEqual({ color_hex: '#1a1a1a', frame_face_in: 1.25 })
-    expect(optionOf(store, 102002, 120).swatch).toEqual({ color_hex: '#5b3a29', frame_face_in: 1.25 }) // Walnut
+    expect(optionOf(store, 102002, 27).swatch).toEqual({ color_hex: '#1a1a1a', frame_face_in: 0.55, frame_depth_in: 1.69 })
+    expect(optionOf(store, 102002, 120).swatch).toEqual({ color_hex: '#5b3a29', frame_face_in: 0.55, frame_depth_in: 1.69 }) // Walnut
     expect(optionOf(store, 102001, 215).swatch?.color_hex).toBe('#e8e4dc') // Driftwood White beats plain White
     expect(optionOf(store, 105005, 96).swatch).toEqual({ color_hex: '#ffffff' }) // mat White
     expect(optionOf(store, 105005, 97).swatch).toEqual({ color_hex: '#f8f8f8' }) // White with Black Core

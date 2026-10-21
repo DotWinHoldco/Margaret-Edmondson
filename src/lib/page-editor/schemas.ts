@@ -418,6 +418,7 @@ export const pageSchemas: PageSchema[] = [
   aboutSchema,
   cvSchema,
   homeSchema,
+  pageBodySchema('encouragement-series', 'Encouragement Series', 'The first paragraph appears above the Mixed Media artwork grid. The remaining story and reflections expand when a visitor chooses to read more.', '/shop/mixed-media', 'content'),
   pageBodySchema('commissions',     'Commissions',         'Commission marketing page copy',         '/commissions',     'content'),
   pageBodySchema('contact',         'Contact',             'Heading and intro above the contact form', '/contact',       'content'),
   pageBodySchema('privacy',         'Privacy Policy',      'Legal — privacy',                         '/privacy',         'legal'),

@@ -8,7 +8,7 @@ import { buildPricedVariantRow } from '@/lib/pricing/variant-insert'
 import { loadBuilderContext } from '@/lib/pricing/builder-context'
 import { validateCustomSize, sizeLabel } from '@/lib/pricing/size-tiers'
 import { loadCatalog } from '@/lib/catalog/load'
-import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability'
+import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability-server'
 
 const Body = z.object({
   medium: z.enum(MEDIUMS as unknown as [Medium, ...Medium[]]),
@@ -102,8 +102,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!fulfill.ok) {
       return apiOk({ created: data, live_blocked: true, reason: fulfill.reason })
     }
-    await auth.supabase.from('product_variants').update({ is_active: true }).eq('id', data.id)
-    return apiOk({ created: { ...data, is_active: true } })
+    const { data: published, error: publishError } = await auth.supabase
+      .from('product_variants')
+      .update({ is_active: true })
+      .eq('id', data.id)
+      .select('id, medium, size_label, name, is_active')
+      .single()
+    if (publishError || !published?.is_active) {
+      console.error('[admin/products variants/custom] Live update failed:', publishError)
+      return apiOk({
+        created: data,
+        live_blocked: true,
+        reason: 'The print size was saved as a draft, but could not be made Live. Please try the Live switch again.',
+      })
+    }
+    return apiOk({ created: published })
   }
   return apiOk({ created: data })
 }

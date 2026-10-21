@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-vi.mock('@/lib/settings/accessor', () => ({ getEmailFromLine: async () => 'Studio <orders@example.test>' }))
+vi.mock('@/lib/settings/accessor', () => ({ getBusinessEmail: async () => 'studio@example.test', getEmailFromLine: async () => 'Studio <orders@example.test>' }))
 import { sendOrderConfirmation } from '@/lib/email/send'
 import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })

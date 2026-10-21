@@ -940,9 +940,12 @@ function CustomSizeModal({
   // Customer price recomputed locally when margin changes (over the landed cost).
   const landed = (preview?.cost_cents ?? 0) + (preview?.shipping_cents ?? 0)
   const effMargin = marginPct === '' ? defaultMargin : Number(marginPct)
-  const computedPrice = useManual && manualOverride !== ''
-    ? Math.round(Number(manualOverride) * 100)
-    : Math.round(landed * (1 + (Number.isFinite(effMargin) ? effMargin : defaultMargin) / 100))
+  const computedPrice = customerPriceCents({
+    lumaprints_cost_cents: preview?.cost_cents ?? 0,
+    shipping_cost_cents: preview?.shipping_cents ?? 0,
+    margin_override_pct: Number.isFinite(effMargin) ? effMargin : defaultMargin,
+    manual_price_override_cents: useManual && manualOverride !== '' ? Math.round(Number(manualOverride) * 100) : null,
+  }, defaultMargin)
   const gm = grossMarginPct(computedPrice, preview?.cost_cents ?? 0, preview?.shipping_cents ?? 0)
   const gmColor = gm <= 0 ? 'text-coral' : gm < targetGrossMarginPct ? 'text-amber-600' : 'text-teal'
 
@@ -1098,6 +1101,7 @@ function CustomSizeModal({
               <span className="font-body text-xs text-charcoal/60">Customer price</span>
               <span className="font-display text-lg font-semibold text-charcoal">{pricingValid ? fmtCents(computedPrice) : '—'}</span>
             </div>
+            <p className="mt-1 font-body text-[11px] text-charcoal/60">Base price for the catalog defaults. Frame and mat selections are included in the customer’s final quote.</p>
             <div className="flex items-center justify-between">
               <span className="font-body text-[11px] text-charcoal/50" title="$40 price − $20 costs = $20 gross profit. $20 ÷ $40 = 0.5. 0.5 × 100 = 50% gross margin, before other expenses.">Gross margin</span>
               <span className={`font-body text-xs font-medium ${gmColor}`}>{pricingValid && computedPrice > 0 ? `${Math.round(gm)}%` : '—'}</span>

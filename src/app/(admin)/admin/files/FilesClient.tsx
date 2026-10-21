@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import SharedFilesModal, {
   type SharedFile,
   type SharedEntity,
@@ -166,9 +167,14 @@ export default function FilesClient() {
         <div>
           <h1 className="font-display text-2xl text-charcoal">Shared Files</h1>
           <p className="mt-1 font-body text-sm text-charcoal/55">
-            Every file shared between Margaret and the team. Tags route files to the
-            right area of the site — testimonial docs appear under testimonials,
-            social posts in the social area, etc.
+            Files shared between Margaret and the team. Uploads stay here for review;
+            uploading a document does not publish its contents on the website.
+          </p>
+          <p className="mt-2 font-body text-sm text-charcoal/65">
+            To update the website, use{' '}
+            <Link href="/admin/pages?slug=about" className="text-teal underline">Edit bio</Link>
+            {' '}or{' '}
+            <Link href="/admin/pages?slug=cv" className="text-teal underline">Edit résumé / CV</Link>.
           </p>
         </div>
         <button

@@ -2,8 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { renderMarkdown } from '@/lib/markdown'
-import { sanitizeHtml } from '@/lib/sanitize'
+import { sanitizeBioContent } from '@/lib/bio-content'
 import DiscoverCTA from '@/components/marketing/DiscoverCTA'
 
 export const metadata: Metadata = {
@@ -105,6 +104,7 @@ export default async function AboutPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </Link>
+              <a href="/bio.pdf" target="_blank" rel="noopener noreferrer" className="mt-5 ml-6 inline-flex font-body text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-teal hover:text-deep-teal">View biography (PDF)</a>
             </div>
             {credentials.hero_image_url && (
               <div className="lg:order-2">
@@ -145,7 +145,7 @@ export default async function AboutPage() {
                   )}
                   <div
                     className="font-body text-base sm:text-lg text-charcoal/75 leading-relaxed prose prose-sm sm:prose-base max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(s.body_markdown)) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeBioContent(s.body_markdown) }}
                   />
                   {imageRight && (
                     <Image

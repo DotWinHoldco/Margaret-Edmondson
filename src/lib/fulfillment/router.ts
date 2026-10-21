@@ -6,6 +6,7 @@ import {
   checkImageConfig,
   LumaprintsApiError,
   LumaprintsDisabledError,
+  LumaprintsSubmissionUncertainError,
   type LumaprintsRecipient,
 } from '@/lib/integrations/lumaprints'
 import { createOrder as printfulCreateOrder, confirmOrder as printfulConfirmOrder } from '@/lib/integrations/printful'
@@ -117,6 +118,7 @@ interface FulfillmentResult {
  * useful next step instead of exposing provider JSON or internal status text.
  */
 function friendlyFulfillmentError(error: unknown): string {
+  if (error instanceof LumaprintsSubmissionUncertainError) return 'The print provider may have received this order. Check the Lumaprints dashboard before retrying to avoid a duplicate print.'
   if (error instanceof LumaprintsDisabledError) return error.message
   if (error instanceof LumaprintsApiError) {
     if (error.status === 400 || error.status === 406) {
@@ -799,7 +801,8 @@ export async function routeOrderToFulfillment(
       // validation failure (admin can re-crop the master + refire), not a
       // transient failure, and capture the expected-vs-actual dims in the log.
       const is406 = err instanceof LumaprintsApiError && err.status === 406
-      const failStatus = err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed'
+      const uncertain = err instanceof LumaprintsSubmissionUncertainError
+      const failStatus = uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed'
       console.error(
         `Fulfillment submission failed for ${provider}:`,
         diagnosticMessage,
@@ -826,6 +829,7 @@ export async function routeOrderToFulfillment(
             .from('order_items')
             .update({ fulfillment_status: failStatus })
             .eq('id', item.id)
+            .eq('fulfillment_status', 'submitting')
         }
         results.push({
           itemId: item.id,
@@ -1023,14 +1027,16 @@ export async function retryFulfillmentForItem(
     const errorMessage = friendlyFulfillmentError(err)
     const diagnosticMessage = err instanceof Error ? err.message : String(err)
     const is406 = err instanceof LumaprintsApiError && err.status === 406
+    const uncertain = err instanceof LumaprintsSubmissionUncertainError
     console.error(`Fulfillment retry failed for item ${itemId}:`, diagnosticMessage)
 
-    // Move the claimed item out of 'submitting' so it isn't stuck. A 406 (image
-    // dims/aspect) is a validation failure the admin fixes by re-cropping.
+    // An uncertain create remains non-claimable until provider reconciliation.
     await supabase
       .from('order_items')
-      .update({ fulfillment_status: err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed' })
+      .update({ fulfillment_status: uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed' })
       .eq('id', itemId)
+
+    if (uncertain) await notifyOrderNeedsAttention(order.id, [errorMessage])
 
     await supabase.from('webhook_logs').insert({
       source: `fulfillment_${provider}`,

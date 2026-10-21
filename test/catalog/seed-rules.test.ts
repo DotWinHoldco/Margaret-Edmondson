@@ -318,8 +318,8 @@ describe('seed rules — swatches', () => {
     expect(swatchForOption('mat_color', 'Off White', '')?.color_hex).toBe('#f5f2ea')
   })
 
-  it('reads the frame face width from the name that carries it', () => {
-    expect(frameFaceIn('1.25in Black Floating Frame', '1.25in Framed Canvas')).toBe(1.25)
+  it('distinguishes floating frame face width from canvas depth', () => {
+    expect(frameFaceIn('1.25in Black Floating Frame', '1.25in Framed Canvas')).toBe(0.55)
     expect(frameFaceIn('0.875x1.125 Black Frame', '0.75in Framed Canvas')).toBe(0.875)
     // Framed paper has no frame option group: the profile is the subcategory.
     expect(frameFaceIn('', '1.25w x 0.875h Black Frame')).toBe(1.25)

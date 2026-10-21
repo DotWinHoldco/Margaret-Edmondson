@@ -10,6 +10,7 @@
 // Sizes outside the finish's bounds are absent rather than disabled: a size that cannot
 // be printed at all is not a choice a shopper needs explained.
 
+import { priceDisplay } from '@/lib/price-display'
 import { printSizeLabel } from '@/lib/pricing/print-size-label'
 import type { PrintVariant } from './catalog-view'
 
@@ -76,7 +77,7 @@ export default function SizePicker({
             >
               <span className="block">{label.title}</span>
               <span className="block font-body text-xs text-charcoal/55">
-                {price === null ? PRICED_ON_SELECT : `$${price.toFixed(2)}`}
+                {price === null ? PRICED_ON_SELECT : `$${priceDisplay(price)}`}
               </span>
               {label.actualNote && (
                 <span className="block font-body text-[10px] leading-4 text-charcoal/45">{label.actualNote}</span>

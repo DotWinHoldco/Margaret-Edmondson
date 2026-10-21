@@ -10,13 +10,7 @@ const PASSWORD_RESET = 'https://myaccount.google.com/security/signinoptions/pass
 const TWO_STEP = 'https://myaccount.google.com/signinoptions/twosv'
 
 const ALIASES: Array<{ alias: string; use: string }> = [
-  { alias: 'margaret@artbyme.studio', use: 'Your primary login. Use this for "Sign in with Google" anywhere.' },
-  { alias: 'admin@artbyme.studio', use: 'Reserved for Google Workspace admin notices and Vercel/Supabase service alerts.' },
-  { alias: 'hello@artbyme.studio', use: 'Public-facing inbox. Commission requests, contact-form submissions, and the newsletter welcome reply-to land here.' },
-  { alias: 'sales@artbyme.studio', use: 'Stripe order confirmations and customer payment receipts.' },
-  { alias: 'resources@artbyme.studio', use: 'Class enrollments and student-facing email automations.' },
-  { alias: 'art@artbyme.studio', use: 'LumaPrints, Printful, and ShipStation fulfillment notifications.' },
-  { alias: 'commissions@artbyme.studio', use: 'Quote follow-ups and commission status updates to clients.' },
+  { alias: 'margaret@artbyme.studio', use: 'Your primary login and studio inbox. Portal notifications, outgoing messages, and customer replies use this address.' },
 ]
 
 function useDismissed(key: string) {

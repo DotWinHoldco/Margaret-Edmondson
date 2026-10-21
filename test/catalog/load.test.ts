@@ -540,8 +540,8 @@ describe('selection helpers', () => {
     const paper = findSubcategory(catalog, 'sc-paper')!
 
     // Bleed Size is switched off, but omitting it makes the provider pick a 0.25in
-    // bleed, so No Bleed goes anyway. Paper Type is equally off and harmless: nothing.
-    expect(defaultSelection(paper)).toEqual([39])
+    // bleed, so No Bleed goes anyway. The fixed paper stock is also sent explicitly.
+    expect(defaultSelection(paper)).toEqual([39, 74])
   })
 
   it('sends our default even when the admin switched that very option off, if the fallback is hostile', async () => {

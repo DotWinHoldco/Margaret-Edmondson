@@ -1,0 +1,1646 @@
+{
+  "version": 1,
+  "sourcePage": "https://www.lumaprints.com/marketing-assets/",
+  "licenseNote": "Lumaprints publishes these free marketing mockups for business product previews. Extracted original frame pixels; no claim of a broader redistribution license.",
+  "exportNote": "20x20 provider presets; transparent artwork opening; cropped to solid frame outeredge excluding exterior soft shadow; preserve measured profile geometry when nine-slicing. Finish-only mappings are visual approximations for different physical profiles.",
+  "assets": [
+    {
+      "key": "canvas-floating-silver",
+      "family": "canvas-floating",
+      "finish": "Silver Frame (0.75, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-silver.webp",
+      "width": 1024,
+      "height": 1019,
+      "opening": {
+        "x": 44,
+        "y": 40,
+        "width": 938,
+        "height": 938
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Silver Frame (0.75, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Silver Frame (0.75, 1.50)/Silver Frame (0.75, 1.50)",
+      "sourceFrameBounds": [
+        527,
+        219,
+        1668,
+        1355
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        49,
+        41,
+        1100,
+        1087
+      ],
+      "bytes": 37430
+    },
+    {
+      "key": "canvas-floating-gold",
+      "family": "canvas-floating",
+      "finish": "Gold Frame (0.75, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-gold.webp",
+      "width": 1024,
+      "height": 1021,
+      "opening": {
+        "x": 42,
+        "y": 40,
+        "width": 940,
+        "height": 940
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Gold Frame (0.75, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Gold Frame (0.75, 1.50)/Gold Frame (0.75, 1.50)",
+      "sourceFrameBounds": [
+        502,
+        207,
+        1680,
+        1382
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        76,
+        53,
+        1125,
+        1099
+      ],
+      "bytes": 38272
+    },
+    {
+      "key": "canvas-floating-natural-wood",
+      "family": "canvas-floating",
+      "finish": "Natural Wood Frame (1.50)",
+      "src": "/frames/lumaprints/canvas-floating-natural-wood.webp",
+      "width": 1021,
+      "height": 1019,
+      "opening": {
+        "x": 29,
+        "y": 28,
+        "width": 963,
+        "height": 963
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Natural Wood Frame (1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Natural Wood Frame (1.50)/Natural Wood Frame (1.50)",
+      "sourceFrameBounds": [
+        542,
+        235,
+        1651,
+        1342
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        50,
+        38,
+        1071,
+        1057
+      ],
+      "bytes": 9182
+    },
+    {
+      "key": "canvas-floating-maple",
+      "family": "canvas-floating",
+      "finish": "Maple Frame (1.50)",
+      "src": "/frames/lumaprints/canvas-floating-maple.webp",
+      "width": 1024,
+      "height": 1022,
+      "opening": {
+        "x": 42,
+        "y": 41,
+        "width": 940,
+        "height": 940
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Maple Frame (1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Maple Frame (1.50)/Maple Frame (1.50)",
+      "sourceFrameBounds": [
+        528,
+        221,
+        1665,
+        1356
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        50,
+        38,
+        1099,
+        1085
+      ],
+      "bytes": 14776
+    },
+    {
+      "key": "canvas-floating-oak",
+      "family": "canvas-floating",
+      "finish": "Oak Frame (1.25, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-oak.webp",
+      "width": 1024,
+      "height": 1022,
+      "opening": {
+        "x": 42,
+        "y": 40,
+        "width": 940,
+        "height": 940
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Oak Frame (1.25, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Oak Frame (1.25, 1.50)/Oak Frame (1.25, 1.50)",
+      "sourceFrameBounds": [
+        540,
+        234,
+        1653,
+        1345
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        38,
+        26,
+        1087,
+        1073
+      ],
+      "bytes": 35816
+    },
+    {
+      "key": "canvas-floating-espresso",
+      "family": "canvas-floating",
+      "finish": "Espresso Frame (1.50)",
+      "src": "/frames/lumaprints/canvas-floating-espresso.webp",
+      "width": 1024,
+      "height": 1022,
+      "opening": {
+        "x": 42,
+        "y": 41,
+        "width": 940,
+        "height": 940
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Espresso Frame (1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Espresso Frame (1.50)/Espresso Frame (1.50)",
+      "sourceFrameBounds": [
+        540,
+        233,
+        1653,
+        1344
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        38,
+        26,
+        1087,
+        1073
+      ],
+      "bytes": 33938
+    },
+    {
+      "key": "canvas-floating-walnut",
+      "family": "canvas-floating",
+      "finish": "Walnut Frame (1.25, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-walnut.webp",
+      "width": 1024,
+      "height": 1021,
+      "opening": {
+        "x": 42,
+        "y": 40,
+        "width": 940,
+        "height": 940
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Walnut Frame (1.25, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Walnut Frame (1.25, 1.50)/Walnut Frame (1.25, 1.50)",
+      "sourceFrameBounds": [
+        540,
+        233,
+        1653,
+        1344
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        38,
+        27,
+        1087,
+        1073
+      ],
+      "bytes": 15630
+    },
+    {
+      "key": "canvas-floating-white",
+      "family": "canvas-floating",
+      "finish": "White Frame (0.75, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-white.webp",
+      "width": 1024,
+      "height": 1022,
+      "opening": {
+        "x": 42,
+        "y": 40,
+        "width": 941,
+        "height": 941
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "White Frame (0.75, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/White Frame (0.75, 1.50)/White Frame (0.75, 1.50)",
+      "sourceFrameBounds": [
+        540,
+        233,
+        1653,
+        1344
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        38,
+        27,
+        1086,
+        1073
+      ],
+      "bytes": 4488
+    },
+    {
+      "key": "canvas-floating-black",
+      "family": "canvas-floating",
+      "finish": "Black Frame (0.75, 1.25, 1.50)",
+      "src": "/frames/lumaprints/canvas-floating-black.webp",
+      "width": 1024,
+      "height": 1022,
+      "opening": {
+        "x": 42,
+        "y": 40,
+        "width": 941,
+        "height": 941
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Black Frame (0.75, 1.25, 1.50)",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-floating/20x20 Square/Black Frame (0.75, 1.25, 1.50)/Black Frame (0.75, 1.25, 1.50)",
+      "sourceFrameBounds": [
+        540,
+        233,
+        1653,
+        1344
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        38,
+        27,
+        1086,
+        1073
+      ],
+      "bytes": 3900
+    },
+    {
+      "key": "canvas-gallery-gold",
+      "family": "canvas-gallery",
+      "finish": "Gold Frame",
+      "src": "/frames/lumaprints/canvas-gallery-gold.webp",
+      "width": 1014,
+      "height": 1024,
+      "opening": {
+        "x": 25,
+        "y": 31,
+        "width": 962,
+        "height": 962
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Gold Frame/Gold Frame",
+      "sourceFrameBounds": [
+        596,
+        269,
+        1611,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        1,
+        1015,
+        1026
+      ],
+      "bytes": 19952
+    },
+    {
+      "key": "canvas-gallery-espresso",
+      "family": "canvas-gallery",
+      "finish": "Espresso Frame",
+      "src": "/frames/lumaprints/canvas-gallery-espresso.webp",
+      "width": 1017,
+      "height": 1024,
+      "opening": {
+        "x": 25,
+        "y": 31,
+        "width": 962,
+        "height": 962
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Espresso Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Espresso Frame/Espresso Frame",
+      "sourceFrameBounds": [
+        596,
+        269,
+        1614,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        1,
+        1018,
+        1026
+      ],
+      "bytes": 30702
+    },
+    {
+      "key": "canvas-gallery-natural-wood",
+      "family": "canvas-gallery",
+      "finish": "Natural Wood Frame",
+      "src": "/frames/lumaprints/canvas-gallery-natural-wood.webp",
+      "width": 1013,
+      "height": 1024,
+      "opening": {
+        "x": 25,
+        "y": 32,
+        "width": 961,
+        "height": 961
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Natural Wood Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Natural Wood Frame/Natural Wood Frame",
+      "sourceFrameBounds": [
+        596,
+        269,
+        1611,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1015,
+        1026
+      ],
+      "bytes": 14052
+    },
+    {
+      "key": "canvas-gallery-oak",
+      "family": "canvas-gallery",
+      "finish": "Oak Frame",
+      "src": "/frames/lumaprints/canvas-gallery-oak.webp",
+      "width": 1016,
+      "height": 1024,
+      "opening": {
+        "x": 25,
+        "y": 32,
+        "width": 961,
+        "height": 961
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Oak Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Oak Frame/Oak Frame",
+      "sourceFrameBounds": [
+        596,
+        269,
+        1614,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1018,
+        1026
+      ],
+      "bytes": 34426
+    },
+    {
+      "key": "canvas-gallery-white",
+      "family": "canvas-gallery",
+      "finish": "White Frame",
+      "src": "/frames/lumaprints/canvas-gallery-white.webp",
+      "width": 1013,
+      "height": 1024,
+      "opening": {
+        "x": 25,
+        "y": 32,
+        "width": 961,
+        "height": 961
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "White Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/White Frame/White Frame",
+      "sourceFrameBounds": [
+        596,
+        269,
+        1611,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1015,
+        1026
+      ],
+      "bytes": 3780
+    },
+    {
+      "key": "canvas-gallery-black-1.625",
+      "family": "canvas-gallery",
+      "finish": "Black Frame 1.625",
+      "src": "/frames/lumaprints/canvas-gallery-black-1.625.webp",
+      "width": 1021,
+      "height": 1024,
+      "opening": {
+        "x": 42,
+        "y": 43,
+        "width": 934,
+        "height": 933
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Black Frame 1.625",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Black Frame 1.625/Black Frame 1.625",
+      "sourceFrameBounds": [
+        578,
+        257,
+        1631,
+        1313
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1053,
+        1056
+      ],
+      "bytes": 2910
+    },
+    {
+      "key": "canvas-gallery-black",
+      "family": "canvas-gallery",
+      "finish": "Black Frame",
+      "src": "/frames/lumaprints/canvas-gallery-black.webp",
+      "width": 1020,
+      "height": 1024,
+      "opening": {
+        "x": 29,
+        "y": 32,
+        "width": 961,
+        "height": 961
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Black Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-gallery/20x20 Square/Black Frame/Black Frame",
+      "sourceFrameBounds": [
+        592,
+        269,
+        1614,
+        1295
+      ],
+      "sourceArtworkBounds": [
+        621,
+        301,
+        1584,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1022,
+        1026
+      ],
+      "bytes": 3654
+    },
+    {
+      "key": "paper-standard-gold",
+      "family": "paper-standard",
+      "finish": "Gold Frame",
+      "src": "/frames/lumaprints/paper-standard-gold.webp",
+      "width": 898,
+      "height": 902,
+      "opening": {
+        "x": 27,
+        "y": 28,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Gold Frame/Gold Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1587,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        1,
+        898,
+        903
+      ],
+      "bytes": 19302
+    },
+    {
+      "key": "paper-standard-espresso",
+      "family": "paper-standard",
+      "finish": "Espresso Frame",
+      "src": "/frames/lumaprints/paper-standard-espresso.webp",
+      "width": 900,
+      "height": 902,
+      "opening": {
+        "x": 27,
+        "y": 28,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Espresso Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Espresso Frame/Espresso Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1589,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        1,
+        900,
+        903
+      ],
+      "bytes": 29076
+    },
+    {
+      "key": "paper-standard-natural-wood",
+      "family": "paper-standard",
+      "finish": "Natural Wood Frame",
+      "src": "/frames/lumaprints/paper-standard-natural-wood.webp",
+      "width": 898,
+      "height": 903,
+      "opening": {
+        "x": 27,
+        "y": 29,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Natural Wood Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Natural Wood Frame/Natural Wood Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1587,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        898,
+        903
+      ],
+      "bytes": 13934
+    },
+    {
+      "key": "paper-standard-maple",
+      "family": "paper-standard",
+      "finish": "Maple Frame",
+      "src": "/frames/lumaprints/paper-standard-maple.webp",
+      "width": 898,
+      "height": 903,
+      "opening": {
+        "x": 27,
+        "y": 29,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Maple Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Maple Frame/Maple Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1587,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        898,
+        903
+      ],
+      "bytes": 29974
+    },
+    {
+      "key": "paper-standard-oak",
+      "family": "paper-standard",
+      "finish": "Oak Frame",
+      "src": "/frames/lumaprints/paper-standard-oak.webp",
+      "width": 900,
+      "height": 903,
+      "opening": {
+        "x": 27,
+        "y": 29,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Oak Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Oak Frame/Oak Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1589,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        900,
+        903
+      ],
+      "bytes": 32298
+    },
+    {
+      "key": "paper-standard-white",
+      "family": "paper-standard",
+      "finish": "White Frame",
+      "src": "/frames/lumaprints/paper-standard-white.webp",
+      "width": 898,
+      "height": 903,
+      "opening": {
+        "x": 27,
+        "y": 29,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "White Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/White Frame/White Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1587,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        898,
+        903
+      ],
+      "bytes": 3450
+    },
+    {
+      "key": "paper-standard-black-1.625",
+      "family": "paper-standard",
+      "finish": "Black Frame 1.625",
+      "src": "/frames/lumaprints/paper-standard-black-1.625.webp",
+      "width": 931,
+      "height": 929,
+      "opening": {
+        "x": 43,
+        "y": 40,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Black Frame 1.625",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Black Frame 1.625/Black Frame 1.625",
+      "sourceFrameBounds": [
+        673,
+        276,
+        1604,
+        1205
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        931,
+        929
+      ],
+      "bytes": 2682
+    },
+    {
+      "key": "paper-standard-black",
+      "family": "paper-standard",
+      "finish": "Black Frame",
+      "src": "/frames/lumaprints/paper-standard-black.webp",
+      "width": 899,
+      "height": 903,
+      "opening": {
+        "x": 27,
+        "y": 29,
+        "width": 845,
+        "height": 845
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "finish-only",
+      "sourceProfileLabel": "Black Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-standard/20x20 Square/Black Frame/Black Frame",
+      "sourceFrameBounds": [
+        689,
+        287,
+        1588,
+        1190
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        899,
+        903
+      ],
+      "bytes": 3026
+    },
+    {
+      "key": "canvas-decorative-gold-plein-air",
+      "family": "canvas-decorative",
+      "finish": "Gold Plein Air Frame",
+      "src": "/frames/lumaprints/canvas-decorative-gold-plein-air.webp",
+      "width": 1017,
+      "height": 1024,
+      "opening": {
+        "x": 100,
+        "y": 104,
+        "width": 817,
+        "height": 816
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Gold Plein Air Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Gold Plein Air Frame/Gold Plein Air Frame",
+      "sourceFrameBounds": [
+        509,
+        188,
+        1688,
+        1375
+      ],
+      "sourceArtworkBounds": [
+        618,
+        302,
+        1581,
+        1265
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1179,
+        1187
+      ],
+      "bytes": 44762
+    },
+    {
+      "key": "canvas-decorative-vintage-copper",
+      "family": "canvas-decorative",
+      "finish": "Vintage Collection - Copper Frame",
+      "src": "/frames/lumaprints/canvas-decorative-vintage-copper.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 102,
+        "y": 104,
+        "width": 819,
+        "height": 816
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Vintage Collection - Copper Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Vintage Collection - Copper Frame/Vintage Collection - Copper Frame",
+      "sourceFrameBounds": [
+        507,
+        191,
+        1692,
+        1376
+      ],
+      "sourceArtworkBounds": [
+        618,
+        302,
+        1581,
+        1265
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1185,
+        1185
+      ],
+      "bytes": 126788
+    },
+    {
+      "key": "canvas-decorative-slimwoods-black-silver",
+      "family": "canvas-decorative",
+      "finish": "Slimwoods - Black Silver Frame",
+      "src": "/frames/lumaprints/canvas-decorative-slimwoods-black-silver.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 49,
+        "y": 50,
+        "width": 926,
+        "height": 924
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Slimwoods - Black Silver Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Slimwoods - Black Silver Frame/Slimwoods - BlackSilver Frame",
+      "sourceFrameBounds": [
+        571,
+        256,
+        1626,
+        1311
+      ],
+      "sourceArtworkBounds": [
+        617,
+        302,
+        1580,
+        1265
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1055,
+        1055
+      ],
+      "bytes": 27630
+    },
+    {
+      "key": "canvas-decorative-slimwoods-black-gold",
+      "family": "canvas-decorative",
+      "finish": "Slimwoods - Black Gold Frame",
+      "src": "/frames/lumaprints/canvas-decorative-slimwoods-black-gold.webp",
+      "width": 1023,
+      "height": 1024,
+      "opening": {
+        "x": 50,
+        "y": 51,
+        "width": 923,
+        "height": 921
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Slimwoods - Black Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Slimwoods - Black Gold Frame/Slimwoods - BlackGold Frame",
+      "sourceFrameBounds": [
+        571,
+        256,
+        1626,
+        1311
+      ],
+      "sourceArtworkBounds": [
+        617,
+        302,
+        1580,
+        1265
+      ],
+      "sourceSolidCrop": [
+        1,
+        0,
+        1055,
+        1055
+      ],
+      "bytes": 52726
+    },
+    {
+      "key": "canvas-decorative-plein-air-espresso-gold",
+      "family": "canvas-decorative",
+      "finish": "Plein Air Economy - Espresso Gold Frame",
+      "src": "/frames/lumaprints/canvas-decorative-plein-air-espresso-gold.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 78,
+        "y": 78,
+        "width": 868,
+        "height": 868
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Plein Air Economy - Espresso Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Plein Air Economy - Espresso Gold Frame/Plein Air Economy - Espresso Gold Frame",
+      "sourceFrameBounds": [
+        544,
+        227,
+        1655,
+        1338
+      ],
+      "sourceArtworkBounds": [
+        617,
+        301,
+        1580,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1111,
+        1111
+      ],
+      "bytes": 67520
+    },
+    {
+      "key": "canvas-decorative-framers-choice-black-gold",
+      "family": "canvas-decorative",
+      "finish": "Framers Choice - Black with Gold Frame",
+      "src": "/frames/lumaprints/canvas-decorative-framers-choice-black-gold.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 73,
+        "y": 72,
+        "width": 878,
+        "height": 879
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Framers Choice - Black with Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Framers Choice - Black with Gold Frame/Framers Choice - Black-Gold Frame",
+      "sourceFrameBounds": [
+        548,
+        234,
+        1648,
+        1334
+      ],
+      "sourceArtworkBounds": [
+        617,
+        303,
+        1580,
+        1266
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1100,
+        1100
+      ],
+      "bytes": 66258
+    },
+    {
+      "key": "canvas-decorative-concerto-black-gold",
+      "family": "canvas-decorative",
+      "finish": "Concerto Black with Gold Frame",
+      "src": "/frames/lumaprints/canvas-decorative-concerto-black-gold.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 101,
+        "y": 101,
+        "width": 822,
+        "height": 823
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Concerto Black with Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Concerto Black with Gold Frame/Concerto Black-Gold Frame",
+      "sourceFrameBounds": [
+        518,
+        202,
+        1678,
+        1362
+      ],
+      "sourceArtworkBounds": [
+        617,
+        301,
+        1580,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1160,
+        1160
+      ],
+      "bytes": 41364
+    },
+    {
+      "key": "canvas-decorative-barnwood-driftwood-white",
+      "family": "canvas-decorative",
+      "finish": "Barnwood - Driftwood White Frame",
+      "src": "/frames/lumaprints/canvas-decorative-barnwood-driftwood-white.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 81,
+        "y": 79,
+        "width": 859,
+        "height": 866
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Barnwood - Driftwood White Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Barnwood - Driftwood White Frame/Barnwood - Driftwood White",
+      "sourceFrameBounds": [
+        539,
+        217,
+        1669,
+        1347
+      ],
+      "sourceArtworkBounds": [
+        620,
+        301,
+        1583,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1130,
+        1130
+      ],
+      "bytes": 89428
+    },
+    {
+      "key": "canvas-decorative-barnwood-driftwood-gray",
+      "family": "canvas-decorative",
+      "finish": "Barnwood - Driftwood Gray Frame",
+      "src": "/frames/lumaprints/canvas-decorative-barnwood-driftwood-gray.webp",
+      "width": 1024,
+      "height": 1024,
+      "opening": {
+        "x": 81,
+        "y": 81,
+        "width": 862,
+        "height": 862
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Barnwood - Driftwood Gray Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Stretched+and+Framed+Canvas+Print+Mockup+Template+(S).psd",
+      "sourceLayerPath": "canvas-decorative/20x20 Square/Barnwood - Driftwood Gray Frame/Barnwood - Driftwood Gray",
+      "sourceFrameBounds": [
+        533,
+        217,
+        1663,
+        1347
+      ],
+      "sourceArtworkBounds": [
+        617,
+        301,
+        1580,
+        1264
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1130,
+        1130
+      ],
+      "bytes": 83940
+    },
+    {
+      "key": "paper-decorative-gold-plein-air",
+      "family": "paper-decorative",
+      "finish": "Gold Plein Air Frame",
+      "src": "/frames/lumaprints/paper-decorative-gold-plein-air.webp",
+      "width": 1017,
+      "height": 1024,
+      "opening": {
+        "x": 100,
+        "y": 104,
+        "width": 817,
+        "height": 816
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Gold Plein Air Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Gold Plein Air Frame/Gold Plein Air Frame",
+      "sourceFrameBounds": [
+        620,
+        218,
+        1655,
+        1260
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1035,
+        1042
+      ],
+      "bytes": 41982
+    },
+    {
+      "key": "paper-decorative-vintage-copper",
+      "family": "paper-decorative",
+      "finish": "Vintage Collection - Copper Frame",
+      "src": "/frames/lumaprints/paper-decorative-vintage-copper.webp",
+      "width": 1024,
+      "height": 1020,
+      "opening": {
+        "x": 105,
+        "y": 102,
+        "width": 814,
+        "height": 816
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Vintage Collection - Copper Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Vintage Collection - Copper Frame/Vintage Collection - Copper Frame",
+      "sourceFrameBounds": [
+        608,
+        210,
+        1670,
+        1268
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1062,
+        1058
+      ],
+      "bytes": 132602
+    },
+    {
+      "key": "paper-decorative-slimwoods-black-silver",
+      "family": "paper-decorative",
+      "finish": "Slimwoods - Black Silver Frame",
+      "src": "/frames/lumaprints/paper-decorative-slimwoods-black-silver.webp",
+      "width": 930,
+      "height": 935,
+      "opening": {
+        "x": 44,
+        "y": 46,
+        "width": 842,
+        "height": 843
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Slimwoods - Black Silver Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Slimwoods - Black Silver Frame/Slimwoods - BlackSilver Frame",
+      "sourceFrameBounds": [
+        673,
+        271,
+        1603,
+        1206
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        930,
+        935
+      ],
+      "bytes": 27638
+    },
+    {
+      "key": "paper-decorative-slimwoods-black-gold",
+      "family": "paper-decorative",
+      "finish": "Slimwoods - Black Gold Frame",
+      "src": "/frames/lumaprints/paper-decorative-slimwoods-black-gold.webp",
+      "width": 936,
+      "height": 938,
+      "opening": {
+        "x": 45,
+        "y": 47,
+        "width": 845,
+        "height": 844
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Slimwoods - Black Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Slimwoods - Black Gold Frame/Slimwoods - BlackGold Frame",
+      "sourceFrameBounds": [
+        670,
+        270,
+        1607,
+        1208
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        1,
+        0,
+        937,
+        938
+      ],
+      "bytes": 51358
+    },
+    {
+      "key": "paper-decorative-plein-air-espresso-gold",
+      "family": "paper-decorative",
+      "finish": "Plein Air Economy - Espresso Gold Frame",
+      "src": "/frames/lumaprints/paper-decorative-plein-air-espresso-gold.webp",
+      "width": 997,
+      "height": 998,
+      "opening": {
+        "x": 75,
+        "y": 75,
+        "width": 847,
+        "height": 847
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Plein Air Economy - Espresso Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Plein Air Economy - Espresso Gold Frame/Plein Air Economy - Espresso Gold Frame",
+      "sourceFrameBounds": [
+        640,
+        240,
+        1637,
+        1239
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        1,
+        997,
+        999
+      ],
+      "bytes": 76904
+    },
+    {
+      "key": "paper-decorative-framers-choice-black-gold",
+      "family": "paper-decorative",
+      "finish": "Framers Choice - Black with Gold Frame",
+      "src": "/frames/lumaprints/paper-decorative-framers-choice-black-gold.webp",
+      "width": 983,
+      "height": 979,
+      "opening": {
+        "x": 69,
+        "y": 68,
+        "width": 845,
+        "height": 843
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Framers Choice - Black with Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Framers Choice - Black with Gold Frame/Framers Choice - Black-Gold Frame",
+      "sourceFrameBounds": [
+        647,
+        249,
+        1630,
+        1228
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        983,
+        979
+      ],
+      "bytes": 65056
+    },
+    {
+      "key": "paper-decorative-concerto-black-gold",
+      "family": "paper-decorative",
+      "finish": "Concerto Black with Gold Frame",
+      "src": "/frames/lumaprints/paper-decorative-concerto-black-gold.webp",
+      "width": 1024,
+      "height": 1014,
+      "opening": {
+        "x": 100,
+        "y": 98,
+        "width": 824,
+        "height": 818
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Concerto Black with Gold Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Concerto Black with Gold Frame/Concerto Black-Gold Frame",
+      "sourceFrameBounds": [
+        622,
+        227,
+        1653,
+        1248
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1031,
+        1021
+      ],
+      "bytes": 38580
+    },
+    {
+      "key": "paper-decorative-barnwood-driftwood-white",
+      "family": "paper-decorative",
+      "finish": "Barnwood - Driftwood White Frame",
+      "src": "/frames/lumaprints/paper-decorative-barnwood-driftwood-white.webp",
+      "width": 1024,
+      "height": 1015,
+      "opening": {
+        "x": 92,
+        "y": 89,
+        "width": 840,
+        "height": 837
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Barnwood - Driftwood White Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Barnwood - Driftwood White Frame/Barnwood - Driftwood White",
+      "sourceFrameBounds": [
+        623,
+        227,
+        1653,
+        1248
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        1030,
+        1021
+      ],
+      "bytes": 107488
+    },
+    {
+      "key": "paper-decorative-barnwood-driftwood-gray",
+      "family": "paper-decorative",
+      "finish": "Barnwood - Driftwood Gray Frame",
+      "src": "/frames/lumaprints/paper-decorative-barnwood-driftwood-gray.webp",
+      "width": 997,
+      "height": 999,
+      "opening": {
+        "x": 78,
+        "y": 78,
+        "width": 841,
+        "height": 843
+      },
+      "basisWidthIn": 20,
+      "basisHeightIn": 20,
+      "profileMatch": "named-profile",
+      "sourceProfileLabel": "Barnwood - Driftwood Gray Frame",
+      "sourceUrl": "https://lumaprints.s3.us-west-1.amazonaws.com/static/templates/Fine+Art+Paper+and+Framed+Fine+Art+Paper+Print+(no+Mat)+Mockup+Template.psd",
+      "sourceLayerPath": "paper-decorative/20x20 Square/Barnwood - Driftwood Gray Frame/Barnwood - Driftwood Gray",
+      "sourceFrameBounds": [
+        640,
+        239,
+        1637,
+        1238
+      ],
+      "sourceArtworkBounds": [
+        716,
+        316,
+        1561,
+        1161
+      ],
+      "sourceSolidCrop": [
+        0,
+        0,
+        997,
+        999
+      ],
+      "bytes": 88652
+    }
+  ]
+}

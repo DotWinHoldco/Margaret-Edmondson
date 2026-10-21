@@ -69,6 +69,12 @@ function firstOnDisk(basePath) {
  * certainty falls through to the default resolver unchanged.
  */
 export async function resolve(specifier, context, nextResolve) {
+  // Next's published CommonJS entry points need their extension under plain
+  // Node ESM. Loading these does not create a request context; operator code
+  // supplies its own Supabase client and never calls cookies()/headers().
+  if (specifier === 'next/cache' || specifier === 'next/headers') {
+    return nextResolve(`${specifier}.js`, context)
+  }
   if (specifier.startsWith('@/')) {
     const base = path.join(SRC_DIR, specifier.slice(2))
     const hit = HAS_EXTENSION.test(specifier) ? (fileOnDisk(base) ? base : null) : firstOnDisk(base)

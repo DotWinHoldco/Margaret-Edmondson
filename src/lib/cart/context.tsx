@@ -1,7 +1,7 @@
 'use client'
 
 import { applyQuotedPrices, type QuotedPrice } from './quoted-prices'
-import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { track } from '@/lib/meta/track'
 
 /**
@@ -12,7 +12,7 @@ import { track } from '@/lib/meta/track'
  */
 export interface CartLineSelection {
   subcategoryRef: string
-  /** Every group's chosen id after the server filled defaults (read back from the quote's labels). */
+  /** The accepted shopper choices; provider-only defaults are restored by the server when re-quoting. */
   optionIds: number[]
   solidHex?: string
   /** Server line identity: sha256(subcategoryRef ‖ sorted optionIds ‖ solidHex). */
@@ -168,6 +168,7 @@ function usableCartToken(value: unknown): value is string {
  * a request per keystroke.
  */
 export function CartProvider({ children }: { children: ReactNode }) {
+  const [hydrated, setHydrated] = useState(false)
   const [state, dispatch] = useReducer(cartReducer, {
     items: [],
     isOpen: false,
@@ -192,24 +193,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch { /* ignore */ }
+    finally { setHydrated(true) }
   }, [])
 
-  // Persist items to localStorage.
+  // Never persist the initial empty state before restoring the saved cart.
+  // Strict Mode replays mount effects and would otherwise read our empty write.
   useEffect(() => {
+    if (!hydrated) return
     try {
       localStorage.setItem(STORAGE_ITEMS, JSON.stringify(state.items))
     } catch { /* ignore */ }
-  }, [state.items])
+  }, [hydrated, state.items])
 
   // Persist meta (email, cart token).
   useEffect(() => {
+    if (!hydrated) return
     try {
       localStorage.setItem(
         STORAGE_META,
         JSON.stringify({ email: state.email, cartToken: state.cartToken }),
       )
     } catch { /* ignore */ }
-  }, [state.email, state.cartToken])
+  }, [hydrated, state.email, state.cartToken])
 
   // Debounced server sync. Runs whenever items/email change.
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -217,6 +222,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const lastItemCount = useRef(0)
 
   useEffect(() => {
+    if (!hydrated) return
     if (!initialized.current) {
       initialized.current = true
       lastItemCount.current = state.items.reduce((s, i) => s + i.quantity, 0)
@@ -278,7 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current)
     }
-  }, [state.items, state.email, state.cartToken])
+  }, [hydrated, state.items, state.email, state.cartToken])
 
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0)

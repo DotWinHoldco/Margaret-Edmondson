@@ -91,7 +91,7 @@ export default function EmailConfigSection() {
               type="email"
               value={fromAddress}
               onChange={(e) => setFromAddress(e.target.value)}
-              placeholder="hello@artbyme.studio"
+              placeholder="margaret@artbyme.studio"
               className={inputCls}
             />
           </div>
@@ -99,7 +99,7 @@ export default function EmailConfigSection() {
         <p className="font-body text-xs text-charcoal/40">
           Preview:{' '}
           <code className="rounded-sm bg-charcoal/[0.04] px-1.5 py-0.5 text-[11px] text-charcoal/70">
-            {(fromName || 'ArtByME')} &lt;{fromAddress || 'hello@artbyme.studio'}&gt;
+            {(fromName || 'ArtByME')} &lt;{fromAddress || 'margaret@artbyme.studio'}&gt;
           </code>
         </p>
         <div className="max-w-md">
@@ -108,7 +108,7 @@ export default function EmailConfigSection() {
             type="email"
             value={orderNotify}
             onChange={(e) => setOrderNotify(e.target.value)}
-            placeholder="orders@artbyme.studio"
+            placeholder="margaret@artbyme.studio"
             className={inputCls}
           />
           <p className="mt-1 font-body text-xs text-charcoal/30">

@@ -36,6 +36,7 @@ import type { ConstraintViolation } from '../pricing/quote-types'
  * label, a size, a provider error or an internal note cannot ride out inside one.
  */
 export const CUSTOMER_VIOLATION_MESSAGES = {
+  mat_preference: 'The mat selected for this artwork is required or is currently unavailable. Please return to the artwork to review its options.',
   subcategory_unavailable: 'This finish is not available right now.',
   option_unknown: 'That choice is not offered for this product.',
   option_unavailable: 'This option is not available right now.',
@@ -138,15 +139,19 @@ function hasHostileProviderDefault(group: CatalogOptionGroup): boolean {
 /**
  * The id a group contributes when the customer chose nothing in it. Identical to
  * `defaultSelection` in the loader, per group: our marked default when the group is
- * live and that option is on, and ALSO when the group is off but the provider would
- * resolve the omission to a hostile option. A tombstoned or blocked default
+ * live and that option is on, and ALSO when the group is off and the marked option
+ * is the provider's own default, or omission would resolve to a hostile option. A tombstoned or blocked default
  * contributes nothing rather than guessing at a substitute.
  */
 function defaultIdForGroup(group: CatalogOptionGroup): number | null {
   if (group.removed_from_api === true) return null
   const marked = group.options.find((option) => option.is_default === true)
   if (!marked || marked.removed_from_api === true || marked.blocked_reason !== null) return null
-  if ((group.effective_enabled && marked.enabled === true) || hasHostileProviderDefault(group)) {
+  // A disabled control still has a provider default. Sending that same safe,
+  // explicitly marked default preserves what omission would order and keeps
+  // framed-paper finishes from collapsing to an unpriceable empty selection.
+  const pinnedProviderDefault = group.enabled !== true && marked.provider_default === true
+  if ((group.effective_enabled && marked.enabled === true) || pinnedProviderDefault || hasHostileProviderDefault(group)) {
     return marked.option_id
   }
   return null

@@ -7,6 +7,10 @@ import { processMasterCrop } from '@/lib/artwork/crop-worker'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
+const OutputInches = z.number().min(1).max(100).refine(
+  (value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
+  'Use at most two decimal places for the finished size',
+)
 const CropBody = z.object({
   crop_box: z.object({
     x: z.number().min(0).max(1),
@@ -15,12 +19,21 @@ const CropBody = z.object({
     h: z.number().gt(0).max(1),
   }),
   border_mode: z.enum(['full_bleed', 'matte']),
+  crop_output: z.object({
+    version: z.literal(1),
+    fit: z.enum(['crop', 'pad']),
+    width_in: OutputInches,
+    height_in: OutputInches,
+  }).strict().nullable().default(null),
   border_color: z
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, 'border_color must be a #RRGGBB hex')
     .default('#ffffff'),
-})
+}).strict().refine(
+  (value) => !value.crop_output || (value.border_mode === 'full_bleed' && value.border_color.toLowerCase() === '#ffffff'),
+  { message: 'An exact finished size uses full bleed with white padding only', path: ['crop_output'] },
+)
 
 // POST /api/admin/master-artworks/[id]/crop — admin only. Sets the print-ready
 // crop area for a master: writes the NORMALIZED crop rectangle (0..1 of the
@@ -37,7 +50,7 @@ export async function POST(
 
   const parsed = await parseBody(request, CropBody)
   if (!parsed.ok) return parsed.response
-  const { crop_box, border_mode, border_color } = parsed.data
+  const { crop_box, crop_output, border_mode, border_color } = parsed.data
 
   // The rect must stay inside the image (worker reads the region directly).
   if (crop_box.x + crop_box.w > 1 + 1e-6 || crop_box.y + crop_box.h > 1 + 1e-6) {
@@ -57,6 +70,7 @@ export async function POST(
     .from('master_artworks')
     .update({
       crop_box,
+      crop_output,
       border_mode,
       border_color,
       print_status: 'pending',
@@ -65,7 +79,7 @@ export async function POST(
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-    .select('id, print_status, print_requested_at, border_mode, border_color, crop_box')
+    .select('id, print_status, print_requested_at, border_mode, border_color, crop_box, crop_output')
     .single()
 
   if (error) return dbFail(error)

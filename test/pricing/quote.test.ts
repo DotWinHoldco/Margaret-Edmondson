@@ -474,7 +474,7 @@ describe('quoteConfiguration: goldens', () => {
       { lumaprints_cost_cents: 1099, shipping_cost_cents: 1234, margin_override_pct: null, manual_price_override_cents: null },
       100,
     ))
-    expect(result.priceCents).toBe(4666)
+    expect(result.priceCents).toBe(4700)
     expect(result.fromCache).toBe(false)
     expect(result.stale).toBe(false)
     expect(result.breakdown).toEqual({ baseCents: 1099, optionDeltas: [{ optionId: 2, cents: 0 }, { optionId: 11, cents: 0 }], pricingMode: 'additive' })
@@ -864,7 +864,7 @@ describe('quoteConfiguration: variant overrides', () => {
       },
       OPTS,
     )
-    expect(result.priceCents).toBe(Math.round((1099 + 1234) * 1.4))
+    expect(result.priceCents).toBe(3300)
     expect(result.priceCents).toBe(
       customerPriceCents(
         {

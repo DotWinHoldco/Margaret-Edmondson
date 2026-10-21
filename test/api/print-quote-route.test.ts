@@ -419,7 +419,7 @@ describe('POST /api/products/[id]/print-quote', () => {
     await call(body())
 
     const productSelect = selectedColumns.find((c) => c.table === 'products')
-    expect(productSelect?.columns).toBe('id, status, prints_enabled')
+    expect(productSelect?.columns).toBe('id, status, prints_enabled, mat_preference')
     const settingsSelect = selectedColumns.find((c) => c.table === 'site_settings')
     expect(settingsSelect?.columns).toBe('print_configurator_enabled')
   })

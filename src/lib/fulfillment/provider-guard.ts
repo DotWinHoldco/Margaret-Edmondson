@@ -15,6 +15,14 @@ export function providerHostIsSandbox(host: string | null | undefined): boolean 
   return typeof host === 'string' && /(^|[.-])sandbox([.-]|$)/i.test(host)
 }
 
+/** Status reads must use the same environment as payment/fulfillment. Provider
+ * order numbers can collide between sandbox and production in the shared DB. */
+export function providerTracksStripeMode(stripeMode: string | null | undefined, host: string): boolean {
+  if (host === 'us.api-sandbox.lumaprints.com') return stripeMode === 'test'
+  if (host === 'us.api.lumaprints.com') return stripeMode !== 'test'
+  return false
+}
+
 export interface ProviderGuardInput {
   /** `orders.stripe_mode`: 'test' | 'live' | null (null = a row written before the column existed). */
   stripeMode: string | null | undefined

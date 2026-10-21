@@ -10,7 +10,7 @@ export function computeCustomerPrice({ wholesaleCost, shippingCost, marginPct }:
   }
   const totalCost = wholesaleCost + shippingCost
   const price = totalCost / (1 - marginPct)
-  return Math.round(price * 100) / 100
+  return Math.round(price)
 }
 
 export function resolveMargin(productMarginPct: number | null | undefined, siteDefault: number): number {

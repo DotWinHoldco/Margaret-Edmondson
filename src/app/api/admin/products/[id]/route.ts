@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -54,11 +55,13 @@ async function syncProductCategories(
   // list, which sends category_id but not the additionals): just move the
   // is_primary flag — DON'T wipe the product's cross-category assignments.
   if (additionalCategoryIds === undefined) {
-    await supabase.from('product_categories').update({ is_primary: false }).eq('product_id', productId).eq('is_primary', true)
+    const { error: clearError } = await supabase.from('product_categories').update({ is_primary: false }).eq('product_id', productId).eq('is_primary', true)
+    if (clearError) throw clearError
     if (primaryCategoryId) {
-      await supabase
+      const { error } = await supabase
         .from('product_categories')
         .upsert({ product_id: productId, category_id: primaryCategoryId, is_primary: true }, { onConflict: 'product_id,category_id' })
+      if (error) throw error
     }
     return
   }
@@ -69,17 +72,24 @@ async function syncProductCategories(
   const all = new Set<string>(additionals)
   if (primaryCategoryId) all.add(primaryCategoryId)
 
-  // Wipe existing junction rows for this product and rewrite. Cheaper to
-  // express than a 3-way diff, fine at the scale here.
-  await supabase.from('product_categories').delete().eq('product_id', productId)
-  if (all.size === 0) return
-  await supabase.from('product_categories').insert(
-    [...all].map((cid) => ({
-      product_id: productId,
-      category_id: cid,
-      is_primary: cid === primaryCategoryId,
-    })),
-  )
+  // Save the requested memberships before removing old ones. A failed insert
+  // must not empty the product's collections, and existing sort orders survive.
+  const { data: existing, error: readError } = await supabase.from('product_categories')
+    .select('category_id').eq('product_id', productId)
+  if (readError) throw readError
+  if (all.size > 0) {
+    const { error } = await supabase.from('product_categories').upsert(
+      [...all].map((cid) => ({ product_id: productId, category_id: cid, is_primary: cid === primaryCategoryId })),
+      { onConflict: 'product_id,category_id' },
+    )
+    if (error) throw error
+  }
+  const removed = (existing ?? []).map((row) => row.category_id).filter((cid) => !all.has(cid))
+  if (removed.length > 0) {
+    const { error } = await supabase.from('product_categories').delete()
+      .eq('product_id', productId).in('category_id', removed)
+    if (error) throw error
+  }
 }
 
 // GET /api/admin/products/[id] — read a single product (incl. drafts) with images/variants/categories; admin only.
@@ -160,16 +170,18 @@ export async function PATCH(
     // Original availability/pricing belongs to the atomic product trigger;
     // print options belong to their dedicated editors. This legacy array must
     // not overwrite either, including an original just created by this save.
-    const { data: existingRows } = await supabase
+    const { data: existingRows, error: variantsError } = await supabase
       .from('product_variants')
       .select('id, medium, variant_type')
       .eq('product_id', id)
+    if (variantsError) return dbFail(variantsError, 'admin/products PATCH variants lookup')
     const existingIds = new Set((existingRows || []).map((r) => r.id))
     const managedIds = new Set((existingRows || []).filter((r) => r.medium || r.variant_type === 'original').map((r) => r.id))
     const simpleExistingIds = new Set([...existingIds].filter((eid) => !managedIds.has(eid)))
     const idsToDelete = [...simpleExistingIds].filter((eid) => !incomingIds.has(eid))
     if (idsToDelete.length > 0) {
-      await supabase.from('product_variants').delete().in('id', idsToDelete)
+      const { error } = await supabase.from('product_variants').delete().in('id', idsToDelete).eq('product_id', id)
+      if (error) return dbFail(error, 'admin/products PATCH variants delete')
     }
     for (let index = 0; index < variants.length; index++) {
       const v = variants[index]
@@ -181,9 +193,11 @@ export async function PATCH(
         sort_order: index,
       }
       if (v.id && existingIds.has(v.id)) {
-        await supabase.from('product_variants').update(row).eq('id', v.id)
+        const { error } = await supabase.from('product_variants').update(row).eq('id', v.id).eq('product_id', id)
+        if (error) return dbFail(error, 'admin/products PATCH variants update')
       } else {
-        await supabase.from('product_variants').insert({ ...row, product_id: id })
+        const { error } = await supabase.from('product_variants').insert({ ...row, product_id: id })
+        if (error) return dbFail(error, 'admin/products PATCH variants insert')
       }
     }
   }
@@ -195,7 +209,11 @@ export async function PATCH(
       productFields.category_id !== undefined
         ? productFields.category_id
         : before?.category_id ?? null
-    await syncProductCategories(supabase, id, primary, additionalCategoryIds)
+    try {
+      await syncProductCategories(supabase, id, primary, additionalCategoryIds)
+    } catch (error) {
+      return dbFail(error, 'admin/products PATCH categories')
+    }
   }
 
   // A margin or category change shifts the effective markup → re-price the
@@ -220,7 +238,8 @@ export async function PATCH(
     .eq('id', id)
     .single()
 
-  if (fetchError) return dbFail(fetchError, 'admin/products [id] DELETE fetch')
+  if (fetchError) return dbFail(fetchError, 'admin/products [id] PATCH fetch')
+  revalidatePath('/', 'layout')
   return apiOk(product)
 }
 
@@ -261,5 +280,6 @@ export async function DELETE(
     after: { status: 'archived' },
   })
 
+  revalidatePath('/', 'layout')
   return apiOk({ success: true })
 }

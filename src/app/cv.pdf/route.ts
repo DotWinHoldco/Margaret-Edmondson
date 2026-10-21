@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 const PAGE_W = 612
 const PAGE_H = 792
 const MARGIN = 54
+// Leave enough room for ranges such as "2026-present" without touching the title.
+const YEAR_COLUMN_W = 100
 
 interface Settings { intro: string; contact_email: string }
 
@@ -27,7 +29,7 @@ async function load(): Promise<{ entries: CvEntry[]; settings: Settings }> {
     entries: (entriesRes.data || []) as CvEntry[],
     settings: (settingsRes.data as Settings | null) || {
       intro: 'Selected exhibitions, education, and teaching experience.',
-      contact_email: 'hello@artbyme.studio',
+      contact_email: 'margaret@artbyme.studio',
     },
   }
 }
@@ -85,14 +87,13 @@ export async function GET() {
     y -= 16
 
     for (const entry of rows) {
-      const block = estimateEntryHeight(entry, helv, 10, PAGE_W - MARGIN * 2 - 60)
+      const block = estimateEntryHeight(entry, helv, 10, PAGE_W - MARGIN * 2 - YEAR_COLUMN_W)
       ensureSpace(block)
 
       // Year column (left rail)
       page.drawText(entry.year, { x: MARGIN, y, size: 10, font: helvBold, color: charcoal })
 
-      // Body column starts at MARGIN + 60
-      const bodyX = MARGIN + 60
+      const bodyX = MARGIN + YEAR_COLUMN_W
       const bodyMaxW = PAGE_W - MARGIN - bodyX
 
       let cursorY = y
@@ -148,7 +149,7 @@ export async function GET() {
     status: 200,
     headers: {
       'content-type': 'application/pdf',
-      'cache-control': 'public, max-age=300',
+      'cache-control': 'public, max-age=0, must-revalidate',
       'content-disposition': 'inline; filename="margaret-edmondson-cv.pdf"',
     },
   })

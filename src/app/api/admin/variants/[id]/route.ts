@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { apiError, apiOk, parseBody, dbFail } from '@/lib/api/respond'
 import { customerPriceCents } from '@/lib/pricing/variant-pricing'
 import { getEffectiveProductMargin } from '@/lib/pricing/margin'
-import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability'
+import { loadVariantFulfillability } from '@/lib/fulfillment/fulfillability-server'
 
 const Patch = z.object({
   margin_override_pct: z.number().nullable().optional(),
@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   // LumaPrints — print-ready master + configured/enabled medium (+ framed
   // option). Prevents selling a print whose order would 406/fail at submit.
   if (parsed.data.is_active === true) {
-    const fulfill = await loadVariantFulfillability(auth.supabase, id)
+    const fulfill = await loadVariantFulfillability(auth.supabase, id, parsed.data.excluded_subcategory_ids)
     if (!fulfill.ok) {
       return apiError(`Can't set Live: ${fulfill.reason}`, 409, 'NOT_FULFILLABLE')
     }

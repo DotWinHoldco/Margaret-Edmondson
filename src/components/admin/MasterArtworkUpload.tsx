@@ -7,7 +7,7 @@ import { apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/tiff', 'application/pdf']
-const MAX_BYTES = 500 * 1024 * 1024 // 500MB — matches bucket limit
+const MAX_BYTES = Math.floor(1.2 * 1024 * 1024 * 1024) // Matches the print-masters bucket limit.
 // Above this, the plain client upload caps out — use a tus resumable upload
 // (multi-GB reliable). Smaller files keep the simpler direct upload.
 const RESUMABLE_THRESHOLD = 25 * 1024 * 1024
@@ -214,7 +214,7 @@ export default function MasterArtworkUpload({ onUploaded, onCancel }: Props) {
           )}
         </p>
         <p className="mt-1 font-body text-[11px] text-charcoal/45">
-          JPEG · PNG · TIFF · PDF · up to 500 MB
+          JPEG · PNG · TIFF · PDF · up to 1.2 GB
         </p>
         <input
           ref={inputRef}

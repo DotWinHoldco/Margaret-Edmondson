@@ -1,10 +1,13 @@
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import { getFulfillmentPolicy } from '@/lib/fulfillment/policy'
 import { requireCron } from '@/lib/auth/require-cron'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getOrder, getShipments, lumaprintsConfigured } from '@/lib/integrations/lumaprints'
 import { recomputeOrderStatus } from '@/lib/fulfillment/order-status'
 import { notifyShipped } from '@/lib/email/triggers'
-import { carrierTrackingUrl } from '@/lib/fulfillment/tracking'
+import { carrierTrackingUrl, lumaprintsShipmentForItem, lumaprintsStatus, type LumaprintsShipment } from '@/lib/fulfillment/tracking'
+import { providerTracksStripeMode } from '@/lib/fulfillment/provider-guard'
+import { catalogHost } from '@/lib/catalog/walk'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -12,23 +15,6 @@ export const maxDuration = 60
 // At most this many distinct LumaPrints orders per run (stays under the 40
 // req/min API limit: up to 2 calls/order). Excess is picked up next run.
 const MAX_ORDERS_PER_RUN = 15
-
-// Map a LumaPrints orderStatus string to our fulfillment_status. Tolerant —
-// returns null (no change) for statuses we don't act on (e.g. awaiting/queued).
-function mapLumaStatus(orderStatus: string | undefined | null): string | null {
-  const s = (orderStatus || '').toLowerCase()
-  if (!s) return null
-  if (s.includes('deliver')) return 'delivered'
-  if (s.includes('ship')) return 'shipped'
-  if (s.includes('cancel')) return 'cancelled'
-  if (s.includes('production') || s.includes('printing') || s.includes('process')) return 'in_production'
-  return null
-}
-
-interface ShipmentInfo {
-  trackingNumber?: string
-  carrier?: string
-}
 
 // GET /api/cron/lumaprints-status — backstop poll of in-flight LumaPrints orders
 // (status, tracking, shipping email, orders.status rollup) for webhooks we may
@@ -44,18 +30,29 @@ export async function GET(request: Request) {
   if (!(await getFulfillmentPolicy(supabase)).lumaprints_enabled) return Response.json({ skipped: 'Lumaprints is off' })
 
   // In-flight items awaiting a shipping update.
-  const { data: items, error } = await supabase
+  const { data: rows, error } = await supabase
     .from('order_items')
-    .select('id, order_id, external_order_id, fulfillment_status')
-    .in('fulfillment_status', ['submitted', 'in_production'])
+    .select('id, order_id, external_order_id, external_item_id, fulfillment_status, shipped_at, delivered_at, order:orders!inner(stripe_mode)')
+    .in('fulfillment_status', ['submitted', 'in_production', 'shipped'])
     .not('external_order_id', 'is', null)
     .eq('fulfillment_type', 'lumaprints')
+    .order('id')
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  const host = catalogHost()
+  const items = (rows || []).filter((item) => {
+    const order = Array.isArray(item.order) ? item.order[0] : item.order
+    return order && providerTracksStripeMode(order.stripe_mode, host)
+  })
 
   // Distinct external order numbers.
   const orderNumbers = [...new Set((items || []).map((i) => i.external_order_id as string).filter(Boolean))]
   const capped = orderNumbers.length > MAX_ORDERS_PER_RUN
-  const batch = orderNumbers.slice(0, MAX_ORDERS_PER_RUN)
+  // Rotate with the half-hour cron so the same first 15 long-running orders
+  // cannot permanently prevent later buyers from receiving tracking updates.
+  const pageCount = Math.max(1, Math.ceil(orderNumbers.length / MAX_ORDERS_PER_RUN))
+  const offset = (Math.floor(Date.now() / (30 * 60_000)) % pageCount) * MAX_ORDERS_PER_RUN
+  const batch = orderNumbers.slice(offset, offset + MAX_ORDERS_PER_RUN)
 
   let shipped = 0
   let delivered = 0
@@ -65,44 +62,43 @@ export async function GET(request: Request) {
   for (const orderNumber of batch) {
     try {
       const order = await getOrder(orderNumber)
-      const mapped = mapLumaStatus(order.orderStatus)
+      const mapped = lumaprintsStatus(order.orderStatus)
       if (!mapped) continue
 
-      // Resolve our order + buyer once.
-      const { data: oi } = await supabase
-        .from('order_items')
-        .select('order_id')
-        .eq('external_order_id', orderNumber)
-        .eq('fulfillment_type', 'lumaprints')
-        .limit(1)
-        .maybeSingle()
-      const orderId = (oi?.order_id as string) || ''
+      // Keep every subsequent read/write scoped to the environment-filtered
+      // items, including when a sandbox order has the same provider number.
+      const matchingItems = items.filter((item) => item.external_order_id === orderNumber)
+      const orderId = matchingItems[0]?.order_id || ''
 
       if (mapped === 'shipped' || mapped === 'delivered') {
         // Best-effort tracking from the shipments endpoint.
-        let trackingNumber: string | null = null
-        let carrier: string | null = null
+        let shipments: LumaprintsShipment[] = []
         try {
-          const ship = (await getShipments(orderNumber)) as { shipments?: ShipmentInfo[] }
-          const s = ship?.shipments?.[0]
-          trackingNumber = s?.trackingNumber ?? null
-          carrier = s?.carrier ?? null
+          const ship = (await getShipments(orderNumber)) as { shipments?: LumaprintsShipment[] }
+          shipments = ship?.shipments ?? []
         } catch {
           /* tracking is optional for the backstop */
         }
 
-        const patch: Record<string, unknown> = { fulfillment_status: mapped }
-        if (mapped === 'shipped') patch.shipped_at = new Date().toISOString()
-        if (mapped === 'delivered') patch.delivered_at = new Date().toISOString()
-        if (trackingNumber) patch.tracking_number = trackingNumber
-        if (carrier) patch.carrier = carrier
+        let trackingUrl: string | null = null
+        let updatedItems = 0
+        for (const item of matchingItems) {
+          const shipment = lumaprintsShipmentForItem(shipments, item.external_item_id || item.id)
+          if (/partial/i.test(order.orderStatus || '') && !shipment) continue
+          const patch: Record<string, unknown> = { fulfillment_status: mapped }
+          const providerDate = shipment?.shipmentDate ? Date.parse(shipment.shipmentDate) : Number.NaN
+          if (!item.shipped_at) patch.shipped_at = Number.isFinite(providerDate) ? new Date(providerDate).toISOString() : new Date().toISOString()
+          if (mapped === 'delivered' && !item.delivered_at) patch.delivered_at = new Date().toISOString()
+          if (shipment?.trackingNumber) patch.tracking_number = shipment.trackingNumber
+          if (shipment?.carrier) patch.carrier = shipment.carrier
+          const itemTrackingUrl = carrierTrackingUrl(shipment?.carrier, shipment?.trackingNumber)
+          if (itemTrackingUrl) { patch.tracking_url = itemTrackingUrl; trackingUrl ||= itemTrackingUrl }
+          const { error: updateError } = await supabase.from('order_items').update(patch).eq('id', item.id).in('fulfillment_status', ['submitted', 'in_production', 'shipped'])
+          if (updateError) throw updateError
+          updatedItems++
+        }
 
-        await supabase
-          .from('order_items')
-          .update(patch)
-          .eq('external_order_id', orderNumber)
-          .eq('fulfillment_type', 'lumaprints')
-          .in('fulfillment_status', ['submitted', 'in_production', 'shipped'])
+        if (!updatedItems) continue
 
         if (mapped === 'shipped') {
           shipped++
@@ -113,7 +109,7 @@ export async function GET(request: Request) {
               await notifyShipped(supabase, {
                 orderId,
                 email: ord.email as string,
-                trackingUrl: carrierTrackingUrl(carrier, trackingNumber),
+                trackingUrl,
               })
             }
           }
@@ -126,8 +122,7 @@ export async function GET(request: Request) {
         await supabase
           .from('order_items')
           .update({ fulfillment_status: 'in_production' })
-          .eq('external_order_id', orderNumber)
-          .eq('fulfillment_type', 'lumaprints')
+          .in('id', matchingItems.map((item) => item.id))
           .eq('fulfillment_status', 'submitted')
       }
     } catch (e) {
@@ -150,7 +145,7 @@ export async function GET(request: Request) {
       const { getOrderNotificationEmail } = await import('@/lib/settings/accessor')
       const { sendEmail } = await import('@/lib/email/send')
       const { brandedShell } = await import('@/lib/email/shell')
-      const to = (await getOrderNotificationEmail().catch(() => null)) || 'margaret117art@gmail.com'
+      const to = (await getOrderNotificationEmail().catch(() => null)) || DEFAULT_STUDIO_EMAIL
       const html = brandedShell(
         `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Shipping updates are backing up</h2>
          <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">${deferred} order(s) could not be checked this run (per-run cap ${MAX_ORDERS_PER_RUN}). Tracking emails may lag until the backlog clears. If this persists, raise the per-run cap.</p>`,

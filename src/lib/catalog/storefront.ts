@@ -31,12 +31,15 @@ import type {
   Swatch,
 } from './types'
 import type { Medium } from '@/lib/pricing/mediums'
+import { swatchForOption } from './seed-rules'
 
 /** One choice, as a shopper's browser may know it. */
 export interface StorefrontOption {
   id: string
   option_id: number
   display_label: string
+  /** Canonical frame identity for physical preview profiles, unaffected by a renamed label. */
+  frame_label?: string
   is_default: boolean
   sort_order: number
   swatch: Swatch | null
@@ -64,6 +67,7 @@ export interface StorefrontGroup {
 
 /** One sellable finish, as a shopper's browser may know it. */
 export interface StorefrontSubcategory {
+  mat_locked?: boolean
   id: string
   medium: Medium
   subcategory_id: number
@@ -79,12 +83,15 @@ export interface StorefrontSubcategory {
   max_glass_h_in: number | null
   sort_order: number
   effective_enabled: boolean
+  /** Framed paper carries its frame profile on the finish itself, not in an option group. */
+  frame_swatch?: Swatch | null
+  frame_label?: string
   groups: StorefrontGroup[]
 }
 
 /** What the product page hands the picker: an open door with its tree, or a closed one. */
 export type ConfiguratorProp =
-  | { open: true; catalog: StorefrontSubcategory[] }
+  | { open: true; catalog: StorefrontSubcategory[]; matPreference?: import('./product-mat').ProductMatPreference | null }
   | { open: false }
 
 function storefrontSwatch(swatch: Swatch | null): Swatch | null {
@@ -108,11 +115,12 @@ function storefrontGeometry(geometry: Geometry | null): Geometry | null {
   return out
 }
 
-function storefrontOption(option: CatalogOption): StorefrontOption {
+function storefrontOption(option: CatalogOption, groupKey: string): StorefrontOption {
   return {
     id: option.id,
     option_id: option.option_id,
     display_label: option.display_label,
+    ...(groupKey === 'frame_style' ? { frame_label: option.api_option_name } : {}),
     is_default: option.is_default === true,
     sort_order: option.sort_order,
     swatch: storefrontSwatch(option.swatch),
@@ -137,7 +145,7 @@ function storefrontGroup(group: CatalogOptionGroup): StorefrontGroup {
     effective_enabled: group.effective_enabled === true,
     options: [...group.options]
       .sort((a, b) => a.sort_order - b.sort_order || a.option_id - b.option_id)
-      .map(storefrontOption),
+      .map((option) => storefrontOption(option, group.group_key)),
   }
 }
 
@@ -161,6 +169,10 @@ function storefrontSubcategory(
     max_glass_h_in: subcategory.max_glass_h_in,
     sort_order: subcategory.sort_order,
     effective_enabled: subcategory.effective_enabled === true,
+    frame_swatch: subcategory.medium === 'framed_fine_art_paper'
+      ? swatchForOption('frame_style', subcategory.name, subcategory.name)
+      : null,
+    ...(subcategory.medium.startsWith('framed') ? { frame_label: subcategory.name } : {}),
     groups: [...groups]
       .sort((a, b) => a.sort_order - b.sort_order || a.group_key.localeCompare(b.group_key))
       .map(storefrontGroup),

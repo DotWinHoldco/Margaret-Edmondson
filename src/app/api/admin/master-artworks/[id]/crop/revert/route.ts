@@ -36,9 +36,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .from('master_artworks')
     .update({
       crop_box: null,
+      crop_output: null,
       border_mode: 'full_bleed',
       border_color: '#ffffff',
       print_storage_path: master.storage_path,
+      print_preview_storage_path: null,
       print_width_px: master.width_px,
       print_height_px: master.height_px,
       // Keep the product unavailable until its existing sizes have been moved
@@ -50,23 +52,26 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       updated_at: now,
     })
     .eq('id', id)
-    .select('id, print_status, print_width_px, print_height_px, border_mode, border_color, crop_box')
+    .select('id, print_status, print_width_px, print_height_px, border_mode, border_color, crop_box, crop_output')
     .single()
   if (error) return dbFail(error)
   after(async () => {
     let printError: string | null = null
     try {
-      const reconciled = await reconcileVariantsForMaster(auth.supabase, id, Number(master.width_px), Number(master.height_px))
+      const reconciled = await reconcileVariantsForMaster(auth.supabase, id, Number(master.width_px), Number(master.height_px), undefined, null, now)
       console.info('[crop] reconciled print sizes after revert', { master: id, ...reconciled })
+      if (reconciled.failed > 0) {
+        printError = 'The original is restored, but some print sizes could not be updated. Revert again to finish preparing them before selling.'
+      }
     } catch (reconcileError) {
-      // Reverting the source file is complete even if a provider quote is briefly
-      // unavailable. The owner can refresh prices from Print sizes afterward.
+      // The source file is restored, but its old print sizes may no longer fit.
+      // Keep sales paused until a retry finishes the dependent size updates.
       console.error('[crop] could not reconcile print sizes after revert', { master: id, error: reconcileError })
-      printError = 'The original is back in use, but print sizes still need to be refreshed before selling them.'
+      printError = 'The original is restored, but print sizes could not be updated. Revert again to finish preparing them before selling.'
     }
     const { error: readyError } = await auth.supabase
       .from('master_artworks')
-      .update({ print_status: 'ready', print_error: printError, updated_at: new Date().toISOString() })
+      .update({ print_status: printError ? 'failed' : 'ready', print_error: printError, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('print_status', 'processing')
       .eq('print_requested_at', now)

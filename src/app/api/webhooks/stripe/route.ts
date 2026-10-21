@@ -1,8 +1,9 @@
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import { paidTotalMatches } from '@/lib/tax/config'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
 import { hasPurchaseSnapshot, snapshotOrderItem } from '@/lib/checkout/snapshot'
 import type { ValidatedCheckoutItem } from '@/lib/checkout/validation'
-import { getStripe, webhookSecretFor } from '@/lib/stripe'
+import { getStripeForMode, webhookSecretFor } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { enqueueFulfillmentJob } from '@/lib/fulfillment/queue'
@@ -16,7 +17,7 @@ import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { checkFulfillable } from '@/lib/fulfillment/fulfillability'
 import { headers } from 'next/headers'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type Stripe from 'stripe'
+import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -456,7 +457,6 @@ export async function POST(request: Request) {
 
   // Try both webhook secrets — Stripe's test endpoint and live endpoint
   // sign with different secrets, but events land on the same URL.
-  const stripe = await getStripe()
   const secrets = [webhookSecretFor('test'), webhookSecretFor('live')].filter(
     (s): s is string => !!s,
   )
@@ -468,7 +468,7 @@ export async function POST(request: Request) {
   let lastErr: unknown = null
   for (const secret of secrets) {
     try {
-      event = stripe.webhooks.constructEvent(body, sig, secret)
+      event = Stripe.webhooks.constructEvent(body, sig, secret)
       break
     } catch (err) {
       lastErr = err
@@ -477,6 +477,16 @@ export async function POST(request: Request) {
   if (!event) {
     console.error('Webhook signature verification failed:', lastErr)
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
+  }
+
+  // A mode switch must not break delayed events from the other environment.
+  // Choose API credentials only after validating the event's signed livemode.
+  let stripe: Stripe
+  try {
+    stripe = getStripeForMode(event.livemode ? 'live' : 'test')
+  } catch (error) {
+    console.error('Stripe webhook credentials unavailable:', error)
+    return Response.json({ error: 'Payment processing temporarily unavailable' }, { status: 503 })
   }
 
   const supabase = await createServiceClient()
@@ -672,7 +682,7 @@ export async function handleCheckoutCompleted(
           const { brandedShell, ctaButton } = await import('@/lib/email/shell')
           const notifyEmail =
             (await getOrderNotificationEmail().catch(() => null)) ||
-            'margaret117art@gmail.com'
+            DEFAULT_STUDIO_EMAIL
           const studentHtml = brandedShell(
             `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Your spot is confirmed</h2>
              <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;">
@@ -1039,7 +1049,9 @@ export async function handleCheckoutCompleted(
     .select('id')
     .maybeSingle()
 
-  if (sideEffectClaim) {
+  // Sandbox orders exercise payment and fulfillment without sending real
+  // customer/studio emails or counting fake sales in CRM and advertising.
+  if (sideEffectClaim && event.livemode) {
     // CRM: ensure buyer exists, bump totals, record promo redemption (the single
     // unique index makes a single-use code's second redemption a caught no-op).
     try {
@@ -1422,7 +1434,9 @@ async function handleElementsPaymentSucceeded(
     .select('id')
     .maybeSingle()
 
-  if (sideEffectClaim) {
+  // Sandbox orders exercise payment and fulfillment without sending real
+  // customer/studio emails or counting fake sales in CRM and advertising.
+  if (sideEffectClaim && event.livemode) {
     // CRM: ensure buyer exists, bump totals, record promo redemption.
     try {
       if (buyerEmail) {

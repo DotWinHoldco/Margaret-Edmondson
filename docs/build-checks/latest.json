@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-10-21T19:04:39.958Z",
+  "timestamp": "2026-10-21T19:19:29.633Z",
   "profile": "green",
   "mode": "adopt",
   "status": "green",
   "summary": {
     "passed": 14,
     "requiredTotal": 14,
-    "findings": 393
+    "findings": 401
   },
   "gates": [
     {
@@ -107,13 +107,6 @@
         },
         {
           "severity": "medium",
-          "file": "supabase/migrations/20260415214421_testimonials_expand_and_media.sql",
-          "line": 48,
-          "message": "read policy \"public read testimonial_media\" on \"testimonial_media\" uses permissive (true)",
-          "rule": "rls-true-read"
-        },
-        {
-          "severity": "medium",
           "file": "supabase/migrations/20260519000001_cv_entries.sql",
           "line": 28,
           "message": "read policy \"public can read cv_settings\" on \"cv_settings\" uses permissive (true)",
@@ -141,7 +134,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "96 migration file(s)"
+      "detail": "102 migration file(s)"
     },
     {
       "name": "domain-isolation",
@@ -204,7 +197,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "7 retired · 2 pending · 659 files scanned"
+      "detail": "7 retired · 2 pending · 687 files scanned"
     },
     {
       "name": "anchors",
@@ -354,14 +347,14 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/email/campaigns/[id]/page.tsx",
-          "line": 9,
+          "line": 10,
           "message": "exported function/component \"CampaignEditPage\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/email/campaigns/new/page.tsx",
-          "line": 7,
+          "line": 9,
           "message": "exported function/component \"NewCampaignPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -389,7 +382,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/files/FilesClient.tsx",
-          "line": 32,
+          "line": 33,
           "message": "exported function/component \"FilesClient\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -459,7 +452,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/media/MasterArtworksManager.tsx",
-          "line": 61,
+          "line": 63,
           "message": "exported function/component \"MasterArtworksManager\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -578,7 +571,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/products/[id]/edit/page.tsx",
-          "line": 219,
+          "line": 222,
           "message": "exported function/component \"EditProductPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -676,7 +669,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/workspace/page.tsx",
-          "line": 55,
+          "line": 49,
           "message": "exported function/component \"WorkspacePage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -697,7 +690,7 @@
         {
           "severity": "medium",
           "file": "src/app/(marketing)/about/page.tsx",
-          "line": 67,
+          "line": 66,
           "message": "exported function/component \"AboutPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -837,7 +830,7 @@
         {
           "severity": "medium",
           "file": "src/app/(marketing)/classes/page.tsx",
-          "line": 81,
+          "line": 82,
           "message": "exported function/component \"ClassesPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -928,7 +921,7 @@
         {
           "severity": "medium",
           "file": "src/app/(marketing)/layout.tsx",
-          "line": 19,
+          "line": 20,
           "message": "exported function/component \"MarketingLayout\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -969,6 +962,13 @@
         },
         {
           "severity": "medium",
+          "file": "src/app/(marketing)/reviews/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"ReviewsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/app/(marketing)/shipping-policy/page.tsx",
           "line": 13,
           "message": "exported function/component \"ShippingPolicyPage\" has no intent doc comment",
@@ -977,28 +977,28 @@
         {
           "severity": "medium",
           "file": "src/app/(marketing)/shop/[category]/page.tsx",
-          "line": 9,
+          "line": 23,
           "message": "exported function/component \"generateMetadata\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/app/(marketing)/shop/[category]/page.tsx",
-          "line": 21,
+          "line": 35,
           "message": "exported function/component \"CategoryPage\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
-          "line": 11,
+          "line": 13,
           "message": "exported function/component \"generateMetadata\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
-          "line": 49,
+          "line": 51,
           "message": "exported function/component \"ProductPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1235,6 +1235,13 @@
         },
         {
           "severity": "medium",
+          "file": "src/components/admin/MasterCropWorkspace.tsx",
+          "line": 23,
+          "message": "exported function/component \"MasterCropWorkspace\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/components/admin/MediaPicker.tsx",
           "line": 31,
           "message": "exported function/component \"MediaPicker\" has no intent doc comment",
@@ -1320,7 +1327,7 @@
         {
           "severity": "medium",
           "file": "src/components/admin/email/CampaignComposer.tsx",
-          "line": 58,
+          "line": 59,
           "message": "exported function/component \"CampaignComposer\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1697,6 +1704,13 @@
         },
         {
           "severity": "medium",
+          "file": "src/components/marketing/ReviewForm.tsx",
+          "line": 7,
+          "message": "exported function/component \"ReviewForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/components/shared/CartDrawer.tsx",
           "line": 9,
           "message": "exported function/component \"CartDrawer\" has no intent doc comment",
@@ -1705,7 +1719,7 @@
         {
           "severity": "medium",
           "file": "src/components/shared/Footer.tsx",
-          "line": 39,
+          "line": 38,
           "message": "exported function/component \"Footer\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1719,7 +1733,7 @@
         {
           "severity": "medium",
           "file": "src/components/shared/Header.tsx",
-          "line": 20,
+          "line": 19,
           "message": "exported function/component \"Header\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1761,21 +1775,21 @@
         {
           "severity": "medium",
           "file": "src/components/shop/MasonryGrid.tsx",
-          "line": 54,
+          "line": 56,
           "message": "exported function/component \"MasonryGrid\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/FramePreview.tsx",
-          "line": 115,
+          "line": 135,
           "message": "exported function/component \"renderableImagePath\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/FramePreview.tsx",
-          "line": 119,
+          "line": 185,
           "message": "exported function/component \"FramePreview\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1789,28 +1803,35 @@
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/MediumCards.tsx",
-          "line": 16,
+          "line": 19,
           "message": "exported function/component \"MediumCards\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/OptionGroupControl.tsx",
-          "line": 54,
+          "line": 59,
           "message": "exported function/component \"OptionGroupControl\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/PrintClarityBanner.tsx",
+          "line": 9,
+          "message": "exported function/component \"PrintClarityBanner\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/PrintConfigurator.tsx",
-          "line": 91,
+          "line": 94,
           "message": "exported function/component \"PrintConfigurator\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/SizePicker.tsx",
-          "line": 18,
+          "line": 19,
           "message": "exported function/component \"SizePicker\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1824,8 +1845,22 @@
         {
           "severity": "medium",
           "file": "src/components/shop/PrintConfigurator/catalog-view.ts",
-          "line": 301,
+          "line": 302,
           "message": "exported function/component \"isValidHex\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/frame-material.ts",
+          "line": 11,
+          "message": "exported function/component \"frameMaterial\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/frame-material.ts",
+          "line": 40,
+          "message": "exported function/component \"frameProfileStops\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
@@ -1838,8 +1873,15 @@
         {
           "severity": "medium",
           "file": "src/components/shop/PrintVariantPicker.tsx",
-          "line": 8,
+          "line": 9,
           "message": "exported function/component \"PrintVariantPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/ProductNavigation.tsx",
+          "line": 5,
+          "message": "exported function/component \"ProductNavigation\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
@@ -1859,14 +1901,21 @@
         {
           "severity": "medium",
           "file": "src/lib/artwork/crop-worker.ts",
-          "line": 62,
+          "line": 72,
+          "message": "exported function/component \"cropUploadHeaders\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/artwork/crop-worker.ts",
+          "line": 84,
           "message": "exported function/component \"validateCropJob\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/artwork/crop-worker.ts",
-          "line": 217,
+          "line": 284,
           "message": "exported function/component \"recoverInterruptedCrops\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -1915,35 +1964,35 @@
         {
           "severity": "medium",
           "file": "src/lib/catalog/seed-rules.ts",
-          "line": 109,
+          "line": 110,
           "message": "exported function/component \"subcategorySeed\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/catalog/seed-rules.ts",
-          "line": 142,
+          "line": 143,
           "message": "exported function/component \"displayKindForGroup\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/catalog/seed-rules.ts",
-          "line": 158,
+          "line": 159,
           "message": "exported function/component \"groupSeed\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/catalog/seed-rules.ts",
-          "line": 335,
+          "line": 327,
           "message": "exported function/component \"swatchForOption\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/catalog/seed-rules.ts",
-          "line": 355,
+          "line": 349,
           "message": "exported function/component \"optionSeed\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2027,7 +2076,7 @@
         {
           "severity": "medium",
           "file": "src/lib/checkout/validation.ts",
-          "line": 113,
+          "line": 114,
           "message": "exported function/component \"isConfiguredLine\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2083,14 +2132,14 @@
         {
           "severity": "medium",
           "file": "src/lib/email/send.ts",
-          "line": 18,
+          "line": 19,
           "message": "exported function/component \"sendEmail\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/email/send.ts",
-          "line": 92,
+          "line": 94,
           "message": "exported function/component \"sendOrderConfirmation\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2139,7 +2188,7 @@
         {
           "severity": "medium",
           "file": "src/lib/fulfillment/fulfillability.ts",
-          "line": 45,
+          "line": 43,
           "message": "exported function/component \"checkFulfillable\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2194,6 +2243,13 @@
         },
         {
           "severity": "medium",
+          "file": "src/lib/fulfillment/tracking.ts",
+          "line": 40,
+          "message": "exported function/component \"lumaprintsStatus\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/lib/gate/config.ts",
           "line": 47,
           "message": "exported function/component \"clearGateConfigCache\" has no intent doc comment",
@@ -2216,42 +2272,42 @@
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 96,
+          "line": 120,
           "message": "exported function/component \"getCategories\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 100,
+          "line": 124,
           "message": "exported function/component \"getSubcategories\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 104,
+          "line": 128,
           "message": "exported function/component \"getSubcategoryOptions\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 242,
+          "line": 271,
           "message": "exported function/component \"getOrder\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 246,
+          "line": 275,
           "message": "exported function/component \"getShipments\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/integrations/lumaprints.ts",
-          "line": 292,
+          "line": 321,
           "message": "exported function/component \"getShippingCost\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2384,28 +2440,28 @@
         {
           "severity": "medium",
           "file": "src/lib/page-editor/schemas.ts",
-          "line": 430,
+          "line": 431,
           "message": "exported function/component \"getSchema\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/page-editor/server-registry.ts",
-          "line": 467,
+          "line": 468,
           "message": "exported function/component \"getServerAdapter\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/page-editor/server-registry.ts",
-          "line": 471,
+          "line": 472,
           "message": "exported function/component \"registerServerAdapter\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/page-editor/server-registry.ts",
-          "line": 475,
+          "line": 476,
           "message": "exported function/component \"listRegisteredAdapters\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2580,35 +2636,35 @@
         {
           "severity": "medium",
           "file": "src/lib/settings/accessor.ts",
-          "line": 237,
+          "line": 238,
           "message": "exported function/component \"getEmailFromAddress\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/settings/accessor.ts",
-          "line": 242,
+          "line": 243,
           "message": "exported function/component \"getBusinessEmail\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/settings/accessor.ts",
-          "line": 247,
+          "line": 248,
           "message": "exported function/component \"getOrderNotificationEmail\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/settings/accessor.ts",
-          "line": 252,
+          "line": 259,
           "message": "exported function/component \"isMaintenanceMode\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/settings/accessor.ts",
-          "line": 257,
+          "line": 264,
           "message": "exported function/component \"getAnnouncementBar\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2921,7 +2977,7 @@
           "rule": "doc-export"
         }
       ],
-      "detail": "385 undocumented (0 blocking)"
+      "detail": "394 undocumented (0 blocking)"
     }
   ]
 }

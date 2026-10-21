@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import CampaignComposer from '@/components/admin/email/CampaignComposer'
+import { getSiteSettings } from '@/lib/settings/accessor'
 import { notFound } from 'next/navigation'
 
 export const metadata = {
@@ -17,5 +18,6 @@ export default async function CampaignEditPage({ params }: { params: Promise<{ i
 
   if (!campaign) notFound()
 
-  return <CampaignComposer mode="edit" initial={campaign} />
+  const settings = await getSiteSettings()
+  return <CampaignComposer mode="edit" initial={{ ...campaign, from_email: settings.email_from_address || undefined, from_name: settings.email_from_name || undefined }} />
 }

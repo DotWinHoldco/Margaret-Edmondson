@@ -113,7 +113,7 @@ export default function BusinessInfoSection() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="hello@artbyme.studio"
+              placeholder="margaret@artbyme.studio"
               className={inputCls}
             />
           </div>

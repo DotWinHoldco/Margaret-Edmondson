@@ -36,7 +36,8 @@ import type {
   QuoteResult,
 } from '@/lib/pricing/quote-types'
 import { loadCatalog } from '@/lib/catalog/load'
-import { normalizeSelection } from '@/lib/catalog/selection'
+import { resolveProductMat, type ProductMatPreference } from '@/lib/catalog/product-mat'
+import { normalizeSelection, findSubcategoryByRef } from '@/lib/catalog/selection'
 import { CUSTOMER_VIOLATION_MESSAGES, defaultOptionIds, type RuleMaster } from '@/lib/catalog/rules'
 import { priceKeyHash } from '@/lib/catalog/hash'
 import {
@@ -107,6 +108,7 @@ function retryAfterOf(err: unknown): number | null {
 const DEFAULT_QUOTE_ZIPS = ['33101', '98101', '04401', '92101']
 
 export interface QuoteOptions {
+  matPreference?: ProductMatPreference | null
   /** A tree already in hand. MUST be the full tree (`includeDisabled: true`). */
   catalog?: Catalog
   /** The print master, when the size should also be checked for resolution and shape. */
@@ -426,7 +428,10 @@ export async function quoteConfiguration(
   opts: QuoteOptions = {},
 ): Promise<QuoteResult> {
   const catalog = opts.catalog ?? (await loadCatalog(client, { includeDisabled: true }))
-  const normalized = normalizeSelection(catalog, input, opts.master)
+  const target = findSubcategoryByRef(catalog, input.subcategoryRef)
+  const matOptionIds = target ? resolveProductMat(target, input.optionIds ?? [], opts.matPreference ?? null) : input.optionIds
+  if (matOptionIds === null) return unavailable([{ code: 'option_unavailable', message: CUSTOMER_VIOLATION_MESSAGES.mat_preference }])
+  const normalized = normalizeSelection(catalog, { ...input, optionIds: matOptionIds }, opts.master)
   if (!normalized.ok) return unavailable(normalized.violations)
 
   const { subcategory, selection, outerWidthIn, outerHeightIn } = normalized

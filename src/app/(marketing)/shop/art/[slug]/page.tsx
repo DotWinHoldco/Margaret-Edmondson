@@ -1,3 +1,4 @@
+import { readMatPreference } from '@/lib/catalog/product-mat'
 import { getProductBySlug, getProducts } from '@/lib/supabase/queries'
 import { notFound, permanentRedirect } from 'next/navigation'
 import ProductDetail from '@/components/shop/ProductDetail'
@@ -7,6 +8,7 @@ import { isConfiguratorOpen } from '@/lib/catalog/door'
 import { getPublicCatalog } from '@/lib/catalog/load'
 import { storefrontCatalogFor, type ConfiguratorProp } from '@/lib/catalog/storefront'
 import type { Metadata } from 'next'
+import { relatedArtworks } from '@/lib/products/related'
 
 export async function generateMetadata(
   props: { params: Promise<{ slug: string }> }
@@ -47,7 +49,7 @@ async function readConfiguratorDoor(mediums: string[]): Promise<ConfiguratorProp
 }
 
 export default async function ProductPage(
-  props: { params: Promise<{ slug: string }> }
+  props: { params: Promise<{ slug: string }>; searchParams: Promise<{ collection?: string }> }
 ) {
   const { slug } = await props.params
   const product = await getProductBySlug(slug)
@@ -60,12 +62,24 @@ export default async function ProductPage(
     notFound()
   }
 
-  const { products: related } = await getProducts({ limit: 4 })
-  const relatedProducts = related.filter((p) => p.id !== product.id).slice(0, 4)
+  const { products: related } = await getProducts({ limit: 250 })
+  const relatedProducts = relatedArtworks(product, related)
+  const rawCategory = product.categories
+  let collection = Array.isArray(rawCategory) ? rawCategory[0] : rawCategory
+  const requestedCollection = (await props.searchParams).collection
+  if (typeof requestedCollection === 'string' && /^[a-z0-9-]+$/.test(requestedCollection)) {
+    const db = await createClient()
+    const { data: requested } = await db.from('categories').select('id, name, slug').eq('slug', requestedCollection).maybeSingle()
+    if (requested) {
+      const { data: membership } = await db.from('product_categories').select('product_id').eq('product_id', product.id).eq('category_id', requested.id).maybeSingle()
+      if (membership) collection = requested
+    }
+  }
 
   const variantRows = (product.product_variants ?? []) as Array<{ medium?: string | null }>
   const mediums = [...new Set(variantRows.map((row) => row.medium).filter((m): m is string => !!m))]
   const configurator = await readConfiguratorDoor(mediums)
+  if (configurator.open) configurator.matPreference = readMatPreference(product.mat_preference)
 
-  return <ProductDetail product={product} relatedProducts={relatedProducts} configurator={configurator} />
+  return <ProductDetail product={product} relatedProducts={relatedProducts} configurator={configurator} collection={collection} />
 }

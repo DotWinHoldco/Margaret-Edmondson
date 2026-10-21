@@ -7,6 +7,7 @@ import MasterArtworkUpload, {
 } from '@/components/admin/MasterArtworkUpload'
 import { apiFetch, apiSend, errorMessage } from '@/lib/api/client'
 import { useToast } from '@/components/shared/toast/ToastProvider'
+import type { MasterCropOutput } from '@/lib/artwork/crop-geometry.mjs'
 
 export interface MasterArtworkItem {
   id: string
@@ -19,6 +20,7 @@ export interface MasterArtworkItem {
   width_px: number | null
   height_px: number | null
   dpi: number | null
+  crop_output?: MasterCropOutput | null
   created_at: string
   updated_at: string
   usage_count: number

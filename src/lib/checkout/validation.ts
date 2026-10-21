@@ -1,3 +1,4 @@
+import { readMatPreference, type ProductMatPreference } from '@/lib/catalog/product-mat'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getFulfillmentPolicy, isStudioReady, resolveProvider, resolveShipping, studioPriceCents, STUDIO_PRODUCT_COLUMNS, STUDIO_VARIANT_COLUMNS, type FulfillmentPolicy, type StudioFields, type ShippingMode } from '@/lib/fulfillment/policy'
@@ -168,6 +169,7 @@ interface MasterRecord {
 }
 
 export interface CheckoutProductRecord extends StudioFields {
+  mat_preference?: unknown
   id: string
   title: string
   status: string | null
@@ -289,6 +291,9 @@ export function validateCheckoutCatalog(
     }
 
     const configured = isConfiguredLine(item)
+    if (!configured && variant.variant_type !== 'original' && !studio && variant.medium === 'framed_fine_art_paper' && product.mat_preference != null) {
+      return validationError(409, 'configuration_unavailable', 'Please return to this artwork and choose its framing options before checking out.')
+    }
     const isOriginal = variant.variant_type === 'original'
 
     // A configured line is a PRINT priced by the quote engine. It needs the snapshot
@@ -442,6 +447,7 @@ async function quoteConfiguredLines(
   items: CheckoutItemInput[],
   variants: CheckoutVariantRecord[],
   masters: Map<string, { widthPx: number | null; heightPx: number | null }>,
+  matPreferences: Map<string, ProductMatPreference | null>,
 ): Promise<ConfiguredLineQuotes | 'closed'> {
   const configured = items.filter(isConfiguredLine)
   const quotes: ConfiguredLineQuotes = new Map()
@@ -485,6 +491,7 @@ async function quoteConfiguredLines(
       },
       {
         catalog,
+        matPreference: matPreferences.get(item.productId),
         ...(master?.widthPx && master?.heightPx
           ? { master: { printWidthPx: master.widthPx, printHeightPx: master.heightPx } }
           : {}),
@@ -508,7 +515,7 @@ export async function validateAndPriceCheckoutItems(
   const [productResult, variantResult] = await Promise.all([
     supabase
       .from('products')
-      .select(`id, title, status, base_price, fulfillment_type, prints_enabled, ${STUDIO_PRODUCT_COLUMNS}`)
+      .select(`id, title, status, base_price, fulfillment_type, prints_enabled, mat_preference, ${STUDIO_PRODUCT_COLUMNS}`)
       .in('id', productIds),
     supabase
       .from('product_variants')
@@ -567,7 +574,7 @@ export async function validateAndPriceCheckoutItems(
       if (record) masters.set(productId, { widthPx: record.widthPx ?? null, heightPx: record.heightPx ?? null })
     }
     try {
-      const quoted = await quoteConfiguredLines(items, variants, masters)
+      const quoted = await quoteConfiguredLines(items, variants, masters, new Map((productResult.data ?? []).map(p => [p.id, readMatPreference(p.mat_preference)])))
       if (quoted === 'closed') {
         return validationError(409, 'configuration_unavailable', CONFIGURATION_UNAVAILABLE_COPY)
       }

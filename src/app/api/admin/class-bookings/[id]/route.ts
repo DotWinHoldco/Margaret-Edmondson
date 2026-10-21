@@ -96,7 +96,6 @@ async function sendPaymentInstructions(booking: BookingRow): Promise<void> {
     to: booking.email,
     subject: `Reminder: payment for ${s.title}`,
     html,
-    replyTo: 'margaret117art@gmail.com',
   }).catch(() => {})
 }
 
@@ -122,6 +121,5 @@ async function sendConfirmation(booking: BookingRow): Promise<void> {
     to: booking.email,
     subject: `You are confirmed for ${s.title}`,
     html,
-    replyTo: 'margaret117art@gmail.com',
   }).catch(() => {})
 }

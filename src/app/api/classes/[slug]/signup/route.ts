@@ -1,3 +1,4 @@
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 // dotwin-allow:public-write — public class signup (input validated + rate-limited). Authored by DotWin.
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const notifyEmail =
     (await getOrderNotificationEmail().catch(() => null)) ||
-    'margaret117art@gmail.com'
+    DEFAULT_STUDIO_EMAIL
 
   const margaretHtml = brandedShell(
     `<h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">New class signup</h2>

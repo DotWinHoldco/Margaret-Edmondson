@@ -197,9 +197,9 @@ export default async function AdminProductsPage({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-body text-sm font-medium text-charcoal">
+                          <Link href={`/admin/products/${product.id}/edit`} className="font-body text-sm font-medium text-charcoal hover:text-teal hover:underline focus-visible:outline-2 focus-visible:outline-teal">
                             {product.title}
-                          </p>
+                          </Link>
                           <p className="font-body text-xs text-charcoal/50">
                             {product.slug}
                           </p>

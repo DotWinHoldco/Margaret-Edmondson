@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 import { requireAdmin } from '@/lib/auth/require-admin'
-import { apiError, apiFail, dbFail } from '@/lib/api/respond'
+import { apiOk, apiError, apiFail, dbFail } from '@/lib/api/respond'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -8,13 +8,14 @@ export const maxDuration = 60
 const BUCKET = 'print-masters'
 const MAX_PREVIEW_BYTES = 100 * 1024 * 1024
 const MAX_INPUT_PIXELS = 180_000_000
+const LARGE_MASTER_MESSAGE = 'Your original upload is safe, but the crop editor currently processes files up to 100 MB. Export a full-resolution JPEG or PNG under 100 MB, upload it as the artwork source, and save the product before opening the crop editor.'
 
 // GET /api/admin/master-artworks/[id]/preview — render a small browser-safe
 // preview of the original master. Product photos are not valid proxies here:
 // they may already be cropped and therefore describe a different coordinate
 // system from the print source.
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -32,7 +33,7 @@ export async function GET(
     if (!master.storage_path) return apiError('This master has no source file.', 409, 'NO_SOURCE_FILE')
     if (Number(master.file_size_bytes) > MAX_PREVIEW_BYTES) {
       return apiError(
-        'This master is too large to preview in the crop editor. Ask support to prepare a smaller preview.',
+        LARGE_MASTER_MESSAGE,
         413,
         'PREVIEW_TOO_LARGE',
       )
@@ -46,15 +47,31 @@ export async function GET(
     const source = Buffer.from(await file.arrayBuffer())
     if (source.byteLength > MAX_PREVIEW_BYTES) {
       return apiError(
-        'This master is too large to preview in the crop editor. Ask support to prepare a smaller preview.',
+        LARGE_MASTER_MESSAGE,
         413,
         'PREVIEW_TOO_LARGE',
       )
     }
-    const preview = await sharp(source, {
+    const input = sharp(source, {
       limitInputPixels: MAX_INPUT_PIXELS,
       failOn: 'none',
     })
+    if (new URL(request.url).searchParams.get('metadata') === '1') {
+      // Use the file's raw pixel coordinates, just like the preview and crop
+      // transform. Auto-orienting only this response would move crop selections.
+      const metadata = await input.metadata()
+      if (!metadata.width || !metadata.height || metadata.width * metadata.height > MAX_INPUT_PIXELS) {
+        return apiError('This source has invalid dimensions or exceeds 180 million pixels.', 422, 'PREVIEW_FAILED')
+      }
+      const response = apiOk({
+        width: metadata.width,
+        height: metadata.height,
+        ...(metadata.density && metadata.density > 0 ? { dpi: metadata.density } : {}),
+      })
+      response.headers.set('Cache-Control', 'private, no-store')
+      return response
+    }
+    const preview = await input
       .resize({ width: 1200, height: 1000, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 84 })
       .toBuffer()

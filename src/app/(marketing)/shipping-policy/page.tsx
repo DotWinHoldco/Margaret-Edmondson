@@ -76,9 +76,9 @@ function shippingDefault() {
               Canvas prints and framed canvas prints are produced on demand by my professional print fulfillment partner and shipped directly to you.
             </p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Processing time:</strong> 2–5 business days for production.</li>
+              <li><strong>Processing time:</strong> Usually 2–3 business days for production, plus shipping transit time. Bulk orders and busy periods may take longer.</li>
               <li><strong>Shipping method:</strong> Standard shipping via the fulfillment provider&apos;s preferred carrier. Tracking information will be emailed to you once shipped.</li>
-              <li><strong>Delivery time:</strong> Typically 5–10 business days after production, depending on your location.</li>
+              <li><strong>Delivery time:</strong> Transit time depends on your destination and shipping method. Production time is separate from shipping time.</li>
               <li><strong>Quality:</strong> Prints are produced on museum-quality canvas with archival inks. Framed prints include a ready-to-hang frame.</li>
             </ul>
           </section>

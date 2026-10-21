@@ -267,7 +267,7 @@ describe('choosing what to buy', () => {
     expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Framed Paper Prints/ })).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /Metal Print/ })).toBeNull()
-    expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toHaveTextContent('from $180.00')
+    expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toHaveTextContent('from $180')
   })
 
   it('shows finish chips only when the medium sells more than one finish', async () => {
@@ -289,8 +289,8 @@ describe('choosing what to buy', () => {
     mount()
     await settle()
 
-    expect(screen.getByRole('radio', { name: /11 × 14 in/ })).toHaveTextContent('$180.00')
-    expect(screen.getByRole('radio', { name: /16 × 20 in/ })).toHaveTextContent('$240.00')
+    expect(screen.getByRole('radio', { name: /11 × 14 in/ })).toHaveTextContent('$412.38')
+    expect(screen.getByRole('radio', { name: /16 × 20 in/ })).toHaveTextContent('$240')
     expect(screen.queryByRole('radio', { name: /12 × 12 in/ })).toBeNull()
   })
 })
@@ -550,7 +550,7 @@ describe('when the server cannot answer', () => {
     await settle(2500)
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(screen.getByText('$412.38')).toBeInTheDocument()
+    expect(screen.getAllByText('$412.38').length).toBeGreaterThan(0)
   })
 
   it('keeps checking while the print partner is busy, and only after a full budget window says so', async () => {
@@ -586,7 +586,7 @@ describe('when the server cannot answer', () => {
     // The first rung of the ladder is four seconds; the price lands as soon as it answers.
     await settle(4_100)
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(screen.getByText('$412.38')).toBeInTheDocument()
+    expect(screen.getAllByText('$412.38').length).toBeGreaterThan(0)
     expect(screen.queryByText(/taking a moment/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /add print to cart/i })).toBeEnabled()
   })
@@ -645,16 +645,16 @@ describe('sizes per print type', () => {
     })
     fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
-    // Under the Black frame (the depth these were priced for) both chips carry their stored price.
-    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$88.00')
-    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('$300.00')
+    // Under the Black frame (the depth these were priced for) the selected chip carries its live quote; the other carries its stored price.
+    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$412.38')
+    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('$300')
 
     fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
     await settle()
-    // Under the Oak frame neither chip claims a number; the selected size's price is the server's, on the price line.
-    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('priced when selected')
+    // Under the Oak frame only the selected chip shows the live quote; the other awaits selection.
+    expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$412.38')
     expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('priced when selected')
-    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).not.toHaveTextContent('$300.00')
-    expect(screen.getByText('$412.38')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /36 × 24 in/ })).not.toHaveTextContent('$300')
+    expect(screen.getAllByText('$412.38').length).toBeGreaterThan(0)
   })
 })

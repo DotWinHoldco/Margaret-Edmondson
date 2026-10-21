@@ -18,7 +18,7 @@ describe('customerPriceCents', () => {
         },
         100,
       ),
-    ).toBe((2595 + 1300) * 2)
+    ).toBe(7800)
   })
 
   it('uses the variant margin override when present', () => {
@@ -32,7 +32,7 @@ describe('customerPriceCents', () => {
         },
         100,
       ),
-    ).toBe(Math.round((2595 + 1300) * 2.2))
+    ).toBe(8600)
   })
 
   it('returns the manual override and ignores margin + shipping math entirely', () => {
@@ -128,6 +128,7 @@ describe('mediums catalog', () => {
 describe('golden-file pricing math (Hot Air canvas)', () => {
   // Frozen snapshot — if this snapshot changes, the cause needs to be visible
   // in the diff (either the Lumaprints catalog moved or the formula changed).
+  // Customer totals retain the deployed nearest-dollar rounding.
   // Costs match the canvas-prints lookup as of 2026-05-19.
   const HOT_AIR = [
     { size_label: '11x14', cost_cents: 1319, shipping_cents: 950 },
@@ -136,9 +137,9 @@ describe('golden-file pricing math (Hot Air canvas)', () => {
   ]
   const DEFAULT_MARGIN = 100
   const expected = {
-    '11x14': (1319 + 950) * 2,
-    '16x20': (2595 + 1300) * 2,
-    '20x24': (3012 + 1600) * 2,
+    '11x14': 4500,
+    '16x20': 7800,
+    '20x24': 9200,
   }
 
   for (const v of HOT_AIR) {

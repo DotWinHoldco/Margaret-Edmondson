@@ -16,3 +16,33 @@ export function carrierTrackingUrl(
   if (c.includes('dhl')) return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${n}`
   return null
 }
+
+export interface LumaprintsShipment {
+  trackingNumber?: string
+  carrier?: string
+  shipmentDate?: string
+  shipmentItems?: Array<{ externalItemId?: string; quantity?: number }>
+}
+
+// A provider order may ship in several parcels. Never copy the first parcel's
+// tracking number to every artwork when the provider identifies the contents.
+export function lumaprintsShipmentForItem(
+  shipments: LumaprintsShipment[],
+  externalItemId: string,
+): LumaprintsShipment | null {
+  const exact = shipments.find((shipment) =>
+    shipment.shipmentItems?.some((item) => String(item.externalItemId) === externalItemId),
+  )
+  if (exact) return exact
+  return shipments.length === 1 && !shipments[0].shipmentItems?.length ? shipments[0] : null
+}
+
+export function lumaprintsStatus(orderStatus: string | null | undefined): 'delivered' | 'shipped' | 'cancelled' | 'in_production' | null {
+  const status = (orderStatus || '').toLowerCase().trim()
+  // "Awaiting Shipment" and "Not Shipped" are not shipment confirmations.
+  if (/^(?:order )?delivered$/.test(status)) return 'delivered'
+  if (/^(?:order )?(?:partially )?shipped$/.test(status)) return 'shipped'
+  if (/^(?:order )?cancell?ed$/.test(status)) return 'cancelled'
+  if (/^(?:in production|printing|processing)$/.test(status)) return 'in_production'
+  return null
+}

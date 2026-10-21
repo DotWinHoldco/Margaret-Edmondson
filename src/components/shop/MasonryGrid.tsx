@@ -1,7 +1,9 @@
 'use client'
 
+import { priceDisplay } from '@/lib/price-display'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { availableOriginalPrice, getProductBadge, hasPurchasablePrints } from '@/lib/product-utils'
 import { cheapestPrintPrice } from '@/lib/product-utils'
@@ -52,6 +54,8 @@ function pickPrimary(images?: ProductImage[]): ProductImage | undefined {
 }
 
 export default function MasonryGrid({ products }: { products: MasonryProduct[] }) {
+  const pathname = usePathname()
+  const collectionSlug = /^\/shop\/([a-z0-9-]+)$/.exec(pathname)?.[1]
   if (products.length === 0) {
     return (
       <p className="text-center font-body text-charcoal/50 py-24">
@@ -68,13 +72,13 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
         const hasPrints = hasPurchasablePrints(product)
         const originalPrice = availableOriginalPrice(product)
         const price = hasPrints
-          ? `From $${(cheapestPrintPrice(product) || 0).toFixed(2)}`
+          ? `From $${priceDisplay(cheapestPrintPrice(product) || 0)}`
           : originalPrice !== null
-            ? `$${originalPrice.toFixed(2)}`
+            ? `$${priceDisplay(originalPrice)}`
             : product.prints_enabled
               ? 'Prints coming soon'
           : Number(product.base_price) > 0
-            ? `${product.is_original ? '' : 'From '}$${Number(product.base_price).toFixed(2)}`
+            ? `${product.is_original ? '' : 'From '}$${priceDisplay(Number(product.base_price))}`
             : 'Made to order'
 
         return (
@@ -86,7 +90,7 @@ export default function MasonryGrid({ products }: { products: MasonryProduct[] }
             variants={cardVariants}
             className="self-start"
           >
-            <Link href={`/shop/art/${product.slug}`} className="group block">
+            <Link href={`/shop/art/${product.slug}${collectionSlug ? `?collection=${collectionSlug}` : ''}`} onClick={() => { try { sessionStorage.setItem(`artbyme:shop-return:${product.id}`, window.location.pathname + window.location.search) } catch { /* Storage may be disabled. */ } }} className="group block">
               {/* Uniform fixed-size container: every product card is the same
                   size and the artwork is fitted inside (object-contain) on a
                   cream mat, so differing image aspect ratios all read uniform. */}

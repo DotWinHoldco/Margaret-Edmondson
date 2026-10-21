@@ -14,6 +14,7 @@
 import { useId } from 'react'
 import type { GroupAvailability, OptionAvailability } from '@/lib/catalog/availability'
 import type { StorefrontGroup, StorefrontOption } from '@/lib/catalog/storefront'
+import { renderableImagePath } from './FramePreview'
 
 function reasonFor(availability: GroupAvailability | undefined, optionId: number): OptionAvailability | null {
   return availability?.options.find((option) => option.optionId === optionId) ?? null
@@ -21,7 +22,11 @@ function reasonFor(availability: GroupAvailability | undefined, optionId: number
 
 function swatchStyle(option: StorefrontOption): React.CSSProperties {
   const hex = option.swatch?.color_hex
-  return { backgroundColor: hex || '#e7e1d7' }
+  const image = renderableImagePath(option.swatch?.image_path)
+  return {
+    backgroundColor: hex || '#e7e1d7',
+    ...(image ? { backgroundImage: `url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
+  }
 }
 
 /** Move focus and selection along the enabled radios of one group. */

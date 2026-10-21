@@ -20,13 +20,12 @@ const FOOTER_LINKS = {
     { href: '/cart', label: 'Cart' },
   ],
   Learn: [
-    { href: '/classes', label: 'Art Classes' },
-    { href: '/courses', label: 'Online Courses' },
-    { href: '/blog', label: 'Blog' },
+    { href: '/classes', label: 'Classes & Courses' },
+    { href: '/classes#online-courses', label: 'Learn at Home' },
   ],
   About: [
     { href: '/about', label: 'About the Artist' },
-    { href: '/cv', label: 'CV' },
+    { href: '/reviews', label: 'Reviews' },
     { href: '/contact', label: 'Contact' },
   ],
   Legal: [

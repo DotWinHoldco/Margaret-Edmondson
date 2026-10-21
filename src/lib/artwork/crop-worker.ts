@@ -10,22 +10,32 @@ import sharp from 'sharp'
 import { Upload } from 'tus-js-client'
 import { applyMasterCropFile } from '../../../scripts/lib/crop-transform.mjs'
 import { reconcileVariantsForMaster } from '@/lib/pricing/reconcile-variants'
+import type { Catalog } from '@/lib/catalog/types'
+import { previewStoredPrint, uploadPrintPreview } from '@/lib/artwork/print-preview'
+import type { MasterCropOutput } from '@/lib/artwork/crop-geometry.mjs'
 
 export const MAX_CROP_SOURCE_BYTES = 100 * 1024 * 1024
-const MAX_OUTPUT_BYTES = 350 * 1024 * 1024
+// Flower Power's verified lossless crop is 441.253 MiB. The Storage project
+// and print-masters bucket both allow 500 MiB; leave room below that ceiling.
+export const MAX_CROP_OUTPUT_BYTES = 450 * 1024 * 1024
 const MAX_INPUT_PIXELS = 180_000_000
 const BUCKET = 'print-masters'
-const COLUMNS = 'id, storage_path, file_size_bytes, width_px, height_px, dpi, crop_box, border_mode, border_color, print_requested_at, print_storage_path'
+const COLUMNS = 'id, storage_path, file_size_bytes, width_px, height_px, dpi, crop_box, crop_output, border_mode, border_color, print_requested_at, print_storage_path, print_width_px, print_height_px, print_updated_at, print_preview_storage_path'
 // One memory-heavy job per warm runtime; other queued jobs are picked up by cron.
 let busy = false
 
 export interface CropJob {
   id: string; storage_path: string; file_size_bytes: number | null
-  width_px: number; height_px: number; dpi: number | null
+  width_px: number | null; height_px: number | null; dpi: number | null
   crop_box: { x: number; y: number; w: number; h: number }
+  crop_output?: MasterCropOutput | null
   border_mode: string; border_color: string | null; print_requested_at: string
   /** The print file in service before this job; null for a master that never had one. */
   print_storage_path?: string | null
+  print_width_px?: number | null
+  print_height_px?: number | null
+  print_updated_at?: string | null
+  print_preview_storage_path?: string | null
 }
 
 /**
@@ -59,11 +69,28 @@ export function uploadErrorDetail(err: unknown, sizeBytes: number): string {
   return `${message || 'unknown error'} for a ${mb} MB file`
 }
 
+export function cropUploadHeaders(sessionToken: string, serviceKey: string, anonKey: string): Record<string, string> {
+  const session = sessionToken.trim()
+  const service = serviceKey.trim()
+  const apiKey = anonKey.trim() || service
+  return {
+    ...(session
+      ? { authorization: `Bearer ${session}`, apikey: apiKey }
+      : service.startsWith('sb_') ? { apikey: service } : { authorization: `Bearer ${service}`, apikey: service }),
+    'x-upsert': 'false',
+  }
+}
+
 export function validateCropJob(job: CropJob) {
   if (Number(job.file_size_bytes) > MAX_CROP_SOURCE_BYTES) {
     throw new Error('This master is over 100 MB. Ask support to process it, or upload a smaller lossless master. The original file has not changed.')
   }
-  if (!(job.width_px > 0 && job.height_px > 0) || job.width_px * job.height_px > MAX_INPUT_PIXELS) {
+  // Browser uploads cannot read TIFF dimensions. Missing dimensions are read
+  // from the original by sharp below, with the same pixel limit enforced there.
+  // Reject invalid known values without confusing missing TIFF metadata with
+  // an oversized image.
+  if ((job.width_px != null && !(job.width_px > 0)) || (job.height_px != null && !(job.height_px > 0))
+    || (job.width_px != null && job.height_px != null && job.width_px * job.height_px > MAX_INPUT_PIXELS)) {
     throw new Error('Automatic crops support master files up to 180 million pixels. Check the master dimensions or ask support.')
   }
   const c = job.crop_box
@@ -94,9 +121,10 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
     sharp.concurrency(1)
     const dimensions = await applyMasterCropFile(source, output, {
       cropBox: job.crop_box, borderMode: job.border_mode, borderColor: job.border_color || '#ffffff',
+      cropOutput: job.crop_output ?? null,
       dpi: job.dpi || 300, widthPx: job.width_px, heightPx: job.height_px,
       limitInputPixels: MAX_INPUT_PIXELS, timeoutSeconds: 150, verifyDimensions: true,
-    }, MAX_OUTPUT_BYTES)
+    }, MAX_CROP_OUTPUT_BYTES)
     const size = (await stat(output)).size
     // A signed upload token is for the Storage REST upload endpoint. It is not a
     // TUS authorization token: sending it as `x-signature` to the resumable
@@ -120,8 +148,9 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
       // fail when a request cookie has expired. The worker can still use the
       // cron's service credential below.
     }
-    const accessToken = sessionToken || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || ''
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || ''
+    const accessToken = sessionToken || serviceKey
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, '')
     if (!accessToken || !supabaseUrl) {
       throw new Error('The print file could not be saved because storage access is not configured. Ask support to check the storage settings.')
     }
@@ -137,7 +166,9 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
         endpoint, uploadSize: size,
         // Every crop gets a unique object name, so an insert-only upload is
         // sufficient and does not require a storage UPDATE policy.
-        headers: { authorization: `Bearer ${accessToken}`, 'x-upsert': 'false' },
+        // Opaque sb_secret keys are API keys, not JWT access tokens. Sending
+        // one as Bearer makes Storage reject it as an invalid compact JWS.
+        headers: cropUploadHeaders(sessionToken, serviceKey, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),
         metadata: { bucketName: BUCKET, objectName, contentType: 'image/png', cacheControl: '3600' },
         chunkSize: 6 * 1024 * 1024, retryDelays: [0, 1000, 3000], storeFingerprintForResuming: false,
         onError: (err) => {
@@ -153,16 +184,26 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
       }, 70_000)
       task.start()
     })
-    return { objectName, width: dimensions.width, height: dimensions.height }
+    let previewPath: string | null = null
+    try {
+      previewPath = await uploadPrintPreview(supabase, job.id, output)
+    } catch {
+      // A preview failure must not discard a valid print or reuse the old crop's
+      // preview. The storefront renders its explicit placeholder until repaired.
+      console.warn('[crop] storefront preview unavailable', { master: job.id })
+    }
+    return { objectName, width: dimensions.width, height: dimensions.height, previewPath }
   } finally {
     await rm(folder, { recursive: true, force: true })
   }
 }
 
-type Renderer = typeof renderAndUpload
+type Renderer = (supabase: SupabaseClient, job: CropJob) => Promise<{
+  objectName: string; width: number; height: number; previewPath?: string | null
+}>
 
 /** Atomic claim + request timestamp fence: an old crop can never replace a newer one. */
-export async function processMasterCrop(supabase: SupabaseClient, id: string, requestedAt: string, render: Renderer = renderAndUpload) {
+export async function processMasterCrop(supabase: SupabaseClient, id: string, requestedAt: string, render: Renderer = renderAndUpload, catalog?: Catalog) {
   if (busy) return 'queued' as const
   busy = true
   try {
@@ -173,38 +214,64 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
     if (error) throw new Error('Could not claim the crop job')
     if (!data) return 'skipped' as const
     const job = data as CropJob
+    let published = false
     try {
-      validateCropJob(job)
-      const result = await render(supabase, job)
+      // An operator can prepare an oversized file locally and leave only its
+      // pricing reconciliation for the deployed worker with provider access.
+      // The timestamp proves this file belongs to the current crop request.
+      const preparedForRequest = Boolean(job.print_storage_path && job.print_width_px && job.print_height_px
+        && job.print_updated_at && Date.parse(job.print_updated_at) >= Date.parse(requestedAt))
+      let result: { objectName: string; width: number; height: number; previewPath?: string | null }
+      if (preparedForRequest) {
+        published = true
+        let previewPath = job.print_preview_storage_path ?? null
+        if (!previewPath) {
+          try { previewPath = await previewStoredPrint(supabase, id, job.print_storage_path!) }
+          catch { console.warn('[crop] prepared print preview unavailable', { master: id }) }
+        }
+        result = { objectName: job.print_storage_path!, width: job.print_width_px!, height: job.print_height_px!, previewPath }
+      } else {
+        validateCropJob(job)
+        result = await render(supabase, job)
+      }
       // Publish the new file and dimensions while the master remains processing.
       // The final ready transition happens after variants are reconciled, so the
       // storefront and editor never observe a ready crop paired with old sizes.
       const { data: prepared, error: saveError } = await supabase.from('master_artworks').update({
         print_storage_path: result.objectName, print_width_px: result.width, print_height_px: result.height,
+        print_preview_storage_path: result.previewPath ?? null,
         print_error: null, print_updated_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       }).eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt).select('id').maybeSingle()
       if (saveError) throw new Error('The print file was made, but its status could not be saved. Try saving the crop again.')
       if (!prepared) return 'superseded' as const
+      published = true
       // Keep even superseded versioned outputs; deleting after an uncertain DB
       // response could break an order that already captured this exact path.
+      let reconciliationError: string | null = null
       try {
-        const reconciled = await reconcileVariantsForMaster(supabase, id, result.width, result.height)
+        const reconciled = await reconcileVariantsForMaster(supabase, id, result.width, result.height, catalog, job.crop_output, requestedAt)
         console.info('[crop] reconciled print sizes', { master: id, ...reconciled })
+        if (reconciled.failed > 0) {
+          reconciliationError = 'The crop is saved, but some print sizes could not be updated. Save the crop again to finish preparing the sizes before selling.'
+        }
       } catch (error) {
-        // The print file is still valid even when a provider quote is temporarily
-        // unavailable. The next admin price refresh can complete the same work;
-        // never turn a successful crop into a failed crop because of that follow-up.
+        // The new file has already replaced the old one. Do not publish it for
+        // sale beside stale dimensions if the dependent size updates failed.
         console.error('[crop] could not reconcile print sizes', { master: id, error })
+        reconciliationError = 'The crop is saved, but print sizes could not be updated. Save the crop again to finish preparing the sizes before selling.'
       }
       const { data: saved, error: readyError } = await supabase.from('master_artworks').update({
-        print_status: 'ready', print_error: null, updated_at: new Date().toISOString(),
+        print_status: reconciliationError ? 'failed' : 'ready', print_error: reconciliationError, updated_at: new Date().toISOString(),
       }).eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt).select('id').maybeSingle()
       if (readyError) throw new Error('The print file was made, but its status could not be saved. Try saving the crop again.')
-      return saved ? 'ready' as const : 'superseded' as const
+      return saved ? (reconciliationError ? 'failed' as const : 'ready' as const) : 'superseded' as const
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Processing failed. Try saving the crop again.'
       const { error: statusError } = await supabase.from('master_artworks')
-        .update({ ...failedJobState(job.print_storage_path, message), updated_at: new Date().toISOString() })
+        .update({
+          ...(published ? { print_status: 'failed', print_error: message.slice(0, 500) } : failedJobState(job.print_storage_path, message)),
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id).eq('print_status', 'processing').eq('print_requested_at', requestedAt)
       if (statusError) throw new Error('Could not save crop failure status')
       return 'failed' as const
@@ -217,14 +284,22 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
 export async function recoverInterruptedCrops(supabase: SupabaseClient, now = new Date()) {
   const cutoff = new Date(now.getTime() - 10 * 60_000).toISOString()
   const message = 'Processing was interrupted. Open Crop and save the crop again to retry.'
-  // Two updates, one per outcome: a master with a print file keeps it in service.
-  const { data: kept, error: keptError } = await supabase.from('master_artworks').update({
-    ...failedJobState('previous', message), updated_at: now.toISOString(),
-  }).eq('print_status', 'processing').lt('updated_at', cutoff).not('print_storage_path', 'is', null).select('id')
-  if (keptError) throw new Error('Could not recover interrupted crops')
-  const { data: failed, error: failedError } = await supabase.from('master_artworks').update({
-    ...failedJobState(null, message), updated_at: now.toISOString(),
-  }).eq('print_status', 'processing').lt('updated_at', cutoff).is('print_storage_path', null).select('id')
-  if (failedError) throw new Error('Could not recover interrupted crops')
-  return (kept?.length || 0) + (failed?.length || 0)
+  const { data: interrupted, error } = await supabase.from('master_artworks')
+    .select('id, updated_at, print_storage_path, print_width_px, print_height_px, print_updated_at, print_requested_at')
+    .eq('print_status', 'processing').lt('updated_at', cutoff)
+  if (error) throw new Error('Could not recover interrupted crops')
+  let recovered = 0
+  for (const job of interrupted ?? []) {
+    const preparedForRequest = Boolean(job.print_storage_path && job.print_width_px && job.print_height_px
+      && job.print_updated_at && job.print_requested_at && Date.parse(job.print_updated_at) >= Date.parse(job.print_requested_at))
+    // A newly rendered file may still have stale variants. Requeue its pricing
+    // step instead of exposing it as ready after a serverless hard timeout.
+    const state = preparedForRequest ? { print_status: 'pending', print_error: null } : failedJobState(job.print_storage_path, message)
+    const { data, error: recoveryError } = await supabase.from('master_artworks')
+      .update({ ...state, updated_at: now.toISOString() })
+      .eq('id', job.id).eq('print_status', 'processing').eq('updated_at', job.updated_at).select('id')
+    if (recoveryError) throw new Error('Could not recover interrupted crops')
+    recovered += data?.length || 0
+  }
+  return recovered
 }

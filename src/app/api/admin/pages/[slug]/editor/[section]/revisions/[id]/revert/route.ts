@@ -7,6 +7,7 @@ import { apiError, apiOk } from '@/lib/api/respond'
 import { getServerAdapter } from '@/lib/page-editor/server-registry'
 import { getRevision, recordRevision } from '@/lib/page-editor/revisions'
 import type { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 // POST /api/admin/pages/[slug]/editor/[section]/revisions/[id]/revert — restore a page section to a prior revision; admin only.
 export async function POST(
@@ -33,6 +34,7 @@ export async function POST(
     await recordRevision(auth.supabase, slug, section, previous, auth.user.id)
 
     await adapter.saveSection(auth.supabase, section, revision.snapshot, auth.user.id)
+    if (slug === 'encouragement-series') revalidatePath('/shop/mixed-media')
     const next = adapter.loadSection
       ? await adapter.loadSection(auth.supabase, section)
       : ((await adapter.load(auth.supabase)) as Record<string, unknown>)[section]

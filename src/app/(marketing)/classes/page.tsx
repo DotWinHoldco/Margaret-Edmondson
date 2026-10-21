@@ -2,11 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import { getPublishedCourses } from '@/lib/supabase/queries'
 
 export const metadata: Metadata = {
-  title: 'Paint Your Pet Art Classes',
+  title: 'Classes & Courses',
   description:
-    'Bring a photo of your pet, leave with a finished painting. Adult, teen, and kids Paint Your Pet classes taught by Margaret Edmondson at The Farmhouse coffee shop in Harvest.',
+    'Bring a photo of your pet, leave with a finished painting. Art classes, private events, and online courses with Margaret Edmondson. Classes can be held at the art school or your location; contact Margaret to confirm the venue.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -79,7 +80,7 @@ const STUDENT_PETS = [
 ]
 
 export default async function ClassesPage() {
-  const { sessions, reserved } = await loadSessions()
+  const [{ sessions, reserved }, courses] = await Promise.all([loadSessions(), getPublishedCourses()])
   const visibleSessions = sessions.slice(0, 9)
 
   return (
@@ -115,7 +116,7 @@ export default async function ClassesPage() {
                   href="/contact?subject=class"
                   className="inline-flex items-center justify-center px-6 py-3 border border-charcoal/20 text-charcoal font-body text-sm font-medium tracking-wider uppercase rounded-sm hover:bg-charcoal hover:text-cream transition-colors"
                 >
-                  Got questions?
+                  Arrange a private class
                 </Link>
               </div>
             </div>
@@ -131,6 +132,16 @@ export default async function ClassesPage() {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="online-courses" className="scroll-mt-24 border-y border-charcoal/10 py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div><h2 className="font-display text-3xl text-charcoal">Learn at home</h2><p className="mt-3 max-w-xl font-body text-charcoal/70">Prefer to paint at your own pace? Explore Margaret’s online courses alongside her in-person classes.</p></div>
+            <Link href="/courses" className="font-body text-teal underline underline-offset-4">Browse online courses</Link>
+          </div>
+          {courses.length > 0 && <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{courses.map(course => <Link key={course.id} href={`/courses/${course.slug}`} className="block border-t border-charcoal/15 py-5 hover:text-teal"><h3 className="font-display text-2xl">{course.title}</h3><p className="mt-2 font-body text-sm text-charcoal/70">{course.description}</p><span className="mt-4 inline-block font-body text-sm text-teal">View course</span></Link>)}</div>}
         </div>
       </section>
 
@@ -284,7 +295,7 @@ export default async function ClassesPage() {
           <p className="font-hand text-lg text-gold uppercase tracking-wider">About your instructor</p>
           <h3 className="mt-2 font-display text-3xl font-light text-charcoal">Margaret Edmondson</h3>
           <p className="mt-4 font-body text-base text-charcoal/75 leading-relaxed">
-            BS Art Education, Murray State University. MFA in Painting, Savannah College of Art and Design. Margaret has taught art to all ages across several states. Classes are hosted at The Farmhouse coffee shop in Harvest.
+            BS Art Education, Murray State University. MFA in Painting, Savannah College of Art and Design. Margaret has taught art to all ages across several states. Classes and private events can be held at the art school or your location. Contact Margaret to arrange a class and confirm the venue.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link

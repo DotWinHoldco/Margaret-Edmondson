@@ -7,6 +7,7 @@ import { escapeHtml } from '@/lib/email/escape'
 import { apiFail, apiOk } from '@/lib/api/respond'
 import { parseBody } from '@/lib/api/respond'
 import { contactInputSchema } from '@/lib/api/public-input'
+import { getStudioNotificationEmail } from '@/lib/settings/accessor'
 
 // POST /api/contact — record a contact-form submission to CRM and email the studio; public.
 export async function POST(request: Request) {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 
   try {
     await sendEmail({
-      to: 'hello@artbyme.studio',
+      to: await getStudioNotificationEmail(),
       subject: `[ArtByME Contact] ${rawSubject}: from ${name}`,
       html,
       replyTo: email,

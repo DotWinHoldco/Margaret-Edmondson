@@ -14,6 +14,7 @@
 import type { CatalogOption, CatalogOptionGroup, CatalogSubcategory } from '@/lib/catalog/types'
 import type { StorefrontGroup, StorefrontOption, StorefrontSubcategory } from '@/lib/catalog/storefront'
 import { offerableOptions, sizeFits, type GroupAvailability } from '@/lib/catalog/availability'
+import { evaluateSelection, type RuleMaster } from '@/lib/catalog/rules'
 
 export interface PrintSize {
   widthIn: number
@@ -359,16 +360,31 @@ export function variantSize(variant: PrintVariant): PrintSize | null {
 export function sizesFor(
   subcategory: StorefrontSubcategory,
   variants: readonly PrintVariant[],
+  master?: RuleMaster,
 ): PrintVariant[] {
   const rule = toRuleSubcategory(subcategory)
-  return variants
+  const eligible = variants
     .filter((variant) => variant.medium === subcategory.medium)
     .filter((variant) => variantSoldIn(variant, subcategory.subcategory_id))
     .filter((variant) => {
       const size = variantSize(variant)
-      return size !== null && sizeFits(rule, size)
+      return size !== null && sizeFits(rule, size, master) &&
+        (!subcategory.mat_locked || evaluateSelection(rule, size, [], undefined, master).violations.length === 0)
     })
-    .sort(
+  // Several saved variants can converge on one standard size after an exact
+  // crop. Keep their admin records/prices intact, but offer that physical size
+  // once. Eligibility comes first so an excluded sibling cannot hide a valid one.
+  const byDimensions = new Map<string, PrintVariant>()
+  for (const variant of eligible) {
+    const size = variantSize(variant)!
+    const key = `${size.widthIn}x${size.heightIn}`
+    const current = byDimensions.get(key)
+    if (!current || (variantStoredSubcategoryId(variant) === subcategory.subcategory_id
+      && variantStoredSubcategoryId(current) !== subcategory.subcategory_id)) {
+      byDimensions.set(key, variant)
+    }
+  }
+  return [...byDimensions.values()].sort(
       (a, b) =>
         (Number(a.width_in) || 0) * (Number(a.height_in) || 0) -
         (Number(b.width_in) || 0) * (Number(b.height_in) || 0),
@@ -380,9 +396,10 @@ export function offerableFinishes(
   catalog: readonly StorefrontSubcategory[],
   medium: string,
   variants: readonly PrintVariant[],
+  master?: RuleMaster,
 ): StorefrontSubcategory[] {
   return catalog
     .filter((subcategory) => subcategory.medium === medium && subcategory.effective_enabled)
-    .filter((subcategory) => sizesFor(subcategory, variants).length > 0)
+    .filter((subcategory) => sizesFor(subcategory, variants, master).length > 0)
     .sort((a, b) => a.sort_order - b.sort_order || a.subcategory_id - b.subcategory_id)
 }

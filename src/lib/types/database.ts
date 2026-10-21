@@ -54,6 +54,7 @@ export interface Database {
       }
       products: {
         Row: {
+          mat_preference?: Json | null
           id: string
           category_id: string | null
           title: string
@@ -102,6 +103,7 @@ export interface Database {
       }
       master_artworks: {
         Row: {
+          print_preview_storage_path: string | null
           id: string
           title: string
           description: string | null

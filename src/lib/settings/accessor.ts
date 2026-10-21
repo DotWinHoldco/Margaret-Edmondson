@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 
 /**
  * Typed server-side accessor for the single `site_settings` row.
@@ -130,12 +131,12 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   stripe_test_mode: null,
 
   business_name: 'ArtByME',
-  business_email: 'hello@artbyme.studio',
+  business_email: DEFAULT_STUDIO_EMAIL,
   business_phone: null,
   business_address: null,
 
   email_from_name: 'ArtByME',
-  email_from_address: 'hello@artbyme.studio',
+  email_from_address: DEFAULT_STUDIO_EMAIL,
   order_notification_email: null,
 
   shipping_origin_zip: null,
@@ -230,23 +231,29 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 export async function getEmailFromLine(): Promise<string> {
   const s = await getSiteSettings()
   const name = s.email_from_name || 'ArtByME'
-  const address = s.email_from_address || 'hello@artbyme.studio'
+  const address = s.email_from_address || DEFAULT_STUDIO_EMAIL
   return `${name} <${address}>`
 }
 
 export async function getEmailFromAddress(): Promise<string> {
   const s = await getSiteSettings()
-  return s.email_from_address || 'hello@artbyme.studio'
+  return s.email_from_address || DEFAULT_STUDIO_EMAIL
 }
 
 export async function getBusinessEmail(): Promise<string> {
   const s = await getSiteSettings()
-  return s.business_email || 'hello@artbyme.studio'
+  return s.business_email || DEFAULT_STUDIO_EMAIL
 }
 
 export async function getOrderNotificationEmail(): Promise<string | null> {
   const s = await getSiteSettings()
   return s.order_notification_email || null
+}
+
+/** Studio messages always have an inbox, even when order-copy alerts are disabled. */
+export async function getStudioNotificationEmail(): Promise<string> {
+  const s = await getSiteSettings()
+  return s.order_notification_email || s.business_email || DEFAULT_STUDIO_EMAIL
 }
 
 export async function isMaintenanceMode(): Promise<boolean> {

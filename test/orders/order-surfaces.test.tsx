@@ -11,7 +11,7 @@ import type { StudioJob } from '@/lib/fulfillment/studio'
 import type { CustomerProgress } from '@/lib/orders/customer-progress'
 
 vi.mock('@/lib/settings/accessor', () => ({
-  getEmailFromLine: async () => 'Studio <orders@example.test>',
+  getBusinessEmail: async () => 'studio@example.test', getEmailFromLine: async () => 'Studio <orders@example.test>',
 }))
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
