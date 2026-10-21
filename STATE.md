@@ -1,7 +1,7 @@
 # STATE — Margaret-Edmondson
 
 Authored by DotWin
-Latest work (2026-10-21): Margaret's requested storefront and catalog updates are live at `0f0f614`. Installed wire, kraft backing, half-inch mats through 3 inches, white/black-core mats, solid canvas sides, paper borders, prints-first ordering, the gallery, and copy changes are documented in `docs/margaret-20261021-requests.md`. Full artwork chronology awaits her year list; the Google Workspace profile setting awaits administrator sign-in. The live source baseline was recovered from Vercel before publishing so existing crop, frame, and biography features are retained. GitHub's separate dependency audit found existing issues; compatible patches are applied, with unpatched tooling/Mammoth findings tracked in `KNOWN_RISKS.md`. The automated status block below reports application gates, not the separate dependency audit.
+Latest work (2026-10-21): Margaret's requested storefront and catalog updates are live, with compatible dependency patches at `8af9f17`. Installed wire, kraft backing, half-inch mats through 3 inches, white/black-core mats, solid canvas sides, paper borders, prints-first ordering, the gallery, and copy changes are documented in `docs/margaret-20261021-requests.md`. Her year list was recovered from the October 20 email and matches 41 active artworks; the gallery-year operation adds the 21 missing year tags. The Google Workspace profile setting still awaits administrator sign-in. The live source baseline was recovered from Vercel before publishing so existing crop, frame, and biography features are retained. GitHub's separate dependency audit found existing issues; compatible patches are applied, with unpatched tooling/Mammoth findings tracked in `KNOWN_RISKS.md`. The automated status block below reports application gates, not the separate dependency audit.
 
 Last updated: 2026-09-17 17:30 UTC (door OPEN since 16:06 UTC; print-quote resilience + slug redirects + crop revert live at c7c89d7; storage upload cap and dependency audit owed to people)
 Baseline SHA: `0815f78` (adopt conformance import, committed). The rebuild is commits
@@ -227,7 +227,7 @@ Supabase prod: `klwkajukicsoiwpsgftt` · GitHub: DotWinHoldco/Margaret-Edmondson
 ## Current Build Status
 
 Status: green
-Last verified: 2026-10-21T19:27:50.396Z
+Last verified: 2026-10-21T20:09:26.741Z
 Last command: build-check --green
 Gates passed: 14/14 required
 Failing gates: none

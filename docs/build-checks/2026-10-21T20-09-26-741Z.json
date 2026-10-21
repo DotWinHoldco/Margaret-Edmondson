@@ -1,0 +1,2983 @@
+{
+  "timestamp": "2026-10-21T20:09:26.741Z",
+  "profile": "green",
+  "mode": "adopt",
+  "status": "green",
+  "summary": {
+    "passed": 14,
+    "requiredTotal": 14,
+    "findings": 401
+  },
+  "gates": [
+    {
+      "name": "typecheck",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "lint",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "test",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "build",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "ok"
+    },
+    {
+      "name": "secrets",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "no hardcoded secrets"
+    },
+    {
+      "name": "grant-boundary",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN not set (CI enforces this gate via repository secrets)"
+    },
+    {
+      "name": "security",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "0 advisory"
+    },
+    {
+      "name": "supabase-boundaries",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "client boundaries respected"
+    },
+    {
+      "name": "authz",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "mutation boundaries guarded"
+    },
+    {
+      "name": "rls",
+      "required": true,
+      "status": "pass",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260401003826_add_rls_policies.sql",
+          "line": 15,
+          "message": "read policy \"public can read product images\" on \"product_images\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260401003826_add_rls_policies.sql",
+          "line": 15,
+          "message": "read policy \"public can read product variants\" on \"product_variants\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260401003826_add_rls_policies.sql",
+          "line": 15,
+          "message": "read policy \"public can read categories\" on \"categories\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260401003826_add_rls_policies.sql",
+          "line": 15,
+          "message": "read policy \"public can read lessons\" on \"lessons\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260519000001_cv_entries.sql",
+          "line": 28,
+          "message": "read policy \"public can read cv_settings\" on \"cv_settings\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260520000001_lumaprints_mediums.sql",
+          "line": 27,
+          "message": "read policy \"public read lumaprints_mediums\" on \"lumaprints_mediums\" uses permissive (true)",
+          "rule": "rls-true-read"
+        },
+        {
+          "severity": "medium",
+          "file": "supabase/migrations/20260622212139_adopt_rls_conformance.sql",
+          "line": 13,
+          "message": "read policy \"public can read product_categories\" on \"product_categories\" uses permissive (true)",
+          "rule": "rls-true-read"
+        }
+      ],
+      "detail": "74 tables, 74 with RLS; 0 blocking"
+    },
+    {
+      "name": "migrations",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "102 migration file(s)"
+    },
+    {
+      "name": "domain-isolation",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules directory"
+    },
+    {
+      "name": "contract",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules (score via audit)"
+    },
+    {
+      "name": "read-boundary",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules"
+    },
+    {
+      "name": "table-ownership",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules"
+    },
+    {
+      "name": "atomicity",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules"
+    },
+    {
+      "name": "event-boundaries",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules"
+    },
+    {
+      "name": "rpc-exists",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "1 declared transaction(s); 0 blocking"
+    },
+    {
+      "name": "no-duplicate-transactions",
+      "required": false,
+      "status": "skipped",
+      "findings": [],
+      "detail": "no src/domains or src/modules"
+    },
+    {
+      "name": "retired-symbols",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "7 retired · 2 pending · 687 files scanned"
+    },
+    {
+      "name": "anchors",
+      "required": false,
+      "status": "pass",
+      "findings": [],
+      "detail": "0 source anchor(s)"
+    },
+    {
+      "name": "state",
+      "required": true,
+      "status": "pass",
+      "findings": [],
+      "detail": "7 tag(s) resolve"
+    },
+    {
+      "name": "docs",
+      "required": true,
+      "status": "pass",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/about/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"AdminAboutPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/[id]/page.tsx",
+          "line": 22,
+          "message": "exported function/component \"EditBlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/new/page.tsx",
+          "line": 22,
+          "message": "exported function/component \"NewBlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/blog/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"AdminBlogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/[id]/bookings/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"BookingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/[id]/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"EditClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/new/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"NewClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/classes/page.tsx",
+          "line": 32,
+          "message": "exported function/component \"AdminClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/commissions/[id]/page.tsx",
+          "line": 77,
+          "message": "exported function/component \"AdminCommissionDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/commissions/page.tsx",
+          "line": 59,
+          "message": "exported function/component \"AdminCommissionsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/content/ContentEditor.tsx",
+          "line": 17,
+          "message": "exported function/component \"ContentEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/content/page.tsx",
+          "line": 19,
+          "message": "exported function/component \"AdminContentPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/[id]/page.tsx",
+          "line": 30,
+          "message": "exported function/component \"EditCoursePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/new/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"NewCoursePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/courses/page.tsx",
+          "line": 34,
+          "message": "exported function/component \"AdminCoursesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/customers/page.tsx",
+          "line": 23,
+          "message": "exported function/component \"AdminCustomersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/cv/CvEditor.tsx",
+          "line": 22,
+          "message": "exported function/component \"CvEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/cv/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"AdminCvPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/campaigns/[id]/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"CampaignEditPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/campaigns/new/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"NewCampaignPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/lists/page.tsx",
+          "line": 16,
+          "message": "exported function/component \"ListsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/email/page.tsx",
+          "line": 45,
+          "message": "exported function/component \"EmailManagementPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/faq-testimonials/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"FaqTestimonialsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/files/FilesClient.tsx",
+          "line": 33,
+          "message": "exported function/component \"FilesClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/files/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"Page\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/[id]/page.tsx",
+          "line": 32,
+          "message": "exported function/component \"EditFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/new/page.tsx",
+          "line": 5,
+          "message": "exported function/component \"NewFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/funnels/page.tsx",
+          "line": 31,
+          "message": "exported function/component \"AdminFunnelsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/help/HelpIndex.tsx",
+          "line": 7,
+          "message": "exported function/component \"HelpIndex\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/help/MarginCalculator.tsx",
+          "line": 8,
+          "message": "exported function/component \"MarginCalculator\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/help/[slug]/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/help/[slug]/page.tsx",
+          "line": 15,
+          "message": "exported function/component \"HelpArticlePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/help/page.tsx",
+          "line": 6,
+          "message": "exported function/component \"HelpPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/MasterArtworksManager.tsx",
+          "line": 63,
+          "message": "exported function/component \"MasterArtworksManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/MediaManager.tsx",
+          "line": 34,
+          "message": "exported function/component \"MediaManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/ProductPhotosManager.tsx",
+          "line": 21,
+          "message": "exported function/component \"ProductPhotosManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/media/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"AdminMediaPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/orders/[id]/page.tsx",
+          "line": 60,
+          "message": "exported function/component \"AdminOrderDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/orders/page.tsx",
+          "line": 38,
+          "message": "exported function/component \"AdminOrdersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"AdminDashboard\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/[id]/EditPageForm.tsx",
+          "line": 17,
+          "message": "exported function/component \"EditPageForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/[id]/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"EditPagePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/design-assets/DesignAssetsView.tsx",
+          "line": 74,
+          "message": "exported function/component \"DesignAssetsView\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/design-assets/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"DesignAssetsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/new/PageForm.tsx",
+          "line": 15,
+          "message": "exported function/component \"PageForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/new/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"NewPagePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/pages/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"AdminPagesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/CategoryManager.tsx",
+          "line": 17,
+          "message": "exported function/component \"CategoryManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/ProductRowActions.tsx",
+          "line": 8,
+          "message": "exported function/component \"ProductRowActions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/ProductTableRow.tsx",
+          "line": 7,
+          "message": "exported function/component \"ProductTableRow\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/[id]/edit/page.tsx",
+          "line": 222,
+          "message": "exported function/component \"EditProductPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/products/page.tsx",
+          "line": 15,
+          "message": "exported function/component \"AdminProductsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/sales/TaxReportClient.tsx",
+          "line": 91,
+          "message": "exported function/component \"TaxReportClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/sales/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"LegacySalesDashboardPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/settings/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"SettingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/accounts/page.tsx",
+          "line": 23,
+          "message": "exported function/component \"SocialAccountsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/page.tsx",
+          "line": 16,
+          "message": "exported function/component \"AdminSocialPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/posts/[id]/page.tsx",
+          "line": 37,
+          "message": "exported function/component \"EditSocialPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/social/posts/new/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"NewSocialPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/subscribers/SubscribersClient.tsx",
+          "line": 16,
+          "message": "exported function/component \"SubscribersClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/subscribers/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"SubscribersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/taxes/page.tsx",
+          "line": 3,
+          "message": "exported function/component \"SalesTaxTrackerPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/testimonials/TestimonialsClient.tsx",
+          "line": 67,
+          "message": "exported function/component \"TestimonialsClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/testimonials/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"Page\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/admin/workspace/page.tsx",
+          "line": 49,
+          "message": "exported function/component \"WorkspacePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/error.tsx",
+          "line": 5,
+          "message": "exported function/component \"AdminError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(admin)/loading.tsx",
+          "line": 4,
+          "message": "exported function/component \"AdminLoading\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/about/page.tsx",
+          "line": 66,
+          "message": "exported function/component \"AboutPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/addresses/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"AddressesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/classes/page.tsx",
+          "line": 27,
+          "message": "exported function/component \"MyClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/error.tsx",
+          "line": 5,
+          "message": "exported function/component \"AccountError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/loading.tsx",
+          "line": 4,
+          "message": "exported function/component \"AccountLoading\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/orders/[id]/page.tsx",
+          "line": 51,
+          "message": "exported function/component \"OrderDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/orders/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"OrdersPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/page.tsx",
+          "line": 7,
+          "message": "exported function/component \"AccountPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/settings/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"AccountSettingsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/account/wishlist/page.tsx",
+          "line": 39,
+          "message": "exported function/component \"WishlistPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/art/[slug]/page.tsx",
+          "line": 49,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/art/[slug]/page.tsx",
+          "line": 71,
+          "message": "exported function/component \"ArtFunnelPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/[slug]/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/[slug]/page.tsx",
+          "line": 27,
+          "message": "exported function/component \"BlogPostPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/blog/page.tsx",
+          "line": 12,
+          "message": "exported function/component \"BlogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/checkout/error.tsx",
+          "line": 5,
+          "message": "exported function/component \"CheckoutError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/checkout/loading.tsx",
+          "line": 4,
+          "message": "exported function/component \"CheckoutLoading\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/page.tsx",
+          "line": 51,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/page.tsx",
+          "line": 76,
+          "message": "exported function/component \"ClassSessionPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/[slug]/thank-you/page.tsx",
+          "line": 6,
+          "message": "exported function/component \"ThankYouPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/classes/page.tsx",
+          "line": 82,
+          "message": "exported function/component \"ClassesPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/commissions/page.tsx",
+          "line": 30,
+          "message": "exported function/component \"CommissionsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/commissions/request/page.tsx",
+          "line": 42,
+          "message": "exported function/component \"CommissionRequestPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/contact/page.tsx",
+          "line": 18,
+          "message": "exported function/component \"ContactPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/lesson/[lessonSlug]/page.tsx",
+          "line": 116,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/lesson/[lessonSlug]/page.tsx",
+          "line": 129,
+          "message": "exported function/component \"LessonPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/page.tsx",
+          "line": 139,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/[slug]/page.tsx",
+          "line": 151,
+          "message": "exported function/component \"CourseDetailPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/error.tsx",
+          "line": 5,
+          "message": "exported function/component \"CoursesError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/loading.tsx",
+          "line": 4,
+          "message": "exported function/component \"CoursesLoading\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/courses/page.tsx",
+          "line": 20,
+          "message": "exported function/component \"CoursesCatalogPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/cv/page.tsx",
+          "line": 50,
+          "message": "exported function/component \"CvPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/forgot-password/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"ForgotPasswordPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/layout.tsx",
+          "line": 20,
+          "message": "exported function/component \"MarketingLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/login/page.tsx",
+          "line": 11,
+          "message": "exported function/component \"LoginPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/order/[session]/page.tsx",
+          "line": 117,
+          "message": "exported function/component \"OrderConfirmationPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/order/intent/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"OrderIntentRedirect\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/page.tsx",
+          "line": 11,
+          "message": "exported function/component \"HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/privacy/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"PrivacyPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/reviews/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"ReviewsPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shipping-policy/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"ShippingPolicyPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/[category]/page.tsx",
+          "line": 23,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/[category]/page.tsx",
+          "line": 35,
+          "message": "exported function/component \"CategoryPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/art/[slug]/page.tsx",
+          "line": 51,
+          "message": "exported function/component \"ProductPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/error.tsx",
+          "line": 5,
+          "message": "exported function/component \"ShopError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/shop/loading.tsx",
+          "line": 4,
+          "message": "exported function/component \"ShopLoading\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/signup/page.tsx",
+          "line": 9,
+          "message": "exported function/component \"SignupPage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/tos/page.tsx",
+          "line": 13,
+          "message": "exported function/component \"TermsOfServicePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/unsubscribe/page.tsx",
+          "line": 8,
+          "message": "exported function/component \"UnsubscribePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v3/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V3HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v4/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V4HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v5/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V5HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/(marketing)/v6/page.tsx",
+          "line": 10,
+          "message": "exported function/component \"V6HomePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/gate/page.tsx",
+          "line": 60,
+          "message": "exported function/component \"GatePage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/global-error.tsx",
+          "line": 8,
+          "message": "exported function/component \"GlobalError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/layout.tsx",
+          "line": 77,
+          "message": "exported function/component \"generateMetadata\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/layout.tsx",
+          "line": 131,
+          "message": "exported function/component \"RootLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/not-found.tsx",
+          "line": 5,
+          "message": "exported function/component \"NotFound\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/reset-password/ResetPasswordForm.tsx",
+          "line": 11,
+          "message": "exported function/component \"ResetPasswordForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/robots.ts",
+          "line": 5,
+          "message": "exported function/component \"robots\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/sitemap.ts",
+          "line": 22,
+          "message": "exported function/component \"sitemap\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/app/welcome/layout.tsx",
+          "line": 1,
+          "message": "exported function/component \"WelcomeLayout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/AddressBook.tsx",
+          "line": 58,
+          "message": "exported function/component \"AddressBook\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/ClassesTabs.tsx",
+          "line": 91,
+          "message": "exported function/component \"ClassesTabs\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/SettingsForms.tsx",
+          "line": 33,
+          "message": "exported function/component \"SettingsForms\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/account/WishlistGrid.tsx",
+          "line": 26,
+          "message": "exported function/component \"WishlistGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/AdminSidebar.tsx",
+          "line": 243,
+          "message": "exported function/component \"AdminSidebar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/BookingsTable.tsx",
+          "line": 28,
+          "message": "exported function/component \"BookingsTable\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/ClassSessionForm.tsx",
+          "line": 40,
+          "message": "exported function/component \"ClassSessionForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/CommissionStatusControl.tsx",
+          "line": 15,
+          "message": "exported function/component \"CommissionStatusControl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/DashboardOverview.tsx",
+          "line": 14,
+          "message": "exported function/component \"DashboardQuickLinks\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/DashboardOverview.tsx",
+          "line": 39,
+          "message": "exported function/component \"DashboardOverview\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/FulfillmentSettings.tsx",
+          "line": 8,
+          "message": "exported function/component \"FulfillmentSettings\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MarkupMarginFields.tsx",
+          "line": 24,
+          "message": "exported function/component \"MarkupMarginFields\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MarkupMarginFields.tsx",
+          "line": 64,
+          "message": "exported function/component \"PricingRelationship\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MasterArtworkPicker.tsx",
+          "line": 30,
+          "message": "exported function/component \"MasterArtworkPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MasterArtworkUpload.tsx",
+          "line": 88,
+          "message": "exported function/component \"MasterArtworkUpload\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MasterCropWorkspace.tsx",
+          "line": 23,
+          "message": "exported function/component \"MasterCropWorkspace\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/MediaPicker.tsx",
+          "line": 31,
+          "message": "exported function/component \"MediaPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/OfferCoverage.tsx",
+          "line": 85,
+          "message": "exported function/component \"OfferCoverage\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/OrderFulfillmentPanel.tsx",
+          "line": 137,
+          "message": "exported function/component \"OrderFulfillmentPanel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/OrderStatusControl.tsx",
+          "line": 21,
+          "message": "exported function/component \"OrderStatusControl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/RichTextEditor.tsx",
+          "line": 41,
+          "message": "exported function/component \"RichTextEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/SharedFilesModal.tsx",
+          "line": 48,
+          "message": "exported function/component \"SharedFilesModal\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/StudioOrderPanel.tsx",
+          "line": 274,
+          "message": "exported function/component \"StudioOrderPanel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/StudioProductEditor.tsx",
+          "line": 105,
+          "message": "exported function/component \"StudioProductEditor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/StudioQueue.tsx",
+          "line": 17,
+          "message": "exported function/component \"StudioQueue\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/VariantsTab.tsx",
+          "line": 249,
+          "message": "exported function/component \"VariantsTab\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/classes/CourseForm.tsx",
+          "line": 32,
+          "message": "exported function/component \"CourseForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/classes/ModuleLessonManager.tsx",
+          "line": 35,
+          "message": "exported function/component \"ModuleLessonManager\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/email/CampaignComposer.tsx",
+          "line": 59,
+          "message": "exported function/component \"CampaignComposer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/BooleanField.tsx",
+          "line": 12,
+          "message": "exported function/component \"BooleanField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/EmailField.tsx",
+          "line": 12,
+          "message": "exported function/component \"EmailField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/FieldRenderer.tsx",
+          "line": 20,
+          "message": "exported function/component \"FieldRenderer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/ImageField.tsx",
+          "line": 16,
+          "message": "exported function/component \"ImageField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PageEditorClient.tsx",
+          "line": 22,
+          "message": "exported function/component \"PageEditorClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PagePicker.tsx",
+          "line": 12,
+          "message": "exported function/component \"PagePicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/PlainTextField.tsx",
+          "line": 12,
+          "message": "exported function/component \"PlainTextField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/ProductPickerField.tsx",
+          "line": 56,
+          "message": "exported function/component \"ProductPickerField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/RevisionMenu.tsx",
+          "line": 21,
+          "message": "exported function/component \"RevisionMenu\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/RichTextField.tsx",
+          "line": 13,
+          "message": "exported function/component \"RichTextField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/SelectField.tsx",
+          "line": 12,
+          "message": "exported function/component \"SelectField\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/page-editor/SortableList.tsx",
+          "line": 45,
+          "message": "exported function/component \"SortableList\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/BusinessInfoSection.tsx",
+          "line": 13,
+          "message": "exported function/component \"BusinessInfoSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/EmailConfigSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"EmailConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/PrintConfiguratorSection.tsx",
+          "line": 62,
+          "message": "exported function/component \"PrintConfiguratorSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/SalesTaxSection.tsx",
+          "line": 123,
+          "message": "exported function/component \"SalesTaxSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/ShippingConfigSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"ShippingConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/SiteConfigSection.tsx",
+          "line": 42,
+          "message": "exported function/component \"SiteConfigSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/settings/SocialLinksSection.tsx",
+          "line": 5,
+          "message": "exported function/component \"SocialLinksSection\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/CalendarCell.tsx",
+          "line": 76,
+          "message": "exported function/component \"CalendarCell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 36,
+          "message": "exported function/component \"channelLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 40,
+          "message": "exported function/component \"channelGlyph\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/ChannelPreview.tsx",
+          "line": 54,
+          "message": "exported function/component \"ChannelPreview\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/PostComposer.tsx",
+          "line": 61,
+          "message": "exported function/component \"PostComposer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/SocialCalendar.tsx",
+          "line": 37,
+          "message": "exported function/component \"SocialCalendar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/SocialListView.tsx",
+          "line": 50,
+          "message": "exported function/component \"SocialListView\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/admin/social/StatusBadge.tsx",
+          "line": 28,
+          "message": "exported function/component \"StatusBadge\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/AboutSplitBlock.tsx",
+          "line": 23,
+          "message": "exported function/component \"AboutSplitBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/BlockRenderer.tsx",
+          "line": 31,
+          "message": "exported function/component \"BlockRenderer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CTABannerBlock.tsx",
+          "line": 24,
+          "message": "exported function/component \"CTABannerBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CategoriesShowcaseBlock.tsx",
+          "line": 62,
+          "message": "exported function/component \"CategoriesShowcaseBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/ClassPreviewBlock.tsx",
+          "line": 22,
+          "message": "exported function/component \"ClassPreviewBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/CommissionFeatureBlock.tsx",
+          "line": 17,
+          "message": "exported function/component \"CommissionFeatureBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/FeaturedGridBlock.tsx",
+          "line": 28,
+          "message": "exported function/component \"FeaturedGridBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/HeroBlock.tsx",
+          "line": 17,
+          "message": "exported function/component \"HeroBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/NewsletterBlock.tsx",
+          "line": 15,
+          "message": "exported function/component \"NewsletterBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/blocks/TestimonialsBlock.tsx",
+          "line": 31,
+          "message": "exported function/component \"TestimonialsBlock\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseCard.tsx",
+          "line": 33,
+          "message": "exported function/component \"CourseCard\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseCurriculum.tsx",
+          "line": 59,
+          "message": "exported function/component \"CourseCurriculum\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/CourseFilters.tsx",
+          "line": 30,
+          "message": "exported function/component \"CourseFilters\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/EnrollButton.tsx",
+          "line": 9,
+          "message": "exported function/component \"EnrollButton\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/LessonComments.tsx",
+          "line": 58,
+          "message": "exported function/component \"LessonComments\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/courses/LessonPlayer.tsx",
+          "line": 67,
+          "message": "exported function/component \"LessonPlayer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/BoldShowcaseTemplate.tsx",
+          "line": 148,
+          "message": "exported function/component \"BoldShowcaseTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/FunnelForm.tsx",
+          "line": 120,
+          "message": "exported function/component \"FunnelForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/FunnelViewTracker.tsx",
+          "line": 14,
+          "message": "exported function/component \"FunnelViewTracker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/GallerySpotlightTemplate.tsx",
+          "line": 34,
+          "message": "exported function/component \"GallerySpotlightTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/funnels/IntimateJournalTemplate.tsx",
+          "line": 50,
+          "message": "exported function/component \"IntimateJournalTemplate\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/ClassSignupForm.tsx",
+          "line": 18,
+          "message": "exported function/component \"ClassSignupForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/ContactFormClient.tsx",
+          "line": 11,
+          "message": "exported function/component \"ContactFormClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/GalleryGrid.tsx",
+          "line": 19,
+          "message": "exported function/component \"GalleryGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/NewsletterPopup.tsx",
+          "line": 27,
+          "message": "exported function/component \"NewsletterPopup\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/PageBodyShell.tsx",
+          "line": 16,
+          "message": "exported function/component \"PageBodyShell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/marketing/ReviewForm.tsx",
+          "line": 7,
+          "message": "exported function/component \"ReviewForm\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/CartDrawer.tsx",
+          "line": 9,
+          "message": "exported function/component \"CartDrawer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Footer.tsx",
+          "line": 38,
+          "message": "exported function/component \"Footer\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/FooterNewsletter.tsx",
+          "line": 7,
+          "message": "exported function/component \"FooterNewsletter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Header.tsx",
+          "line": 19,
+          "message": "exported function/component \"Header\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/Providers.tsx",
+          "line": 7,
+          "message": "exported function/component \"Providers\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/SegmentError.tsx",
+          "line": 10,
+          "message": "exported function/component \"SegmentError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/StatusBanner.tsx",
+          "line": 10,
+          "message": "exported function/component \"StatusBanner\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/toast/ToastProvider.tsx",
+          "line": 43,
+          "message": "exported function/component \"useToast\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shared/toast/ToastProvider.tsx",
+          "line": 53,
+          "message": "exported function/component \"ToastProvider\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/MasonryGrid.tsx",
+          "line": 56,
+          "message": "exported function/component \"MasonryGrid\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/FramePreview.tsx",
+          "line": 135,
+          "message": "exported function/component \"renderableImagePath\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/FramePreview.tsx",
+          "line": 185,
+          "message": "exported function/component \"FramePreview\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/HexPicker.tsx",
+          "line": 15,
+          "message": "exported function/component \"HexPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/MediumCards.tsx",
+          "line": 19,
+          "message": "exported function/component \"MediumCards\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/OptionGroupControl.tsx",
+          "line": 59,
+          "message": "exported function/component \"OptionGroupControl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/PrintClarityBanner.tsx",
+          "line": 9,
+          "message": "exported function/component \"PrintClarityBanner\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/PrintConfigurator.tsx",
+          "line": 94,
+          "message": "exported function/component \"PrintConfigurator\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/SizePicker.tsx",
+          "line": 19,
+          "message": "exported function/component \"SizePicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/SubcategoryPicker.tsx",
+          "line": 14,
+          "message": "exported function/component \"SubcategoryPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/catalog-view.ts",
+          "line": 302,
+          "message": "exported function/component \"isValidHex\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/frame-material.ts",
+          "line": 11,
+          "message": "exported function/component \"frameMaterial\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/frame-material.ts",
+          "line": 40,
+          "message": "exported function/component \"frameProfileStops\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintConfigurator/medium-labels.ts",
+          "line": 21,
+          "message": "exported function/component \"mediumLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/PrintVariantPicker.tsx",
+          "line": 9,
+          "message": "exported function/component \"PrintVariantPicker\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/shop/ProductNavigation.tsx",
+          "line": 5,
+          "message": "exported function/component \"ProductNavigation\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/respond.ts",
+          "line": 16,
+          "message": "exported function/component \"apiError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/api/respond.ts",
+          "line": 59,
+          "message": "exported function/component \"apiOk\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/artwork/crop-worker.ts",
+          "line": 72,
+          "message": "exported function/component \"cropUploadHeaders\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/artwork/crop-worker.ts",
+          "line": 84,
+          "message": "exported function/component \"validateCropJob\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/artwork/crop-worker.ts",
+          "line": 284,
+          "message": "exported function/component \"recoverInterruptedCrops\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/cache-tag.ts",
+          "line": 10,
+          "message": "exported function/component \"invalidateCatalogCache\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/door-state.ts",
+          "line": 12,
+          "message": "exported function/component \"readConfiguratorDoorState\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/hash.ts",
+          "line": 13,
+          "message": "exported function/component \"normalizeOptionIds\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/hash.ts",
+          "line": 17,
+          "message": "exported function/component \"normalizeHex\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/load.ts",
+          "line": 330,
+          "message": "exported function/component \"effectiveOptions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/load.ts",
+          "line": 334,
+          "message": "exported function/component \"optionById\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/seed-rules.ts",
+          "line": 110,
+          "message": "exported function/component \"subcategorySeed\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/seed-rules.ts",
+          "line": 143,
+          "message": "exported function/component \"displayKindForGroup\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/seed-rules.ts",
+          "line": 159,
+          "message": "exported function/component \"groupSeed\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/seed-rules.ts",
+          "line": 327,
+          "message": "exported function/component \"swatchForOption\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/seed-rules.ts",
+          "line": 349,
+          "message": "exported function/component \"optionSeed\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/store.ts",
+          "line": 252,
+          "message": "exported function/component \"createSupabaseCatalogStore\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync-runs.ts",
+          "line": 19,
+          "message": "exported function/component \"emptyStats\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync-runs.ts",
+          "line": 33,
+          "message": "exported function/component \"emptyDiff\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync-runs.ts",
+          "line": 82,
+          "message": "exported function/component \"isTerminal\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync-runs.ts",
+          "line": 86,
+          "message": "exported function/component \"isDone\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync.ts",
+          "line": 127,
+          "message": "exported function/component \"classifySyncError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/catalog/sync.ts",
+          "line": 145,
+          "message": "exported function/component \"isTransientSyncError\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/checkout/shipping.ts",
+          "line": 11,
+          "message": "exported function/component \"isAlaskaHawaii\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/checkout/shipping.ts",
+          "line": 21,
+          "message": "exported function/component \"calculateCheckoutShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/checkout/snapshot.ts",
+          "line": 14,
+          "message": "exported function/component \"hasPurchaseSnapshot\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/checkout/snapshot.ts",
+          "line": 58,
+          "message": "exported function/component \"snapshotOrderItem\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/checkout/validation.ts",
+          "line": 114,
+          "message": "exported function/component \"isConfiguredLine\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/crm/contacts.ts",
+          "line": 111,
+          "message": "exported function/component \"markUnsubscribed\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/cv.ts",
+          "line": 21,
+          "message": "exported function/component \"sectionLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/discounts/generate.ts",
+          "line": 43,
+          "message": "exported function/component \"generateDiscountCode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/discounts/validate.ts",
+          "line": 38,
+          "message": "exported function/component \"validateDiscountCode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/placeholders.ts",
+          "line": 31,
+          "message": "exported function/component \"substitutePlaceholders\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/render.ts",
+          "line": 28,
+          "message": "exported function/component \"renderAndSend\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/render.ts",
+          "line": 83,
+          "message": "exported function/component \"renderHtml\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/send.ts",
+          "line": 19,
+          "message": "exported function/component \"sendEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/send.ts",
+          "line": 94,
+          "message": "exported function/component \"sendOrderConfirmation\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 17,
+          "message": "exported function/component \"brandedShell\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 52,
+          "message": "exported function/component \"discountCallout\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/shell.ts",
+          "line": 60,
+          "message": "exported function/component \"ctaButton\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 47,
+          "message": "exported function/component \"signUnsubscribeToken\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 56,
+          "message": "exported function/component \"verifyUnsubscribeToken\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/email/unsubscribe.ts",
+          "line": 96,
+          "message": "exported function/component \"buildUnsubscribeUrl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/fulfillability.ts",
+          "line": 43,
+          "message": "exported function/component \"checkFulfillable\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/policy.ts",
+          "line": 37,
+          "message": "exported function/component \"resolveProvider\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/policy.ts",
+          "line": 50,
+          "message": "exported function/component \"resolveShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/policy.ts",
+          "line": 80,
+          "message": "exported function/component \"studioPriceCents\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/policy.ts",
+          "line": 89,
+          "message": "exported function/component \"isStudioReady\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/policy.ts",
+          "line": 108,
+          "message": "exported function/component \"shippingLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/storefront.ts",
+          "line": 26,
+          "message": "exported function/component \"resolveStorefrontProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/studio.ts",
+          "line": 64,
+          "message": "exported function/component \"remainingToShip\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/fulfillment/tracking.ts",
+          "line": 40,
+          "message": "exported function/component \"lumaprintsStatus\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/gate/config.ts",
+          "line": 47,
+          "message": "exported function/component \"clearGateConfigCache\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/gate/config.ts",
+          "line": 79,
+          "message": "exported function/component \"getGateConfig\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/help/articles.ts",
+          "line": 475,
+          "message": "exported function/component \"getHelpArticle\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 120,
+          "message": "exported function/component \"getCategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 124,
+          "message": "exported function/component \"getSubcategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 128,
+          "message": "exported function/component \"getSubcategoryOptions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 271,
+          "message": "exported function/component \"getOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 275,
+          "message": "exported function/component \"getShipments\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/lumaprints.ts",
+          "line": 321,
+          "message": "exported function/component \"getShippingCost\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 22,
+          "message": "exported function/component \"getCatalogProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 26,
+          "message": "exported function/component \"getSyncProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 30,
+          "message": "exported function/component \"createOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 52,
+          "message": "exported function/component \"getOrder\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/printful.ts",
+          "line": 62,
+          "message": "exported function/component \"estimateShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 20,
+          "message": "exported function/component \"getRates\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 35,
+          "message": "exported function/component \"createLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 66,
+          "message": "exported function/component \"getTracking\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/integrations/shipstation.ts",
+          "line": 70,
+          "message": "exported function/component \"validateAddress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/markdown.ts",
+          "line": 31,
+          "message": "exported function/component \"renderMarkdown\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/capi.ts",
+          "line": 23,
+          "message": "exported function/component \"sendServerEvent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/capi.ts",
+          "line": 42,
+          "message": "exported function/component \"hashSHA256\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/pixel.ts",
+          "line": 8,
+          "message": "exported function/component \"trackEvent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/pixel.ts",
+          "line": 14,
+          "message": "exported function/component \"trackPageView\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/meta/track.ts",
+          "line": 13,
+          "message": "exported function/component \"track\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 11,
+          "message": "exported function/component \"recordRevision\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 39,
+          "message": "exported function/component \"listRevisions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/revisions.ts",
+          "line": 70,
+          "message": "exported function/component \"getRevision\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/schemas.ts",
+          "line": 431,
+          "message": "exported function/component \"getSchema\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 468,
+          "message": "exported function/component \"getServerAdapter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 472,
+          "message": "exported function/component \"registerServerAdapter\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/page-editor/server-registry.ts",
+          "line": 476,
+          "message": "exported function/component \"listRegisteredAdapters\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/builder-context.ts",
+          "line": 52,
+          "message": "exported function/component \"loadBuilderContext\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/compute.ts",
+          "line": 7,
+          "message": "exported function/component \"computeCustomerPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/compute.ts",
+          "line": 16,
+          "message": "exported function/component \"resolveMargin\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/lumaprints-cache.ts",
+          "line": 156,
+          "message": "exported function/component \"getCachedPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/lumaprints-cache.ts",
+          "line": 189,
+          "message": "exported function/component \"refreshCachedPrice\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/markup-margin.ts",
+          "line": 8,
+          "message": "exported function/component \"grossMarginToMarkup\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/markup-margin.ts",
+          "line": 14,
+          "message": "exported function/component \"displayPercent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/markup-margin.ts",
+          "line": 22,
+          "message": "exported function/component \"parsePricingInput\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/markup-margin.ts",
+          "line": 40,
+          "message": "exported function/component \"pricingRelationship\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/medium-config.ts",
+          "line": 31,
+          "message": "exported function/component \"getMediumConfig\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/medium-config.ts",
+          "line": 52,
+          "message": "exported function/component \"getAllMediumConfigs\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 169,
+          "message": "exported function/component \"mediumLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 173,
+          "message": "exported function/component \"mediumConfig\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/mediums.ts",
+          "line": 177,
+          "message": "exported function/component \"sizeDimensions\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/pricing-errors.ts",
+          "line": 23,
+          "message": "exported function/component \"pricingErrorCode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/print-size-label.ts",
+          "line": 17,
+          "message": "exported function/component \"printSizeLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/print-size-label.ts",
+          "line": 45,
+          "message": "exported function/component \"printSizeCartLabel\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/quote-cache.ts",
+          "line": 61,
+          "message": "exported function/component \"cacheRowIsFresh\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 41,
+          "message": "exported function/component \"quoteShippingForZip\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 68,
+          "message": "exported function/component \"quoteWorstCaseCONUS\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/shipping-quote.ts",
+          "line": 86,
+          "message": "exported function/component \"quoteLiveShipping\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/subcategory-bounds.ts",
+          "line": 39,
+          "message": "exported function/component \"boundsForSubcategory\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/pricing/subcategory-tiers.ts",
+          "line": 49,
+          "message": "exported function/component \"deriveTiersForSubcategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/product-utils.ts",
+          "line": 61,
+          "message": "exported function/component \"getProductBadge\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 238,
+          "message": "exported function/component \"getEmailFromAddress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 243,
+          "message": "exported function/component \"getBusinessEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 248,
+          "message": "exported function/component \"getOrderNotificationEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 259,
+          "message": "exported function/component \"isMaintenanceMode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/settings/accessor.ts",
+          "line": 264,
+          "message": "exported function/component \"getAnnouncementBar\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 12,
+          "message": "exported function/component \"clearStripeModeCache\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 55,
+          "message": "exported function/component \"webhookSecretFor\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 61,
+          "message": "exported function/component \"getStripeMode\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 65,
+          "message": "exported function/component \"getStripe\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 81,
+          "message": "exported function/component \"resolveStripe\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 87,
+          "message": "exported function/component \"isStripeKeyConfigured\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/stripe/index.ts",
+          "line": 91,
+          "message": "exported function/component \"isWebhookSecretConfigured\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 19,
+          "message": "exported function/component \"authCallbackUrl\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 23,
+          "message": "exported function/component \"signUp\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 36,
+          "message": "exported function/component \"signIn\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 42,
+          "message": "exported function/component \"signInWithGoogle\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 54,
+          "message": "exported function/component \"signInWithMagicLink\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 65,
+          "message": "exported function/component \"signOut\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/auth.ts",
+          "line": 71,
+          "message": "exported function/component \"resetPassword\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/client.ts",
+          "line": 5,
+          "message": "exported function/component \"createClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 7,
+          "message": "exported function/component \"getPageContent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 33,
+          "message": "exported function/component \"getSectionContent\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 38,
+          "message": "exported function/component \"getPageBlocks\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 87,
+          "message": "exported function/component \"getFeaturedProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 102,
+          "message": "exported function/component \"getFeaturedTestimonials\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 113,
+          "message": "exported function/component \"getPublishedCourses\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 127,
+          "message": "exported function/component \"getProducts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 170,
+          "message": "exported function/component \"getProductBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 186,
+          "message": "exported function/component \"getPublishedBlogPosts\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 200,
+          "message": "exported function/component \"getCategories\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 210,
+          "message": "exported function/component \"getCategoryBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 221,
+          "message": "exported function/component \"getProductsByCategory\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 274,
+          "message": "exported function/component \"getCourseBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 285,
+          "message": "exported function/component \"getCourseModules\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 296,
+          "message": "exported function/component \"getCourseWithModulesAndLessons\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 324,
+          "message": "exported function/component \"getEnrollment\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 336,
+          "message": "exported function/component \"getLessonProgress\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/queries.ts",
+          "line": 346,
+          "message": "exported function/component \"getBlogPostBySlug\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/server.ts",
+          "line": 4,
+          "message": "exported function/component \"createClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/supabase/server.ts",
+          "line": 30,
+          "message": "exported function/component \"createServiceClient\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/config.ts",
+          "line": 8,
+          "message": "exported function/component \"normalizeNexusStates\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/config.ts",
+          "line": 14,
+          "message": "exported function/component \"collectsTax\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/config.ts",
+          "line": 17,
+          "message": "exported function/component \"taxSummary\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/reporting.ts",
+          "line": 29,
+          "message": "exported function/component \"reportPeriod\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/reporting.ts",
+          "line": 50,
+          "message": "exported function/component \"moneyCents\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/reporting.ts",
+          "line": 69,
+          "message": "exported function/component \"buildTaxReport\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/server.ts",
+          "line": 15,
+          "message": "exported function/component \"getTaxReadiness\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/tax/server.ts",
+          "line": 38,
+          "message": "exported function/component \"calculateCheckoutTax\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/proxy.ts",
+          "line": 84,
+          "message": "exported function/component \"proxy\" has no intent doc comment",
+          "rule": "doc-export"
+        }
+      ],
+      "detail": "394 undocumented (0 blocking)"
+    }
+  ]
+}
