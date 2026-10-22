@@ -17,6 +17,8 @@ const CropBody = z.object({
     y: z.number().min(0).max(1),
     w: z.number().gt(0).max(1),
     h: z.number().gt(0).max(1),
+    rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).optional(),
+    orient: z.boolean().optional(),
   }),
   border_mode: z.enum(['full_bleed', 'matte']),
   crop_output: z.object({
@@ -37,7 +39,7 @@ const CropBody = z.object({
 
 // POST /api/admin/master-artworks/[id]/crop — admin only. Sets the print-ready
 // crop area for a master: writes the NORMALIZED crop rectangle (0..1 of the
-// original) + border mode/color and ENQUEUES a server-side crop job
+// oriented source when orient=true; legacy crops retain raw coordinates), rotation + border mode/color and ENQUEUES a server-side crop job
 // (print_status='pending'). Next after() processes it after sending the response;
 // the protected cron recovers missed jobs. The original file is never replaced.
 export async function POST(

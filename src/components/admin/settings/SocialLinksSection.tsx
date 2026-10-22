@@ -9,6 +9,7 @@ export default function SocialLinksSection() {
 
   const [instagram, setInstagram] = useState('')
   const [facebook, setFacebook] = useState('')
+  const [linkedin, setLinkedin] = useState('')
   const [pinterest, setPinterest] = useState('')
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function SocialLinksSection() {
         setInstagram(s.instagram_url || '')
         setFacebook(s.facebook_url || '')
         setPinterest(s.pinterest_url || '')
+        setLinkedin(s.linkedin_url || '')
       }
       if (!cancelled) setLoading(false)
     }
@@ -40,6 +42,7 @@ export default function SocialLinksSection() {
         instagram_url: instagram,
         facebook_url: facebook,
         pinterest_url: pinterest,
+        linkedin_url: linkedin,
       }),
     })
     const data = await res.json()
@@ -93,6 +96,10 @@ export default function SocialLinksSection() {
             placeholder="https://facebook.com/artbyme"
             className={inputCls}
           />
+        </div>
+        <div>
+          <label htmlFor="linkedin-url" className={labelCls}>LinkedIn URL</label>
+          <input id="linkedin-url" type="url" value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://www.linkedin.com/in/your-profile" className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Pinterest URL</label>

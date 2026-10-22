@@ -12,8 +12,8 @@ const folders: string[] = []
 afterEach(async () => { await Promise.all(folders.splice(0).map((f) => rm(f, { recursive: true, force: true }))); vi.unstubAllGlobals() })
 describe('paper production border', () => {
   it('applies only to paper and rejects invalid sizes', () => {
-    expect(paperBorderIn('fine_art_paper')).toBe(0.125)
-    expect(paperBorderIn('framed_fine_art_paper')).toBe(0.125)
+    expect(paperBorderIn('fine_art_paper')).toBe(0.25)
+    expect(paperBorderIn('framed_fine_art_paper')).toBe(0.25)
     expect(paperBorderIn('canvas')).toBe(0)
     expect(paperBorderIn('framed_canvas')).toBe(0)
     expect(() => paperBorderLayout(100, 100, 0.1, 10)).toThrow()

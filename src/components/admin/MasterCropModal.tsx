@@ -6,7 +6,7 @@ import { apiSend, errorMessage } from '@/lib/api/client'
 import MasterCropWorkspace, { type CropDraft, type CropOutput } from './MasterCropWorkspace'
 import { useToast } from '@/components/shared/toast/ToastProvider'
 
-type Rect = { x: number; y: number; w: number; h: number }
+type Rect = { x: number; y: number; w: number; h: number; rotation?: 0 | 90 | 180 | 270; orient?: boolean }
 type BorderMode = 'full_bleed' | 'matte'
 
 export interface MasterCropTarget {
@@ -16,7 +16,7 @@ export interface MasterCropTarget {
   proxyUrl: string
   sourceWidthPx?: number | null
   sourceHeightPx?: number | null
-  crop_box?: { x: number; y: number; w: number; h: number } | null
+  crop_box?: { x: number; y: number; w: number; h: number; rotation?: 0 | 90 | 180 | 270; orient?: boolean } | null
   crop_output?: CropOutput | null
   border_mode?: BorderMode | null
   border_color?: string | null
@@ -205,7 +205,7 @@ export default function MasterCropModal({
           </button>
         </div>
 
-        <p className="px-5 pt-4 text-sm text-charcoal/65">Paper prints receive a white border of at least ⅛ inch on every side automatically. You do not need to add that border here. Canvas uses your saved crop.</p>
+        <p className="px-5 pt-4 text-sm text-charcoal/65">Paper prints receive a white border of at least ¼ inch on all four sides automatically. You do not need to add that border here. Canvas uses your saved crop.</p>
         <MasterCropWorkspace productId={productId} master={master} initialAspectRatio={initialAspectRatio} onDraftChange={receiveDraft} />
         <div className="space-y-3 px-5 py-3">
           {preparing && (

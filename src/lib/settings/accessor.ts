@@ -63,6 +63,7 @@ export interface SiteSettings {
   // Social Links
   instagram_url: string | null
   facebook_url: string | null
+  linkedin_url: string | null
   pinterest_url: string | null
 
   // Site Configuration
@@ -109,6 +110,7 @@ export const SITE_SETTINGS_COLUMNS = [
   'og_image_url',
   'instagram_url',
   'facebook_url',
+  'linkedin_url',
   'pinterest_url',
   'announcement_bar_text',
   'announcement_bar_enabled',
@@ -154,6 +156,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
   instagram_url: null,
   facebook_url: null,
+  linkedin_url: null,
   pinterest_url: null,
 
   announcement_bar_text: null,

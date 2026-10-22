@@ -28,6 +28,8 @@ import { paperBorderIn } from '@/lib/artwork/paper-border'
 import { printSizeCartLabel } from '@/lib/pricing/print-size-label'
 import type { PrintQuoteRequest } from '@/lib/pricing/quote-types'
 import type { RuleMaster } from '@/lib/catalog/rules'
+import { createPortal } from 'react-dom'
+import ChoiceHelp from './ChoiceHelp'
 import FramePreview, { type EdgeHint } from './FramePreview'
 import HexPicker from './HexPicker'
 import MediumCards, { type MediumCard } from './MediumCards'
@@ -64,6 +66,7 @@ export interface PrintConfiguratorProps {
   image: { url: string; alt: string }
   /** Live print variants of this product, already filtered by the page. */
   variants: PrintVariant[]
+  previewTarget?: HTMLElement | null
   matPreference?: ProductMatPreference | null
   catalog: StorefrontSubcategory[]
   /** Public print-master pixel dimensions; the same resolution/shape gate as the quote route. */
@@ -101,6 +104,7 @@ export default function PrintConfigurator({
   onAddToCart,
   initialVariantId,
   onDoorClosed,
+  previewTarget,
 }: PrintConfiguratorProps) {
   const catalog = useMemo(() => catalogWithProductMat(baseCatalog, matPreference), [baseCatalog, matPreference])
   // --- Step 1: the mediums this artwork can actually be printed in ----------------
@@ -196,10 +200,13 @@ export default function PrintConfigurator({
         : 'none'
 
   const matGroups = groups.filter((group) => group.group_key === 'mat_size' || group.group_key === 'mat_color')
+  // The prepared file contains the paper border. The provider's sole "No Bleed"
+  // option means no additional provider border, not borderless artwork.
   const otherGroups = groups.filter((group) => !matGroups.includes(group))
+    .filter(group => !(paperBorderIn(subcategory?.medium) > 0 && group.group_key === 'bleed_size'
+      && group.options.length === 1 && /^no bleed/i.test(group.options[0].display_label)))
   const frameIsFinish = subcategory?.medium === 'framed_fine_art_paper'
 
-  const [previewOpen, setPreviewOpen] = useState(false)
 
   // --- Add to cart -----------------------------------------------------------------
   const canAdd = quote.status === 'quoted' && !!variant && !!subcategory
@@ -248,6 +255,33 @@ export default function PrintConfigurator({
           ? 'Checking the price…'
           : ''
 
+  const preview = (
+    image.url ? <FramePreview
+            imageUrl={image.url}
+            imageAlt={image.alt}
+            printW={size.widthIn}
+            printH={size.heightIn}
+            paperBorderIn={paperBorderIn(subcategory.medium)}
+            matIn={matIn}
+            faceIn={materials.faceIn}
+            depthIn={materials.depthIn}
+            frameLabel={materials.frameLabel}
+            frameMedium={subcategory.medium === 'framed_canvas' || subcategory.medium === 'framed_fine_art_paper'
+              ? subcategory.medium : undefined}
+            floatingCanvas={materials.floatingCanvas}
+            gapIn={materials.gapIn}
+            geometryEstimated={materials.geometryEstimated}
+            frameColor={materials.frameColor}
+            frameImage={materials.frameImage}
+            matColor={materials.matColor}
+            matCoreColor={subcategory.groups.some(g => g.group_key === 'mat_color' && /black core/i.test(chosenOption(g, optionIds)?.display_label ?? '')) ? '#111111' : null}
+            edgeHint={edgeHint}
+            solidHex={isValidHex(hex) ? hex : null}
+          /> : <p role="status" className="rounded-sm border border-charcoal/10 bg-cream/60 px-5 py-8 text-center font-body text-sm text-charcoal/70">
+            The preview for this print is being prepared. Your selected dimensions and options are shown above.
+          </p>
+  )
+
   return (
     <div>
       <MediumCards
@@ -261,7 +295,7 @@ export default function PrintConfigurator({
         }}
       />
 
-      {!frameIsFinish && (finishes.length > 1 ? (
+      {!frameIsFinish && (finishes.length > 1 || WRAPPED_MEDIUMS.has(subcategory.medium) ? (
         <SubcategoryPicker
           subcategories={finishes}
           value={subcategory.id}
@@ -301,6 +335,10 @@ export default function PrintConfigurator({
       />
 
       {subcategory?.mat_locked && <p className="rounded-md bg-teal/5 p-3 text-sm text-charcoal" role="note">Mat selected by the artist: {subcategory.groups.filter(g => g.group_key === 'mat_size' || g.group_key === 'mat_color').flatMap(g => g.options.filter(o => o.is_default).map(o => o.display_label)).join(' · ')}. This mat is fixed for this artwork.</p>}
+      {matGroups.length > 0 && <ChoiceHelp label="Choosing a mat">
+        <p>A mat is optional and gives framed paper a finished look. It surrounds the artwork inside the frame and separates it from the glass, creating a window that highlights the piece. Choose a width and color, or choose No Mat.</p>
+        <p className="mt-2">The highlighted choices show your current selection.{matPreference ? ' This artwork starts with Margaret’s recommended mat.' : ''}</p>
+      </ChoiceHelp>}
       {matGroups.map((group) => (
         <div key={group.id}>
           <OptionGroupControl
@@ -349,43 +387,7 @@ export default function PrintConfigurator({
         <HexPicker value={hex} onChange={setHex} label="Wrap" />
       )}
 
-      <div className="mt-5">
-        <button
-          type="button"
-          aria-expanded={previewOpen}
-          onClick={() => setPreviewOpen((open) => !open)}
-          className="flex w-full items-center justify-between rounded-sm border border-charcoal/15 bg-white px-3 py-2 font-body text-sm text-charcoal lg:hidden"
-        >
-          <span>See it on the wall</span>
-          <span aria-hidden="true">{previewOpen ? '−' : '+'}</span>
-        </button>
-        <div className={previewOpen ? 'mt-2 block' : 'mt-2 hidden lg:block'}>
-          {image.url ? <FramePreview
-            imageUrl={image.url}
-            imageAlt={image.alt}
-            printW={size.widthIn}
-            printH={size.heightIn}
-            paperBorderIn={paperBorderIn(subcategory.medium)}
-            matIn={matIn}
-            faceIn={materials.faceIn}
-            depthIn={materials.depthIn}
-            frameLabel={materials.frameLabel}
-            frameMedium={subcategory.medium === 'framed_canvas' || subcategory.medium === 'framed_fine_art_paper'
-              ? subcategory.medium : undefined}
-            floatingCanvas={materials.floatingCanvas}
-            gapIn={materials.gapIn}
-            geometryEstimated={materials.geometryEstimated}
-            frameColor={materials.frameColor}
-            frameImage={materials.frameImage}
-            matColor={materials.matColor}
-            matCoreColor={subcategory.groups.some(g => g.group_key === 'mat_color' && /black core/i.test(chosenOption(g, optionIds)?.display_label ?? '')) ? '#111111' : null}
-            edgeHint={edgeHint}
-            solidHex={isValidHex(hex) ? hex : null}
-          /> : <p role="status" className="rounded-sm border border-charcoal/10 bg-cream/60 px-5 py-8 text-center font-body text-sm text-charcoal/70">
-            The preview for this print is being prepared. Your selected dimensions and options are shown above.
-          </p>}
-        </div>
-      </div>
+      {previewTarget ? createPortal(preview, previewTarget) : previewTarget === undefined ? <div className="mt-5">{preview}</div> : null}
 
       <div aria-live="polite" className="mt-5 min-h-[1.5rem]">
         {priceLine && (
@@ -411,7 +413,7 @@ export default function PrintConfigurator({
       </div>
 
       {paperBorderIn(subcategory.medium) > 0 && (
-        <p className="mt-3 font-body text-xs text-charcoal/65">Paper prints include a white border of at least ⅛ inch on every side, within the selected paper size. A mat covers part of this border.</p>
+        <p className="mt-3 font-body text-xs text-charcoal/65">Paper prints include a white border of at least ¼ inch on all four sides, within the selected paper size. A mat covers part of this border.</p>
       )}
       <p className="mt-2 font-body text-sm text-teal">{shippingNote(variant)}</p>
 

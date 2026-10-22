@@ -27,7 +27,7 @@ let busy = false
 export interface CropJob {
   id: string; storage_path: string; file_size_bytes: number | null
   width_px: number | null; height_px: number | null; dpi: number | null
-  crop_box: { x: number; y: number; w: number; h: number }
+  crop_box: { x: number; y: number; w: number; h: number; rotation?: 0 | 90 | 180 | 270; orient?: boolean }
   crop_output?: MasterCropOutput | null
   border_mode: string; border_color: string | null; print_requested_at: string
   /** The print file in service before this job; null for a master that never had one. */

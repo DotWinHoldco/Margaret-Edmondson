@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -2389,8 +2389,8 @@ export type Database = {
           mime_type: string
           print_error: string | null
           print_height_px: number | null
-          print_requested_at: string | null
           print_preview_storage_path: string | null
+          print_requested_at: string | null
           print_status: string
           print_storage_path: string | null
           print_updated_at: string | null
@@ -2416,8 +2416,8 @@ export type Database = {
           mime_type: string
           print_error?: string | null
           print_height_px?: number | null
-          print_requested_at?: string | null
           print_preview_storage_path?: string | null
+          print_requested_at?: string | null
           print_status?: string
           print_storage_path?: string | null
           print_updated_at?: string | null
@@ -2443,8 +2443,8 @@ export type Database = {
           mime_type?: string
           print_error?: string | null
           print_height_px?: number | null
-          print_requested_at?: string | null
           print_preview_storage_path?: string | null
+          print_requested_at?: string | null
           print_status?: string
           print_storage_path?: string | null
           print_updated_at?: string | null
@@ -3281,8 +3281,8 @@ export type Database = {
           is_original: boolean | null
           lumaprints_product_config: Json | null
           margin_pct: number | null
-          mat_preference: Json | null
           master_artwork_id: string | null
+          mat_preference: Json | null
           medium: string | null
           printful_sync_product_id: string | null
           prints_enabled: boolean
@@ -3317,8 +3317,8 @@ export type Database = {
           is_original?: boolean | null
           lumaprints_product_config?: Json | null
           margin_pct?: number | null
-          mat_preference?: Json | null
           master_artwork_id?: string | null
+          mat_preference?: Json | null
           medium?: string | null
           printful_sync_product_id?: string | null
           prints_enabled?: boolean
@@ -3353,8 +3353,8 @@ export type Database = {
           is_original?: boolean | null
           lumaprints_product_config?: Json | null
           margin_pct?: number | null
-          mat_preference?: Json | null
           master_artwork_id?: string | null
+          mat_preference?: Json | null
           medium?: string | null
           printful_sync_product_id?: string | null
           prints_enabled?: boolean
@@ -3804,6 +3804,7 @@ export type Database = {
           launch_checklist: Json
           launch_modal_hidden: boolean
           launch_notes: Json
+          linkedin_url: string | null
           lumaprints_enabled: boolean | null
           maintenance_mode: boolean | null
           meta_pixel_enabled: boolean | null
@@ -3855,6 +3856,7 @@ export type Database = {
           launch_checklist?: Json
           launch_modal_hidden?: boolean
           launch_notes?: Json
+          linkedin_url?: string | null
           lumaprints_enabled?: boolean | null
           maintenance_mode?: boolean | null
           meta_pixel_enabled?: boolean | null
@@ -3906,6 +3908,7 @@ export type Database = {
           launch_checklist?: Json
           launch_modal_hidden?: boolean
           launch_notes?: Json
+          linkedin_url?: string | null
           lumaprints_enabled?: boolean | null
           maintenance_mode?: boolean | null
           meta_pixel_enabled?: boolean | null
@@ -4655,8 +4658,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_product_mat_preference: { Args: { p_product_id: string }; Returns: Json }
-      set_product_mat_preference: { Args: { p_product_id: string; p_preference: Json }; Returns: Json }
       apply_master_crop_variant_updates: {
         Args: { p_master_id: string; p_requested_at: string; p_updates: Json }
         Returns: boolean
@@ -4741,9 +4742,16 @@ export type Database = {
       }
       deliver_studio_shipment: { Args: { p_id: string }; Returns: undefined }
       get_fulfillment_policy: { Args: never; Returns: Json }
+      get_product_mat_preference: {
+        Args: { p_product_id: string }
+        Returns: Json
+      }
       get_public_print_previews: {
         Args: { p_product_ids: string[] }
-        Returns: { product_id: string; preview_storage_path: string }[]
+        Returns: {
+          preview_storage_path: string
+          product_id: string
+        }[]
       }
       get_public_print_readiness: {
         Args: { p_product_ids: string[] }
@@ -4862,6 +4870,10 @@ export type Database = {
       save_studio_product: {
         Args: { p_product: Json; p_product_id: string; p_variants: Json }
         Returns: undefined
+      }
+      set_product_mat_preference: {
+        Args: { p_preference: Json; p_product_id: string }
+        Returns: Json
       }
       start_studio_fulfillment: {
         Args: { p_order_id: string }

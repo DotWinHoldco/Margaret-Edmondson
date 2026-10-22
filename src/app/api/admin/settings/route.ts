@@ -7,6 +7,7 @@ import {
   clearSettingsCache,
   type SiteSettings,
 } from '@/lib/settings/accessor'
+import { z } from 'zod'
 import { NextRequest } from 'next/server'
 
 const INTEGRATION_KEYS = [
@@ -33,6 +34,7 @@ const TEXT_FIELDS = [
   'og_image_url',
   'instagram_url',
   'facebook_url',
+  'linkedin_url',
   'pinterest_url',
   'announcement_bar_text',
   'currency_code',
@@ -100,6 +102,13 @@ export async function PATCH(request: NextRequest) {
     const supabase = auth.supabase
 
     const updates: Record<string, unknown> = {}
+    if (body.linkedin_url != null && body.linkedin_url !== '') {
+      const profile = z.url().refine(value => {
+        const url = new URL(value)
+        return url.protocol === 'https:' && (url.hostname === 'linkedin.com' || url.hostname.endsWith('.linkedin.com'))
+      }).safeParse(body.linkedin_url)
+      if (!profile.success) return apiError('Enter a valid HTTPS LinkedIn profile URL.', 400, 'VALIDATION_FAILED')
+    }
 
     for (const field of TEXT_FIELDS) {
       if (field in body) {

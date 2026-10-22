@@ -11,6 +11,7 @@
 // sentence from the shared rules module, never the operator's note, which the browser
 // is not given in the first place.
 
+import { frameFamily, frameChoiceLabel } from './frame-choice'
 import { useId } from 'react'
 import type { GroupAvailability, OptionAvailability } from '@/lib/catalog/availability'
 import type { StorefrontGroup, StorefrontOption } from '@/lib/catalog/storefront'
@@ -74,7 +75,8 @@ export default function OptionGroupControl({
   const firstEnabled = options.find((option) => reasonFor(availability, option.option_id)?.offerable !== false)
   const isSwatchRow = group.display_kind === 'swatch'
 
-  if (group.display_kind === 'list') {
+  const compactFrames = group.group_key === 'frame_color'
+  if (group.display_kind === 'list' || compactFrames) {
     const unavailable = options
       .map((option) => ({ option, state: reasonFor(availability, option.option_id) }))
       .filter((entry) => entry.state?.offerable === false && entry.state.reason)
@@ -90,15 +92,15 @@ export default function OptionGroupControl({
           className="mt-1.5 w-full rounded-sm border border-charcoal/20 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus-visible:outline-2 focus-visible:outline-teal"
         >
           {selectedId === null && <option value="">Choose {group.display_label.toLowerCase()}</option>}
-          {options.map((option) => {
-            const state = reasonFor(availability, option.option_id)
-            const blocked = state?.offerable === false
-            return (
-              <option key={option.option_id} value={option.option_id} disabled={blocked}>
-                {option.display_label}
-                {blocked ? ' (unavailable)' : ''}
+          {(compactFrames ? [...new Set(options.map(o => frameFamily(o.frame_label ?? o.display_label)))].sort() : ['']).map(family => {
+            const choices = options.filter(o => !compactFrames || frameFamily(o.frame_label ?? o.display_label) === family).map(option => {
+              const state = reasonFor(availability, option.option_id)
+              const blocked = state?.offerable === false
+              return <option key={option.option_id} value={option.option_id} disabled={blocked}>
+                {compactFrames ? frameChoiceLabel(option.display_label) : option.display_label}{blocked ? ' (unavailable)' : ''}
               </option>
-            )
+            })
+            return compactFrames ? <optgroup key={family} label={family}>{choices}</optgroup> : choices
           })}
         </select>
         {unavailable.map((entry) => (

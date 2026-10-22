@@ -10,7 +10,7 @@ export default function PrintInformation({ medium }: { medium?: string | null })
       <summary className="cursor-pointer text-teal">About sizes, borders, canvas edges, and mounting</summary>
       <div className="mt-3 space-y-3 leading-relaxed">
         <p><strong>Print size:</strong> Check the finished dimensions shown for your selection before choosing a frame. A physical mat and frame add to the outside size.</p>
-        <p><strong>Paper edges:</strong> Any paper texture or rough edge visible in the artwork preview is part of the printed image. Borderless printing does not remove those details.</p>
+        <p><strong>Paper edges:</strong> Paper prints include a white border on all four sides within the selected paper dimensions. The complete artwork fits inside that border, so its visible image is slightly smaller than the paper. Any paper texture or rough edge visible in the artwork itself remains part of the image.</p>
         <p><strong>Canvas wrap:</strong> Mirror wrap reflects the picture’s edges around the sides. A solid-color wrap gives the sides the selected color. Review the chosen option before ordering.</p>
         <p><strong>Foam-mounted print:</strong> Fine art paper bonded to a lightweight, rigid 3/16-inch foamcore backing. A physical mat is a separate board around the artwork in a framed paper print.</p>
       </div>

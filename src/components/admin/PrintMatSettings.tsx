@@ -6,13 +6,15 @@ import type { MasterCropPlan } from '@/lib/artwork/crop-geometry.mjs'
 import type { StorefrontOption, StorefrontSubcategory } from '@/lib/catalog/storefront'
 import { matChoiceAvailable, type ProductMatPreference } from '@/lib/catalog/product-mat'
 import type { CropOutput } from './MasterCropWorkspace'
+import OrientedCropImage from './OrientedCropImage'
+import type { CropRotation } from '@/lib/artwork/crop-geometry.mjs'
 
 type Settings = { preference: ProductMatPreference | null; catalog: StorefrontSubcategory[] }
 const field = 'mt-1 w-full rounded-md border border-charcoal/20 bg-white p-2 text-sm'
 
 /** Preview and persist a physical mat for one product without baking it into the master. */
-export default function PrintMatSettings({ productId, proxyUrl, plan, output }: {
-  productId: string; proxyUrl: string; plan: MasterCropPlan | null; output: CropOutput | null
+export default function PrintMatSettings({ productId, proxyUrl, plan, output, rotation = 0 }: {
+  productId: string; proxyUrl: string; plan: MasterCropPlan | null; output: CropOutput | null; rotation?: CropRotation
 }) {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [enabled, setEnabled] = useState(false)
@@ -94,7 +96,7 @@ export default function PrintMatSettings({ productId, proxyUrl, plan, output }: 
               <div className="absolute overflow-hidden bg-white" style={{ left: `${100 * matIn / (output.width_in + 2 * matIn)}%`, top: `${100 * matIn / (output.height_in + 2 * matIn)}%`, width: `${100 * output.width_in / (output.width_in + 2 * matIn)}%`, height: `${100 * output.height_in / (output.height_in + 2 * matIn)}%` }}>
                 <div className="absolute overflow-hidden" style={{ left: `${100 * plan.padding.left / plan.width}%`, top: `${100 * plan.padding.top / plan.height}%`, width: `${100 * plan.extract.width / plan.width}%`, height: `${100 * plan.extract.height / plan.height}%` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Artwork with selected physical mat" src={proxyUrl} className="absolute max-w-none" style={{ width: `${100 * plan.source.width / plan.extract.width}%`, height: `${100 * plan.source.height / plan.extract.height}%`, left: `${-100 * plan.extract.left / plan.extract.width}%`, top: `${-100 * plan.extract.top / plan.extract.height}%` }} />
+                  <OrientedCropImage rotation={rotation} aspect={plan.source.width / plan.source.height} alt="Artwork with selected physical mat" src={proxyUrl} className="absolute max-w-none" style={{ width: `${100 * plan.source.width / plan.extract.width}%`, height: `${100 * plan.source.height / plan.extract.height}%`, left: `${-100 * plan.extract.left / plan.extract.width}%`, top: `${-100 * plan.extract.top / plan.extract.height}%` }} />
                 </div>
               </div>
             </div>

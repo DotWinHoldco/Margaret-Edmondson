@@ -23,8 +23,12 @@ async function prepareMasterCrop(
   if ((verifyDimensions || cropOutput !== null) && ((widthPx && widthPx !== meta.width) || (heightPx && heightPx !== meta.height))) {
     throw new Error('The master file dimensions do not match its saved dimensions. Check the master artwork before retrying.')
   }
-  const W = widthPx || meta.width
-  const H = heightPx || meta.height
+  const rotation = cropBox.rotation ?? 0
+  if (![0, 90, 180, 270].includes(rotation) || (cropBox.orient !== undefined && typeof cropBox.orient !== 'boolean')) throw new Error('Invalid crop orientation')
+  const baseW = cropBox.orient ? meta.autoOrient.width : widthPx || meta.width
+  const baseH = cropBox.orient ? meta.autoOrient.height : heightPx || meta.height
+  const W = rotation % 180 ? baseH : baseW
+  const H = rotation % 180 ? baseW : baseH
   if (!W || !H) throw new Error('could not determine source dimensions')
 
   // A null output retains the legacy operator path, including its separately
@@ -36,7 +40,12 @@ async function prepareMasterCrop(
   const width = plan?.extract.width ?? clampInt(cropBox.w * W, 1, W - left)
   const height = plan?.extract.height ?? clampInt(cropBox.h * H, 1, H - top)
 
-  let pipeline = sharp(srcBuffer, { limitInputPixels }).extract({ left, top, width, height })
+  // Honor EXIF only for explicitly opted-in crops. This preserves every legacy
+  // selection while making a newly uploaded image match the artist's file viewer.
+  let pipeline = sharp(srcBuffer, { limitInputPixels })
+  if (cropBox.orient) pipeline = pipeline.autoOrient()
+  if (rotation) pipeline = pipeline.rotate(rotation)
+  pipeline = pipeline.extract({ left, top, width, height })
   let outW = plan?.width ?? width
   let outH = plan?.height ?? height
   if (plan && plan.addedPixels > 0) {
@@ -55,7 +64,7 @@ async function prepareMasterCrop(
     // The editor's preview and source dimensions use raw source coordinates.
     // Clear any EXIF orientation only for the new explicit-output workflow so
     // a finished crop is not rotated a second time by image viewers/providers.
-    .withMetadata({ density: d, ...(plan ? { orientation: 1 } : {}) })
+    .withMetadata({ density: d, ...(plan || cropBox.orient || rotation ? { orientation: 1 } : {}) })
     .png({ compressionLevel: 9 })
   return { pipeline, width: outW, height: outH, dpi: d }
 }

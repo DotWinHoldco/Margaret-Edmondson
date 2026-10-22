@@ -44,3 +44,12 @@ it('never creates a service client for an unauthorized cron call', async () => {
   expect((await GET(new Request('https://example.test/api/cron/master-crop-worker'))).status).toBe(401)
   expect(h.service).not.toHaveBeenCalled()
 })
+
+it('rejects unsupported orientation values before any crop mutation', async () => {
+  for (const orientation of [{ rotation: 45 }, { rotation: '180' }, { orient: 'yes' }]) {
+    const response = await POST(new Request('https://example.test/crop', { method: 'POST', body: JSON.stringify({ ...crop, crop_box: { ...crop.crop_box, ...orientation } }) }), { params: Promise.resolve({ id: 'master' }) })
+    expect(response.status).toBe(400)
+  }
+  expect(h.from).not.toHaveBeenCalled()
+  expect(h.after).not.toHaveBeenCalled()
+})

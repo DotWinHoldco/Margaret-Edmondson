@@ -56,10 +56,13 @@ export async function GET(
       limitInputPixels: MAX_INPUT_PIXELS,
       failOn: 'none',
     })
-    if (new URL(request.url).searchParams.get('metadata') === '1') {
-      // Use the file's raw pixel coordinates, just like the preview and crop
-      // transform. Auto-orienting only this response would move crop selections.
-      const metadata = await input.metadata()
+    const query = new URL(request.url).searchParams
+    const orient = query.get('orientation') === 'display'
+    if (query.get('metadata') === '1') {
+      // Explicit display orientation opts new crops in; legacy crops keep raw
+      // coordinates. Metadata and preview must always use the same convention.
+      const rawMetadata = await input.metadata()
+      const metadata = { ...rawMetadata, ...(orient ? rawMetadata.autoOrient : {}) }
       if (!metadata.width || !metadata.height || metadata.width * metadata.height > MAX_INPUT_PIXELS) {
         return apiError('This source has invalid dimensions or exceeds 180 million pixels.', 422, 'PREVIEW_FAILED')
       }
@@ -71,6 +74,7 @@ export async function GET(
       response.headers.set('Cache-Control', 'private, no-store')
       return response
     }
+    if (orient) input.autoOrient()
     const preview = await input
       .resize({ width: 1200, height: 1000, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 84 })

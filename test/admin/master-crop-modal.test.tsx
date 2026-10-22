@@ -91,3 +91,21 @@ describe('crop save completion', () => {
     expect(h.toast.success).toHaveBeenCalledTimes(1)
   })
 })
+
+it('saves the chosen rotation and swapped print dimensions, and restores them on reopen', async () => {
+  const initial: MasterCropTarget = { ...master, crop_box: { x: 0, y: 0, w: 1, h: 1, orient: true, rotation: 0 }, crop_output: { version: 1, fit: 'pad', width_in: 8, height_in: 10 } }
+  editor(initial)
+  await waitFor(() => expect(screen.getByRole('button', { name: /Rotate right/ })).toBeEnabled())
+  fireEvent.click(screen.getByRole('button', { name: /Rotate right/ }))
+  expect(screen.getByRole('spinbutton', { name: 'Output width inches' })).toHaveValue(10)
+  expect(screen.getByRole('spinbutton', { name: 'Output height inches' })).toHaveValue(8)
+  fireEvent.click(screen.getByRole('button', { name: 'Save crop' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, apply crop' }))
+  await waitFor(() => expect(h.send).toHaveBeenCalled())
+  const saved = h.send.mock.calls[0][2]
+  expect(saved).toMatchObject({ crop_box: { rotation: 90, orient: true }, crop_output: { width_in: 10, height_in: 8 } })
+  cleanup()
+  editor({ ...initial, ...saved })
+  expect(screen.getByRole('img', { name: 'Potential' }).style.transform).toContain('rotate(90deg)')
+  expect(screen.getByRole('img', { name: 'Potential' })).toHaveAttribute('src', '/preview?orientation=display')
+})

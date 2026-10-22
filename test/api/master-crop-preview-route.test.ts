@@ -49,3 +49,15 @@ describe('GET /api/admin/master-artworks/[id]/preview', () => {
     expect(h.storage).toHaveBeenCalledWith('print-masters')
   })
 })
+
+it('opts new crop previews and metadata into display orientation without moving legacy coordinates', async () => {
+  const rotated = await sharp({ create: { width: 64, height: 80, channels: 3, background: '#2b7a78' } }).withMetadata({ orientation: 6 }).png().toBuffer()
+  h.storage.mockReturnValue({ download: async () => ({ data: new Blob([rotated]), error: null }) })
+  const get = (query: string) => GET(new Request(`https://example.test/preview${query}`), { params: Promise.resolve({ id: 'master' }) })
+  const preview = await get('?orientation=display')
+  expect(await sharp(Buffer.from(await preview.arrayBuffer())).metadata()).toMatchObject({ width: 80, height: 64 })
+  const metadata = await get('?orientation=display&metadata=1')
+  expect(await metadata.json()).toMatchObject({ data: { width: 80, height: 64 } })
+  const legacy = await get('')
+  expect(await sharp(Buffer.from(await legacy.arrayBuffer())).metadata()).toMatchObject({ width: 64, height: 80 })
+})

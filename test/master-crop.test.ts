@@ -105,3 +105,33 @@ describe('master crop transform (Phase 1 worker)', () => {
     ])
   })
 })
+
+describe('artist-controlled orientation', () => {
+  it.each([0, 90, 180, 270] as const)('honors EXIF before rotating %s degrees and crops the displayed pixels', async rotation => {
+    // Four distinct quadrants make an incorrect rotation or crop order observable.
+    const colors = [[255,0,0], [0,255,0], [0,0,255], [255,255,0]]
+    const pixels = Buffer.alloc(40 * 60 * 3)
+    for (let y = 0; y < 60; y++) for (let x = 0; x < 40; x++) {
+      pixels.set(colors[(y >= 30 ? 2 : 0) + (x >= 20 ? 1 : 0)], (y * 40 + x) * 3)
+    }
+    const src = await sharp(pixels, { raw: { width: 40, height: 60, channels: 3 } }).withMetadata({ orientation: 3 }).png().toBuffer()
+    const out = await applyMasterCrop(src, { cropBox: { x: 0, y: 0, w: 0.5, h: 0.5, orient: true, rotation }, widthPx: 40, heightPx: 60, verifyDimensions: true })
+    const expected = [colors[3], colors[1], colors[0], colors[2]][rotation / 90]
+    const raw = await sharp(out.buffer).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+    expect([raw.info.width, raw.info.height]).toEqual(rotation % 180 ? [30, 20] : [20, 30])
+    expect([...raw.data.subarray(0,3)]).toEqual(expected)
+    expect(await sharp(out.buffer).metadata()).toMatchObject({ orientation: 1 })
+    expect(await sharp(src).metadata()).toMatchObject({ orientation: 3, width: 40, height: 60 })
+    const legacy = await applyMasterCrop(src, { cropBox: { x: 0, y: 0, w: 0.5, h: 0.5 }, widthPx: 40, heightPx: 60 })
+    expect([...(await sharp(legacy.buffer).removeAlpha().raw().toBuffer()).subarray(0,3)]).toEqual(colors[0])
+  })
+
+  it('plans an exact output in rotated dimensions and rejects arbitrary rotations', async () => {
+    const src = await sharp({ create: { width: 60, height: 40, channels: 3, background: '#ff0000' } }).withMetadata({ orientation: 6 }).png().toBuffer()
+    const cropBox = { x: 0, y: 0, w: 1, h: 1, orient: true, rotation: 90 as const }
+    const out = await applyMasterCrop(src, { cropBox, cropOutput: { version: 1, fit: 'pad', width_in: 3, height_in: 2 }, widthPx: 60, heightPx: 40 })
+    expect([out.width, out.height]).toEqual([60, 40])
+    // @ts-expect-error Deliberately exercise untrusted stored values.
+    await expect(applyMasterCrop(src, { cropBox: { ...cropBox, rotation: 45 } })).rejects.toThrow('Invalid crop orientation')
+  })
+})

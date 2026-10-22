@@ -264,10 +264,10 @@ describe('choosing what to buy', () => {
     mount()
     await settle()
 
-    expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /^Stretched Canvas/ })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Framed Paper Prints/ })).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /Metal Print/ })).toBeNull()
-    expect(screen.getByRole('radio', { name: /Stretched Canvas/ })).toHaveTextContent('from $180')
+    expect(screen.getByRole('radio', { name: /^Stretched Canvas/ })).toHaveTextContent('from $180')
   })
 
   it('shows finish chips only when the medium sells more than one finish', async () => {
@@ -280,8 +280,8 @@ describe('choosing what to buy', () => {
     await settle()
 
     expect(screen.getByText('Choose a frame')).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: '0.875 in Black Frame' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: '1.25 in Oak Frame' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '0.875 in Black Frame' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '1.25 in Oak Frame' })).toBeInTheDocument()
     expect(screen.getByText('Framed pieces ship in a hard case.')).toBeInTheDocument()
   })
 
@@ -352,7 +352,7 @@ describe('what reaches the server', () => {
     await settle()
     const mat = screen.getByText('Mat Size'), frame = screen.getByText('Choose a frame')
     expect(mat.compareDocumentPosition(frame) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a frame' }), { target: { value: 'sub-paper-b' } })
     await settle()
     expect(screen.getByRole('radio', { name: '3 in Mat' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('radio', { name: 'Antique' })).toHaveAttribute('aria-checked', 'true')
@@ -617,7 +617,7 @@ describe('sizes per print type', () => {
       ],
     })
     fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
-    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a frame' }), { target: { value: 'sub-paper-b' } })
     await settle()
     expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /36 × 24 in/ })).toBeNull()
@@ -633,7 +633,7 @@ describe('sizes per print type', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
     await settle()
     expect(screen.queryByText('Choose a frame')).toBeNull()
-    expect(screen.queryByRole('radio', { name: '1.25 in Oak Frame' })).toBeNull()
+    expect(screen.queryByRole('option', { name: '1.25 in Oak Frame' })).toBeNull()
   })
 
   it('shows a stored price only under the finish it was priced for; elsewhere the price line is the only number', async () => {
@@ -649,7 +649,7 @@ describe('sizes per print type', () => {
     expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$412.38')
     expect(screen.getByRole('radio', { name: /36 × 24 in/ })).toHaveTextContent('$300')
 
-    fireEvent.click(screen.getByRole('radio', { name: '1.25 in Oak Frame' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a frame' }), { target: { value: 'sub-paper-b' } })
     await settle()
     // Under the Oak frame only the selected chip shows the live quote; the other awaits selection.
     expect(screen.getByRole('radio', { name: /8 × 10 in/ })).toHaveTextContent('$412.38')
@@ -657,4 +657,29 @@ describe('sizes per print type', () => {
     expect(screen.getByRole('radio', { name: /36 × 24 in/ })).not.toHaveTextContent('$300')
     expect(screen.getAllByText('$412.38').length).toBeGreaterThan(0)
   })
+})
+
+
+it('updates one preview in the main artwork area and exposes help without adding a second preview', async () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  try {
+    mount({ previewTarget: host })
+    await settle()
+    expect(screen.getAllByTestId('frame-preview')).toHaveLength(1)
+    expect(host.querySelector('[data-testid="frame-preview"]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'About Canvas depth' }))
+    expect(screen.getByText(/Depth is the thickness/)).toBeVisible()
+    fireEvent.click(screen.getByRole('radio', { name: /Framed Paper Prints/ }))
+    await settle()
+    fireEvent.click(screen.getByRole('button', { name: 'About Choosing a mat' }))
+    expect(screen.getByText(/A mat is optional/)).toBeVisible()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a frame' }), { target: { value: 'sub-paper-b' } })
+    await settle()
+    expect(host.querySelector('[data-testid="frame-preview"]')).toHaveAttribute('data-frame-label', '1.25 in Oak Frame')
+    expect(screen.getAllByTestId('frame-preview')).toHaveLength(1)
+  } finally {
+    cleanup()
+    host.remove()
+  }
 })

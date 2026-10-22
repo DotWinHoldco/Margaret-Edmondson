@@ -1,6 +1,6 @@
 // Authored by DotWin
 // The paper size includes a minimum white border on every edge. Canvas masters stay unchanged.
-export const PAPER_BORDER_IN = 0.125
+export const PAPER_BORDER_IN = 0.25
 /** Only paper reproductions receive the artist’s white border; canvas edges are configured separately. */
 export function paperBorderIn(medium: string | null | undefined): number {
   return medium === 'fine_art_paper' || medium === 'framed_fine_art_paper' ? PAPER_BORDER_IN : 0

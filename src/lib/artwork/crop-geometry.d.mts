@@ -1,4 +1,6 @@
-export interface NormalizedCropBox { x: number; y: number; w: number; h: number }
+export type CropRotation = 0 | 90 | 180 | 270
+/** Existing crops use raw source coordinates; new crops explicitly honor EXIF first. */
+export interface NormalizedCropBox { x: number; y: number; w: number; h: number; rotation?: CropRotation; orient?: boolean }
 export interface MasterCropOutput {
   version: 1
   fit: 'crop' | 'pad'

@@ -506,6 +506,7 @@ export default function ProductDetail({
   configurator?: ConfiguratorProp
 }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [previewTarget, setPreviewTarget] = useState<HTMLDivElement | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [showStory, setShowStory] = useState(false)
   const [imageAspect, setImageAspect] = useState<'landscape' | 'portrait' | 'square'>('square')
@@ -660,9 +661,11 @@ export default function ProductDetail({
         <ProductNavigation productId={product.id} title={product.title} collection={collection} />
 
         <div className={`grid grid-cols-1 gap-10 lg:gap-16 ${gridClass}`}>
-          {/* ─── Image Column ─── */}
-          <div>
-            {currentImage && (
+          {/* The live print preview shares the primary artwork position. */}
+          <div className="min-w-0 self-start lg:sticky lg:top-28">
+            <div ref={setPreviewTarget} hidden={!configuratorActive} aria-label="Your print preview" />
+            {configuratorActive && currentImage && <button type="button" onClick={() => setLightboxOpen(true)} className="mt-3 font-body text-sm text-teal underline">View original artwork up close</button>}
+            {!configuratorActive && currentImage && (
               <ZoomableImage
                 src={currentImage.url}
                 alt={currentImage.alt_text || product.title}
@@ -680,11 +683,11 @@ export default function ProductDetail({
             )}
 
             {/* Thumbnail Gallery */}
-            <ThumbnailGallery
+            {!configuratorActive && <ThumbnailGallery
               images={images}
               selectedIndex={selectedImageIndex}
               onSelect={setSelectedImageIndex}
-            />
+            />}
           </div>
 
           {/* ─── Details Column ─── */}
@@ -790,6 +793,7 @@ export default function ProductDetail({
 
             {configuratorActive && configurator?.open === true && (
               <PrintConfigurator
+                previewTarget={previewTarget}
                 product={{ id: product.id, title: product.title }}
                 image={{
                   url: master?.print_preview_url || '',
@@ -868,10 +872,10 @@ export default function ProductDetail({
 
             {/* Description */}
             {product.description_html && (
-              <div
-                className="mt-8 font-body text-sm leading-relaxed text-charcoal/70 prose prose-sm"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description_html) }}
-              />
+              <details className="mt-6 border-t border-charcoal/10 pt-4 font-body text-sm text-charcoal/70">
+                <summary className="cursor-pointer font-medium text-teal focus-visible:outline-2 focus-visible:outline-teal">Learn more about this artwork</summary>
+                <div className="prose prose-sm mt-3 leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description_html) }} />
+              </details>
             )}
 
             {/* Tags */}
