@@ -11,7 +11,11 @@ export const festiveClass = {
   yearConfirmed: true,
   startsAt: '2026-11-21T09:00:00-06:00',
   endsAt: '2026-11-21T12:30:00-06:00',
-  earlyPriceEndsAt: '2026-11-21T00:00:00-06:00',
+  // Includes all of November 19 through 11:59 PM Central, matching Margaret's flier.
+  earlyPriceEndsAt: '2026-11-20T00:00:00-06:00',
+  earlyPriceDeadlineLabel: 'November 19 at 11:59 PM Central',
+  priceScheduleLabel: '$20 through November 19 at 11:59 PM Central; $25 starting November 20.',
+  flyer: '/margaret-edmondson/festive-paint-at-the-market-flyer.jpg',
   earlyPriceCents: 2000,
   regularPriceCents: 2500,
   marketName: null as string | null,
@@ -48,7 +52,7 @@ export function getFestiveOffer(now: Date = new Date()) {
     ended,
     priceCents: early ? festiveClass.earlyPriceCents : festiveClass.regularPriceCents,
     priceLabel: early ? '$20' : '$25',
-    savingsLabel: ended ? 'This market has ended' : early ? 'Save $5 when you sign up before November 21' : 'November 21 class price',
+    savingsLabel: ended ? 'This market has ended' : early ? `Save $5 when you sign up by ${festiveClass.earlyPriceDeadlineLabel}` : 'November 21 class price',
   }
 }
 

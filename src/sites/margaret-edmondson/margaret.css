@@ -85,6 +85,13 @@
 .me-coming-soon strong { font-size:15px; color:var(--me-teal); }
 .me-coming-soon p { font-size:12px; color:#5b6357; margin-top:6px; }
 .me-small-note { text-align:center; font-size:11px; color:#62665b; margin-top:17px!important; }
+.me-flyer { display:grid; grid-template-columns:minmax(0,320px) minmax(0,1fr); gap:60px; align-items:center; padding-bottom:90px; }
+.me-flyer-preview { display:block; border:1px solid #d4d5c9; }
+.me-flyer-preview img { display:block; width:100%; height:auto; }
+.me-flyer h2 { margin-top:18px; }
+.me-flyer-actions { display:flex; flex-wrap:wrap; align-items:center; gap:22px; margin-top:25px; }
+.me-flyer-view { display:inline-flex; align-items:center; gap:8px; border-bottom:1px solid var(--me-teal); }
+@media(max-width:760px) { .me-flyer { grid-template-columns:1fr; gap:30px; padding-bottom:55px; } .me-flyer-preview { width:280px; max-width:100%; margin-inline:auto; } }
 .me-faq { display:grid; grid-template-columns:1fr 1.2fr; gap:70px; padding-block:0 90px; }
 .me-faq h2 { margin-top:18px; }
 .me-faq-list details { border-bottom:1px solid #d6d8cc; padding-block:19px; }

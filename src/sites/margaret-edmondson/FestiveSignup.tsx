@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { festivePaintings, getFestiveOffer } from './festive-class'
+import { festiveClass, festivePaintings, getFestiveOffer } from './festive-class'
 import { FestivePayment, type FestivePaymentDetails } from './FestivePayment'
 
 type Painter = { key: number; name: string; painting: string }
@@ -111,7 +111,7 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
       <div className="me-order-summary" aria-live="polite">
         <div><h3>3. Your total</h3><p>{painters.length} {painters.length === 1 ? 'painter' : 'painters'} × {offer.priceLabel} each</p></div><strong>{total}</strong>
       </div>
-      <p className="me-price-detail">All materials included. $20 per painter through November 20; $25 on November 21.</p>
+      <p className="me-price-detail">All materials included. {festiveClass.priceScheduleLabel}</p>
       {paymentMode === 'test' && <p className="me-payment-notice">Test checkout · No real payments. This does not reserve your class.</p>}
       {!paymentMode && <p className="me-payment-notice">Payment setup is in progress. You can choose your projects here; registration will open when checkout is connected.</p>}
       {error && <p className="me-form-error" role="alert">{error}</p>}

@@ -10,11 +10,11 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: festiveClass.title,
-  description: 'Pick a festive project and paint at your own pace with Margaret Edmondson. Pre-drawn 8×10 canvas, all materials, and instruction included. $20 before November 21; $25 on November 21. Market hours: 9 AM–12:30 PM.',
+  description: `Pick a festive project and paint at your own pace with Margaret Edmondson. Pre-drawn 8×10 canvas, all materials, and instruction included. ${festiveClass.priceScheduleLabel} Market hours: 9 AM–12:30 PM.`,
   alternates: { canonical: festiveClass.path },
   openGraph: {
     title: 'Festive Paint at the Market | Margaret Edmondson',
-    description: 'A festive project. Your own pace. All materials included. November 21 · 9 AM–12:30 PM · $20 before November 21, $25 on the day.',
+    description: `A festive project. Your own pace. All materials included. November 21 · 9 AM–12:30 PM · ${festiveClass.priceScheduleLabel}`,
     url: festiveClass.path,
     type: 'website',
     images: [{ url: '/margaret-edmondson/share.jpg', width: 1000, height: 661, alt: 'Art by Margaret Edmondson' }],
@@ -26,7 +26,7 @@ const faqs = [
   ['Can I sign up more than one painter?', 'Yes! Enter the number of painters, choose a painting for each person, and pay for everyone in one checkout. Each painter can choose a different project.'],
   ['Is this a guided class?', 'You can paint at your own pace using the self-guided instruction and information sheet. On-site instruction is also provided.'],
   ['What do I need to bring?', 'All painting materials are provided, including your pre-drawn canvas.'],
-  ['How does the early price work?', 'Sign up before November 21 to pay $20 per painter and save $5. The price changes to $25 on November 21.'],
+  ['How does the early price work?', `Sign up by ${festiveClass.earlyPriceDeadlineLabel} to pay $20 per painter and save $5. The price changes to $25 on November 20.`],
   ['What are the market hours?', 'The market runs from 9 AM to 12:30 PM on November 21.'],
   ['Where is the market?', `The market is at ${festiveClass.marketAddress}.`],
 ]
@@ -95,6 +95,21 @@ export default async function FestiveMarketPage() {
       <section id="signup-form" className="me-container me-signup-section" aria-labelledby="signup-title">
         <div className="me-section-heading"><p className="me-eyebrow">A little color, together</p><h2 id="signup-title">Choose your projects.<br /><em>Make a morning of it.</em></h2></div>
         <FestiveSignup initialOffer={offer} paymentMode={paymentMode} />
+      </section>
+
+      <section id="class-flyer" className="me-container me-flyer" aria-labelledby="flyer-title">
+        <a className="me-flyer-preview" href={festiveClass.flyer} target="_blank" rel="noopener noreferrer" aria-label="View the Festive Paint at the Market flier full size (opens in a new tab)">
+          <Image src={festiveClass.flyer} alt="Margaret’s Festive Paint at the Market flier, featuring Santa, a snowman, and a reindeer" width={1545} height={2000} sizes="(max-width: 760px) 280px, 320px" />
+        </a>
+        <div>
+          <p className="me-eyebrow">Save the date · Share the fun</p>
+          <h2 id="flyer-title">Take the<br /><em>details with you.</em></h2>
+          <p className="me-intro">Save Margaret’s class flier or share it with a friend who’d love a morning of painting.</p>
+          <div className="me-flyer-actions">
+            <a className="me-button" href={festiveClass.flyer} download="Festive-Paint-at-the-Market.jpg">Download the flier <ArrowDown size={17} aria-hidden="true" /></a>
+            <a className="me-flyer-view" href={festiveClass.flyer} target="_blank" rel="noopener noreferrer">View full size <ArrowUpRight size={17} aria-hidden="true" /></a>
+          </div>
+        </div>
       </section>
 
       <section className="me-container me-faq" aria-labelledby="faq-title"><div><p className="me-eyebrow">A few helpful details</p><h2 id="faq-title">Before you<br /><em>pick up a brush.</em></h2></div><div className="me-faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getFestiveOffer } from './festive-class'
+import { festiveClass, getFestiveOffer } from './festive-class'
 
 /** Refresh an open tab so the early offer cannot remain after the cutoff. */
 export function FestiveOffer({ initialOffer }: { initialOffer: ReturnType<typeof getFestiveOffer> }) {
@@ -24,7 +24,7 @@ export function FestiveOffer({ initialOffer }: { initialOffer: ReturnType<typeof
     <>
       <div className="me-price"><strong>{offer.priceLabel}</strong><span>per painter<br />all materials included</span></div>
       <p className="me-save">{offer.savingsLabel}</p>
-      <p className="me-price-detail">$20 through November 20 · $25 on November 21</p>
+      <p className="me-price-detail">{festiveClass.priceScheduleLabel}</p>
     </>
   )
 }
