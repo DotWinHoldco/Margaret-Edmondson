@@ -55,7 +55,7 @@ describe('festive signed payment dispatch', () => {
 })
 
 const intent = { id: 'pi_elements_fixture', metadata: { scope: 'margaret_art_class', payment_flow: 'elements', registration_id: id }, amount: 4000, amount_received: 4000, currency: 'usd', status: 'succeeded', livemode: true }
-const elementsEvent = { id: 'evt_elements_fixture', type: 'payment_intent.succeeded', livemode: true, data: { object: intent } } as unknown as Stripe.Event
+const elementsEvent = { id: 'evt_elements_fixture', type: 'payment_intent.succeeded', livemode: true, data: { object: intent } } as unknown as Stripe.PaymentIntentSucceededEvent
 const intentStripe = { paymentIntents: { retrieve } } as unknown as Stripe
 
 describe('festive Payment Elements settlement', () => {
