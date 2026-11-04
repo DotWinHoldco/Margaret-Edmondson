@@ -57,7 +57,10 @@ function detectPM(r) {
 }
 
 function runScript(r, pm, script) {
-  const res = spawnSync(pm, ['run', script], { cwd: r, encoding: 'utf8' });
+  // Vercel sets NODE_ENV=production. React's testing helpers require test mode;
+  // keep the production environment for the actual application build.
+  const env = script === 'test' ? { ...process.env, NODE_ENV: 'test' } : process.env;
+  const res = spawnSync(pm, ['run', script], { cwd: r, encoding: 'utf8', env });
   const out = `${res.stdout || ''}${res.stderr || ''}`;
   return { code: res.status, out };
 }
@@ -67,6 +70,7 @@ function commandGate(r, pm, scripts, name, script, { required = true } = {}) {
     return gate(name, { required, status: 'skipped', findings: [], detail: `no "${script}" script` });
   }
   const { code, out } = runScript(r, pm, script);
+  if (code !== 0 && !flag('--json')) console.error(out);
   const tail = out.trim().split('\n').slice(-1)[0]?.slice(0, 120) || '';
   return gate(name, { required, status: code === 0 ? 'pass' : 'fail', findings: [], detail: code === 0 ? 'ok' : `exit ${code}: ${tail}` });
 }
