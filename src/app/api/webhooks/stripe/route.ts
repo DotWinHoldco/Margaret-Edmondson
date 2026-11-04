@@ -1,3 +1,4 @@
+import { handleFestivePayment } from '@/lib/classes/festive/payment'
 import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import { paidTotalMatches } from '@/lib/tax/config'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
@@ -497,6 +498,10 @@ export async function POST(request: Request) {
   // resume-until-items-complete, booking status-transition, enrollment onConflict), and
   // we throw on unexpected failure so Stripe retries cleanly. (review findings 1+2)
   try {
+    if (await handleFestivePayment(supabase, stripe, event)) {
+      await logEvent(supabase, event, { kind: 'festive_class' })
+      return Response.json({ received: true })
+    }
     switch (event.type) {
       case 'checkout.session.async_payment_succeeded':
       case 'checkout.session.completed': {
@@ -646,6 +651,7 @@ export async function handleCheckoutCompleted(
   stripe: Stripe,
   event: Stripe.Event,
 ) {
+  if (await handleFestivePayment(supabase, stripe, event)) return
   const session = event.data.object as unknown as CheckoutSession
 
   // ── Class booking ─────────────────────────────────────────────────────

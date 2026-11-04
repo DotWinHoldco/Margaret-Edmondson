@@ -60,5 +60,11 @@
       "path": "/api/cron/release-expired-holds",
       "schedule": "*/10 * * * *"
     }
-  ]
+  ],
+  "buildCommand": "npm run build-check",
+  "git": {
+    "deploymentEnabled": {
+      "DotWin-cx/margaret-festive-production": false
+    }
+  }
 }

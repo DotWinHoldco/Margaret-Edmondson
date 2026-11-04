@@ -1,0 +1,41 @@
+-- Authored by DotWin. Actual-schema assertions; every row/settings change rolls back.
+begin;
+update public.festive_classes set accepting=true where slug='festive-paint-at-the-market';
+update public.site_settings set stripe_test_mode=true where site_settings.id=true;
+do $$
+declare v_id uuid:=gen_random_uuid(); tok text:=repeat('a',64); x jsonb; rejected boolean;
+ payload jsonb:='{"name":"Verification Buyer","email":"festive-verification@example.com","phone":"555-555-0100","painters":[{"name":"Parent","painting":"snowman"},{"name":"Child","painting":"santa"}]}';
+begin
+ if has_table_privilege('anon','public.festive_registrations','select') then raise exception 'Buyer table exposed';end if;
+ if has_function_privilege('anon','public.festive_payment(uuid,text,text,text,integer,text,text,text)','execute') then raise exception 'Payment RPC exposed';end if;
+ x:=public.festive_reserve(v_id,tok,payload,2000);
+ if (x->>'total')::int<>4000 or x->>'mode'<>'test' then raise exception 'Group price/mode mismatch';end if;
+ if public.festive_reserve(v_id,tok,payload,2000)<>x then raise exception 'Reservation retry changed';end if;
+ if public.festive_registration_status(v_id,repeat('b',64)) is not null then raise exception 'Token privacy failed';end if;
+ rejected:=false;begin perform public.festive_reserve(gen_random_uuid(),tok,payload,1);exception when sqlstate 'P2001' then rejected:=true;end;
+ if not rejected then raise exception 'Accepted price tampering';end if;
+ rejected:=false;begin perform public.festive_reserve(gen_random_uuid(),tok,jsonb_set(payload,'{painters,1,painting}','"invalid"'),2000);exception when others then rejected:=true;end;
+ if not rejected then raise exception 'Accepted invalid painting';end if;
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ perform public.festive_payment(v_id,'evt_test_pending','cs_fixture','',4000,'usd','test','pending');
+ if (select status from public.festive_registrations where festive_registrations.id=v_id)<>'pending' then raise exception 'Unpaid became paid';end if;
+ perform public.festive_payment(v_id,'evt_test_paid','cs_fixture','pi_fixture',4000,'usd','test','paid');
+ perform public.festive_payment(v_id,'evt_test_paid','cs_fixture','pi_fixture',4000,'usd','test','paid');
+ perform public.festive_payment(v_id,'evt_test_late','cs_fixture','pi_fixture',4000,'usd','test','expired');
+ if (select status from public.festive_registrations where festive_registrations.id=v_id)<>'paid' then raise exception 'Late event removed payment';end if;
+ if exists(select 1 from public.festive_email_deliveries where registration_id=v_id) then raise exception 'Test payment enqueued live emails';end if;
+ update public.site_settings set stripe_test_mode=false where site_settings.id=true;
+ v_id:=gen_random_uuid();
+ x:=public.festive_reserve(v_id,tok,payload,2000);
+ if x->>'mode'<>'live' then raise exception 'Did not reuse global live mode';end if;
+ perform public.festive_payment(v_id,'evt_live_fixture','cs_live_fixture','pi_live_fixture',4000,'usd','live','paid');
+ if (select count(*) from public.festive_email_deliveries where registration_id=v_id)<>2 then raise exception 'Missing durable confirmations';end if;
+ if not public.festive_claim_email(v_id,'buyer') or public.festive_claim_email(v_id,'buyer') then raise exception 'Email lease not exclusive';end if;
+ update public.festive_classes set early_ends_at=now()-interval '1 minute' where slug='festive-paint-at-the-market';
+ x:=public.festive_reserve(gen_random_uuid(),tok,payload,2500);
+ if (x->>'total')::int<>5000 then raise exception 'Day price wrong';end if;
+ update public.festive_classes set ends_at=now()-interval '30 seconds' where slug='festive-paint-at-the-market';
+ rejected:=false;begin perform public.festive_reserve(gen_random_uuid(),tok,payload,2500);exception when others then rejected:=true;end;
+ if not rejected then raise exception 'Accepted closed class';end if;
+end $$;
+rollback;

@@ -12,6 +12,7 @@ const STATIC_PATHS = [
   '/contact',
   '/blog',
   '/classes',
+  '/classes/festive-paint-at-the-market',
   '/courses',
   '/commissions',
   '/commissions/request',

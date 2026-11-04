@@ -60,6 +60,10 @@ export const tableOwnership = {
   lesson_comments: { owner: 'lms', class: 'recoverable' },
 
   // classes
+  festive_classes: { owner: 'classes', class: 'core' },
+  festive_registrations: { owner: 'classes', class: 'core' },
+  festive_payment_events: { owner: 'classes', class: 'recoverable' },
+  festive_email_deliveries: { owner: 'classes', class: 'recoverable' },
   class_sessions: { owner: 'classes', class: 'core' },
   class_bookings: { owner: 'classes', class: 'core' },
 

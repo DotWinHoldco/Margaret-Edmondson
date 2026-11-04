@@ -56,7 +56,7 @@ export default async function AdminClassesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-light text-charcoal">Classes</h1>
-          <p className="mt-1 font-body text-sm text-charcoal/60">Manage Paint Your Pet sessions and bookings.</p>
+          <p className="mt-1 font-body text-sm text-charcoal/60">Manage class sessions and bookings.</p>
         </div>
         <Link
           href="/admin/classes/new"
@@ -66,6 +66,7 @@ export default async function AdminClassesPage() {
         </Link>
       </div>
 
+      <Link href="/admin/classes/festive" className="mb-6 block rounded-lg border border-teal/30 bg-white p-5 text-teal">Festive Paint at the Market — paid groups & canvas preparation →</Link>
       <div className="rounded-lg border border-charcoal/10 bg-white overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-charcoal/[0.03]">
