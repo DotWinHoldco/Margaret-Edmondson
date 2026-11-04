@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { loadStripe, type Stripe as StripeJs, type Appearance } from '@stripe/stripe-js'
 import {
   Elements,
   PaymentElement,
@@ -19,51 +18,7 @@ import { useCart } from '@/lib/cart/context'
 import CartItemTitle from '@/components/shared/CartItemTitle'
 import { readFunnelAttribution } from '@/lib/funnels/attribution'
 import { TEXAS_TAX_INCLUDED_STATEMENT } from '@/lib/tax/config'
-import { stripePublishableKey } from '@/lib/stripe/publishable-key'
-
-// NEXT_PUBLIC_* vars are inlined at build time — reference both literally and
-// pick at runtime based on the mode the server resolved from site settings.
-const PK_LIVE = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
-const PK_TEST = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST || ''
-
-let stripePromise: Promise<StripeJs | null> | null = null
-let stripePromiseKey = ''
-function getStripeJs(mode: 'test' | 'live'): Promise<StripeJs | null> | null {
-  const pk = stripePublishableKey(mode, { live: PK_LIVE, test: PK_TEST })
-  if (!pk) return null
-  if (!stripePromise || stripePromiseKey !== pk) {
-    stripePromise = loadStripe(pk)
-    stripePromiseKey = pk
-  }
-  return stripePromise
-}
-
-// Match the site theme (globals.css tokens) inside Stripe's iframes.
-const appearance: Appearance = {
-  variables: {
-    colorPrimary: '#3A7D7B', // --teal
-    colorBackground: '#FFFFFF',
-    colorText: '#2C2C2C', // --charcoal
-    colorDanger: '#D4654A', // --coral
-    borderRadius: '2px',
-    fontFamily: '"Playfair Display", Georgia, serif',
-    fontSizeBase: '15px',
-  },
-  rules: {
-    '.Input': { borderColor: 'rgba(44, 44, 44, 0.15)' },
-    '.Input:focus': { borderColor: '#3A7D7B', boxShadow: 'none' },
-    '.Label': {
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      fontSize: '11px',
-      color: 'rgba(44, 44, 44, 0.55)',
-    },
-  },
-}
-
-const elementsFonts = [
-  { cssSrc: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap' },
-]
+import { getStripeJs, appearance, elementsFonts } from '@/lib/stripe/elements'
 
 interface IntentResponse {
   clientSecret: string

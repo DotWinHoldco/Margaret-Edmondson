@@ -1,6 +1,6 @@
 import { registrationRequest, type ArtRegistration } from '@/lib/classes/festive/model'
 import { artRpc, ArtRegistrationError, availableArtPaymentMode, readArtRequest } from '@/lib/classes/festive/server'
-import { createArtCheckout } from '@/lib/classes/festive/stripe'
+import { createArtPaymentIntent } from '@/lib/classes/festive/stripe'
 import { festiveClass } from '@/sites/margaret-edmondson/festive-class'
 import { NextRequest } from 'next/server'
 import { rateLimit, rateLimitResponse } from '@/lib/api/rate-limit'
@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
   try {
     // dotwin-allow:public-write -- fixed-class, capability-scoped SQL owner; validated contact and per-email reservation throttle.
     const order = await artRpc<ArtRegistration>('festive_reserve', { p_id: input.id, p_token: input.token, p_payload: input.payload, p_expected_price: input.expectedPrice })
-    const origin = process.env.NODE_ENV === 'development' ? new URL(request.url).origin : 'https://artbyme.studio'
+    const origin = new URL(request.url).origin
     if (order.status === 'paid') return Response.json({ confirmation: `${origin}${festiveClass.path}/confirmation#${input.id}:${input.token}` }, { headers })
-    const url = await createArtCheckout(order, input.token, origin)
-    return Response.json({ url }, { headers })
+    const payment = await createArtPaymentIntent(order)
+    return Response.json(payment, { headers })
   } catch (error: unknown) {
     const priceChanged = error instanceof ArtRegistrationError && error.priceChanged
     console.error('[art-class.checkout]', error instanceof Error ? error.name : 'unknown')

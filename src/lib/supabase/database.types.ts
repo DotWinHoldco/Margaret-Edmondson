@@ -4801,6 +4801,14 @@ export type Database = {
         Returns: boolean
       }
       festive_class_public: { Args: never; Returns: Json }
+      festive_link_intent: {
+        Args: { p_id: string; p_intent: string; p_amount: number; p_mode: string }
+        Returns: undefined
+      }
+      festive_payment_intent: {
+        Args: { p_id: string; p_event: string; p_intent: string; p_amount: number; p_currency: string; p_mode: string; p_status: string }
+        Returns: undefined
+      }
       festive_payment: {
         Args: {
           p_amount: number

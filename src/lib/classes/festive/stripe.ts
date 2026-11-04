@@ -1,29 +1,30 @@
-// Authored by DotWin. Reuse Artbyme's existing account, mode selector and signed webhook.
+// Authored by DotWin. Use the same PaymentIntent/Elements flow as the production shop.
 import 'server-only'
 import { getStripeForMode, getStripeMode } from '@/lib/stripe'
-import { festiveClass, festivePaintings } from '@/sites/margaret-edmondson/festive-class'
-import { paintingQuantities, type ArtRegistration } from './model'
+import { createServiceClient } from '@/lib/supabase/server'
+import { festiveClass } from '@/sites/margaret-edmondson/festive-class'
+import type { ArtRegistration } from './model'
 
-/** One idempotent checkout pays for every selected canvas at the database's frozen price. */
-export async function createArtCheckout(order: ArtRegistration, token: string, origin: string) {
+/** Persist one intent per capability-validated group before exposing its payment secret. */
+export async function createArtPaymentIntent(order: ArtRegistration) {
   if (order.mode !== await getStripeMode()) throw new Error('Payment mode changed')
   const stripe = getStripeForMode(order.mode)
-  const metadata = { scope: 'margaret_art_class', registration_id: order.id }
-  const confirmation = `${origin}${festiveClass.path}/confirmation#${order.id}:${token}`
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment', integration_identifier: 'artbyme_festive_qhptzvnr',
-    customer_email: order.payload.email, client_reference_id: order.id,
-    metadata, payment_intent_data: { metadata },
-    line_items: paintingQuantities(order.payload.painters).map(({ painting, quantity }) => ({
-      quantity, price_data: { currency: 'usd', unit_amount: order.unit_price, product_data: {
-        name: `${festivePaintings.find(item => item.id === painting)!.name} · ${festiveClass.title}`,
-        description: `November 21, 2026, 9 AM–12:30 PM. ${festiveClass.marketAddress}. Pre-drawn 8×10 canvas, materials and instruction included.`,
-      } },
-    })),
-    success_url: confirmation,
-    cancel_url: confirmation.replace('/confirmation#', '/confirmation?returned=1#'),
-    expires_at: Math.floor(Date.parse(order.created_at) / 1000) + 1860,
-  }, { idempotencyKey: `artbyme-festive:${order.id}` })
-  if (!session.url || session.livemode !== (order.mode === 'live')) throw new Error('Checkout unavailable')
-  return session.url
+  const db = await createServiceClient()
+  const { data: saved, error } = await db.from('festive_registrations').select('stripe_payment,stripe_session').eq('id', order.id).single()
+  if (error || !saved || saved.stripe_session) throw new Error('Registration unavailable')
+  const intent = saved.stripe_payment
+    ? await stripe.paymentIntents.retrieve(saved.stripe_payment)
+    : await stripe.paymentIntents.create({
+      amount: order.total, currency: 'usd', automatic_payment_methods: { enabled: true },
+      description: `${festiveClass.title} · November 21, 2026 · ${order.payload.painters.length} painters`,
+      receipt_email: order.payload.email,
+      metadata: { scope: 'margaret_art_class', payment_flow: 'elements', registration_id: order.id },
+    }, { idempotencyKey: `artbyme-festive-elements:${order.id}` })
+  if (!intent.client_secret || intent.livemode !== (order.mode === 'live') || intent.amount !== order.total || intent.currency !== 'usd' || intent.metadata.registration_id !== order.id || intent.status === 'canceled') throw new Error('Payment unavailable')
+  if (!saved.stripe_payment) {
+    // Server-only provider binding after the capability RPC validates this exact group.
+    const { error: linked } = await db.rpc('festive_link_intent', { p_id: order.id, p_intent: intent.id, p_amount: intent.amount, p_mode: order.mode })
+    if (linked) throw new Error('Payment could not be linked')
+  }
+  return { clientSecret: intent.client_secret, mode: order.mode, amountCents: order.total }
 }

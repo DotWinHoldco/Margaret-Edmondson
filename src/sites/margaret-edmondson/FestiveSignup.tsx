@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { festivePaintings, getFestiveOffer } from './festive-class'
+import { FestivePayment, type FestivePaymentDetails } from './FestivePayment'
 
 type Painter = { key: number; name: string; painting: string }
 /** One buyer, any number of painters, one independently selected canvas per painter. */
@@ -15,6 +16,7 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
   const [count, setCount] = useState('1')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [payment, setPayment] = useState<FestivePaymentDetails | null>(null)
   const nextKey = useRef(1)
   const retry = useRef<{ fingerprint: string; id: string; token: string } | null>(null)
 
@@ -54,21 +56,23 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: retry.current.id, token: retry.current.token, payload, expectedPrice: offer.priceCents }),
       })
-      const result = await response.json() as { url?: string; confirmation?: string; error?: string; priceChanged?: boolean }
+      const result = await response.json() as Partial<FestivePaymentDetails> & { confirmation?: string; error?: string; priceChanged?: boolean }
       if (result.confirmation) { const destination = new URL(result.confirmation); if (destination.origin === window.location.origin) { window.location.assign(destination.href); return } }
-      if (!response.ok || !result.url) {
+      if (!response.ok || !result.clientSecret || !result.mode || !result.amountCents) {
         if (result.priceChanged) setOffer(getFestiveOffer())
         throw new Error(result.error || 'We could not start payment. Your choices are still here; please try again.')
       }
-      const checkout = new URL(result.url)
-      if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Payment is temporarily unavailable. Please try again.')
-      window.location.assign(checkout.href)
+      setPayment({ clientSecret: result.clientSecret, mode: result.mode, amountCents: result.amountCents, id: retry.current.id, token: retry.current.token })
     } catch (failure: unknown) {
       setError(failure instanceof Error ? failure.message : 'We could not start payment. Please try again.')
       setBusy(false)
     }
   }
 
+  if (payment) return <div>
+    <ul>{painters.map((painter, index) => <li key={painter.key}>{painter.name || `Painter ${index + 1}`}: {festivePaintings.find(item => item.id === painter.painting)?.name}</li>)}</ul>
+    <FestivePayment payment={payment} />
+  </div>
   if (offer.ended) return <p className="me-closed">Registration has closed for this market.</p>
   const total = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(painters.length * offer.priceCents / 100)
   return (
@@ -111,8 +115,8 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
       {paymentMode === 'test' && <p className="me-payment-notice">Test checkout · No real payments. This does not reserve your class.</p>}
       {!paymentMode && <p className="me-payment-notice">Payment setup is in progress. You can choose your projects here; registration will open when checkout is connected.</p>}
       {error && <p className="me-form-error" role="alert">{error}</p>}
-      <button className="me-button me-pay-button" disabled={busy || !paymentMode} type="submit">{busy ? 'Opening secure payment…' : paymentMode ? `Continue to ${paymentMode === 'test' ? 'test ' : ''}payment · ${total}` : 'Checkout being connected'}</button>
-      <p className="me-small-note">Your registration is confirmed after payment. Card details are entered securely on Stripe.</p>
+      <button className="me-button me-pay-button" disabled={busy || !paymentMode} type="submit">{busy ? 'Loading secure payment…' : paymentMode ? `Continue to ${paymentMode === 'test' ? 'test ' : ''}payment · ${total}` : 'Checkout being connected'}</button>
+      <p className="me-small-note">Your registration is confirmed after payment. Enter your card details securely here on our website.</p>
     </form>
   )
 }

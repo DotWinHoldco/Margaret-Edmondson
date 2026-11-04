@@ -12,4 +12,8 @@ Verified before staging: 1,107 tests passed, 7 intentionally skipped; 18 focused
 
 The owner confirmed Saturday November 21, 2026, 9 AM–12:30 PM Central at 103 Freese Drive, Sanger. Unlimited attendance, $20 before November 21 and $25 on the day.
 
-Release uses one staged production build running npm run build-check, then promotes that same build after verification. Routine branch previews disabled. The complete test folder is included in the private build inputs for the release check. Large generated build output remains on Vercel; dependencies are reused locally.
+Release builds use production settings and npm run build-check; each verified build is promoted without rebuilding. Routine branch previews disabled. The initial runner failure was reproduced as React tests inheriting NODE_ENV=production; the runner now sets test mode for tests only. The corrected build reported GREEN. The complete test folder is included in the private build inputs for the release check. Large generated build output remains on Vercel; dependencies are reused locally.
+
+Owner correction: all new class payments use the existing on-site Payment Element, with its exact appearance and mode selection extracted to src/lib/stripe/elements.ts and shared with the shop. No hosted checkout is created. PaymentIntent evidence is bound before returning the client secret and settled through the existing signed webhook. Migration 20261104195446_festive_payment_elements adds the service-only binding and settlement functions. Legacy callbacks remain accepted for the single paid sandbox checkout made before this correction.
+
+Requested confirmation-preview email sent only to Skylar; Resend reports delivered (2026-11-04). No live payment or customer/artist booking email has been sent.

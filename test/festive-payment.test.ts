@@ -53,3 +53,35 @@ describe('festive signed payment dispatch', () => {
     expect(retrieve).not.toHaveBeenCalled()
   })
 })
+
+const intent = { id: 'pi_elements_fixture', metadata: { scope: 'margaret_art_class', payment_flow: 'elements', registration_id: id }, amount: 4000, amount_received: 4000, currency: 'usd', status: 'succeeded', livemode: true }
+const elementsEvent = { id: 'evt_elements_fixture', type: 'payment_intent.succeeded', livemode: true, data: { object: intent } } as unknown as Stripe.Event
+const intentStripe = { paymentIntents: { retrieve } } as unknown as Stripe
+
+describe('festive Payment Elements settlement', () => {
+  beforeEach(() => retrieve.mockResolvedValue(intent))
+  it('settles the linked intent and retries both confirmations on duplicate events', async () => {
+    await handleFestivePayment(db, intentStripe, elementsEvent)
+    await handleFestivePayment(db, intentStripe, elementsEvent)
+    expect(rpc).toHaveBeenCalledWith('festive_payment_intent', expect.objectContaining({ p_intent: intent.id, p_amount: 4000, p_status: 'paid' }))
+    expect(mail).toHaveBeenCalledTimes(2)
+  })
+  it('keeps processing or declined cards unpaid and eligible to retry', async () => {
+    retrieve.mockResolvedValue({ ...intent, status: 'requires_payment_method', amount_received: 0 })
+    await handleFestivePayment(db, intentStripe, { ...elementsEvent, type: 'payment_intent.payment_failed' })
+    expect(rpc).toHaveBeenCalledWith('festive_payment_intent', expect.objectContaining({ p_status: 'pending' }))
+    expect(mail).not.toHaveBeenCalled()
+  })
+  it('rejects partial amounts or wrong modes before recording a payment', async () => {
+    retrieve.mockResolvedValueOnce({ ...intent, amount_received: 2000 })
+    await expect(handleFestivePayment(db, intentStripe, elementsEvent)).rejects.toThrow()
+    retrieve.mockResolvedValueOnce({ ...intent, livemode: false })
+    await expect(handleFestivePayment(db, intentStripe, elementsEvent)).rejects.toThrow()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+  it('does not send real emails for sandbox intents', async () => {
+    retrieve.mockResolvedValue({ ...intent, livemode: false })
+    await handleFestivePayment(db, intentStripe, { ...elementsEvent, livemode: false })
+    expect(mail).not.toHaveBeenCalled()
+  })
+})

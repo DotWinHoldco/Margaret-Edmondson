@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { festiveClass, festivePaintings } from './festive-class'
+import { FestivePayment, type FestivePaymentDetails } from './FestivePayment'
 import type { ArtRegistration } from '@/lib/classes/festive/model'
 
 /** Display only database-confirmed payment; returning from Stripe is not evidence of payment. */
@@ -11,8 +12,10 @@ export function FestiveConfirmation() {
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [payment, setPayment] = useState<FestivePaymentDetails | null>(null)
   useEffect(() => {
     const [id, token] = window.location.hash.slice(1).split(':')
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | undefined
     let attempts = 0
@@ -37,12 +40,10 @@ export function FestiveConfirmation() {
     setBusy(true); setError('')
     try {
       const response = await fetch('/api/classes/festive/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: order.id, token, payload: order.payload, expectedPrice: order.unit_price }) })
-      const data = await response.json() as { url?: string; confirmation?: string; error?: string }
+      const data = await response.json() as Partial<FestivePaymentDetails> & { confirmation?: string; error?: string }
       if (data.confirmation) { setRefresh(value => value + 1); return }
-      if (!response.ok || !data.url) throw new Error('Unable to resume')
-      const url = new URL(data.url)
-      if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Invalid checkout')
-      window.location.assign(url.href)
+      if (!response.ok || !data.clientSecret || !data.mode || !data.amountCents) throw new Error('Unable to resume')
+      setPayment({ clientSecret: data.clientSecret, mode: data.mode, amountCents: data.amountCents, id: order.id, token })
     } catch { setError('This checkout could not be reopened. Refresh the status before starting another signup to avoid paying twice.') }
     finally { setBusy(false) }
   }
@@ -60,8 +61,9 @@ export function FestiveConfirmation() {
       <p>Location: <strong>{festiveClass.marketAddress}</strong></p>
       <p>All materials and a pre-drawn 8×10 canvas for every painter are included.</p>
       <p className="me-small-note">Registration reference: {order.id}<br />Save this private page for your records.</p>
-      {order.status === 'pending' && <button className="me-button" onClick={resume} disabled={busy}>{busy ? 'Opening payment…' : 'Return to unfinished checkout'}</button>}
+      {order.status === 'pending' && !payment && <button className="me-button" onClick={resume} disabled={busy}>{busy ? 'Opening payment…' : 'Return to unfinished checkout'}</button>}
     </>}
+    {payment && order?.status !== 'paid' && <FestivePayment payment={payment} />}
     {order?.status !== 'paid' && <p><button className="me-add-painter" onClick={() => setRefresh(value => value + 1)}>Refresh payment status</button></p>}
     <p className="me-back-link"><Link href={festiveClass.path}>← Back to class details</Link></p>
   </div>

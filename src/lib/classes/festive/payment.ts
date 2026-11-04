@@ -6,9 +6,28 @@ import { z } from 'zod'
 import { sendFestiveEmails } from './email'
 
 const checkoutEvents = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed', 'checkout.session.expired'])
+const intentEvents = new Set(['payment_intent.succeeded', 'payment_intent.payment_failed', 'payment_intent.canceled', 'payment_intent.processing'])
 
 /** Re-read provider state, validate the frozen order, then persist and deliver confirmations. */
 export async function handleFestivePayment(db: SupabaseClient, stripe: Stripe, event: Stripe.Event): Promise<boolean> {
+  if (intentEvents.has(event.type)) {
+    const delivered = event.data.object as Stripe.PaymentIntent
+    if (delivered.metadata?.scope !== 'margaret_art_class' || delivered.metadata.payment_flow !== 'elements') return false
+    if (event.account) throw new Error('Unexpected connected merchant')
+    const intent = await stripe.paymentIntents.retrieve(delivered.id)
+    const id = z.string().uuid().parse(intent.metadata.registration_id)
+    if (intent.metadata.scope !== 'margaret_art_class' || intent.metadata.payment_flow !== 'elements' || intent.livemode !== event.livemode) throw new Error('Payment scope mismatch')
+    const status = intent.status === 'succeeded' ? 'paid' : intent.status === 'canceled' ? 'expired' : 'pending'
+    if (status === 'paid' && intent.amount_received !== intent.amount) throw new Error('Payment amount mismatch')
+    const { error } = await db.rpc('festive_payment_intent', {
+      p_id: id, p_event: event.id, p_intent: intent.id, p_amount: intent.amount,
+      p_currency: intent.currency, p_mode: intent.livemode ? 'live' : 'test', p_status: status,
+    })
+    if (error) throw new Error('Class payment could not be recorded')
+    if (status === 'paid' && event.livemode) await sendFestiveEmails(db, id)
+    return true
+  }
+  // Accept signed callbacks from the single sandbox checkout made before Elements replaced it.
   if (!checkoutEvents.has(event.type)) return false
   const delivered = event.data.object as Stripe.Checkout.Session
   if (delivered.metadata?.scope !== 'margaret_art_class') return false
