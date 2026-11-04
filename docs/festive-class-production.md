@@ -17,3 +17,11 @@ Release builds use production settings and npm run build-check; each verified bu
 Owner correction: all new class payments use the existing on-site Payment Element, with its exact appearance and mode selection extracted to src/lib/stripe/elements.ts and shared with the shop. No hosted checkout is created. PaymentIntent evidence is bound before returning the client secret and settled through the existing signed webhook. Migration 20261104195446_festive_payment_elements adds the service-only binding and settlement functions. Legacy callbacks remain accepted for the single paid sandbox checkout made before this correction.
 
 Requested confirmation-preview email sent only to Skylar; Resend reports delivered (2026-11-04). No live payment or customer/artist booking email has been sent.
+
+Production release: a0e62fa on DotWin-cx/margaret-festive-production, deployment dpl_8eCNTXcg6sM7fFdr1pX2zXNucrwW, promoted to Artbyme.studio. Full remote build-check reports GREEN; 1,112 tests pass, seven skipped. Its output is retained in docs/build-checks/festive-elements-production.txt. No merge into main was made.
+
+The Elements test group 62cfbc71-988a-4e0f-b38f-a0c2ccf7b6d6 created PaymentIntent pi_3UYAMMLHA3pBKXF62X2DdR6T for $40 (Snowman + Santa). Stripe sandbox confirmation succeeded, and the existing signed webhook marked the group paid with zero live email records. Because the automated browser held the secure iframe at about:blank, confirmation used the provider's test API; a normal-browser check of the actual card fields is still pending. Do not claim a completed browser payment test.
+
+Live Stripe was enabled and its existing admin API-key verification returned “Stripe key valid (live mode).” One unpaid live test intent was opened to verify the live pairing; no live card or charge was submitted. Visitor gate is disabled. Anonymous HTTP checks: homepage, /classes and festive detail return 200 without the password gate; the class offers live checkout; /admin/classes/festive redirects to login. Admin authentication remains enforced.
+
+Both original roots retain their original HEAD and exact status hashes (DOTWIN 80 entries, Margaret-Edmondson 206). Source worktrees and docs remain; no dependency install or local build output was created. A reproducible 3 MB TypeScript incremental cache is retained.
