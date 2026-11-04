@@ -14,7 +14,7 @@ interface Product {
   product_images: Array<{ url: string; alt_text: string | null; is_primary: boolean }>
 }
 
-const FILTERS = ['All', 'Oil', 'Collage', 'Mixed Media', 'Watercolor']
+const FILTERS = ['All', 'Acrylic', 'Collage', 'Mixed Media', 'Watercolor']
 
 export default function GalleryGrid({ products }: { products: Product[] }) {
   const [filter, setFilter] = useState('All')
