@@ -68,11 +68,20 @@ describe('acquireProviderSlot against the shared counter', () => {
     const { acquireProviderSlot } = await freshBudget()
     rpcMock.mockResolvedValueOnce(deny(50)).mockResolvedValueOnce(allow())
 
-    const slot = await acquireProviderSlot({ maxWaitMs: 5_000 })
+    vi.useFakeTimers()
+    try {
+      const pending = acquireProviderSlot({ maxWaitMs: 5_000 })
+      await vi.advanceTimersByTimeAsync(49)
+      expect(rpcMock).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(1)
+      const slot = await pending
 
-    expect(slot.waitedMs).toBeGreaterThanOrEqual(50)
-    expect(slot.degraded).toBe(false)
-    expect(rpcMock).toHaveBeenCalledTimes(2)
+      expect(slot.waitedMs).toBe(50)
+      expect(slot.degraded).toBe(false)
+      expect(rpcMock).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('throws the typed budget error when waiting would run past maxWaitMs', async () => {
