@@ -83,3 +83,11 @@ each case. The disposable database was stopped and removed. This manual concurre
 harness supplements the normal PGlite tests; it requires local PostgreSQL binaries.
 No new 42702 runtime log appeared after the original repair through 02:51 UTC. No website rebuild or promotion is needed
 for these tests or the shared database-only repair.
+
+The shared DOTWIN repair candidate `06fcfab4` completed full CI successfully:
+[run 41958178833](https://github.com/DotWinHoldco/DOTWIN/actions/runs/41958178833).
+Its seven focused checkout/database files pass 51 tests. The shared audit records
+the two additional repaired functions and unchanged service-only access. All
+production fixtures were confirmed absent afterward. No application deployment
+or merge was performed for this follow-up audit, and no substantial generated
+local storage is retained.
