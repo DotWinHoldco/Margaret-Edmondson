@@ -1,7 +1,8 @@
 import { requireCron } from '@/lib/auth/require-cron'
 import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
-import { handleCheckoutCompleted } from '@/app/api/webhooks/stripe/route'
+import { handleCheckoutCompleted, handleElementsPaymentSucceeded } from '@/app/api/webhooks/stripe/route'
+import { reconcileEmbeddedOrders } from '@/lib/orders/reconcile-embedded'
 import type Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
 
   const supabase = await createServiceClient()
   const stripe = await getStripe()
+  const started = Date.now()
   const nowSec = Math.floor(Date.now() / 1000)
   const graceCutoff = nowSec - GRACE_MIN * 60
   const lookbackStart = nowSec - LOOKBACK_HOURS * 3600
@@ -35,6 +37,16 @@ export async function GET(request: Request) {
   let reconciled = 0
   const errors: string[] = []
 
+  // The storefront uses Payment Elements, which never creates a Checkout Session.
+  // Recover its signed success events first using fresh provider payment details.
+  let embedded
+  try {
+    embedded = await reconcileEmbeddedOrders(supabase, stripe, handleElementsPaymentSucceeded, nowSec)
+  } catch (error) {
+    console.error('reconcile-orders: embedded event lookup failed:', error)
+    return Response.json({ error: 'Payment recovery is temporarily unavailable.' }, { status: 503 })
+  }
+
   try {
     // Newest first; Stripe paginates. We only consider sessions older than the
     // grace window so we never race a webhook that is about to arrive.
@@ -42,7 +54,7 @@ export async function GET(request: Request) {
       created: { gte: lookbackStart, lte: graceCutoff },
       limit: 100,
     })) {
-      if (checked >= MAX_SESSIONS) break
+      if (checked >= MAX_SESSIONS || Date.now() - started >= 50_000) break
       checked++
 
       // Only PAID, completed sessions can have a missing record worth creating.
@@ -122,5 +134,7 @@ export async function GET(request: Request) {
     return Response.json({ error: 'list_failed', message: msg }, { status: 500 })
   }
 
-  return Response.json({ checked, reconciled, errors: errors.slice(0, 10) })
+  return Response.json({ checked, reconciled, errors: errors.slice(0, 10), embedded }, {
+    status: errors.length || embedded.errors.length ? 503 : 200,
+  })
 }

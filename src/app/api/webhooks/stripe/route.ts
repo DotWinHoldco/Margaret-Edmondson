@@ -2,7 +2,7 @@ import { handleFestivePayment } from '@/lib/classes/festive/payment'
 import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
 import { paidTotalMatches } from '@/lib/tax/config'
 import { paidShippingProblem } from '@/lib/checkout/paid-shipping'
-import { hasPurchaseSnapshot, snapshotOrderItem } from '@/lib/checkout/snapshot'
+import { hasPurchaseSnapshot, snapshotOrderItem, SNAPSHOT_VERSION_MIN } from '@/lib/checkout/snapshot'
 import type { ValidatedCheckoutItem } from '@/lib/checkout/validation'
 import { getStripeForMode, webhookSecretFor } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -1160,12 +1160,14 @@ export async function handleCheckoutCompleted(
 // from the breakdown /api/checkout/intent stored in PI metadata; shipping
 // address comes from pi.shipping (collected by <AddressElement/>); items come
 // from carts.items via metadata.cart_id exactly like the hosted flow (B-5).
-async function handleElementsPaymentSucceeded(
+/** Settle an authoritative successful embedded payment; shared by webhooks and cron recovery. */
+export async function handleElementsPaymentSucceeded(
   supabase: SupabaseClient,
   stripe: Stripe,
   event: Stripe.Event,
-) {
+): Promise<boolean> {
   const pi = event.data.object as Stripe.PaymentIntent
+  if (pi.status !== 'succeeded' || pi.metadata?.elements_checkout !== '1') return false
   const md = (pi.metadata || {}) as Record<string, string>
 
   // Resume-safe idempotency: an order only short-circuits as fully processed
@@ -1184,7 +1186,7 @@ async function handleElementsPaymentSucceeded(
   // id); fall back to the mutable carts.items only for orders placed before
   // snapshots existed. B-5: items never come from Stripe metadata.
   let cartItems: OiCartItem[] =
-    (await loadSnapshotItems(supabase, pi.id, md.snapshot_version === '2')) ?? []
+    (await loadSnapshotItems(supabase, pi.id, Number(md.snapshot_version) >= SNAPSHOT_VERSION_MIN)) ?? []
   if (cartItems.length === 0 && md.cart_id) {
     const { data: cart } = await supabase
       .from('carts')
@@ -1199,10 +1201,10 @@ async function handleElementsPaymentSucceeded(
   }
 
   const existingItems = (existingOrder?.order_items as { id: string }[] | undefined) ?? []
-  // Distinct (product, variant) pairs each map to exactly one order_items row
-  // (the upsert key), so this is how many rows a complete order should hold.
+  // The upsert key includes configuration, so two configured prints of the same
+  // variant must both be persisted before recovery can consider the order complete.
   const expectedItemCount = new Set(
-    cartItems.map((i) => `${i.productId}:${i.variantId || ''}`),
+    cartItems.map((i) => `${i.productId}:${i.variantId || ''}:${i.purchaseSpec?.line_hash || ''}`),
   ).size
   // Short-circuit ONLY when every expected row is already persisted. With no
   // readable cart (expectedItemCount 0) fall back to the prior "has any items"
@@ -1219,7 +1221,7 @@ async function handleElementsPaymentSucceeded(
   // is safe and nothing is duplicated.
   const sideEffectsDone = existingOrder?.side_effects_completed_at != null
   if (existingOrder && itemsComplete && sideEffectsDone) {
-    return // already fully processed (items + side effects)
+    return false // already fully processed (items + side effects)
   }
 
   const subtotalCents = Number(md.subtotal_cents) || 0
@@ -1259,6 +1261,7 @@ async function handleElementsPaymentSucceeded(
       .from('orders')
       .insert({
         stripe_payment_intent_id: pi.id,
+        created_at: new Date(event.created * 1000).toISOString(),
         profile_id: await ensureCustomerAccount(supabase, buyerEmail),
         email: buyerEmail,
         status: 'processing',
@@ -1284,7 +1287,7 @@ async function handleElementsPaymentSucceeded(
       // delivery own item creation; we ack. Any other error → retry (throw).
       if ((createErr as { code?: string }).code === '23505') {
         await logEvent(supabase, event, { kind: 'order', note: 'concurrent_duplicate' })
-        return
+        return false
       }
       throw new Error(`order insert failed: ${createErr.message}`)
     }
@@ -1345,7 +1348,7 @@ async function handleElementsPaymentSucceeded(
       buyerEmail,
       oversoldTitles,
     })
-    return
+    return true
   }
 
   // Mark cart converted.
@@ -1540,4 +1543,5 @@ async function handleElementsPaymentSucceeded(
   }
 
   await logEvent(supabase, event, { kind: 'order', order_id: orderId })
+  return true
 }
