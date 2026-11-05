@@ -2,7 +2,7 @@
 // Creates and removes only its own disposable cluster. Never reads app credentials.
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -26,6 +26,8 @@ function client(application) {
     child.on('error', reject)
     child.on('close', code => code === 0 ? resolve(output.trim()) : reject(new Error(errors)))
   })
+  // Observe early failures while waiting for the lock marker so cleanup still runs.
+  void done.catch(() => {})
   return { child, done, output: () => output }
 }
 const pause = () => new Promise(resolve => setTimeout(resolve, 10))
@@ -60,6 +62,16 @@ try {
     'supabase/migrations/20260806080437_original_holds_and_funnel_attribution.sql',
     'supabase/migrations/20261105012156_fix_original_hold_conflict_target.sql',
   ]) run('psql', [...connection, '-f', file])
+  // Exercise later replacements as well, so this race test stays useful after new migrations.
+  for (const name of ['hold_originals', 'book_class_session']) {
+    let latest = ''
+    for (const file of readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort()) {
+      const pattern = new RegExp(`create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.${name}\\s*\\([^]*?\\bas\\s+(\\$[a-z_]*\\$)[^]*?\\1\\s*;`, 'gi')
+      for (const match of readFileSync(`supabase/migrations/${file}`, 'utf8').matchAll(pattern)) latest = match[0]
+    }
+    assert.ok(latest, `Missing checkout function: ${name}`)
+    sql(latest.replace(/^create\s+function/i, 'create or replace function'))
+  }
   const product = randomUUID(), variant = randomUUID(), session = randomUUID()
   sql(`insert into products(id) values('${product}'); insert into product_variants(id,product_id,variant_type,inventory_count) values('${variant}','${product}','original',1); insert into class_sessions values('${session}',1)`)
   await race(`select ok from hold_originals('pi_race_first',array['${variant}'::uuid],35)`, `select ok from hold_originals('pi_race_second',array['${variant}'::uuid],35)`, 't', 'f')
