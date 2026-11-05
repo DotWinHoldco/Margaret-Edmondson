@@ -1,6 +1,6 @@
 -- Authored by DotWin. Actual-schema assertions; every row/settings change rolls back.
 begin;
-update public.festive_classes set accepting=true where slug='festive-paint-at-the-market';
+update public.festive_classes set accepting=true,early_ends_at=now()+interval '1 day',ends_at=now()+interval '2 days' where slug='festive-paint-at-the-market';
 update public.site_settings set stripe_test_mode=true where site_settings.id=true;
 do $$
 declare v_id uuid:=gen_random_uuid(); tok text:=repeat('a',64); x jsonb; rejected boolean;
