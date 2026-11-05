@@ -9,7 +9,11 @@ and PaymentIntent flow; no artwork hold is involved in that class transaction.
 
 The wider audit inspected all 14 Artbyme and 210 shared DOTWIN PL/pgSQL functions
 containing an upsert, comparing input/output/local variable names with conflict
-targets. It found one additional shared proposal-acceptance bug. That failure
+targets. It found an additional shared proposal-acceptance bug. A wider review of
+output parameters also found two ambiguous lookups in the retained
+`create_product_checkout_order_v2` compatibility function; migration
+`20261105025026_billing_checkout_v2_ambiguity_fix` repairs them. Its live-schema
+checks cover quantity, retries, identity and free/paid trials. That failure
 was reproduced with disposable fixtures, fixed in DOTWIN migration
 `20261105024108_proposals_checkout_ambiguity_fix`, and verified against the
 production schema inside a rolled-back transaction. No actual proposal was
@@ -63,6 +67,19 @@ Dependencies are reused; PostgreSQL fixtures live in memory. Full checks run in
 CI to avoid adding a local Next.js build while internal free space is under 20 GiB.
 Retain source/docs; retire only this task's inactive generated test/build output.
 
-Focused database/checkout tests and typecheck pass. Full CI result is recorded
-after the release candidate completes. No website rebuild or promotion is needed
+Focused database/checkout tests and typecheck pass. The full `npm run build-check`
+runner printed **GREEN** for source `b1d552e` in
+[GitHub run 41957314435](https://github.com/DotWinHoldco/Margaret-Edmondson/actions/runs/41957314435).
+The separate dependency audit failed: one critical Next.js advisory, high findings
+for Happy DOM and Zod, and 11 moderate findings. These pre-existing dependencies
+were not upgraded or waived in this checkout repair. The full CI workflow is
+therefore **not green**, despite the passing build-check. See the linked run for
+the exact advisory report; a separately verified dependency release remains due.
+
+`node scripts/test-checkout-concurrency.mjs` also passed with native PostgreSQL 17:
+two connections contested the same original and then the last class seat. The
+second connection was observed waiting on the row lock; exactly one buyer won in
+each case. The disposable database was stopped and removed. This manual concurrency
+harness supplements the normal PGlite tests; it requires local PostgreSQL binaries.
+No new 42702 runtime log appeared after the original repair through 02:51 UTC. No website rebuild or promotion is needed
 for these tests or the shared database-only repair.
