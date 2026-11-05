@@ -65,7 +65,7 @@ export default async function AdminOrderDetailPage(
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('*, order_items(*, products(id, title, slug))')
+    .select('id,order_number,created_at,status,email,shipping_address,subtotal,shipping_cost,discount,promo_code,tax,tax_included,total,stripe_payment_intent_id,order_items(id,quantity,unit_price,purchase_spec,fulfillment_type,fulfillment_status,tracking_number,tracking_url,carrier,shipped_at,products(id,title,slug))')
     .eq('id', id)
     .single()
 
@@ -126,7 +126,7 @@ export default async function AdminOrderDetailPage(
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-3xl font-semibold text-charcoal">
-              Order #{order.id.slice(0, 8).toUpperCase()}
+              Order #{order.order_number ?? order.id.slice(0, 8).toUpperCase()}
             </h1>
             <p className="mt-1 font-body text-sm text-charcoal/60">
               Placed on {formatDate(order.created_at)}
@@ -141,6 +141,11 @@ export default async function AdminOrderDetailPage(
           </span>
         </div>
 
+        {items.some((item: Record<string, unknown>) => asPurchaseSpec(item.purchase_spec)?.kind === 'original') && (
+          <div className="mb-6 rounded-lg border border-teal/30 bg-teal/10 p-4 font-body text-sm text-charcoal">
+            <strong>Original artwork ordered.</strong> Margaret needs to arrange delivery or shipping for the original items below.
+          </div>
+        )}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
           <div className="space-y-6 lg:col-span-2">
@@ -228,7 +233,7 @@ export default async function AdminOrderDetailPage(
                               </p>
                             )}
                             <p className="mt-0.5 font-body text-xs text-charcoal/50">
-                              {fulfillmentType === 'digital' ? 'Digital' : 'Physical'}
+                              {fulfillmentType === 'self_ship' ? 'Margaret fulfills this item' : fulfillmentType === 'lumaprints' ? 'Lumaprints prints and ships' : fulfillmentType === 'digital' ? 'Digital delivery' : 'Provider fulfillment'}
                               {trackingNumber && (
                                 <span className="ml-2">
                                   Tracking: {trackingNumber}
@@ -274,6 +279,7 @@ export default async function AdminOrderDetailPage(
                   Shipping Address
                 </h2>
                 <div className="font-body text-sm leading-relaxed text-charcoal/80">
+                  {shippingAddress.name && <p className="font-medium">{shippingAddress.name}</p>}
                   {shippingAddress.line1 && <p>{shippingAddress.line1}</p>}
                   {shippingAddress.line2 && <p>{shippingAddress.line2}</p>}
                   <p>
@@ -309,6 +315,10 @@ export default async function AdminOrderDetailPage(
                     </dd>
                   </div>
                 )}
+                {order.discount > 0 && <div className="flex justify-between">
+                  <dt className="font-body text-sm text-charcoal/60">Discount{order.promo_code ? ` (${order.promo_code})` : ''}</dt>
+                  <dd className="font-body text-sm text-charcoal">−{formatCurrency(order.discount)}</dd>
+                </div>}
                 {order.tax != null && order.tax > 0 && (
                   <div className="flex justify-between">
                     <dt className="font-body text-sm text-charcoal/60">{order.tax_included ? 'Sales tax included' : 'Sales tax'}</dt>
