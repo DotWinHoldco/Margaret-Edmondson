@@ -38,8 +38,8 @@ describe('order history', () => {
   function historyQuery(error: unknown = null) {
     const data = [{ id: 'order-one', order_number: 1003, email: 'buyer@example.test', created_at: '2026-11-05',
       status: 'processing', total: 315, order_items: [{ id: 'item-one', ...original }] }]
-    const chain = { select: vi.fn(), order: vi.fn(), or: vi.fn(), eq: vi.fn(), then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve) }
-    for (const method of ['select', 'order', 'or', 'eq'] as const) chain[method].mockReturnValue(chain)
+    const chain = { select: vi.fn(), order: vi.fn(), or: vi.fn(), eq: vi.fn(), ilike: vi.fn(), then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve) }
+    for (const method of ['select', 'order', 'or', 'eq', 'ilike'] as const) chain[method].mockReturnValue(chain)
     query.mockReturnValue(chain)
     return chain
   }
@@ -60,6 +60,15 @@ describe('order history', () => {
     render(await OrdersPage({ searchParams: Promise.resolve({ mode: 'test' }) }))
     expect(chain.eq).toHaveBeenCalledWith('stripe_mode', 'test')
     expect(chain.or).not.toHaveBeenCalled()
+  })
+
+  it('filters a customer literally and preserves the customer when changing status or mode', async () => {
+    const chain = historyQuery()
+    render(await OrdersPage({ searchParams: Promise.resolve({ customer: 'A_%+B@example.test' }) }))
+    expect(chain.ilike).toHaveBeenCalledWith('email', String.raw`a\_\%+b@example.test`)
+    expect(screen.getByRole('link', { name: 'processing' }).getAttribute('href')).toContain('customer=a_%25%2Bb%40example.test')
+    expect(screen.getByRole('link', { name: 'Test orders' }).getAttribute('href')).toContain('customer=a_%25%2Bb%40example.test')
+    expect(screen.getByRole('link', { name: 'Show all customers' })).toHaveAttribute('href', '/admin/orders')
   })
 
   it('does not present a database failure as an empty history', async () => {

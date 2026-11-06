@@ -413,7 +413,7 @@ export default function PrintConfigurator({
       </div>
 
       {paperBorderIn(subcategory.medium) > 0 && (
-        <p className="mt-3 font-body text-xs text-charcoal/65">Paper prints include a white border of at least ¼ inch on all four sides, within the selected paper size. A mat covers part of this border.</p>
+        <p className="mt-3 font-body text-xs text-charcoal/65">Paper prints include a white border of at least ¼ inch on all four sides, within the selected paper size.{matIn > 0 ? ' The selected mat covers the white border, as shown in the preview.' : ''}</p>
       )}
       <p className="mt-2 font-body text-sm text-teal">{shippingNote(variant)}</p>
 

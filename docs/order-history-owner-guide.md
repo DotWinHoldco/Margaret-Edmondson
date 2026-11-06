@@ -7,6 +7,20 @@ whether it is an original or print, its saved options, quantity, fulfillment own
 order status and total paid. **Test orders** opens the separate test transaction view.
 **My studio queue** shows paid work assigned to the studio.
 
+Open **Customers** to see registered customers and guest buyers. Select **View orders**
+beside a customer to open their order history; status filters keep that customer selected.
+The paid orders total includes processing, shipped and delivered customer orders.
+Test payments, pending payments and refunded orders do not contribute to that total.
+Administrators and artists can read customer profiles; customers see only their own.
+
+Paper print previews show the quarter-inch white border when no mat is selected.
+With a mat selected, the mat covers that border. The underlying print file and paper
+dimensions remain the same.
+
+Facebook and Instagram profile links appear by name in the website footer. Manage
+their destinations in **Settings → Social links**. These are website links; publishing
+posts from the portal is a separate connection.
+
 Open an order number to see the complete item specifications, customer email,
 delivery address, discount, total and studio work ticket. Use the saved purchase
 details when fulfilling: editing the catalog later must not change what the buyer ordered.

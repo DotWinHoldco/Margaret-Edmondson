@@ -112,6 +112,21 @@ describe('FramePreview', () => {
     expect(screen.getByAltText('Drayton Hall')).toHaveAttribute('src', 'https://example.test/art.jpg')
   })
 
+  it('covers the quarter-inch paper border with the mat without changing the frame size or stretching the artwork', () => {
+    renderPreview({ paperBorderIn: 0.25, matColor: '#111111' })
+    const layout = previewLayout({ printW: 8, printH: 10, matIn: 2, faceIn: 0.75, containerPx: 400 })
+    expect(Number.parseFloat(screen.getByTestId('frame-preview-art').style.inset)).toBeCloseTo((0.75 + 2 + 0.25) * layout.scale)
+    expect(screen.getByTestId('frame-preview-frame')).toHaveStyle({ width: `${layout.outer.widthPx}px` })
+    expect(screen.getByAltText('Drayton Hall').style.padding).toBe('')
+    expect(screen.getByAltText('Drayton Hall')).toHaveStyle({ objectFit: 'contain' })
+  })
+
+  it('keeps the white paper border visible when no mat is selected', () => {
+    renderPreview({ paperBorderIn: 0.25, matIn: 0 })
+    const layout = previewLayout({ printW: 8, printH: 10, matIn: 0, faceIn: 0.75, containerPx: 400 })
+    expect(screen.getByAltText('Drayton Hall')).toHaveStyle({ padding: `${0.25 * layout.scale}px`, backgroundColor: '#ffffff' })
+  })
+
   it('hints a wrapped canvas edge only when there is no mat, and uses the solid colour when one was chosen', () => {
     const { rerender } = renderPreview({ matIn: 0, edgeHint: 'solid', solidHex: '#1a1a1a' })
     expect(screen.getByTestId('frame-preview-edge-right')).toHaveStyle({ backgroundColor: '#1a1a1a' })

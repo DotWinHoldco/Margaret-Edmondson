@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { customerDirectory, customerOrdersHref } from '@/lib/orders/customer-directory'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -6,6 +8,7 @@ export const metadata: Metadata = {
 }
 
 function formatDate(dateStr: string) {
+  if (!dateStr) return 'Unknown'
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -28,42 +31,16 @@ export default async function AdminCustomersPage(props: {
 
   const supabase = await createClient()
 
-  // Fetch profiles
-  let profileQuery = supabase
-    .from('profiles')
-    .select('id, full_name, email, phone, avatar_url, role, created_at, updated_at')
-    .order('created_at', { ascending: false })
-
-  if (search) {
-    profileQuery = profileQuery.or(
-      `full_name.ilike.%${search}%,email.ilike.%${search}%`
-    )
+  const [profilesResult, ordersResult] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, email, role, created_at'),
+    supabase.from('orders').select('email, total, status, stripe_mode, shipping_address, created_at')
+      .or('stripe_mode.is.null,stripe_mode.eq.live'),
+  ])
+  if (profilesResult.error || ordersResult.error) {
+    console.error('Failed to load customer directory:', profilesResult.error || ordersResult.error)
+    throw new Error('Customers and their orders could not be loaded. Please try again.')
   }
-
-  const { data: profiles, error: profilesError } = await profileQuery
-
-  if (profilesError) {
-    console.error('Failed to fetch profiles:', profilesError)
-  }
-
-  const profileList = profiles || []
-
-  // Fetch order counts and totals per email
-  const { data: orderStats } = await supabase
-    .from('orders')
-    .select('email, total')
-
-  const statsMap = new Map<string, { count: number; totalSpent: number }>()
-  if (orderStats) {
-    for (const order of orderStats) {
-      const email = order.email?.toLowerCase()
-      if (!email) continue
-      const existing = statsMap.get(email) || { count: 0, totalSpent: 0 }
-      existing.count += 1
-      existing.totalSpent += order.total || 0
-      statsMap.set(email, existing)
-    }
-  }
+  const customers = customerDirectory(profilesResult.data || [], ordersResult.data || [], search)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -72,7 +49,7 @@ export default async function AdminCustomersPage(props: {
         <div className="mb-8">
           <h1 className="font-display text-3xl font-semibold text-charcoal">Customers</h1>
           <p className="mt-1 font-body text-charcoal/60">
-            View and manage registered customers.
+            View customers, guest buyers, and their order history.
           </p>
         </div>
 
@@ -105,7 +82,7 @@ export default async function AdminCustomersPage(props: {
         </form>
 
         {/* Customers Table */}
-        <div className="overflow-hidden rounded-xl border border-charcoal/10 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-charcoal/10 bg-white shadow-sm">
           <table className="w-full">
             <thead>
               <tr className="border-b border-charcoal/10 bg-charcoal/[0.02]">
@@ -122,15 +99,15 @@ export default async function AdminCustomersPage(props: {
                   Orders
                 </th>
                 <th className="px-6 py-3 text-right font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-                  Total Spent
+                  Paid orders total
                 </th>
                 <th className="px-6 py-3 text-left font-body text-xs font-semibold uppercase tracking-wider text-charcoal/50">
-                  Joined
+                  Customer since
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-charcoal/5">
-              {profileList.length === 0 ? (
+              {customers.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -140,10 +117,8 @@ export default async function AdminCustomersPage(props: {
                   </td>
                 </tr>
               ) : (
-                profileList.map((profile) => {
-                  const email = (profile.email || '').toLowerCase()
-                  const stats = statsMap.get(email) || { count: 0, totalSpent: 0 }
-                  const role = (profile.role as string) || 'customer'
+                customers.map((customer) => {
+                  const role = customer.role
 
                   const roleColors: Record<string, string> = {
                     admin: 'bg-coral/15 text-coral',
@@ -153,16 +128,16 @@ export default async function AdminCustomersPage(props: {
 
                   return (
                     <tr
-                      key={profile.id}
+                      key={customer.id}
                       className="transition-colors hover:bg-charcoal/[0.02]"
                     >
                       <td className="px-6 py-4">
                         <p className="font-body text-sm font-medium text-charcoal">
-                          {profile.full_name || 'Unnamed'}
+                          {customer.name || 'Unnamed'}
                         </p>
                       </td>
                       <td className="px-6 py-4 font-body text-sm text-charcoal/80">
-                        {profile.email || 'N/A'}
+                        {customer.email || 'N/A'}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -174,13 +149,17 @@ export default async function AdminCustomersPage(props: {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right font-body text-sm text-charcoal/80">
-                        {stats.count}
+                        {customer.email && customer.orderCount > 0 ? (
+                          <Link href={customerOrdersHref(customer.email)} className="text-teal underline" aria-label={`View orders for ${customer.name || customer.email}`}>
+                            {customer.orderCount} — View orders
+                          </Link>
+                        ) : customer.orderCount}
                       </td>
                       <td className="px-6 py-4 text-right font-body text-sm font-medium text-charcoal">
-                        {formatCurrency(stats.totalSpent)}
+                        {formatCurrency(customer.paidTotal)}
                       </td>
                       <td className="px-6 py-4 font-body text-sm text-charcoal/60">
-                        {formatDate(profile.created_at)}
+                        {formatDate(customer.since)}
                       </td>
                     </tr>
                   )
@@ -192,7 +171,7 @@ export default async function AdminCustomersPage(props: {
 
         {/* Summary */}
         <div className="mt-4 font-body text-sm text-charcoal/50">
-          {profileList.length} customer{profileList.length !== 1 ? 's' : ''}
+          {customers.length} customer{customers.length !== 1 ? 's' : ''}
           {search ? ` matching "${search}"` : ''}
         </div>
       </div>

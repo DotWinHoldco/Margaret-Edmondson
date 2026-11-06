@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-11-05T22:41:11.368Z",
+  "timestamp": "2026-11-06T15:08:13.669Z",
   "profile": "green",
   "mode": "adopt",
   "status": "green",
   "summary": {
     "passed": 14,
     "requiredTotal": 14,
-    "findings": 400
+    "findings": 402
   },
   "gates": [
     {
@@ -134,7 +134,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "107 migration file(s)"
+      "detail": "108 migration file(s)"
     },
     {
       "name": "domain-isolation",
@@ -197,7 +197,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "7 retired · 2 pending · 711 files scanned"
+      "detail": "7 retired · 2 pending · 712 files scanned"
     },
     {
       "name": "anchors",
@@ -326,7 +326,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/customers/page.tsx",
-          "line": 23,
+          "line": 26,
           "message": "exported function/component \"AdminCustomersPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -487,7 +487,7 @@
         {
           "severity": "medium",
           "file": "src/app/(admin)/admin/orders/page.tsx",
-          "line": 41,
+          "line": 42,
           "message": "exported function/component \"AdminOrdersPage\" has no intent doc comment",
           "rule": "doc-export"
         },
@@ -2411,6 +2411,20 @@
         },
         {
           "severity": "medium",
+          "file": "src/lib/orders/customer-directory.ts",
+          "line": 12,
+          "message": "exported function/component \"normalizeCustomerEmail\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
+          "file": "src/lib/orders/customer-directory.ts",
+          "line": 19,
+          "message": "exported function/component \"customerOrdersHref\" has no intent doc comment",
+          "rule": "doc-export"
+        },
+        {
+          "severity": "medium",
           "file": "src/lib/page-editor/revisions.ts",
           "line": 11,
           "message": "exported function/component \"recordRevision\" has no intent doc comment",
@@ -2970,7 +2984,7 @@
           "rule": "doc-export"
         }
       ],
-      "detail": "393 undocumented (0 blocking)"
+      "detail": "395 undocumented (0 blocking)"
     }
   ]
 }
