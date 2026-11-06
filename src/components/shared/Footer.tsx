@@ -81,7 +81,7 @@ export default async function Footer() {
                     rel="noopener"
                     aria-label={link.label}
                     title={link.label}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/80 hover:text-gold hover:border-gold focus-visible:outline-2 focus-visible:outline-gold transition-colors duration-200"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 px-3 font-body text-sm text-white/80 hover:text-gold hover:border-gold focus-visible:outline-2 focus-visible:outline-gold transition-colors duration-200"
                   >
                     <svg
                       className="h-5 w-5"
@@ -91,6 +91,7 @@ export default async function Footer() {
                     >
                       <path d={SOCIAL_ICON_PATHS[link.label]} />
                     </svg>
+                    <span>{link.label}</span>
                   </a>
                 ))}
               </div>

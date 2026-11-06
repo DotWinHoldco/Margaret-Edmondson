@@ -14,144 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      festive_classes: {
-        Row: {
-          accepting: boolean
-          early_ends_at: string
-          early_price: number
-          ends_at: string
-          regular_price: number
-          slug: string
-        }
-        Insert: {
-          accepting?: boolean
-          early_ends_at: string
-          early_price: number
-          ends_at: string
-          regular_price: number
-          slug: string
-        }
-        Update: {
-          accepting?: boolean
-          early_ends_at?: string
-          early_price?: number
-          ends_at?: string
-          regular_price?: number
-          slug?: string
-        }
-        Relationships: []
-      }
-      festive_email_deliveries: {
-        Row: {
-          kind: string
-          lease_until: string | null
-          provider_id: string | null
-          registration_id: string
-          sent_at: string | null
-        }
-        Insert: {
-          kind: string
-          lease_until?: string | null
-          provider_id?: string | null
-          registration_id: string
-          sent_at?: string | null
-        }
-        Update: {
-          kind?: string
-          lease_until?: string | null
-          provider_id?: string | null
-          registration_id?: string
-          sent_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "festive_email_deliveries_registration_id_fkey"
-            columns: ["registration_id"]
-            isOneToOne: false
-            referencedRelation: "festive_registrations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      festive_payment_events: {
-        Row: {
-          created_at: string
-          id: string
-          registration_id: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          registration_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          registration_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "festive_payment_events_registration_id_fkey"
-            columns: ["registration_id"]
-            isOneToOne: false
-            referencedRelation: "festive_registrations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      festive_registrations: {
-        Row: {
-          class_slug: string
-          created_at: string
-          id: string
-          mode: string
-          paid_at: string | null
-          payload: Json
-          status: string
-          stripe_payment: string | null
-          stripe_session: string | null
-          token_hash: string
-          total: number
-          unit_price: number
-        }
-        Insert: {
-          class_slug: string
-          created_at?: string
-          id: string
-          mode: string
-          paid_at?: string | null
-          payload: Json
-          status?: string
-          stripe_payment?: string | null
-          stripe_session?: string | null
-          token_hash: string
-          total: number
-          unit_price: number
-        }
-        Update: {
-          class_slug?: string
-          created_at?: string
-          id?: string
-          mode?: string
-          paid_at?: string | null
-          payload?: Json
-          status?: string
-          stripe_payment?: string | null
-          stripe_session?: string | null
-          token_hash?: string
-          total?: number
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "festive_registrations_class_slug_fkey"
-            columns: ["class_slug"]
-            isOneToOne: false
-            referencedRelation: "festive_classes"
-            referencedColumns: ["slug"]
-          },
-        ]
-      }
       addresses: {
         Row: {
           city: string
@@ -2003,6 +1865,144 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      festive_classes: {
+        Row: {
+          accepting: boolean
+          early_ends_at: string
+          early_price: number
+          ends_at: string
+          regular_price: number
+          slug: string
+        }
+        Insert: {
+          accepting?: boolean
+          early_ends_at: string
+          early_price: number
+          ends_at: string
+          regular_price: number
+          slug: string
+        }
+        Update: {
+          accepting?: boolean
+          early_ends_at?: string
+          early_price?: number
+          ends_at?: string
+          regular_price?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      festive_email_deliveries: {
+        Row: {
+          kind: string
+          lease_until: string | null
+          provider_id: string | null
+          registration_id: string
+          sent_at: string | null
+        }
+        Insert: {
+          kind: string
+          lease_until?: string | null
+          provider_id?: string | null
+          registration_id: string
+          sent_at?: string | null
+        }
+        Update: {
+          kind?: string
+          lease_until?: string | null
+          provider_id?: string | null
+          registration_id?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festive_email_deliveries_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "festive_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festive_payment_events: {
+        Row: {
+          created_at: string
+          id: string
+          registration_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          registration_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festive_payment_events_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "festive_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festive_registrations: {
+        Row: {
+          class_slug: string
+          created_at: string
+          id: string
+          mode: string
+          paid_at: string | null
+          payload: Json
+          status: string
+          stripe_payment: string | null
+          stripe_session: string | null
+          token_hash: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          class_slug: string
+          created_at?: string
+          id: string
+          mode: string
+          paid_at?: string | null
+          payload: Json
+          status?: string
+          stripe_payment?: string | null
+          stripe_session?: string | null
+          token_hash: string
+          total: number
+          unit_price: number
+        }
+        Update: {
+          class_slug?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          paid_at?: string | null
+          payload?: Json
+          status?: string
+          stripe_payment?: string | null
+          stripe_session?: string | null
+          token_hash?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festive_registrations_class_slug_fkey"
+            columns: ["class_slug"]
+            isOneToOne: false
+            referencedRelation: "festive_classes"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -4796,45 +4796,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      festive_claim_email: {
-        Args: { p_id: string; p_kind: string }
-        Returns: boolean
-      }
-      festive_class_public: { Args: never; Returns: Json }
-      festive_link_intent: {
-        Args: { p_id: string; p_intent: string; p_amount: number; p_mode: string }
-        Returns: undefined
-      }
-      festive_payment_intent: {
-        Args: { p_id: string; p_event: string; p_intent: string; p_amount: number; p_currency: string; p_mode: string; p_status: string }
-        Returns: undefined
-      }
-      festive_payment: {
-        Args: {
-          p_amount: number
-          p_currency: string
-          p_event: string
-          p_id: string
-          p_mode: string
-          p_payment: string
-          p_session: string
-          p_status: string
-        }
-        Returns: undefined
-      }
-      festive_registration_status: {
-        Args: { p_id: string; p_token: string }
-        Returns: Json
-      }
-      festive_reserve: {
-        Args: {
-          p_expected_price: number
-          p_id: string
-          p_payload: Json
-          p_token: string
-        }
-        Returns: Json
-      }
       apply_master_crop_variant_updates: {
         Args: { p_master_id: string; p_requested_at: string; p_updates: Json }
         Returns: boolean
@@ -4918,6 +4879,58 @@ export type Database = {
         Returns: string
       }
       deliver_studio_shipment: { Args: { p_id: string }; Returns: undefined }
+      festive_claim_email: {
+        Args: { p_id: string; p_kind: string }
+        Returns: boolean
+      }
+      festive_class_public: { Args: never; Returns: Json }
+      festive_link_intent: {
+        Args: {
+          p_amount: number
+          p_id: string
+          p_intent: string
+          p_mode: string
+        }
+        Returns: undefined
+      }
+      festive_payment: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_event: string
+          p_id: string
+          p_mode: string
+          p_payment: string
+          p_session: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      festive_payment_intent: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_event: string
+          p_id: string
+          p_intent: string
+          p_mode: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      festive_registration_status: {
+        Args: { p_id: string; p_token: string }
+        Returns: Json
+      }
+      festive_reserve: {
+        Args: {
+          p_expected_price: number
+          p_id: string
+          p_payload: Json
+          p_token: string
+        }
+        Returns: Json
+      }
       get_fulfillment_policy: { Args: never; Returns: Json }
       get_product_mat_preference: {
         Args: { p_product_id: string }

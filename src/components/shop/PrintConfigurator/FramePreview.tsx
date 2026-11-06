@@ -217,7 +217,10 @@ export default function FramePreview({
   const edgeColor = edgeHint === 'solid' ? solidHex || face : '#b3aaa0'
   const edgePx = Math.max(1, Math.min(7, depthPx * 0.13, floatingCanvas ? layout.gapPx * 0.55 : 7))
   const openingInset = layout.facePx + layout.gapPx
-  const artInset = openingInset + layout.matPx
+  // The mat overlaps the paper's white margin. Keep the artwork at its actual
+  // printed size while the mat extends over the quarter-inch border on each edge.
+  const coveredBorderPx = layout.matPx > 0 ? Math.max(0, paperBorderIn) * layout.scale : 0
+  const artInset = openingInset + layout.matPx + coveredBorderPx
 
   return (
     <div ref={host} className="w-full" data-testid="frame-preview" data-frame-label={frameLabel || undefined}>
@@ -234,7 +237,7 @@ export default function FramePreview({
           <div data-testid="frame-preview-art" className="absolute" style={{ inset: `${artInset}px`, background: '#f8f8f5', ...(matCoreColor && matIn > 0 ? { outline: `2px solid ${matCoreColor}` } : {}),
             boxShadow: layout.matPx > 0 ? '0 0 0 1px #d3d0c8, -1px -1px 0 2px #ffffffb8, 1px 1px 0 2px #8a867d75' : floatingCanvas ? '2px 3px 3px #0000009c' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt={imageAlt} className="h-full w-full object-contain" style={{ display: 'block', objectFit: 'contain', ...(paperBorderIn > 0 ? { backgroundColor: '#ffffff', padding: `${paperBorderIn * layout.scale}px` } : {}) }} />
+            <img src={imageUrl} alt={imageAlt} className="h-full w-full object-contain" style={{ display: 'block', objectFit: 'contain', ...(paperBorderIn > 0 && layout.matPx === 0 ? { backgroundColor: '#ffffff', padding: `${paperBorderIn * layout.scale}px` } : {}) }} />
             {framed && !floatingCanvas && <span aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ boxShadow: 'inset 1px 2px 3px #00000020' }} />}
             {edgeHint !== 'none' && layout.matPx === 0 && <>
               <span aria-hidden="true" data-testid="frame-preview-edge-right" className="absolute top-0 h-full" style={{ left: '100%', width: `${edgePx}px`, transform: 'skewY(35deg)', transformOrigin: 'left top',

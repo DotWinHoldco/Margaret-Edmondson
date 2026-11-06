@@ -2,6 +2,7 @@ import StudioQueue from '@/components/admin/StudioQueue'
 import OrderItemSummary from '@/components/admin/OrderItemSummary'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { customerEmailPattern, normalizeCustomerEmail } from '@/lib/orders/customer-directory'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -44,6 +45,8 @@ export default async function AdminOrdersPage(props: {
   const searchParams = await props.searchParams
   if (searchParams.view === 'studio') return <StudioQueue stage={typeof searchParams.stage === 'string' ? searchParams.stage : undefined} search={typeof searchParams.q === 'string' ? searchParams.q : undefined} page={Math.max(0,Math.floor(Number(searchParams.page)||0))} />
   const testOrders = searchParams.mode === 'test'
+  const customer = typeof searchParams.customer === 'string' ? normalizeCustomerEmail(searchParams.customer) : ''
+  const customerQuery = customer ? `&customer=${encodeURIComponent(customer)}` : ''
   const statusFilter = (typeof searchParams.status === 'string' ? searchParams.status : 'all') as
     | typeof FILTER_TABS[number]
 
@@ -55,6 +58,8 @@ export default async function AdminOrdersPage(props: {
     .order('created_at', { ascending: false })
 
   query = testOrders ? query.eq('stripe_mode', 'test') : query.or('stripe_mode.is.null,stripe_mode.eq.live')
+
+  if (customer) query = query.ilike('email', customerEmailPattern(customer))
 
   if (statusFilter !== 'all') {
     query = query.eq('status', statusFilter)
@@ -81,7 +86,10 @@ export default async function AdminOrdersPage(props: {
         </div>
 
         <Link href="/admin/orders?view=studio" className="mb-4 inline-block font-body text-sm text-teal underline">My studio queue</Link>
-        <Link href={testOrders ? '/admin/orders' : '/admin/orders?mode=test'} className="mb-4 ml-5 inline-block font-body text-sm text-teal underline">{testOrders ? 'Customer orders' : 'Test orders'}</Link>
+        <Link href={`/admin/orders?mode=${testOrders ? 'live' : 'test'}${customerQuery}`} className="mb-4 ml-5 inline-block font-body text-sm text-teal underline">{testOrders ? 'Customer orders' : 'Test orders'}</Link>
+        {customer && <p className="mb-4 font-body text-sm text-charcoal">
+          Orders for {customer}. <Link href="/admin/orders" className="text-teal underline">Show all customers</Link>
+        </p>}
         {/* Filter Tabs */}
         <div className="mb-6 flex gap-1 rounded-lg bg-charcoal/5 p-1">
           {FILTER_TABS.map((tab) => {
@@ -89,7 +97,7 @@ export default async function AdminOrdersPage(props: {
             return (
               <Link
                 key={tab}
-                href={`/admin/orders?view=all&status=${tab}${testOrders ? '&mode=test' : ''}`}
+                href={`/admin/orders?view=all&status=${tab}${testOrders ? '&mode=test' : ''}${customerQuery}`}
                 className={`rounded-md px-4 py-2 font-body text-sm font-medium capitalize transition-colors ${
                   isActive
                     ? 'bg-white text-charcoal shadow-sm'
