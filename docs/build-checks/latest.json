@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-06T15:08:13.669Z",
+  "timestamp": "2026-11-06T16:33:08.437Z",
   "profile": "green",
   "mode": "adopt",
   "status": "green",
@@ -134,7 +134,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "108 migration file(s)"
+      "detail": "110 migration file(s)"
     },
     {
       "name": "domain-isolation",
@@ -183,7 +183,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "1 declared transaction(s); 0 blocking"
+      "detail": "2 declared transaction(s); 0 blocking"
     },
     {
       "name": "no-duplicate-transactions",
@@ -197,7 +197,7 @@
       "required": true,
       "status": "pass",
       "findings": [],
-      "detail": "7 retired · 2 pending · 712 files scanned"
+      "detail": "7 retired · 2 pending · 714 files scanned"
     },
     {
       "name": "anchors",
@@ -2125,35 +2125,35 @@
         {
           "severity": "medium",
           "file": "src/lib/email/send.ts",
-          "line": 19,
+          "line": 22,
           "message": "exported function/component \"sendEmail\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/email/send.ts",
-          "line": 94,
+          "line": 98,
           "message": "exported function/component \"sendOrderConfirmation\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/email/shell.ts",
-          "line": 17,
+          "line": 18,
           "message": "exported function/component \"brandedShell\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/email/shell.ts",
-          "line": 52,
+          "line": 53,
           "message": "exported function/component \"discountCallout\" has no intent doc comment",
           "rule": "doc-export"
         },
         {
           "severity": "medium",
           "file": "src/lib/email/shell.ts",
-          "line": 60,
+          "line": 61,
           "message": "exported function/component \"ctaButton\" has no intent doc comment",
           "rule": "doc-export"
         },

@@ -20,6 +20,12 @@ export const transactions: Array<{
   atomic: true;
 }> = [
   {
+    name: 'prepare_post_purchase_email',
+    owner: 'email',
+    touches: ['crm_contacts', 'promo_codes', 'email_automation_triggers'],
+    atomic: true,
+  },
+  {
     name: 'record_order_for_contact',
     owner: 'crm',
     touches: ['crm_contacts', 'promo_code_redemptions', 'promo_codes'],

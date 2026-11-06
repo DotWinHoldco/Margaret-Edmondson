@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/post-purchase",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/master-crop-worker",
       "schedule": "*/5 * * * *"
     },
