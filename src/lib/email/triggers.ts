@@ -1,6 +1,6 @@
 // Automation triggers — the no-throw, idempotent fan-out helpers that other
-// flows call directly (newsletter subscribe → welcome, Stripe webhook →
-// post-purchase). Each helper:
+// flows call directly (newsletter subscribe → welcome, fulfillment → shipping).
+// Post-purchase letters are queued separately in post-purchase.ts. Each helper:
 //   1. Resolves/creates the buyer's crm_contacts row.
 //   2. Checks email_automation_sends for a matching dedupe_key so a retry or
 //      webhook replay never double-sends.
@@ -17,7 +17,6 @@ import { brandedShell, ctaButton, discountCallout } from './shell'
 import { escapeHtml } from './escape'
 import { buildUnsubscribeUrl } from './unsubscribe'
 import { isSuppressed } from './suppression'
-import { reviewInvitation } from './review-invitation'
 import { upsertContact } from '@/lib/crm/contacts'
 import { generateDiscountCode } from '@/lib/discounts/generate'
 import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
@@ -242,97 +241,6 @@ export async function sendWelcomeEmail(
     }
   } catch (err) {
     console.error('sendWelcomeEmail failed (suppressed):', err)
-  }
-}
-
-// ── Post-purchase ────────────────────────────────────────────────────────────
-
-/**
- * Send the post-purchase email for a completed order. Idempotent per order and
- * no-throw — safe to call from the Stripe webhook's checkout.session.completed
- * handler after the order is recorded.
- */
-export async function sendPostPurchaseEmail(
-  email: string,
-  orderId: string,
-  options?: { name?: string | null; total?: number; contactId?: string | null; orderUrl?: string | null }
-): Promise<void> {
-  const normalizedEmail = (email || '').toLowerCase().trim()
-  if (!normalizedEmail || !normalizedEmail.includes('@') || !orderId) return
-  // P1-3: prefer the public order page (works for guests) over /account/orders,
-  // which bounces unauthenticated buyers to a login wall.
-  const orderCtaUrl = options?.orderUrl || `${SITE_URL}/account/orders`
-
-  try {
-    const supabase = await createServiceClient()
-
-    const dedupeKey = `post_purchase:${orderId}`
-    if (await alreadySent(supabase, dedupeKey)) return
-
-    let contactId = options?.contactId ?? null
-    if (!contactId) {
-      const c = await upsertContact(
-        { email: normalizedEmail, firstName: options?.name ?? null, source: 'order' }
-      )
-      contactId = c?.id ?? null
-    }
-
-    // COM-2: honor unsubscribe on this automated studio note. The order receipt
-    // (sendOrderConfirmation) is a separate transactional send and still goes out.
-    if (await isSuppressed({ contactId, email: normalizedEmail }, supabase)) return
-
-    const unsubscribeUrl = contactId ? buildUnsubscribeUrl(contactId) : undefined
-    // greetingName is user-supplied and only rendered into HTML below — escape it.
-    const greetingName = escapeHtml(firstNameOrFriend(options?.name))
-    const shortOrder = orderId.slice(0, 8).toUpperCase()
-
-    const loaded = await loadAutomation(supabase, 'post-purchase')
-
-    let subject: string
-    let preheader: string | undefined
-    let body: string
-    let automationId: string | null = null
-    let stepId: string | null = null
-
-    if (loaded) {
-      automationId = loaded.automation.id
-      stepId = loaded.step.id
-      subject = loaded.step.subject
-      preheader = loaded.step.preheader ?? undefined
-      body = `${loaded.step.content_html
-        .replace(/\{\{\s*first_name_or_friend\s*\}\}/g, greetingName)
-        .replace(/\{\{\s*order_number\s*\}\}/g, shortOrder)}
-        ${ctaButton(orderCtaUrl, 'View Your Order')}`
-    } else {
-      subject = 'Thank you for your order — ArtByME'
-      preheader = 'A note from the studio.'
-      body = `
-        <h2 style="font-size:20px;font-weight:400;text-align:center;margin-bottom:8px;">Thank you, ${greetingName}.</h2>
-        <p style="text-align:center;color:#666;font-size:14px;line-height:1.6;margin-bottom:16px;">
-          Your order${` #${shortOrder}`} is being prepared with care. I'm honored to have a piece of my work going to your home, and I'll be in touch with shipping details soon.
-        </p>
-        ${ctaButton(orderCtaUrl, 'View Your Order')}
-        <p style="text-align:center;color:#999;font-size:12px;">
-          Questions? Reply to this email and I'll help.
-        </p>`
-    }
-
-    const html = brandedShell(`${body}${reviewInvitation()}`, { preheader, unsubscribeUrl })
-    const result = await sendEmail({ to: normalizedEmail, subject, html })
-
-    if (result !== null || !process.env.RESEND_API_KEY) {
-      await recordSend(supabase, {
-        dedupeKey,
-        email: normalizedEmail,
-        contactId,
-        automationId,
-        stepId,
-        resendMessageId: resendMessageId(result),
-        status: 'sent',
-      })
-    }
-  } catch (err) {
-    console.error('sendPostPurchaseEmail failed (suppressed):', err)
   }
 }
 

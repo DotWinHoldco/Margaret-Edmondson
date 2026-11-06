@@ -8,15 +8,18 @@ import { DEFAULT_STUDIO_EMAIL } from './identity'
 const RESEND_API = 'https://api.resend.com/emails'
 
 interface SendEmailOptions {
+  /** Durable automation retries pin the sender as part of the original payload. */
+  from?: string
   to: string | string[]
   subject: string
   html: string
   replyTo?: string
   headers?: Record<string, string>
   idempotencyKey?: string
+  timeoutMs?: number
 }
 
-export async function sendEmail({ to, subject, html, replyTo, headers, idempotencyKey }: SendEmailOptions) {
+export async function sendEmail({ from: frozenFrom, to, subject, html, replyTo, headers, idempotencyKey, timeoutMs }: SendEmailOptions) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set — skipping email:', subject)
     return null
@@ -24,9 +27,9 @@ export async function sendEmail({ to, subject, html, replyTo, headers, idempoten
 
   // From line comes from site settings; the env var is the fallback when the
   // setting is unreadable.
-  let from = process.env.EMAIL_FROM || `ArtByME <${DEFAULT_STUDIO_EMAIL}>`
+  let from = frozenFrom || process.env.EMAIL_FROM || `ArtByME <${DEFAULT_STUDIO_EMAIL}>`
   try {
-    const line = await getEmailFromLine()
+    const line = frozenFrom || await getEmailFromLine()
     if (line) from = line
   } catch {
     // settings unavailable — keep the env fallback
@@ -35,6 +38,7 @@ export async function sendEmail({ to, subject, html, replyTo, headers, idempoten
 
   const res = await fetch(RESEND_API, {
     method: 'POST',
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',

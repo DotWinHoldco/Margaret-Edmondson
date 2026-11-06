@@ -10,7 +10,6 @@ import { sendServerEvent, hashSHA256 } from '@/lib/meta/capi'
 import { enqueueFulfillmentJob } from '@/lib/fulfillment/queue'
 import { notifyOrderNeedsAttention } from '@/lib/fulfillment/alerts'
 import { sendOrderConfirmation } from '@/lib/email/send'
-import { sendPostPurchaseEmail } from '@/lib/email/triggers'
 import { escapeHtml } from '@/lib/email/escape'
 import { asPurchaseSpec, describePurchaseSpec, specOptionsText } from '@/lib/orders/print-options'
 import { recordOrder } from '@/lib/crm/contacts'
@@ -1112,13 +1111,7 @@ export async function handleCheckoutCompleted(
         console.error('Order confirmation email failed:', err)
       }
 
-      // Post-purchase automation (studio note / nurture). Idempotent per order
-      // (dedupe_key) and no-throw — never blocks the money path. (E-4)
-      await sendPostPurchaseEmail(buyerEmail, orderId as string, {
-        total: orderTotal,
-        contactId: session.metadata.contact_id || null,
-        orderUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${session.id}`,
-      })
+      // The post-purchase cron queues the studio letter from this paid order for the next day.
     }
 
     // Order notification to the studio owner (settings-driven, best-effort —
@@ -1499,12 +1492,7 @@ export async function handleElementsPaymentSucceeded(
         console.error('Order confirmation email failed:', err)
       }
 
-      // Post-purchase automation — idempotent per order, never blocks the money path.
-      await sendPostPurchaseEmail(buyerEmail, orderId as string, {
-        total: orderTotal,
-        contactId: md.contact_id || null,
-        orderUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'}/order/${pi.id}`,
-      })
+      // The post-purchase cron queues the studio letter from this paid order for the next day.
     } else {
       // P1-5: a paid order with no buyer email — no confirmation can be sent.
       // Alert the owner so they can reach the customer via Stripe.

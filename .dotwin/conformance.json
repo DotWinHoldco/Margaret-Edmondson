@@ -1,7 +1,7 @@
 {
-  "lastGreenCommit": "16c8d6654000fdb3217e7edacb84e4a77d306c71",
+  "lastGreenCommit": "8f667f042275d7ed9dabbf443779c8e6759f32d5",
   "status": "green",
-  "timestamp": "2026-11-06T15:08:13.669Z",
+  "timestamp": "2026-11-06T16:33:08.437Z",
   "mode": "adopt",
   "ratchet": {
     "table-ownership": false,

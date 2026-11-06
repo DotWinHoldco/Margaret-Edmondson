@@ -1327,30 +1327,60 @@ export type Database = {
       }
       email_automation_triggers: {
         Row: {
+          attempts: number
+          available_at: string | null
+          claim_token: string | null
           contact_id: string | null
           created_at: string
+          due_at: string | null
           email_snapshot: string | null
+          first_attempt_at: string | null
           id: string
+          last_error: string | null
+          lease_until: string | null
+          payload: Json | null
           processed_at: string | null
+          promo_code_id: string | null
           related_order_id: string | null
+          result: string | null
           trigger_event: string
         }
         Insert: {
+          attempts?: number
+          available_at?: string | null
+          claim_token?: string | null
           contact_id?: string | null
           created_at?: string
+          due_at?: string | null
           email_snapshot?: string | null
+          first_attempt_at?: string | null
           id?: string
+          last_error?: string | null
+          lease_until?: string | null
+          payload?: Json | null
           processed_at?: string | null
+          promo_code_id?: string | null
           related_order_id?: string | null
+          result?: string | null
           trigger_event: string
         }
         Update: {
+          attempts?: number
+          available_at?: string | null
+          claim_token?: string | null
           contact_id?: string | null
           created_at?: string
+          due_at?: string | null
           email_snapshot?: string | null
+          first_attempt_at?: string | null
           id?: string
+          last_error?: string | null
+          lease_until?: string | null
+          payload?: Json | null
           processed_at?: string | null
+          promo_code_id?: string | null
           related_order_id?: string | null
+          result?: string | null
           trigger_event?: string
         }
         Relationships: [
@@ -1359,6 +1389,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_automation_triggers_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
             referencedColumns: ["id"]
           },
           {
@@ -1374,6 +1411,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          enqueue_from: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -1384,6 +1422,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          enqueue_from?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -1394,6 +1433,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          enqueue_from?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
@@ -4874,6 +4914,38 @@ export type Database = {
           id: string
         }[]
       }
+      claim_post_purchase_email: {
+        Args: never
+        Returns: {
+          attempts: number
+          available_at: string | null
+          claim_token: string | null
+          contact_id: string | null
+          created_at: string
+          due_at: string | null
+          email_snapshot: string | null
+          first_attempt_at: string | null
+          id: string
+          last_error: string | null
+          lease_until: string | null
+          payload: Json | null
+          processed_at: string | null
+          promo_code_id: string | null
+          related_order_id: string | null
+          result: string | null
+          trigger_event: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "email_automation_triggers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_post_purchase_email: {
+        Args: { p_claim_token: string; p_job_id: string; p_message_id: string }
+        Returns: boolean
+      }
       convert_original_hold: {
         Args: { p_payment_ref: string; p_variant_id: string }
         Returns: string
@@ -4989,6 +5061,10 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: boolean
+      }
+      prepare_post_purchase_email: {
+        Args: { p_claim_token: string; p_job_id: string }
+        Returns: Json
       }
       queue_reviewed_fulfillment: {
         Args: { p_order_id: string }

@@ -10,6 +10,7 @@ interface ShellOptions {
   unsubscribeUrl?: string
   hideUnsubscribe?: boolean
   footerNote?: string
+  unsubscribeReason?: string
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://artbyme.studio'
@@ -22,7 +23,7 @@ export function brandedShell(content: string, opts: ShellOptions = {}): string {
   const unsubscribeBlock = opts.hideUnsubscribe
     ? ''
     : `<p style="text-align:center;color:#999;font-size:10px;margin-top:12px;line-height:1.6;">
-        You are receiving this because you joined the ArtByME Studio List Newsletter.
+        ${escapeHtml(opts.unsubscribeReason || 'You are receiving this because you joined the ArtByME Studio List Newsletter.')}
         ${opts.unsubscribeUrl
           ? `<br/><a href="${opts.unsubscribeUrl}" style="color:#3A7D7B;text-decoration:underline;">Unsubscribe</a>`
           : ''}
