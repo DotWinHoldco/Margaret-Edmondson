@@ -87,12 +87,7 @@ const FEEDBACK_STATUSES: { value: string; label: string }[] = [
 ]
 
 const PAGES_AND_FEATURES = [
-  'Homepage V1',
-  'Homepage V2',
-  'Homepage V3',
-  'Homepage V4',
-  'Homepage V5',
-  'Homepage V6',
+  'Homepage',
   'Shop',
   'Product Page',
   'Cart',
@@ -397,6 +392,7 @@ export default function ProjectHubClient({
     if (!page || !PAGES_AND_FEATURES.includes(page)) return
     const frame = window.requestAnimationFrame(() => {
       setFbPage(page)
+      feedbackRef.current?.closest('details')?.setAttribute('open', '')
       feedbackRef.current?.scrollIntoView({ block: 'start' })
     })
     return () => window.cancelAnimationFrame(frame)
@@ -734,11 +730,230 @@ export default function ProjectHubClient({
     <div className="max-w-6xl mx-auto">
       <header className="mb-8 border-t border-charcoal/10 pt-8">
         <p className="font-body text-xs font-semibold uppercase tracking-widest text-teal">Work together</p>
-        <h2 className="mt-2 font-display text-2xl font-semibold text-charcoal">Feedback, requests, and notes</h2>
+        <h2 className="mt-2 font-display text-2xl font-semibold text-charcoal">Requests and project notes</h2>
         <p className="mt-2 font-body text-sm leading-6 text-charcoal/60">Share an idea, request a change, or keep important notes and files with your project.</p>
       </header>
 
-      {/* ── Section 4: Feedback Tool ───────────────────────────────── */}
+      {/* ── Section 5: Work Requests ───────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="mb-8 scroll-mt-8"
+        id="work-requests"
+      >
+        <SectionHeader
+          title="Work Requests"
+          subtitle="Request new features, design changes, content updates, or fixes."
+        />
+
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() =>
+              setFilesModal({
+                entityType: 'work_request',
+                entityId: null,
+                title: 'Work-request files',
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-charcoal/15 bg-white px-4 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+            </svg>
+            Upload / view files
+          </button>
+        </div>
+
+        {/* Work Request Form */}
+        <form onSubmit={submitWorkRequest} className="bg-white rounded-xl border border-charcoal/8 p-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Title</label>
+              <input type="text" value={wrTitle} onChange={(e) => setWrTitle(e.target.value)} placeholder="What do you need?" required className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/25 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all" />
+            </div>
+            <div>
+              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Category</label>
+              <select value={wrCategory} onChange={(e) => setWrCategory(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all">
+                {WORK_REQUEST_CATEGORIES.map((cat) => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
+              </select>
+            </div>
+          </div>
+          <div className="mb-4">
+            <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Description</label>
+            <RichTextEditor content={wrDescription} onChange={setWrDescription} placeholder="Describe what you need in detail..." minHeight="80px" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Priority</label>
+              <select value={wrPriority} onChange={(e) => setWrPriority(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal capitalize focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all">
+                {PRIORITIES.map((p) => (<option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Due Date (optional)</label>
+              <input type="date" value={wrDueDate} onChange={(e) => setWrDueDate(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all" />
+            </div>
+          </div>
+          <button type="submit" disabled={wrSubmitting || !wrTitle.trim()} className="rounded-lg bg-teal px-6 py-2.5 font-body text-sm font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            {wrSubmitting ? 'Submitting...' : 'Submit Request'}
+          </button>
+        </form>
+
+        {/* Work Request Filters */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <select value={wrFilterStatus} onChange={(e) => { setWrFilterStatus(e.target.value); setWrCurrentPage(1) }} className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30">
+            <option value="">All Statuses</option>
+            {WORK_REQUEST_STATUSES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
+          </select>
+          <select value={wrFilterCategory} onChange={(e) => { setWrFilterCategory(e.target.value); setWrCurrentPage(1) }} className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30">
+            <option value="">All Categories</option>
+            {WORK_REQUEST_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
+          </select>
+          {(wrFilterStatus || wrFilterCategory) && (
+            <button onClick={() => { setWrFilterStatus(''); setWrFilterCategory(''); setWrCurrentPage(1) }} className="font-body text-xs text-coral hover:underline">Clear filters</button>
+          )}
+        </div>
+
+        {/* Work Request List */}
+        {(() => {
+          const filtered = workRequests.filter((item) => {
+            if (wrFilterStatus && item.status !== wrFilterStatus) return false
+            if (wrFilterCategory && item.category !== wrFilterCategory) return false
+            return true
+          })
+          const totalPages = Math.ceil(filtered.length / wrPageSize)
+          const paginated = filtered.slice((wrCurrentPage - 1) * wrPageSize, wrCurrentPage * wrPageSize)
+
+          return filtered.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="font-body text-sm text-charcoal/30">{workRequests.length === 0 ? 'No work requests yet. Submit your first request above.' : 'No work requests match your filters.'}</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {paginated.map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl border border-charcoal/8 overflow-hidden">
+                    <button onClick={() => setExpandedWork(expandedWork === item.id ? null : item.id)} className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-charcoal/[0.02] transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium ${WORK_STATUS_COLORS[item.status] || 'bg-charcoal/8 text-charcoal/50'}`}>
+                            {WORK_REQUEST_STATUSES.find((s) => s.value === item.status)?.label || item.status.replace('_', ' ')}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium bg-charcoal/6 text-charcoal/50">
+                            {WR_CATEGORY_LABELS[item.category] || item.category}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${PRIORITY_COLORS[item.priority] || 'bg-charcoal/8 text-charcoal/50'}`}>
+                            {item.priority}
+                          </span>
+                        </div>
+                        <h4 className="font-display text-sm font-semibold text-charcoal truncate">{item.title}</h4>
+                        {item.due_date && (<p className="font-body text-xs text-charcoal/30 mt-0.5">Due: {formatDate(item.due_date)}</p>)}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 pt-1">
+                        {item.comment_count > 0 && (
+                          <span className="font-body text-xs text-charcoal/30 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+                            {item.comment_count}
+                          </span>
+                        )}
+                        <span className="font-body text-xs text-charcoal/25">{formatDate(item.created_at)}</span>
+                        <motion.svg animate={{ rotate: expandedWork === item.id ? 180 : 0 }} transition={{ duration: 0.2 }} className="w-4 h-4 text-charcoal/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></motion.svg>
+                      </div>
+                    </button>
+                    <AnimatePresence>
+                      {expandedWork === item.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                          <div className="px-5 pb-5 border-t border-charcoal/6">
+                            {/* Status toggle buttons */}
+                            <div className="flex flex-wrap items-center gap-1.5 mt-3 mb-3">
+                              <span className="font-body text-xs text-charcoal/40 mr-1">Status:</span>
+                              {WORK_REQUEST_STATUSES.map((s) => (
+                                <button key={s.value} onClick={() => updateWrStatus(item.id, s.value)} className={`px-2 py-1 rounded-full text-[11px] font-body font-medium transition-all ${item.status === s.value ? WORK_STATUS_COLORS[s.value] : 'bg-charcoal/5 text-charcoal/30 hover:bg-charcoal/10'}`}>
+                                  {s.label}
+                                </button>
+                              ))}
+                              <div className="ml-auto flex gap-2">
+                                <button onClick={() => { setEditingWr(item.id); setEditWrTitle(item.title); setEditWrDescription(item.description || ''); setEditWrCategory(item.category); setEditWrPriority(item.priority); setEditWrDueDate(item.due_date || '') }} className="font-body text-xs text-teal hover:underline">Edit</button>
+                                <button onClick={() => setFilesModal({ entityType: 'work_request', entityId: item.id, title: `Files for "${item.title}"` })} className="font-body text-xs text-charcoal/60 hover:underline">Files</button>
+                                <button onClick={() => deleteWorkRequest(item.id)} className="font-body text-xs text-coral hover:underline">Delete</button>
+                              </div>
+                            </div>
+
+                            {/* Edit form */}
+                            {editingWr === item.id ? (
+                              <div className="bg-charcoal/[0.02] rounded-lg p-4 mb-3 space-y-3">
+                                <input type="text" value={editWrTitle} onChange={(e) => setEditWrTitle(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                                <div className="grid grid-cols-3 gap-2">
+                                  <select value={editWrCategory} onChange={(e) => setEditWrCategory(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal">
+                                    {WORK_REQUEST_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
+                                  </select>
+                                  <select value={editWrPriority} onChange={(e) => setEditWrPriority(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal capitalize">
+                                    {PRIORITIES.map((p) => (<option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>))}
+                                  </select>
+                                  <input type="date" value={editWrDueDate} onChange={(e) => setEditWrDueDate(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal" />
+                                </div>
+                                <RichTextEditor content={editWrDescription} onChange={setEditWrDescription} placeholder="Description..." minHeight="60px" />
+                                <div className="flex gap-2">
+                                  <button onClick={() => saveWrEdit(item.id)} disabled={editWrSubmitting} className="rounded-lg bg-teal px-4 py-1.5 font-body text-xs font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40">{editWrSubmitting ? 'Saving...' : 'Save'}</button>
+                                  <button onClick={() => setEditingWr(null)} className="rounded-lg bg-charcoal/5 px-4 py-1.5 font-body text-xs font-medium text-charcoal/50 hover:bg-charcoal/10 transition-colors">Cancel</button>
+                                </div>
+                              </div>
+                            ) : item.description ? (
+                              <div className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }} />
+                            ) : null}
+
+                            <CommentThread comments={workComments[item.id] || []} isLoading={!!loadingComments[`work-requests-${item.id}`]} newComment={newWorkComment} setNewComment={setNewWorkComment} onSubmit={() => submitComment('work-requests', item.id, newWorkComment, () => setNewWorkComment(''))} />
+
+                            {/* Audit trail */}
+                            {item.audit_log && item.audit_log.length > 0 && (
+                              <div className="mt-4 pt-3 border-t border-charcoal/6">
+                                <p className="font-body text-xs font-medium text-charcoal/30 uppercase tracking-wider mb-2">Activity Log</p>
+                                <div className="space-y-1">
+                                  {item.audit_log.sort((a: AuditEntry, b: AuditEntry) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((entry: AuditEntry) => (
+                                    <div key={entry.id} className="flex items-baseline gap-2 font-body text-xs text-charcoal/40">
+                                      <span className="text-charcoal/25 shrink-0">{formatDate(entry.created_at)}</span>
+                                      <span>{AUDIT_ACTION_LABELS[entry.action] || entry.action}{entry.old_value && entry.new_value && entry.action !== 'created' && (<span className="text-charcoal/30"> — {entry.old_value} → {entry.new_value}</span>)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mt-4 px-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-body text-xs text-charcoal/40">Show</span>
+                  <select value={wrPageSize} onChange={(e) => { setWrPageSize(Number(e.target.value)); setWrCurrentPage(1) }} className="rounded border border-charcoal/12 bg-white px-2 py-1 font-body text-xs text-charcoal">
+                    {[5, 10, 25, 100].map((n) => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                  <span className="font-body text-xs text-charcoal/40">of {filtered.length}</span>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setWrCurrentPage((p) => Math.max(1, p - 1))} disabled={wrCurrentPage === 1} className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button key={p} onClick={() => setWrCurrentPage(p)} className={`w-7 h-7 rounded font-body text-xs ${wrCurrentPage === p ? 'bg-teal text-white' : 'text-charcoal/50 hover:bg-charcoal/5'}`}>{p}</button>
+                    ))}
+                    <button onClick={() => setWrCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={wrCurrentPage === totalPages} className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+                  </div>
+                )}
+              </div>
+            </>
+          )
+        })()}
+      </motion.section>
+
+      {/* Keep earlier feedback available without making it part of daily work. */}
+      <details className="mb-8 rounded-xl border border-charcoal/10 bg-white p-5">
+        <summary className="cursor-pointer font-body text-sm text-charcoal/60">Earlier website feedback</summary>
       <motion.section
         ref={feedbackRef}
         initial={{ opacity: 0, y: 12 }}
@@ -1154,222 +1369,7 @@ export default function ProjectHubClient({
           )
         })()}
       </motion.section>
-
-      {/* ── Section 5: Work Requests ───────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="mb-16"
-      >
-        <SectionHeader
-          title="Work Requests"
-          subtitle="Request new features, design changes, content updates, or fixes."
-        />
-
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={() =>
-              setFilesModal({
-                entityType: 'work_request',
-                entityId: null,
-                title: 'Work-request files',
-              })
-            }
-            className="inline-flex items-center gap-2 rounded-lg border border-charcoal/15 bg-white px-4 py-2 font-body text-xs font-medium text-charcoal transition-colors hover:bg-charcoal/5"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
-            </svg>
-            Upload / view files
-          </button>
-        </div>
-
-        {/* Work Request Form */}
-        <form onSubmit={submitWorkRequest} className="bg-white rounded-xl border border-charcoal/8 p-6 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Title</label>
-              <input type="text" value={wrTitle} onChange={(e) => setWrTitle(e.target.value)} placeholder="What do you need?" required className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/25 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all" />
-            </div>
-            <div>
-              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Category</label>
-              <select value={wrCategory} onChange={(e) => setWrCategory(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all">
-                {WORK_REQUEST_CATEGORIES.map((cat) => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
-              </select>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Description</label>
-            <RichTextEditor content={wrDescription} onChange={setWrDescription} placeholder="Describe what you need in detail..." minHeight="80px" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Priority</label>
-              <select value={wrPriority} onChange={(e) => setWrPriority(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal capitalize focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all">
-                {PRIORITIES.map((p) => (<option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block font-body text-xs font-medium text-charcoal/50 uppercase tracking-wider mb-1.5">Due Date (optional)</label>
-              <input type="date" value={wrDueDate} onChange={(e) => setWrDueDate(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2.5 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/40 transition-all" />
-            </div>
-          </div>
-          <button type="submit" disabled={wrSubmitting || !wrTitle.trim()} className="rounded-lg bg-teal px-6 py-2.5 font-body text-sm font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            {wrSubmitting ? 'Submitting...' : 'Submit Request'}
-          </button>
-        </form>
-
-        {/* Work Request Filters */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <select value={wrFilterStatus} onChange={(e) => { setWrFilterStatus(e.target.value); setWrCurrentPage(1) }} className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30">
-            <option value="">All Statuses</option>
-            {WORK_REQUEST_STATUSES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
-          </select>
-          <select value={wrFilterCategory} onChange={(e) => { setWrFilterCategory(e.target.value); setWrCurrentPage(1) }} className="rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-xs text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30">
-            <option value="">All Categories</option>
-            {WORK_REQUEST_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
-          </select>
-          {(wrFilterStatus || wrFilterCategory) && (
-            <button onClick={() => { setWrFilterStatus(''); setWrFilterCategory(''); setWrCurrentPage(1) }} className="font-body text-xs text-coral hover:underline">Clear filters</button>
-          )}
-        </div>
-
-        {/* Work Request List */}
-        {(() => {
-          const filtered = workRequests.filter((item) => {
-            if (wrFilterStatus && item.status !== wrFilterStatus) return false
-            if (wrFilterCategory && item.category !== wrFilterCategory) return false
-            return true
-          })
-          const totalPages = Math.ceil(filtered.length / wrPageSize)
-          const paginated = filtered.slice((wrCurrentPage - 1) * wrPageSize, wrCurrentPage * wrPageSize)
-
-          return filtered.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="font-body text-sm text-charcoal/30">{workRequests.length === 0 ? 'No work requests yet. Submit your first request above.' : 'No work requests match your filters.'}</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-3">
-                {paginated.map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl border border-charcoal/8 overflow-hidden">
-                    <button onClick={() => setExpandedWork(expandedWork === item.id ? null : item.id)} className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-charcoal/[0.02] transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium ${WORK_STATUS_COLORS[item.status] || 'bg-charcoal/8 text-charcoal/50'}`}>
-                            {WORK_REQUEST_STATUSES.find((s) => s.value === item.status)?.label || item.status.replace('_', ' ')}
-                          </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium bg-charcoal/6 text-charcoal/50">
-                            {WR_CATEGORY_LABELS[item.category] || item.category}
-                          </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${PRIORITY_COLORS[item.priority] || 'bg-charcoal/8 text-charcoal/50'}`}>
-                            {item.priority}
-                          </span>
-                        </div>
-                        <h4 className="font-display text-sm font-semibold text-charcoal truncate">{item.title}</h4>
-                        {item.due_date && (<p className="font-body text-xs text-charcoal/30 mt-0.5">Due: {formatDate(item.due_date)}</p>)}
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0 pt-1">
-                        {item.comment_count > 0 && (
-                          <span className="font-body text-xs text-charcoal/30 flex items-center gap-1">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
-                            {item.comment_count}
-                          </span>
-                        )}
-                        <span className="font-body text-xs text-charcoal/25">{formatDate(item.created_at)}</span>
-                        <motion.svg animate={{ rotate: expandedWork === item.id ? 180 : 0 }} transition={{ duration: 0.2 }} className="w-4 h-4 text-charcoal/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></motion.svg>
-                      </div>
-                    </button>
-                    <AnimatePresence>
-                      {expandedWork === item.id && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                          <div className="px-5 pb-5 border-t border-charcoal/6">
-                            {/* Status toggle buttons */}
-                            <div className="flex flex-wrap items-center gap-1.5 mt-3 mb-3">
-                              <span className="font-body text-xs text-charcoal/40 mr-1">Status:</span>
-                              {WORK_REQUEST_STATUSES.map((s) => (
-                                <button key={s.value} onClick={() => updateWrStatus(item.id, s.value)} className={`px-2 py-1 rounded-full text-[11px] font-body font-medium transition-all ${item.status === s.value ? WORK_STATUS_COLORS[s.value] : 'bg-charcoal/5 text-charcoal/30 hover:bg-charcoal/10'}`}>
-                                  {s.label}
-                                </button>
-                              ))}
-                              <div className="ml-auto flex gap-2">
-                                <button onClick={() => { setEditingWr(item.id); setEditWrTitle(item.title); setEditWrDescription(item.description || ''); setEditWrCategory(item.category); setEditWrPriority(item.priority); setEditWrDueDate(item.due_date || '') }} className="font-body text-xs text-teal hover:underline">Edit</button>
-                                <button onClick={() => setFilesModal({ entityType: 'work_request', entityId: item.id, title: `Files for "${item.title}"` })} className="font-body text-xs text-charcoal/60 hover:underline">Files</button>
-                                <button onClick={() => deleteWorkRequest(item.id)} className="font-body text-xs text-coral hover:underline">Delete</button>
-                              </div>
-                            </div>
-
-                            {/* Edit form */}
-                            {editingWr === item.id ? (
-                              <div className="bg-charcoal/[0.02] rounded-lg p-4 mb-3 space-y-3">
-                                <input type="text" value={editWrTitle} onChange={(e) => setEditWrTitle(e.target.value)} className="w-full rounded-lg border border-charcoal/12 bg-white px-3 py-2 font-body text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                                <div className="grid grid-cols-3 gap-2">
-                                  <select value={editWrCategory} onChange={(e) => setEditWrCategory(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal">
-                                    {WORK_REQUEST_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
-                                  </select>
-                                  <select value={editWrPriority} onChange={(e) => setEditWrPriority(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal capitalize">
-                                    {PRIORITIES.map((p) => (<option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>))}
-                                  </select>
-                                  <input type="date" value={editWrDueDate} onChange={(e) => setEditWrDueDate(e.target.value)} className="rounded-lg border border-charcoal/12 bg-white px-2 py-2 font-body text-xs text-charcoal" />
-                                </div>
-                                <RichTextEditor content={editWrDescription} onChange={setEditWrDescription} placeholder="Description..." minHeight="60px" />
-                                <div className="flex gap-2">
-                                  <button onClick={() => saveWrEdit(item.id)} disabled={editWrSubmitting} className="rounded-lg bg-teal px-4 py-1.5 font-body text-xs font-medium text-white hover:bg-deep-teal transition-colors disabled:opacity-40">{editWrSubmitting ? 'Saving...' : 'Save'}</button>
-                                  <button onClick={() => setEditingWr(null)} className="rounded-lg bg-charcoal/5 px-4 py-1.5 font-body text-xs font-medium text-charcoal/50 hover:bg-charcoal/10 transition-colors">Cancel</button>
-                                </div>
-                              </div>
-                            ) : item.description ? (
-                              <div className="rich-content font-body text-sm text-charcoal/60 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }} />
-                            ) : null}
-
-                            <CommentThread comments={workComments[item.id] || []} isLoading={!!loadingComments[`work-requests-${item.id}`]} newComment={newWorkComment} setNewComment={setNewWorkComment} onSubmit={() => submitComment('work-requests', item.id, newWorkComment, () => setNewWorkComment(''))} />
-
-                            {/* Audit trail */}
-                            {item.audit_log && item.audit_log.length > 0 && (
-                              <div className="mt-4 pt-3 border-t border-charcoal/6">
-                                <p className="font-body text-xs font-medium text-charcoal/30 uppercase tracking-wider mb-2">Activity Log</p>
-                                <div className="space-y-1">
-                                  {item.audit_log.sort((a: AuditEntry, b: AuditEntry) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((entry: AuditEntry) => (
-                                    <div key={entry.id} className="flex items-baseline gap-2 font-body text-xs text-charcoal/40">
-                                      <span className="text-charcoal/25 shrink-0">{formatDate(entry.created_at)}</span>
-                                      <span>{AUDIT_ACTION_LABELS[entry.action] || entry.action}{entry.old_value && entry.new_value && entry.action !== 'created' && (<span className="text-charcoal/30"> — {entry.old_value} → {entry.new_value}</span>)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination */}
-              <div className="flex flex-wrap items-center justify-between gap-4 mt-4 px-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-body text-xs text-charcoal/40">Show</span>
-                  <select value={wrPageSize} onChange={(e) => { setWrPageSize(Number(e.target.value)); setWrCurrentPage(1) }} className="rounded border border-charcoal/12 bg-white px-2 py-1 font-body text-xs text-charcoal">
-                    {[5, 10, 25, 100].map((n) => (<option key={n} value={n}>{n}</option>))}
-                  </select>
-                  <span className="font-body text-xs text-charcoal/40">of {filtered.length}</span>
-                </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setWrCurrentPage((p) => Math.max(1, p - 1))} disabled={wrCurrentPage === 1} className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <button key={p} onClick={() => setWrCurrentPage(p)} className={`w-7 h-7 rounded font-body text-xs ${wrCurrentPage === p ? 'bg-teal text-white' : 'text-charcoal/50 hover:bg-charcoal/5'}`}>{p}</button>
-                    ))}
-                    <button onClick={() => setWrCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={wrCurrentPage === totalPages} className="px-2.5 py-1 rounded font-body text-xs text-charcoal/50 hover:bg-charcoal/5 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
-                  </div>
-                )}
-              </div>
-            </>
-          )
-        })()}
-      </motion.section>
+      </details>
 
       {/* ── Section 6: Project Notes ───────────────────────────────── */}
       <motion.section

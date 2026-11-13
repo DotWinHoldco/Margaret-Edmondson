@@ -36,7 +36,7 @@ export function DashboardQuickLinks() {
   )
 }
 
-export default function DashboardOverview() {
+export default function DashboardOverview({ children }: { children?: React.ReactNode }) {
   return (
     <div className="space-y-6 font-sans text-charcoal">
       <header className="relative overflow-hidden rounded-2xl border border-teal/15 bg-deep-teal px-6 py-8 text-cream sm:px-9 sm:py-9">
@@ -50,9 +50,10 @@ export default function DashboardOverview() {
           <Link href="/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-3 rounded-lg border border-cream/30 px-5 py-2 text-sm text-cream transition-colors hover:bg-cream/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream">Visit your website <span aria-hidden="true">↗</span></Link>
         </div>
         <nav aria-label="Dashboard sections" className="relative mt-7 flex flex-wrap gap-x-6 gap-y-3 border-t border-cream/20 pt-5 text-sm">
-          {[['Sales overview', '#sales-overview'], ['Sales tax tracker', '#sales-tax'], ['Quick links', '#quick-links'], ['Feedback & communication', '#feedback']].map(([label, href]) => <a key={href} href={href} className="text-cream/85 underline decoration-cream/25 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream">{label}</a>)}
+          {[['Sales overview', '#sales-overview'], ['Sales tax tracker', '#sales-tax'], ['Quick links', '#quick-links'], ['Work Requests', '#work-requests']].map(([label, href]) => <a key={href} href={href} className="text-cream/85 underline decoration-cream/25 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream">{label}</a>)}
         </nav>
       </header>
+      {children}
       <FulfillmentSettings compact />
       <TaxReportClient><DashboardQuickLinks /></TaxReportClient>
     </div>
