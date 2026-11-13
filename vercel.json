@@ -68,7 +68,8 @@
   "buildCommand": "npm run build-check",
   "git": {
     "deploymentEnabled": {
-      "DotWin-cx/margaret-festive-production": false
+      "DotWin-cx/margaret-festive-production": false,
+      "codex/margaret-november-requests": false
     }
   }
 }

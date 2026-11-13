@@ -262,6 +262,29 @@ export default function CampaignComposer({ initial, mode }: CampaignComposerProp
         </div>
       </div>
 
+      <details className="rounded-lg border border-teal/20 bg-white p-5">
+        <summary className="cursor-pointer font-body font-semibold text-teal">How to prepare your newsletter</summary>
+        <div className="mt-4 space-y-4 font-body text-sm leading-6 text-charcoal/75">
+          <p>Your newsletter is an email campaign. Write or paste your text into Body;
+            use the heading, bold, italic, and list buttons to format it. A Word or PDF
+            attachment is not needed.</p>
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>Give the campaign an internal name, a reader-facing Subject line, and short Preview text.</li>
+            <li>Choose the subscriber list under Audience. Check the list and its members in Email → Lists before sending.</li>
+            <li>Write a short personal greeting, one studio update, one featured artwork or class,
+              and a clear invitation to visit your website. Finish with your name.
+              The greeting token {'{{first_name_or_friend}}'} uses “friend” when no name is saved.</li>
+            <li>Choose Save Draft. You can return to it in January or whenever you are ready.</li>
+            <li>Enter your own email under Send test, then choose Send Test. Check the message on your phone,
+              including its links, spelling, and unsubscribe footer.</li>
+            <li>When the draft and audience are ready, choose Send Now or Schedule. Saving a draft does not send it.</li>
+          </ol>
+          <p>A useful outline: “Hello [name]” → “In the studio” → “Artwork to discover” →
+            “Visit ArtByME” → “Thank you, Margaret.” Replace the example wording with your own news.
+            A discount is optional.</p>
+        </div>
+      </details>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         {/* Main form */}
         <div className="space-y-4 rounded-sm border border-charcoal/10 bg-white p-5">

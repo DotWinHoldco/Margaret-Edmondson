@@ -1,6 +1,6 @@
 import type { AnchorHTMLAttributes } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 
 const { router, redirect } = vi.hoisted(() => ({
   router: { replace: vi.fn(), push: vi.fn(), refresh: vi.fn() },
@@ -14,7 +14,6 @@ vi.mock('@/components/admin/SharedFilesModal', () => ({ default: () => null }))
 import ProjectHubClient from '@/app/(admin)/admin/ProjectHubClient'
 import DashboardOverview from '@/components/admin/DashboardOverview'
 import { buildTaxReport } from '@/lib/tax/reporting'
-import LaunchSequence from '@/components/admin/LaunchSequence'
 import WelcomePage from '@/app/welcome/page'
 
 const storage = () => {
@@ -44,32 +43,21 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
-describe('admin login landing and current launch guide', () => {
-  it.each(['fresh browser', 'legacy dismissal'])('keeps the real dashboard and guide together for a %s', async (scenario) => {
+describe('admin login landing', () => {
+  it.each(['fresh browser', 'legacy dismissal'])('opens directly to requests for a %s', async (scenario) => {
     if (scenario === 'legacy dismissal') localStorage.setItem('artbyme_welcome_dismissed', 'permanent')
-    render(<><DashboardOverview /><ProjectHubClient initialFeedback={[]} initialWorkRequests={[]} initialNotes={[]} /><LaunchSequence /></>)
-    await screen.findByRole('dialog', { name: 'Your website is built, Margaret.' })
-    expect(screen.getByRole('button', { name: 'Explore Lumaprints setup' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Walk me through self-fulfillment' })).toBeDefined()
+    render(<DashboardOverview><ProjectHubClient initialFeedback={[]} initialWorkRequests={[]} initialNotes={[]} /></DashboardOverview>)
+    await screen.findByRole('region', { name: 'Sales overview' })
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(router.replace).not.toHaveBeenCalled()
     expect(router.push).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem('artbyme_entered_from_welcome')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Close launch guide for this visit' }))
-    await screen.findByRole('region', { name: 'Sales overview' })
-    expect(screen.getAllByRole('heading', { name: /A little clarity.*More room to create/ })).toHaveLength(1)
-    expect(screen.getByRole('heading', { name: 'Your sales at a glance' })).toBeDefined()
-    expect(screen.getByRole('heading', { name: 'Sales tax tracker' })).toBeDefined()
-    expect(screen.getByRole('heading', { name: 'Your studio, within reach' })).toBeDefined()
-    for (const name of ['Feedback', 'Work Requests', 'Project Notes']) {
-      expect(screen.getByRole('heading', { name })).toBeDefined()
-    }
-    for (const name of ['Welcome, Margaret', 'Homepage Designs', 'Your Sales Funnels', 'PASTOR Sales Funnels', 'Platform Features Built']) {
-      expect(screen.queryByRole('heading', { name })).toBeNull()
-    }
-    expect(screen.getByRole('link', { name: 'Design assets' }).getAttribute('href')).toBe('/admin/pages/design-assets')
-    fireEvent.click(screen.getByRole('button', { name: 'Launch guide' }))
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Your website is built, Margaret.' })).toBeDefined())
-    expect(router.replace).not.toHaveBeenCalled()
+    const requests = screen.getByRole('heading', { name: 'Work Requests' })
+    const sales = screen.getByRole('heading', { name: 'Your sales at a glance' })
+    expect(requests.compareDocumentPosition(sales) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText('Earlier website feedback').closest('details')?.open).toBe(false)
+    expect(screen.queryByRole('option', { name: 'Homepage V1' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Work Requests' }).getAttribute('href')).toBe('#work-requests')
+    expect(screen.getByRole('heading', { name: 'Project Notes' })).toBeDefined()
   })
   it('sends old welcome bookmarks to the role-protected admin route', () => {
     expect(() => WelcomePage()).toThrow('REDIRECT:/admin')

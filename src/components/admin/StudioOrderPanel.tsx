@@ -200,6 +200,11 @@ function WorkItem({
           >
             Save work progress
           </button>
+          <p className="mt-3 font-body text-sm text-charcoal/65">
+            To add tracking, select Packing and choose Save work progress. Then
+            use Record a shipment below. Saving the package marks its items shipped
+            and queues the customer’s tracking email.
+          </p>
         </>
       )}
       {spec.kind === 'original' &&
@@ -379,7 +384,7 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
   }
   if (loaded && !jobs.length && !paused.length && !review) return null
   return (
-    <section className="rounded-xl border border-teal/20 bg-white p-5 sm:p-6">
+    <section id="studio-work" className="scroll-mt-8 rounded-xl border border-teal/20 bg-white p-5 sm:p-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl text-charcoal">Studio work</h2>
@@ -498,7 +503,7 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
           />
         ))}
       </div>
-      {jobs.some((j) => j.status === 'packing') && (
+      {jobs.some((j) => !['shipped', 'delivered', 'cancelled'].includes(j.status)) && (
         <details open className="mt-5 rounded-lg bg-cream p-4">
           <summary className="cursor-pointer font-display text-xl">
             Record a shipment
@@ -507,6 +512,13 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
             Buy your label with your preferred carrier, then record the package
             here. Choose only the quantities in this package.
           </p>
+          {!jobs.some((j) => j.status === 'packing') ? (
+            <p role="status" className="mt-3 rounded-md border border-teal/20 bg-white p-3 font-body text-sm">
+              First set the work item’s Stage to Packing and choose Save work progress
+              above. The quantity and tracking fields will appear here. You can also
+              record the actual postage you paid with the shipment.
+            </p>
+          ) : <>
           <div className="mt-3 space-y-2">
             {jobs
               .filter((j) => j.status === 'packing')
@@ -606,6 +618,7 @@ export default function StudioOrderPanel({ orderId }: { orderId: string }) {
           >
             Save shipment &amp; notify customer
           </button>
+          </>}
         </details>
       )}
       {!!shipments.length && (

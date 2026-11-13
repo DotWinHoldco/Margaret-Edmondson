@@ -50,13 +50,12 @@ export default async function AdminDashboard() {
   }))
 
   return (
-    <>
-      <DashboardOverview />
+    <DashboardOverview>
       <ProjectHubClient
         initialFeedback={feedbackItems}
         initialWorkRequests={workRequests}
         initialNotes={notes}
       />
-    </>
+    </DashboardOverview>
   )
 }

@@ -26,6 +26,16 @@ const navItems = [
     mobileOrder: 1,
   },
   {
+    label: 'Work Requests',
+    href: '/admin#work-requests',
+    icon: (
+      <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 6h12M8 12h12M8 18h12M3 6h.01M3 12h.01M3 18h.01" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
     label: 'Products',
     href: '/admin/products',
     icon: (

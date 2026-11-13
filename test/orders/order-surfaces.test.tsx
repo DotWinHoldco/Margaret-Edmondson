@@ -242,6 +242,21 @@ describe('admin order panels', () => {
     expect(screen.getByLabelText(`Quantity for ${LINE}`)).toBeInTheDocument()
   })
 
+  it('shows the shipment prerequisite while an original is still new', async () => {
+    const job = studioJob()
+    job.status = 'new'
+    job.item.purchase_spec = { ...job.item.purchase_spec, kind: 'original' }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jobs: [job], shipments: [], events: [], paused: [], review: null, notifications: [] }),
+    }))
+    render(<StudioOrderPanel orderId={job.order_id} />)
+    await screen.findByText('Record a shipment')
+    expect(screen.getByRole('status')).toHaveTextContent('First set the work item’s Stage to Packing')
+    expect(screen.queryByLabelText('Tracking number')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save shipment & notify customer' })).not.toBeInTheDocument()
+  })
+
   it('describes each queued work item from its frozen spec', async () => {
     supabaseClient.rpc.mockResolvedValue({ data: [{ job: studioJob(), total: 1 }], error: null })
     supabaseClient.from.mockImplementation(() => emptyQuery())
