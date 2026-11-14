@@ -65,9 +65,10 @@
       "schedule": "*/10 * * * *"
     }
   ],
-  "buildCommand": "npm run build-check",
+  "buildCommand": "npm run build-check:write",
   "git": {
     "deploymentEnabled": {
+      "DotWin-cx/margaret-subscription-billing": false,
       "DotWin-cx/margaret-festive-production": false,
       "codex/margaret-november-requests": false
     }
