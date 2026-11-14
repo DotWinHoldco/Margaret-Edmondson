@@ -2,38 +2,45 @@
 
 Authored by DotWin
 
-ArtByME site managers reach `/admin/billing` from the desktop sidebar or Settings
-on any screen size. The page explicitly calls the existing server-side admin/artist
-guard and links to a dedicated Stripe hosted portal login configuration on DotWin's
-main merchant account. Stripe verifies the billing email before exposing a customer,
-payment method, or subscription. The shareable login URL is public; it is not an
-authenticated customer session and does not grant access by possession.
+Site managers manage the website subscription inside `/admin/billing`, reached from
+the existing sidebar and Settings. The page shows the live plan, renewal date, saved
+payment method, invoices and payment history. Card changes and renewal controls stay
+in ArtByME, using its existing login. There is no hosted billing portal or second login.
 
-The portal supports payment-method and billing-detail updates, invoice history, and
-cancellation at the end of the paid period. Price switching is disabled. It returns
-to `https://artbyme.studio/admin/billing`. The ArtByME site carries no DotWin Stripe
-credential, customer ID, card details, or database access for this feature. ArtByME's
-own sales Stripe integration is separate and unchanged.
+## Trust and money boundaries
 
-The subscription is managed in DotWin's existing subscriptions screen and mirrored
-by its existing Stripe lifecycle webhooks. Current amounts and renewal dates are
-displayed by Stripe, rather than hardcoded in ArtByME. SuiteDash's replaced billing
-schedule was canceled after the replacement subscription was verified active.
+`/api/admin/billing` requires the existing verified admin/artist role. It forwards that
+user's session only to the fixed DotWin billing endpoint. POST requires the same origin,
+JSON and a strict command schema. Callers cannot choose the customer, subscription,
+merchant or upstream address. Responses are private and never cached.
 
-## Release workspace
+DotWin independently verifies the ArtByME session with Supabase Auth and reads the
+current profile role under that user's RLS. A configured allowlist and server-owned
+subscription/customer binding limit access to the existing authorized site managers.
+Only DotWin holds the main merchant credential. ArtByME's sales integration is unchanged.
 
-- Checkout: `workspaces/festive-production` (reused while inactive).
-- Branch: `DotWin-cx/margaret-subscription-billing`.
-- Owner/task: DotWin, ArtByME subscription billing, November 14, 2026.
-- Starting release: `a21f85cec641f1e5df9c765ad541e8a217504403`.
-- Retirement: after the billing release is verified, retain source and these docs;
-  remove only task-created reproducible build output. No new dependency tree or
-  local production build is needed; the production build-check runs on Vercel.
+Card fields use the existing Stripe Payment Element dependency inline. A SetupIntent
+verifies the method without a charge; redirect-based methods are disabled. DotWin
+accepts only a succeeded, recent setup owned by this actor, customer and subscription,
+then idempotently updates the subscription's default payment method. Raw card details
+never touch either application server. Renewal controls change only cancellation at
+period end, leaving the paid service period and billing anchor intact. Existing DotWin
+subscription lifecycle webhooks own the mirror and audit records.
 
-## Security review
+Invoice downloads stay on ArtByME. DotWin verifies invoice ownership before fetching
+the PDF from permitted Stripe hosts. Payment history includes completed payments with
+the subscription's unchanged description. Existing billing is not migrated or charged
+by opening this page.
 
-The new route performs no billing mutation, accepts no customer ID or redirect URL,
-and creates no bearer session. Authentication remains server-side and Stripe's email
-verification remains required even if someone obtains the shareable login URL.
-The page contains no client component or new dependency. Existing admin authorization
-tests and the full release build-check cover the unchanged access mechanism.
+## Verification and release workspace
+
+Adversarial tests cover unauthorized and cross-origin requests, caller-selected IDs,
+session mismatch, current-role checks, setup ownership, idempotency and invoice scope.
+UI tests cover the cancellation confirmation and inline card flow. Run the full
+`npm run build-check` for release, then verify the live page and card fields without
+changing the customer's card or renewal setting.
+
+Reused checkout: `workspaces/festive-production`, branch
+`DotWin-cx/margaret-subscription-billing`. Owner/task: DotWin, native ArtByME billing.
+Retain source/docs after release; remove only task-created inactive generated output.
+Remote production builds reuse the existing dependencies and avoid local build output.
