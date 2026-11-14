@@ -14,6 +14,12 @@ user's session only to the fixed DotWin billing endpoint. POST requires the same
 JSON and a strict command schema. Callers cannot choose the customer, subscription,
 merchant or upstream address. Responses are private and never cached.
 
+`DOTWIN_BILLING_BRIDGE_KEY` is a separate server-only connection key. A narrowly
+scoped hosting rule permits this key only on the fixed billing host/path for GET/POST,
+so automated server requests do not receive an interactive bot challenge. It grants
+no billing access on its own: the verified user session and subscription binding
+remain required. Never put this key in client code or deployment logs.
+
 DotWin independently verifies the ArtByME session with Supabase Auth and reads the
 current profile role under that user's RLS. A configured allowlist and server-owned
 subscription/customer binding limit access to the existing authorized site managers.

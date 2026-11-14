@@ -26,13 +26,15 @@ async function forward(request: Request, method: 'GET' | 'POST') {
     }
     const { data: { session }, error } = await auth.supabase.auth.getSession()
     if (error || !session || session.user.id !== auth.user.id) return Response.json({ error: 'Please sign in again.' }, { status: 401, headers: privateHeaders })
+    const bridgeKey = process.env.DOTWIN_BILLING_BRIDGE_KEY
+    if (!bridgeKey) throw new Error('Billing connection unavailable')
     const url = new URL(endpoint)
     const invoice = method === 'GET' ? new URL(request.url).searchParams.get('invoice') : null
     if (invoice) {
       if (!/^in_[A-Za-z0-9]+$/.test(invoice)) return Response.json({ error: 'Invalid invoice.' }, { status: 400, headers: privateHeaders })
       url.searchParams.set('invoice', invoice)
     }
-    const response = await fetch(url, { method, headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+    const response = await fetch(url, { method, headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', 'X-ArtByME-Billing-Bridge': bridgeKey },
       body, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(30000) })
     if (!response.ok) {
       const status = [400, 401, 403, 404, 409, 429].includes(response.status) ? response.status : 503
