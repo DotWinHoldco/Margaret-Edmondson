@@ -6,6 +6,8 @@ Status: published November 18, 2026, with live registration enabled. Illinois us
 
 The Classes page lists North Texas and Southern Illinois separately. Each uses Margaret’s original four paintings, per-painter choices, one payment per group, an 8×10 pre-drawn canvas and the same included materials and instruction. Attendance remains unlimited.
 
+The Illinois overview explicitly identifies it as the same Festive Paint class offered in North Texas. Both detail pages show the complete shared class description at the top, including the pre-drawn canvas, materials, self-guided instruction/information sheet and on-site instruction. Illinois retains its own date, venue and discount deadline.
+
 | Class | When (Central) | Where | Early price | Regular price |
 | --- | --- | --- | --- | --- |
 | North Texas | November 21, 9 AM–12:30 PM | 103 Freese Drive, Sanger, TX | $20 through November 19, 11:59 PM | $25 starting November 20 |

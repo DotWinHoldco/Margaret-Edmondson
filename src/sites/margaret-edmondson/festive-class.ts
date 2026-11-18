@@ -39,8 +39,9 @@ export const festiveClass = {
   ],
 } as const
 
-export type FestiveClass = Omit<typeof festiveClass, 'slug' | 'title' | 'locationLabel' | 'dateLabel' | 'shortDateLabel' | 'timeLabel' | 'timeOfDay' | 'regularPriceStartsLabel' | 'startsAt' | 'endsAt' | 'earlyPriceEndsAt' | 'earlyPriceDeadlineLabel' | 'priceScheduleLabel' | 'flyer' | 'marketAddress' | 'path'> & {
+export type FestiveClass = Omit<typeof festiveClass, 'slug' | 'title' | 'description' | 'locationLabel' | 'dateLabel' | 'shortDateLabel' | 'timeLabel' | 'timeOfDay' | 'regularPriceStartsLabel' | 'startsAt' | 'endsAt' | 'earlyPriceEndsAt' | 'earlyPriceDeadlineLabel' | 'priceScheduleLabel' | 'flyer' | 'marketAddress' | 'path'> & {
   slug: string; title: string; locationLabel: string; dateLabel: string; shortDateLabel: string
+  description: string
   timeLabel: string; timeOfDay: string; regularPriceStartsLabel: string
   startsAt: string; endsAt: string; earlyPriceEndsAt: string; earlyPriceDeadlineLabel: string
   priceScheduleLabel: string; flyer: string | null; marketAddress: string; path: string
@@ -50,6 +51,7 @@ export const illinoisClass: FestiveClass = {
   ...festiveClass,
   slug: 'festive-paint-marion-il',
   title: 'Festive Paint in Marion, IL',
+  description: `The same Festive Paint class offered in North Texas, now in Marion, Illinois. ${festiveClass.description}`,
   locationLabel: 'Southern Illinois · Marion, IL',
   dateLabel: 'Tuesday, November 24, 2026',
   shortDateLabel: 'November 24',

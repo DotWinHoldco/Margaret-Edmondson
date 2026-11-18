@@ -41,7 +41,7 @@ export async function FestiveClassPage({ event: festiveClass }: { event: Festive
           <h1 id="class-title">Make a little<br /><em>holiday magic.</em></h1>
           <p className="me-hero-subtitle">{festiveClass.title}</p>
           <p className="me-hero-location"><MapPin size={16} aria-hidden="true" />{festiveClass.marketAddress}</p>
-          <p className="me-intro">Pick a festive project, settle in, and paint at your own pace. We’ll have the canvas, the materials, and a little guidance ready for you.</p>
+          <p className="me-intro">{festiveClass.description}</p>
           <a className="me-button" href="#signup-form">Choose your paintings <ArrowDown size={17} aria-hidden="true" /></a>
           <p className="me-hero-note">Pre-drawn 8×10 canvas · All materials included</p>
         </div>
