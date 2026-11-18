@@ -12,12 +12,16 @@ export const registrationPayload = z.object({
   }).strict()).min(1),
 }).strict()
 export const registrationCapability = z.object({ id: z.string().uuid(), token: z.string().regex(/^[a-f0-9]{64}$/) }).strict()
+export const classSlug = z.enum(['festive-paint-at-the-market', 'festive-paint-marion-il']).default('festive-paint-at-the-market')
+export const registrationLookup = registrationCapability.extend({ classSlug }).strict()
 export const registrationRequest = registrationCapability.extend({
+  classSlug,
   payload: registrationPayload,
   expectedPrice: z.number().int().positive(),
 }).strict()
 export type RegistrationPayload = z.infer<typeof registrationPayload>
 export type ArtRegistration = {
+  class_slug: string
   id: string
   payload: RegistrationPayload
   unit_price: number

@@ -2,12 +2,13 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { festiveClass, festivePaintings, getFestiveOffer } from './festive-class'
+import { festiveClass as defaultClass, festivePaintings, getFestiveOffer, type FestiveClass } from './festive-class'
 import { FestivePayment, type FestivePaymentDetails } from './FestivePayment'
 
 type Painter = { key: number; name: string; painting: string }
 /** One buyer, any number of painters, one independently selected canvas per painter. */
-export function FestiveSignup({ initialOffer, paymentMode }: {
+export function FestiveSignup({ initialOffer, paymentMode, event: festiveClass = defaultClass }: {
+  event?: FestiveClass
   initialOffer: ReturnType<typeof getFestiveOffer>
   paymentMode: 'test' | 'live' | null
 }) {
@@ -22,13 +23,13 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
 
   useEffect(() => {
     const refresh = () => setOffer(previous => {
-      const current = getFestiveOffer()
+      const current = getFestiveOffer(new Date(), festiveClass)
       return previous.early === current.early && previous.ended === current.ended ? previous : current
     })
     const timer = window.setInterval(refresh, 1000)
     window.addEventListener('focus', refresh)
     return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh) }
-  }, [])
+  }, [festiveClass])
 
   function changeCount(value: string) {
     setCount(value)
@@ -46,7 +47,7 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
     const form = new FormData(event.currentTarget)
     const payload = { name: String(form.get('name')), email: String(form.get('email')), phone: String(form.get('phone')), painters: painters.map(({ name, painting }) => ({ name, painting })) }
     if (painters.some(painter => !painter.painting)) { setError('Please choose a painting for every painter.'); return }
-    const fingerprint = JSON.stringify({ payload, price: offer.priceCents })
+    const fingerprint = JSON.stringify({ classSlug: festiveClass.slug, payload, price: offer.priceCents })
     if (retry.current?.fingerprint !== fingerprint) retry.current = {
       fingerprint, id: crypto.randomUUID(), token: crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''),
     }
@@ -54,15 +55,15 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
     try {
       const response = await fetch('/api/classes/festive/checkout', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: retry.current.id, token: retry.current.token, payload, expectedPrice: offer.priceCents }),
+        body: JSON.stringify({ classSlug: festiveClass.slug, id: retry.current.id, token: retry.current.token, payload, expectedPrice: offer.priceCents }),
       })
       const result = await response.json() as Partial<FestivePaymentDetails> & { confirmation?: string; error?: string; priceChanged?: boolean }
       if (result.confirmation) { const destination = new URL(result.confirmation); if (destination.origin === window.location.origin) { window.location.assign(destination.href); return } }
       if (!response.ok || !result.clientSecret || !result.mode || !result.amountCents) {
-        if (result.priceChanged) setOffer(getFestiveOffer())
+        if (result.priceChanged) setOffer(getFestiveOffer(new Date(), festiveClass))
         throw new Error(result.error || 'We could not start payment. Your choices are still here; please try again.')
       }
-      setPayment({ clientSecret: result.clientSecret, mode: result.mode, amountCents: result.amountCents, id: retry.current.id, token: retry.current.token })
+      setPayment({ classSlug: festiveClass.slug, clientSecret: result.clientSecret, mode: result.mode, amountCents: result.amountCents, id: retry.current.id, token: retry.current.token })
     } catch (failure: unknown) {
       setError(failure instanceof Error ? failure.message : 'We could not start payment. Please try again.')
       setBusy(false)
@@ -73,10 +74,11 @@ export function FestiveSignup({ initialOffer, paymentMode }: {
     <ul>{painters.map((painter, index) => <li key={painter.key}>{painter.name || `Painter ${index + 1}`}: {festivePaintings.find(item => item.id === painter.painting)?.name}</li>)}</ul>
     <FestivePayment payment={payment} />
   </div>
-  if (offer.ended) return <p className="me-closed">Registration has closed for this market.</p>
+  if (offer.ended) return <p className="me-closed">Registration has closed for this class.</p>
   const total = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(painters.length * offer.priceCents / 100)
   return (
     <form className="me-signup" onSubmit={submit}>
+      <p className="me-payment-notice"><strong>{festiveClass.locationLabel}</strong><br />{festiveClass.dateLabel} · {festiveClass.timeLabel} Central<br />{festiveClass.marketAddress}</p>
       <fieldset disabled={busy}>
         <legend>1. Your information</legend>
         <p>One contact for your whole group.</p>

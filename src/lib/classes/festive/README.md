@@ -9,3 +9,6 @@ The database owns prices, choices, capability-token hashes and immutable group s
 The owner confirmed November 21, 2026, 9:00 AM–12:30 PM Central, 103 Freese Drive, Sanger. Per Margaret’s uploaded flier and the owner’s correction: $20 per painter through November 19 at 11:59 PM Central; $25 starting November 20; unlimited attendance. The admin roster is /admin/classes/festive. Refunds currently need manual class-roster reconciliation; do not infer cancellation solely from a customer request.
 
 Keep registration closed until test checkout, signed settlement, confirmation privacy, email reliability, and production settings are verified. The public password gate and global Stripe mode are released together after verification.
+
+
+November 18: the shared class flow also serves Marion, Illinois on November 24, 5–8 PM Central. The new class_slug selection is validated at the API and SQL boundaries; retry capabilities cannot change class. The old Texas RPC signatures remain compatible. See docs/illinois-class-owner-playbook.md.

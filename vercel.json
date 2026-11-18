@@ -70,7 +70,8 @@
     "deploymentEnabled": {
       "DotWin-cx/margaret-subscription-billing": false,
       "DotWin-cx/margaret-festive-production": false,
-      "codex/margaret-november-requests": false
+      "codex/margaret-november-requests": false,
+      "codex/margaret-illinois-class": false
     }
   }
 }

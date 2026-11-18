@@ -5,6 +5,8 @@ import { festiveEmailContent, sendFestiveEmails } from '@/lib/classes/festive/em
 const send = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/email/send', () => ({ sendEmail: send }))
 vi.mock('@/lib/settings/accessor', () => ({ getOrderNotificationEmail: async () => 'margaret@artbyme.studio' }))
+import { illinoisClass } from '@/sites/margaret-edmondson/festive-class'
+
 const payload = { name: '<script>Buyer</script>', email: 'buyer@example.com', phone: '555-555-0100', painters: [{ name: 'Parent', painting: 'snowman' as const }, { name: 'Child', painting: 'santa' as const }] }
 const sent = new Map<string, string>()
 const db = { rpc: vi.fn(async () => ({ data: true, error: null })), from: (table: string) => {
@@ -15,13 +17,20 @@ const db = { rpc: vi.fn(async () => ({ data: true, error: null })), from: (table
     eq: (key: string, value: string) => { if (key === 'kind') kind = value; return query },
     is: () => query,
     update: (value: Record<string, unknown>) => { update = value; return query },
-    single: async () => ({ data: table === 'festive_registrations' ? { payload, total: 4000, mode: 'live', status: 'paid' } : { sent_at: sent.get(kind) || null }, error: null }),
+    single: async () => ({ data: table === 'festive_registrations' ? { class_slug: 'festive-paint-at-the-market', payload, total: 4000, mode: 'live', status: 'paid' } : { sent_at: sent.get(kind) || null }, error: null }),
     then: (resolve: (value: unknown) => unknown) => { if (update?.sent_at) sent.set(kind, String(update.sent_at)); return Promise.resolve(resolve({ error: null })) },
   }
   return query
 } } as unknown as SupabaseClient
 beforeEach(() => { vi.clearAllMocks(); sent.clear(); send.mockResolvedValue({ id: 'email_fixture' }) })
 describe('festive confirmation email', () => {
+  it('confirms the Illinois date and venue without Texas details', () => {
+    const html = festiveEmailContent(payload, 4000, 'buyer', illinoisClass)
+    expect(html).toContain('November 24, 2026')
+    expect(html).toContain('401 S. Court St., Marion, IL')
+    expect(html).not.toContain('Sanger')
+    expect(html).not.toContain('November 21')
+  })
   it('contains the group choices, price, venue and date with escaped customer input', () => {
     const html = festiveEmailContent(payload, 4000, 'buyer')
     expect(html).toContain('Snowman'); expect(html).toContain('Santa'); expect(html).toContain('$40.00')

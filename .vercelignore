@@ -9,3 +9,9 @@ todo-baseline.json
 
 .cowork-transfer/
 .env.local
+
+# Local owner/task notes unrelated to the published application
+PUSH_ARTWORK_INSTRUCTIONS.md
+TASKS.md
+dashboard.html
+docs/festive-market-class.md

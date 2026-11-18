@@ -66,7 +66,7 @@ export default async function AdminClassesPage() {
         </Link>
       </div>
 
-      <Link href="/admin/classes/festive" className="mb-6 block rounded-lg border border-teal/30 bg-white p-5 text-teal">Festive Paint at the Market — paid groups & canvas preparation →</Link>
+      <Link href="/admin/classes/festive" className="mb-6 block rounded-lg border border-teal/30 bg-white p-5 text-teal">Festive Paint — North Texas & Marion, IL paid groups and canvas preparation →</Link>
       <div className="rounded-lg border border-charcoal/10 bg-white overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-charcoal/[0.03]">

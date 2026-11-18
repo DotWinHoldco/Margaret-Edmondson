@@ -30,6 +30,7 @@ beforeAll(async () => {
     'supabase/migrations/20260914230200_sync_original_product_variant.sql',
     'supabase/migrations/20261104185409_festive_class_production.sql',
     'supabase/migrations/20261104195446_festive_payment_elements.sql',
+    'supabase/migrations/20261118192737_festive_illinois_class.sql',
   ]) await db.exec(read(file))
   for (const name of [
     'hold_originals', 'convert_original_hold', 'release_original_holds', 'refund_original_holds',
@@ -95,4 +96,8 @@ it('restocks an unshipped refund once and blocks an expired payment from taking 
       assert convert_original_hold('pi_fixture_slow',v)='converted';
       assert convert_original_hold('pi_fixture_slow',v)='already_converted';
     end $$; rollback;`)
+})
+
+it('keeps Illinois and Texas reservations separate and rolls back rejected writes', async () => {
+  await db.exec(read('supabase/tests/festive-illinois-class.sql'))
 })

@@ -6,25 +6,27 @@ import { brandedShell } from '@/lib/email/shell'
 import { escapeHtml } from '@/lib/email/escape'
 import { getOrderNotificationEmail } from '@/lib/settings/accessor'
 import { DEFAULT_STUDIO_EMAIL } from '@/lib/email/identity'
-import { festiveClass, festivePaintings } from '@/sites/margaret-edmondson/festive-class'
+import { festiveClass as defaultClass, findFestiveClass, festivePaintings, type FestiveClass } from '@/sites/margaret-edmondson/festive-class'
 import { registrationPayload } from './model'
 
 /** Rendering escapes all buyer input and includes each painter's frozen selection. */
-export function festiveEmailContent(payload: ReturnType<typeof registrationPayload.parse>, total: number, kind: 'buyer' | 'studio') {
+export function festiveEmailContent(payload: ReturnType<typeof registrationPayload.parse>, total: number, kind: 'buyer' | 'studio', festiveClass: FestiveClass = defaultClass) {
   const choices = payload.painters.map((painter, i) => `<li>${escapeHtml(painter.name || `Painter ${i + 1}`)}: ${escapeHtml(festivePaintings.find(p => p.id === painter.painting)!.name)}</li>`).join('')
   return brandedShell(`<h2>${kind === 'buyer' ? 'You’re painting with us!' : 'New paid festive class group'}</h2>
     <p>${escapeHtml(payload.name)}, payment of <strong>$${(total / 100).toFixed(2)}</strong> is confirmed for ${payload.painters.length} ${payload.painters.length === 1 ? 'painter' : 'painters'}.</p>
-    <p><strong>${festiveClass.title}</strong><br>Saturday, November 21, 2026 · 9:00 AM–12:30 PM Central<br>${festiveClass.marketAddress}</p>
+    <p><strong>${festiveClass.title}</strong><br>${escapeHtml(festiveClass.dateLabel)} · ${escapeHtml(festiveClass.timeLabel)} Central<br>${escapeHtml(festiveClass.marketAddress)}</p>
     <ul>${choices}</ul><p>Your pre-drawn 8×10 canvases, materials, instruction sheets, and on-site instruction are included. Paint at your own pace.</p>
-    ${kind === 'studio' ? `<p>Buyer: ${escapeHtml(payload.email)} · ${escapeHtml(payload.phone)}</p><p><a href="https://artbyme.studio/admin/classes/festive">Open the paid roster and canvas totals</a></p>` : '<p>Keep this email for your group. Questions or changes? Reply to Margaret.</p>'}`,
-    { hideUnsubscribe: true, preheader: 'Your festive painting group is confirmed for November 21.' })
+    ${kind === 'studio' ? `<p>Buyer: ${escapeHtml(payload.email)} · ${escapeHtml(payload.phone)}</p><p><a href="https://www.artbyme.studio/admin/classes/festive?class=${festiveClass.slug}">Open the paid roster and canvas totals</a></p>` : '<p>Keep this email for your group. Questions or changes? Reply to Margaret.</p>'}`,
+    { hideUnsubscribe: true, preheader: `Your festive painting group is confirmed for ${festiveClass.shortDateLabel} in ${festiveClass.locationLabel}.` })
 }
 
 /** Successful deliveries stay recorded; an unavailable provider makes Stripe retry the event. */
 export async function sendFestiveEmails(db: SupabaseClient, id: string) {
-  const { data: order, error } = await db.from('festive_registrations').select('payload,total,mode,status').eq('id', id).single()
+  const { data: order, error } = await db.from('festive_registrations').select('class_slug,payload,total,mode,status').eq('id', id).single()
   if (error || !order) throw new Error('Class registration unavailable')
   if (order.mode !== 'live' || order.status !== 'paid') return
+  const event = findFestiveClass(order.class_slug)
+  if (!event) throw new Error('Class unavailable')
   const payload = registrationPayload.parse(order.payload)
   const studioEmail = await getOrderNotificationEmail() || DEFAULT_STUDIO_EMAIL
   for (const kind of ['buyer', 'studio'] as const) {
@@ -37,8 +39,8 @@ export async function sendFestiveEmails(db: SupabaseClient, id: string) {
       const result: unknown = await sendEmail({
         to: kind === 'buyer' ? payload.email : studioEmail,
         replyTo: kind === 'buyer' ? studioEmail : payload.email,
-        subject: `${kind === 'buyer' ? 'You’re confirmed' : 'New paid group'} — Festive Paint at the Market`,
-        html: festiveEmailContent(payload, order.total, kind),
+        subject: `${kind === 'buyer' ? 'You’re confirmed' : 'New paid group'} — ${event.title} · ${event.locationLabel}`,
+        html: festiveEmailContent(payload, order.total, kind, event),
         idempotencyKey: `festive:${id}:${kind}`,
       })
       const providerId = result && typeof result === 'object' && 'id' in result && typeof result.id === 'string' ? result.id : null

@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { appearance, elementsFonts, getStripeJs } from '@/lib/stripe/elements'
-import { festiveClass } from './festive-class'
+import { festiveClass, findFestiveClass } from './festive-class'
 
-export type FestivePaymentDetails = { clientSecret: string; mode: 'test' | 'live'; amountCents: number; id: string; token: string }
+export type FestivePaymentDetails = { classSlug?: string; clientSecret: string; mode: 'test' | 'live'; amountCents: number; id: string; token: string }
 
 /** The class uses the shop's exact Stripe theme and runtime account selection. */
 export function FestivePayment({ payment }: { payment: FestivePaymentDetails }) {
@@ -31,7 +31,9 @@ function PaymentForm({ payment }: { payment: FestivePaymentDetails }) {
     if (!stripe || !elements || busy) return
     setBusy(true); setError('')
     try {
-      const confirmation = `${window.location.origin}${festiveClass.path}/confirmation#${payment.id}:${payment.token}`
+      const event = findFestiveClass(payment.classSlug || festiveClass.slug)
+      if (!event) throw new Error("Class unavailable")
+      const confirmation = `${window.location.origin}${event.path}/confirmation#${payment.id}:${payment.token}`
       const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: confirmation }, redirect: 'if_required' })
       if (result.error) throw new Error(result.error.message || 'Payment could not be completed. Please try again.')
       // Reload also refreshes settlement polling when resuming on the confirmation page.

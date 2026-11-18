@@ -3,12 +3,12 @@ import 'server-only'
 import type { Json } from '@/lib/supabase/database.types'
 import { createClient } from '@/lib/supabase/server'
 import { getStripeMode, isStripeKeyConfigured, isWebhookSecretConfigured } from '@/lib/stripe'
-type ArtRpc = 'festive_class_public' | 'festive_reserve' | 'festive_registration_status'
+type ArtRpc = 'festive_class_public_for' | 'festive_reserve_for' | 'festive_registration_status'
 
 export class ArtRegistrationError extends Error {
   constructor(public priceChanged = false) { super('Registration unavailable') }
 }
-/** Each SQL owner validates the fixed class and bearer capability independently. */
+/** Each SQL owner validates the selected class and bearer capability independently. */
 export async function artRpc<T>(name: ArtRpc, args: Record<string, Json> = {}): Promise<T> {
   const db = await createClient()
   const { data, error } = await (db.rpc as unknown as (name: ArtRpc, args: Record<string, Json>) => Promise<{ data: T; error: { code: string } | null }>)(name, args)
@@ -17,11 +17,11 @@ export async function artRpc<T>(name: ArtRpc, args: Record<string, Json> = {}): 
 }
 
 /** Open checkout only when the class and existing site payment mode agree. */
-export async function availableArtPaymentMode() {
+export async function availableArtPaymentMode(classSlug = 'festive-paint-at-the-market') {
   const mode = await getStripeMode()
   if (!isStripeKeyConfigured(mode) || !isWebhookSecretConfigured(mode)) return null
   try {
-    const settings = await artRpc<{ accepting: boolean; mode: 'test' | 'live' }>('festive_class_public')
+    const settings = await artRpc<{ accepting: boolean; mode: 'test' | 'live' }>('festive_class_public_for', { p_slug: classSlug })
     return settings?.accepting && settings.mode === mode ? mode : null
   } catch { return null }
 }

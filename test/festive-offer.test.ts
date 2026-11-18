@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { festiveClass, getFestiveOffer, festiveCampaignUrl } from '@/sites/margaret-edmondson/festive-class'
+import { festiveClass, illinoisClass, getFestiveOffer, festiveCampaignUrl } from '@/sites/margaret-edmondson/festive-class'
 
 describe('festive class offer deadlines', () => {
   it('keeps the discount through November 19 in the market timezone, after UTC midnight', () => {
@@ -22,5 +22,14 @@ describe('festive class offer deadlines', () => {
     expect(url.origin).toBe('https://artbyme.studio')
     expect(url.pathname).toBe(festiveClass.path)
     expect(url.searchParams.get('utm_campaign')).toBe('margaret_festive_market_2026')
+  })
+})
+
+describe('Illinois class deadlines', () => {
+  it('preserves $20 through Sunday and changes at Monday midnight Central', () => {
+    expect(getFestiveOffer(new Date('2026-11-23T05:59:59.999Z'), illinoisClass)).toMatchObject({ priceCents: 2000, early: true })
+    expect(getFestiveOffer(new Date('2026-11-23T06:00:00Z'), illinoisClass)).toMatchObject({ priceCents: 2500, early: false })
+    expect(getFestiveOffer(new Date('2026-11-21T20:00:00Z'), illinoisClass).ended).toBe(false)
+    expect(getFestiveOffer(new Date('2026-11-25T02:00:00Z'), illinoisClass).ended).toBe(true)
   })
 })

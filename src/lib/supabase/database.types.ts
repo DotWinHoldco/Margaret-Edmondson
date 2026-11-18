@@ -4956,6 +4956,7 @@ export type Database = {
         Returns: boolean
       }
       festive_class_public: { Args: never; Returns: Json }
+      festive_class_public_for: { Args: { p_slug: string }; Returns: Json }
       festive_link_intent: {
         Args: {
           p_amount: number
@@ -4999,6 +5000,16 @@ export type Database = {
           p_expected_price: number
           p_id: string
           p_payload: Json
+          p_token: string
+        }
+        Returns: Json
+      }
+      festive_reserve_for: {
+        Args: {
+          p_expected_price: number
+          p_id: string
+          p_payload: Json
+          p_slug: string
           p_token: string
         }
         Returns: Json

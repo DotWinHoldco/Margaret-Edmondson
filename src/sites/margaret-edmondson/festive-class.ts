@@ -4,6 +4,12 @@
 export const festiveClass = {
   slug: 'festive-paint-at-the-market',
   title: 'Festive Paint at the Market',
+  locationLabel: 'North Texas · Sanger, TX',
+  dateLabel: 'Saturday, November 21, 2026',
+  shortDateLabel: 'November 21',
+  timeLabel: '9 AM–12:30 PM',
+  timeOfDay: 'morning',
+  regularPriceStartsLabel: 'November 20',
   instructor: 'Margaret Edmondson',
   status: 'registration',
   timeZone: 'America/Chicago',
@@ -19,7 +25,7 @@ export const festiveClass = {
   earlyPriceCents: 2000,
   regularPriceCents: 2500,
   marketName: null as string | null,
-  marketAddress: '103 Freese Drive, Sanger',
+  marketAddress: '103 Freese Drive, Sanger, TX',
   capacity: null, // No class capacity limit, as requested by the owner.
   audience: null as string | null,
   canvas: '8 × 10 inches',
@@ -33,6 +39,40 @@ export const festiveClass = {
   ],
 } as const
 
+export type FestiveClass = Omit<typeof festiveClass, 'slug' | 'title' | 'locationLabel' | 'dateLabel' | 'shortDateLabel' | 'timeLabel' | 'timeOfDay' | 'regularPriceStartsLabel' | 'startsAt' | 'endsAt' | 'earlyPriceEndsAt' | 'earlyPriceDeadlineLabel' | 'priceScheduleLabel' | 'flyer' | 'marketAddress' | 'path'> & {
+  slug: string; title: string; locationLabel: string; dateLabel: string; shortDateLabel: string
+  timeLabel: string; timeOfDay: string; regularPriceStartsLabel: string
+  startsAt: string; endsAt: string; earlyPriceEndsAt: string; earlyPriceDeadlineLabel: string
+  priceScheduleLabel: string; flyer: string | null; marketAddress: string; path: string
+}
+
+export const illinoisClass: FestiveClass = {
+  ...festiveClass,
+  slug: 'festive-paint-marion-il',
+  title: 'Festive Paint in Marion, IL',
+  locationLabel: 'Southern Illinois · Marion, IL',
+  dateLabel: 'Tuesday, November 24, 2026',
+  shortDateLabel: 'November 24',
+  timeLabel: '5–8 PM',
+  timeOfDay: 'evening',
+  startsAt: '2026-11-24T17:00:00-06:00',
+  endsAt: '2026-11-24T20:00:00-06:00',
+  earlyPriceEndsAt: '2026-11-23T00:00:00-06:00',
+  earlyPriceDeadlineLabel: 'November 22 at 11:59 PM Central',
+  regularPriceStartsLabel: 'November 23',
+  priceScheduleLabel: '$20 through November 22 at 11:59 PM Central; $25 starting November 23.',
+  marketAddress: '401 S. Court St., Marion, IL',
+  path: '/classes/festive-paint-marion-il',
+  // The supplied flier advertises Texas; do not display it for Illinois.
+  flyer: null,
+}
+
+export const festiveClasses: readonly FestiveClass[] = [festiveClass, illinoisClass]
+/** Resolve only the published class definitions. */
+export function findFestiveClass(slug: string): FestiveClass | undefined {
+  return festiveClasses.find(item => item.slug === slug)
+}
+
 /** The owner's supplied examples, unchanged; each painter chooses independently. */
 export const festivePaintings = [
   { id: 'snowman', name: 'Snowman', image: '/margaret-edmondson/paintings/snowman.jpeg', alt: 'Snowman with a red scarf against a blue background' },
@@ -42,17 +82,17 @@ export const festivePaintings = [
 ] as const
 
 /** Resolve the advertised price using the market timezone, including its end. */
-export function getFestiveOffer(now: Date = new Date()) {
+export function getFestiveOffer(now: Date = new Date(), event: FestiveClass = festiveClass) {
   const timestamp = now.getTime()
   if (!Number.isFinite(timestamp)) throw new RangeError('A valid date is required')
-  const early = timestamp < Date.parse(festiveClass.earlyPriceEndsAt)
-  const ended = timestamp >= Date.parse(festiveClass.endsAt)
+  const early = timestamp < Date.parse(event.earlyPriceEndsAt)
+  const ended = timestamp >= Date.parse(event.endsAt)
   return {
     early,
     ended,
-    priceCents: early ? festiveClass.earlyPriceCents : festiveClass.regularPriceCents,
+    priceCents: early ? event.earlyPriceCents : event.regularPriceCents,
     priceLabel: early ? '$20' : '$25',
-    savingsLabel: ended ? 'This market has ended' : early ? `Save $5 when you sign up by ${festiveClass.earlyPriceDeadlineLabel}` : 'November 21 class price',
+    savingsLabel: ended ? 'This class has ended' : early ? `Save $5 when you sign up by ${event.earlyPriceDeadlineLabel}` : `${event.shortDateLabel} class price`,
   }
 }
 
