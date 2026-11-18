@@ -15,3 +15,14 @@ PUSH_ARTWORK_INSTRUCTIONS.md
 TASKS.md
 dashboard.html
 docs/festive-market-class.md
+
+# Source scans are kept in durable artwork storage; not public deployment inputs.
+public/Margaret Edmondson/
+public/Margaret-Scans/
+public/SCANS/
+Artwork-Library/
+main product photos/
+*.cookie
+supabase/.temp/
+.vercel/
+*.tsbuildinfo
