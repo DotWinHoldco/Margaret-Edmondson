@@ -226,6 +226,17 @@ const navItems = [
     mobileOrder: 6,
   },
   {
+    label: 'Subscription billing',
+    href: '/admin/billing',
+    icon: (
+      <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path strokeLinecap="round" d="M3 10h18M7 15h4" />
+      </svg>
+    ),
+    mobileOrder: 0,
+  },
+  {
     label: 'Settings',
     href: '/admin/settings',
     icon: (
