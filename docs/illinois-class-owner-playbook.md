@@ -2,7 +2,7 @@
 
 Authored by DotWin. November 18, 2026.
 
-Status: verified release candidate, not yet published to the public domain. Illinois registration remains closed pending inspection of Art By ME’s current Stripe delivery settings. Existing shop and Texas checkout settings were not changed. The URLs below are the intended public links after launch.
+Status: implementation and payment recovery checks passed; production activation is recorded in the release record. Illinois uses the existing Art By ME live Stripe configuration. No new Stripe account is required.
 
 The Classes page lists North Texas and Southern Illinois separately. Each uses Margaret’s original four paintings, per-painter choices, one payment per group, an 8×10 pre-drawn canvas and the same included materials and instruction. Attendance remains unlimited.
 
@@ -18,6 +18,10 @@ To prepare canvases, open Classes in the dashboard, choose the Festive Paint ros
 
 Dates, wording and artwork choices live in src/sites/margaret-edmondson/festive-class.ts. Database prices and deadlines live in festive_classes and must be updated together with the displayed schedule. Illinois’s discount boundary is November 23 at 00:00 Central, which includes all of November 22. The original Texas flier remains only on the Texas page because its dates and location do not describe Illinois.
 
-Migration 20261118192737_festive_illinois_class adds the Illinois class closed initially and preserves old reservation APIs for existing browser sessions. Activation requires deployment verification and a working signed Stripe delivery path. The old warning named a redirecting non-www URL, but the current Stripe endpoint list has not been inspected: this is not proof that the shop cannot sell. Inspect the actual endpoint and recent deliveries first. The separately deferred webhook URL repair remains an owner decision if that setting is still in use. Never mark a booking paid from a browser return alone.
+Migration 20261118192737_festive_illinois_class adds the Illinois class closed initially and preserves old reservation APIs for existing browser sessions. After deployment and live checkout verification, registration is enabled. Normal pages keep their www redirect; the existing non-www Stripe callback reaches the same signature-checking payment handler directly. This requires removing the hosting project's blanket apex redirect after deploying the path-specific redirect in next.config.ts.
+
+If a callback is delayed, the private class confirmation page checks the bound payment directly with Stripe, retrieves its genuine success event and uses the same atomic settlement function and confirmation-email delivery records. No browser-supplied payment status is trusted. The recovery check covers events retained by Stripe for 30 days and scans at most 300 success events per refresh. Buyers who have paid should retain their private confirmation page and refresh its status rather than pay a second time.
+
+Margaret's Stripe endpoint settings remain inaccessible to this session. The website routing fix cannot re-enable an endpoint Stripe has disabled or replay its old failed deliveries. Margaret can inspect that endpoint in her Stripe dashboard if needed. The new class confirmation recovery also works when delivery of that event is delayed or absent. Existing orders showed successful signed Stripe callbacks on November 5 and 8; no new real card charge was made during verification.
 
 Verification includes real PostgreSQL class isolation, immutable retry prices, invalid/unknown class rejection, rollback after an injected persistence failure, per-class deadline boundaries, embedded checkout identity and email venue/date checks. Local full build-check printed GREEN on November 18. Production release evidence is recorded separately.

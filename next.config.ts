@@ -63,6 +63,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async redirects() {
     return [
+      // Keep the existing Stripe callback reachable on the apex hostname.
+      // Vercel's domain-wide redirect must be cleared only after this deploy.
+      {
+        source: '/:path((?!api/webhooks/stripe$).*)',
+        has: [{ type: 'host', value: 'artbyme.studio' }],
+        destination: 'https://www.artbyme.studio/:path',
+        permanent: true,
+      },
       // Retired authenticator links return to the normal admin sign-in flow.
       { source: '/admin/security/mfa/:path*', destination: '/admin', permanent: true },
       // "Sometime" was renamed to "Royal" — keep any old links working.

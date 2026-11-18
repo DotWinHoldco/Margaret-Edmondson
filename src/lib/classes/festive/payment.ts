@@ -1,4 +1,4 @@
-// Authored by DotWin. Called only after the existing Stripe webhook verifies the event.
+// Authored by DotWin. Accept only a signature-verified webhook or an event fetched with the server's Stripe credentials.
 import 'server-only'
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'

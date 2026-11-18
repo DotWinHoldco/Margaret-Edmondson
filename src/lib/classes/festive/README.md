@@ -12,3 +12,4 @@ Keep registration closed until test checkout, signed settlement, confirmation pr
 
 
 November 18: the shared class flow also serves Marion, Illinois on November 24, 5–8 PM Central. The new class_slug selection is validated at the API and SQL boundaries; retry capabilities cannot change class. The old Texas RPC signatures remain compatible. See docs/illinois-class-owner-playbook.md.
+Class confirmation first validates the private capability, then can recover a delayed webhook by retrieving the bound PaymentIntent and its genuine success event from Stripe. The existing atomic settlement RPC keeps event IDs and email deliveries idempotent. Browser return parameters never establish payment; mismatched amounts, class identity, mode, merchant, missing events, or provider failures leave the registration unconfirmed. Provider event lookup is bounded to 300 success events and Stripe's 30-day event retention.
