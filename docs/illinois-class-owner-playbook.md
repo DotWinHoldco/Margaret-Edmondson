@@ -2,6 +2,8 @@
 
 Authored by DotWin. November 18, 2026.
 
+Status: verified release candidate, not yet published to the public domain. Illinois registration remains closed pending inspection of Art By ME’s current Stripe delivery settings. Existing shop and Texas checkout settings were not changed. The URLs below are the intended public links after launch.
+
 The Classes page lists North Texas and Southern Illinois separately. Each uses Margaret’s original four paintings, per-painter choices, one payment per group, an 8×10 pre-drawn canvas and the same included materials and instruction. Attendance remains unlimited.
 
 | Class | When (Central) | Where | Early price | Regular price |
@@ -16,6 +18,6 @@ To prepare canvases, open Classes in the dashboard, choose the Festive Paint ros
 
 Dates, wording and artwork choices live in src/sites/margaret-edmondson/festive-class.ts. Database prices and deadlines live in festive_classes and must be updated together with the displayed schedule. Illinois’s discount boundary is November 23 at 00:00 Central, which includes all of November 22. The original Texas flier remains only on the Texas page because its dates and location do not describe Illinois.
 
-Migration 20261118192737_festive_illinois_class adds the Illinois class closed initially and preserves old reservation APIs for existing browser sessions. Activation requires deployment verification and a working signed Stripe delivery path. The separately deferred webhook URL repair remains an owner decision. Never mark a booking paid from a browser return alone.
+Migration 20261118192737_festive_illinois_class adds the Illinois class closed initially and preserves old reservation APIs for existing browser sessions. Activation requires deployment verification and a working signed Stripe delivery path. The old warning named a redirecting non-www URL, but the current Stripe endpoint list has not been inspected: this is not proof that the shop cannot sell. Inspect the actual endpoint and recent deliveries first. The separately deferred webhook URL repair remains an owner decision if that setting is still in use. Never mark a booking paid from a browser return alone.
 
 Verification includes real PostgreSQL class isolation, immutable retry prices, invalid/unknown class rejection, rollback after an injected persistence failure, per-class deadline boundaries, embedded checkout identity and email venue/date checks. Local full build-check printed GREEN on November 18. Production release evidence is recorded separately.
