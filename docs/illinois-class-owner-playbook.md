@@ -2,7 +2,7 @@
 
 Authored by DotWin. November 18, 2026.
 
-Status: implementation and payment recovery checks passed; production activation is recorded in the release record. Illinois uses the existing Art By ME live Stripe configuration. No new Stripe account is required.
+Status: published November 18, 2026, with live registration enabled. Illinois uses the existing Art By ME live Stripe configuration. No new Stripe account is required. See illinois-class-release-2026-11-18.md for verification and recovery details.
 
 The Classes page lists North Texas and Southern Illinois separately. Each uses Margaret’s original four paintings, per-painter choices, one payment per group, an 8×10 pre-drawn canvas and the same included materials and instruction. Attendance remains unlimited.
 
