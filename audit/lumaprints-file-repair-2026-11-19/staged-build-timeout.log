@@ -1,0 +1,1058 @@
+Retrieving project…
+Deploying dotwinholdcos-projects/margaret-edmondson
+Uploading [--------------------] (0.0B/157.7KB)
+Uploading [=====---------------] (40.9KB/157.7KB)
+Uploading [==========----------] (78.9KB/157.7KB)
+Uploading [================----] (126.4KB/157.7KB)
+Uploading [====================] (157.7KB/157.7KB)
+Inspect: https://vercel.com/dotwinholdcos-projects/margaret-edmondson/LaBv4QgbhmSHMiejfmL1u82Dgh8s [4s]
+Production: https://margaret-edmondson-79kucewnk-dotwinholdcos-projects.vercel.app [4s]
+https://margaret-edmondson-79kucewnk-dotwinholdcos-projects.vercel.appBuilding...
+Building: Running build in Washington, D.C., USA (East) – iad1
+Building: Build machine configuration: 30 cores, 60 GB (Turbo Build Machine)
+Building: Retrieving list of deployment files...
+Building: Retrieving list of deployment files...
+Building: Downloading 1275 deployment files...
+Building: Restored build cache from previous deployment (ErfLU5BM3xHzTK6jzExiP7sFpSfo)
+Building: Running "vercel build"
+Building: Vercel CLI 66.2.0
+Building: Installing dependencies...
+Building: npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Building: > margaret-edmonson@0.1.0 prepare
+Building: > husky
+Building: .git can't be found
+Building: up to date in 2s
+Building: 210 packages are looking for funding
+Building: run `npm fund` for details
+Building: npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+Building: npm warn install-scripts   unrs-resolver@1.11.1 (postinstall: napi-postinstall unrs-resolver 1.11.1 check)
+Building: npm warn install-scripts
+Building: npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+Building: Detected Next.js version: 16.3.8
+Building: Running "npm run build-check:write"
+Building: npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Building: > margaret-edmonson@0.1.0 build-check:write
+Building: > node scripts/build-check.mjs --write-state
+Building: > margaret-edmonson@0.1.0 test
+Building: > vitest run
+Building: RUN  v4.1.11 /vercel/path0
+Building: ✓ test/master-crop.test.ts (9 tests) 386ms
+Building: ✓ test/integrations/lumaprints-budget.test.ts (12 tests) 182ms
+Building: ✓ test/order-path.test.ts (16 tests) 213ms
+Building: ✓ test/catalog/seed-rules.test.ts (26 tests) 142ms
+Building: ✓ test/rls/customer-profiles.test.ts (4 tests) 1525ms
+Building: ✓ test/post-purchase-database.test.ts (12 tests) 1569ms
+Building: ✓ test/festive-elements.test.tsx (1 test) 191ms
+Building: ✓ test/new-product-setup.test.tsx (6 tests) 514ms
+Building: ✓ test/shop/frame-preview.test.tsx (12 tests) 209ms
+Building: ✓ test/checkout-database.test.ts (7 tests) 1849ms
+Building: ✓ test/admin/native-billing.test.tsx (2 tests) 127ms
+Building: ✓ test/admin-product-deletion.test.tsx (7 tests) 244ms
+Building: ✓ test/integrations/lumaprints-client.test.ts (7 tests) 822ms
+Building: ✓ charges the retry too: a 429 then a 200 is two attempts and two slots  806ms
+Building: ✓ test/paper-border.test.ts (8 tests) 527ms
+Building: ✓ test/password-recovery.test.tsx (16 tests) 290ms
+Building: ✓ test/studio-product-profile.test.tsx (4 tests) 124ms
+Building: ✓ test/variant-markup-margin.test.tsx (4 tests) 244ms
+Building: ✓ test/admin/offer-coverage.test.tsx (4 tests) 151ms
+Building: ✓ test/standard-print-size-ui.test.tsx (5 tests) 193ms
+Building: ✓ test/markup-margin-fields.test.tsx (5 tests) 99ms
+Building: ✓ test/pricing-controls.test.tsx (4 tests) 234ms
+Building: ✓ test/api/native-billing.test.ts (6 tests) 67ms
+Building: ✓ test/admin-access.test.ts (20 tests) 50ms
+Building: ✓ test/admin/print-configurator-section.test.tsx (3 tests) 125ms
+Building: ✓ test/api/master-crop-preview-route.test.ts (3 tests) 65ms
+Building: ✓ test/orders/order-surfaces.test.tsx (10 tests) 192ms
+Building: ✓ test/post-purchase-email.test.ts (8 tests) 66ms
+Building: ✓ test/funnel-print-size-label.test.tsx (5 tests) 476ms
+Building: ✓ test/admin/catalog-manager.test.tsx (7 tests) 406ms
+Building: ✓ test/shop/use-configurator-quote.test.tsx (7 tests) 54ms
+Building: ✓ test/print-size-label.test.tsx (5 tests) 237ms
+Building: ✓ test/orders/customer-directory.test.tsx (5 tests) 95ms
+Building: ✓ test/original-and-prints.test.tsx (4 tests) 253ms
+Building: ✓ test/orders/order-history.test.tsx (6 tests) 158ms
+Building: ✓ test/admin/variants-tab-v2.test.tsx (9 tests) 972ms
+Building: ✓ lets the owner untick a print type for one size, saves the veto, and says when nothing sells the size  573ms
+Building: ✓ test/admin/master-crop-modal.test.tsx (5 tests) 1078ms
+Building: ✓ blocks a repeated save while preparing and confirms completion once with Done  468ms
+Building: ✓ test/launch-entry.test.tsx (3 tests) 738ms
+Building: ✓ opens directly to requests for a fresh browser  430ms
+Building: ✓ opens directly to requests for a legacy dismissal  301ms
+Building: ✓ test/api/pricing-warm-routes.test.ts (12 tests) 21ms
+Building: ✓ test/cart-line-identity.test.ts (8 tests) 49ms
+Building: ✓ test/api/coverage-route.test.ts (11 tests) 61ms
+Building: ✓ test/catalog/load.test.ts (21 tests) 31ms
+Building: ✓ test/catalog/assemble.test.ts (5 tests) 24ms
+Building: ✓ test/original-product-save.test.ts (5 tests) 24ms
+Building: ✓ test/shop/print-configurator.test.tsx (23 tests) 957ms
+Building: ✓ test/api/print-quote-route.test.ts (30 tests) 48ms
+Building: ✓ test/catalog/catalog-sync-route.test.ts (17 tests) 42ms
+Building: ✓ test/password-recovery-gate.test.ts (11 tests) 20ms
+Building: ✓ test/catalog/walk.test.ts (11 tests) 2588ms
+Building: ✓ defaults to a <=25 requests/minute pace  2405ms
+Building: ✓ test/cart-item-title.test.tsx (4 tests) 44ms
+Building: ✓ test/sales-tax-routes.test.ts (10 tests) 35ms
+Building: ✓ test/stripe-canonical-redirect.test.ts (9 tests) 22ms
+Building: ✓ test/catalog/rules.test.ts (24 tests) 19ms
+Building: ✓ test/cart-track-route.test.ts (9 tests) 29ms
+Building: ✓ test/pricing/quote.test.ts (36 tests) 56ms
+Building: ✓ test/launch-guide.test.ts (20 tests) 44ms
+Building: ✓ test/cv.test.ts (10 tests) 19ms
+Building: ✓ test/catalog/load-pagination.test.ts (2 tests) 30ms
+Building: ✓ test/fulfillment/router-guard.test.ts (11 tests) 29ms
+Building: ✓ test/api/catalog-admin-routes.test.ts (22 tests) 34ms
+Building: ✓ test/checkout-holds.test.ts (18 tests) 28ms
+Building: ✓ test/tax-report-route.test.ts (5 tests) 24ms
+Building: ✓ test/pricing/variant-insert-v2.test.ts (16 tests) 92ms
+Building: ✓ test/festive-registration-route.test.ts (6 tests) 23ms
+Building: ✓ test/rate-limit-fallback.test.ts (7 tests) 17ms
+Building: ✓ test/inventory-validator.test.ts (4 tests) 13ms
+Building: ✓ test/studio-fulfillment.test.ts (18 tests) 17ms
+Building: ✓ test/cart-token.test.ts (14 tests) 21ms
+Building: ✓ test/checkout-validation-v3.test.ts (12 tests) 26ms
+Building: ✓ test/api/generate-defaults-catalog.test.ts (4 tests) 50ms
+Building: ✓ test/scripts/verification-report-assembler.test.ts (9 tests) 21ms
+Building: ✓ test/festive-reconcile.test.ts (15 tests) 23ms
+Building: ✓ test/classes.test.ts (6 tests) 28ms
+Building: ✓ test/sql-upsert-ambiguity.test.ts (2 tests) 15ms
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_subcategories
+Building: SKIPPED: lumaprints_subcategories anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_subcategories
+Building: SKIPPED: lumaprints_subcategories anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_option_groups
+Building: SKIPPED: lumaprints_option_groups anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_option_groups
+Building: SKIPPED: lumaprints_option_groups anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_options
+Building: SKIPPED: lumaprints_options anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_options
+Building: SKIPPED: lumaprints_options anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into catalog_sync_runs
+Building: SKIPPED: catalog_sync_runs anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of catalog_sync_runs
+Building: SKIPPED: catalog_sync_runs anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+Building: stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > reports whether the live half of this suite actually ran
+Building: SKIPPED: 8 live catalog RLS deny checks (no test instance configured). The migration audit above ran and is not credential-gated.
+Building: ✓ test/rls/catalog-tables.test.ts (14 tests) 18ms
+Building: ✓ test/features-built-links.test.ts (3 tests) 36ms
+Building: ✓ test/scripts/v4-configs.test.ts (14 tests) 23ms
+Building: ✓ test/sales-tax.test.ts (17 tests) 29ms
+Building: ✓ test/help-articles-print-store.test.ts (8 tests) 10ms
+Building: ✓ test/public-input.test.ts (5 tests) 17ms
+Building: ✓ test/orders/reconcile-embedded.test.ts (12 tests) 20ms
+Building: ✓ test/tax-reporting.test.ts (10 tests) 23ms
+Building: ✓ test/catalog/sync.test.ts (44 tests) 3005ms
+Building: ✓ test/crop-worker-routes.test.ts (5 tests) 27ms
+Building: ✓ test/catalog/selection.test.ts (10 tests) 13ms
+Building: ✓ test/pricing/quote-cache.test.ts (8 tests) 14ms
+Building: ✓ test/festive-payment.test.ts (10 tests) 25ms
+Building: ✓ test/festive-offer.test.ts (6 tests) 7ms
+Building: ✓ test/rls/product-slug-redirects.test.ts (4 tests) 11ms
+Building: ✓ test/checkout-validation.test.ts (12 tests) 17ms
+Building: ✓ test/variant-pricing.test.ts (18 tests) 9ms
+Building: ✓ test/pricing/offer-coverage.test.ts (10 tests) 14ms
+Building: ✓ test/api/print-configurator-settings-route.test.ts (3 tests) 15ms
+Building: stdout | test/crop-worker.test.ts > automatic crop job ownership > publishes exact dimensions once and leaves the original untouched
+Building: [crop] reconciled print sizes { master: 'master', updated: 0, skipped: 0, failed: 0 }
+Building: ✓ test/anti-bot-token.test.ts (19 tests) 22ms
+Building: ✓ test/crop-worker.test.ts (8 tests) 47ms
+Building: ✓ test/size-tiers.test.ts (26 tests) 33ms
+Building: ✓ test/require-cron.test.ts (4 tests) 10ms
+Building: ✓ test/checkout-snapshot-v3.test.ts (4 tests) 9ms
+Building: ✓ test/api/master-crop-revert-route.test.ts (3 tests) 13ms
+Building: ✓ test/catalog/availability.test.ts (7 tests) 14ms
+Building: ✓ test/csp-policy.test.ts (10 tests) 24ms
+Building: ✓ test/products/slug-redirect.test.ts (4 tests) 9ms
+Building: ✓ test/fulfillability.test.ts (10 tests) 10ms
+Building: ✓ test/festive-email.test.ts (4 tests) 13ms
+Building: ✓ test/festive-registration.test.ts (4 tests) 12ms
+Building: ✓ test/orientation-sizes.test.ts (7 tests) 10ms
+Building: ✓ test/markup-margin.test.ts (5 tests) 7ms
+Building: ✓ test/pricing/warm.test.ts (11 tests) 24ms
+Building: ✓ test/retired-pricing-refresh.test.ts (2 tests) 8ms
+Building: ✓ test/fulfillment-queue.test.ts (13 tests) 9ms
+Building: ✓ test/pricing/variant-resize.test.ts (3 tests) 7ms
+Building: ✓ test/sender-role.test.ts (13 tests) 5ms
+Building: ✓ test/page-blocks/featured-grid.test.ts (2 tests) 9ms
+Building: ✓ test/lumaprints-switch.test.ts (2 tests) 9ms
+Building: ✓ test/catalog/storefront.test.ts (5 tests) 17ms
+Building: ✓ test/email-list-unsubscribe.test.ts (3 tests) 8ms
+Building: ✓ test/unsubscribe-hardening.test.ts (6 tests) 18ms
+Building: ✓ test/catalog/door.test.ts (6 tests) 9ms
+Building: ✓ test/fulfillment/provider-guard.test.ts (5 tests) 9ms
+Building: ✓ test/email-suppression.test.ts (6 tests) 7ms
+Building: ✓ test/orders/print-options.test.ts (9 tests) 8ms
+Building: ✓ test/product-utils.test.ts (5 tests) 5ms
+Building: ✓ test/page-editor-revisions.test.ts (4 tests) 8ms
+Building: ✓ test/rate-limit-window.test.ts (8 tests) 7ms
+Building: ✓ test/sales-tax-email.test.ts (2 tests) 6ms
+Building: ✓ test/tracking.test.ts (4 tests) 5ms
+Building: ✓ test/markdown.test.ts (10 tests) 7ms
+Building: ✓ test/unsubscribe-token.test.ts (4 tests) 6ms
+Building: ✓ test/placeholders.test.ts (6 tests) 5ms
+Building: ✓ test/safe-redirect.test.ts (8 tests) 5ms
+Building: ✓ test/catalog/read-host.test.ts (3 tests) 4ms
+Building: ✓ test/gallery-order.test.ts (1 test) 4ms
+Building: ✓ test/auth-origin.test.ts (3 tests) 4ms
+Building: ✓ test/page-editor-schema.test.ts (3 tests) 5ms
+Building: ✓ test/rls/unauthorized-write.test.ts (1 test) 5ms
+Building: ✓ test/smoke.test.ts (1 test) 3ms
+Building: ↓ test/order-fulfillment-db-invariants.test.ts (5 tests | 5 skipped)
+Building: ↓ test/acid-transaction-owners.test.ts (2 tests | 2 skipped)
+Building: ✓ test/launch-wiring.test.tsx (16 tests) 3141ms
+Building: ✓ saves every contact and default-shipping field, protecting drafts and private credentials  320ms
+Building: ✓ wires every print field to the save RPC, storefront, checkout charge and frozen order ticket  392ms
+Building: ✓ keeps unsaved prices after a failed save and freezes inputs during retry  327ms
+Building: ✓ adds a studio size with honest route controls and saves approval/availability independently  362ms
+Building: ✓ test/provider-readiness-database.test.ts (1 test) 1322ms
+Building: ❯ test/provider-image.test.ts (6 tests | 1 failed) 8887ms
+Building: ✓ enforces the exact decimal size limit and rejects unknown formats 2ms
+Building: ✓ preserves compliant files byte-for-byte and never overwrites a source 28ms
+Building: × encodes a large crop with full dimensions, DPI and ICC preserved 8824ms
+Building: ✓ refuses to discard transparency to meet the limit 28ms
+Building: ✓ fails closed if the exact stored file cannot be verified 1ms
+Building: ✓ blocks an oversized production snapshot before payment and checks each shared file once 2ms
+Building: Test Files  1 failed | 137 passed | 2 skipped (140)
+Building: Tests  1 failed | 1223 passed | 7 skipped (1231)
+Building: Start at  20:18:58
+Building: Duration  12.72s (transform 39.14s, setup 0ms, import 68.06s, tests 36.64s, environment 42.36s)
+Building: npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Building: stderr | test/integrations/lumaprints-client.test.ts > the provider client and the key-wide budget > charges the retry too: a 429 then a 200 is two attempts and two slots
+Building: [lumaprints] throttled {"status":429,"attempt":0,"limit":null,"remaining":null,"reset":null,"retryAfter":null}
+Building: stderr | test/order-path.test.ts > submitOrder payload shape > builds the documented order body with width/height/file.imageUrl/externalItemId
+Building: [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+Building: stderr | test/order-path.test.ts > checkImageConfig request shape > POSTs the documented checkImageConfig body and returns parsed JSON on 200
+Building: [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+Building: stderr | test/order-path.test.ts > checkImageConfig request shape > throws LumaprintsApiError(406) when the image is sized incorrectly
+Building: [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+Building: stderr | test/funnel-print-size-label.test.tsx > Gallery Spotlight preserves print eligibility, exact variant and price with two-line size choices
+Building: Received `true` for a non-boolean attribute `jsx`.
+Building: If you want to write it to the DOM, pass a string instead: jsx="true" or jsx={value.toString()}.
+Building: stderr | test/api/native-billing.test.ts > native billing proxy > fails closed without the private server connection key
+Building: Subscription billing unavailable { kind: 'upstream_failure' }
+Building: stderr | test/post-purchase-email.test.ts > retries with an identical frozen message when the provider times out
+Building: Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 timeout
+Building: stderr | test/post-purchase-email.test.ts > fails closed on prepareError without sending
+Building: Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not prepare purchase email
+Building: stderr | test/post-purchase-email.test.ts > fails closed on freezeError without sending
+Building: Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not save purchase email before delivery
+Building: stderr | test/post-purchase-email.test.ts > keeps the identical message for a retry if the provider accepted it but recording failed
+Building: Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not record confirmed purchase email
+Building: stderr | test/post-purchase-email.test.ts > keeps the identical message for a retry if the provider accepted it but recording failed
+Building: Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not record confirmed purchase email
+Building: stderr | test/post-purchase-email.test.ts > refuses unauthenticated cron requests
+Building: CRON_SECRET is not set — refusing cron request (fail closed)
+Building: stderr | test/admin/master-crop-modal.test.tsx > crop save completion > tracks a crop already being prepared when the editor is reopened
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: stderr | test/admin/master-crop-modal.test.tsx > saves the chosen rotation and swapped print dimensions, and restores them on reopen
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+Building: When testing, code that causes React state updates should be wrapped into act(...):
+Building: act(() => {
+Building: /* fire events that update state */
+Building: });
+Building: /* assert on the output */
+Building: This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — mass-tombstone guard > fails the run instead of tombstoning the catalog when the provider index comes back empty
+Building: [catalog-sync] chunk failed: refused_tombstone Refusing to tombstone: saw 0 of 50 known subcategories
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > pauses on a 429 with the cursor untouched, then finishes on the next chunk
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 �� transient provider conditions > keeps the progress a chunk committed before the throttle hit
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > keeps the progress a chunk committed before the throttle hit
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+Building: [catalog-sync] chunk failed: provider_error:400 Lumaprints API error (400): bad request
+Building: stderr | test/original-product-save.test.ts > archive lookup failures > does not archive or audit after lookup error {"code":"08006","message":"Connection failed"}
+Building: [api] admin/products [id] DELETE lookup: {"code":"08006","message":"Connection failed"}
+Building: stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > answers 503 provider_busy when the provider cannot be reached
+Building: [print-quote] provider unavailable (undefined): sandbox 429 after 3 retries
+Building: stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > answers 503 provider_busy with the same copy when fulfillment is switched off
+Building: [print-quote] provider unavailable (Error): kill switch on
+Building: stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > never leaks an unexpected internal error
+Building: [api] products/[id]/print-quote POST: relation "lumaprints_pricing_cache" does not exist
+Building: stderr | test/catalog/catalog-sync-route.test.ts > catalog-sync cron route > never puts provider or database text in its body
+Building: [cron] lumaprints-catalog-sync: connection to db-MARKER-xyz refused
+Building: stderr | test/sales-tax-routes.test.ts > production file failure before payment > blocks embedded checkout when paper preparation fails
+Building: Checkout intent failed Error: private storage detail
+Building: at /vercel/path0/test/sales-tax-routes.test.ts:99:37
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+Building: at new Promise (<anonymous>)
+Building: at runWithCancel (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+Building: at new Promise (<anonymous>)
+Building: at runWithTimeout (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+Building: stderr | test/sales-tax-routes.test.ts > production file failure before payment > blocks hosted checkout when paper preparation fails
+Building: Checkout failed Error: private storage detail
+Building: at /vercel/path0/test/sales-tax-routes.test.ts:99:37
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+Building: at new Promise (<anonymous>)
+Building: at runWithCancel (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+Building: at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+Building: at new Promise (<anonymous>)
+Building: at runWithTimeout (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+Building: stderr | test/pricing/quote.test.ts > quoteConfiguration: provider trouble > refuses to price without freight when only the shipping quote fails and nothing is cached
+Building: quote: worst-case shipping unavailable, refusing to price without freight: zip 33101 is not serviceable
+Building: stderr | test/pricing/quote.test.ts > quoteConfiguration: provider trouble > serves the last row with its own freight when only the shipping quote fails
+Building: quote: worst-case shipping unavailable, refusing to price without freight: zip 33101 is not serviceable
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — one run at a time > marks a run failed and refuses to continue it
+Building: [catalog-sync] chunk failed: internal provider is down
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > never submits a test-mode order to the production host; the item is failed_validation with the reason logged
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > submits the same test-mode order on the sandbox host and passes the frozen colour through
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > submits a live order on the production host without a colour when the line has none
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > blocks an oversized frozen file before any provider submission
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > reuses an exact provider order instead of creating a duplicate
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > holds a conflicting existing provider order without another POST
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > holds a conflicting existing provider order without another POST
+Building: Fulfillment submission failed for lumaprints: An existing provider order needs review; its items or status differ. No new order was created.
+Building: stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > does not fall back to the uncropped master source when a line has no snapshot path
+Building: fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+Building: stderr | test/api/catalog-admin-routes.test.ts > RPC refusals map by SQLSTATE > turns anything else into a database failure with no raw text
+Building: [api] admin/catalog option PATCH: {"code":"23505","message":"duplicate key value violates unique"}
+Building: stderr | test/checkout-holds.test.ts > holdOriginals > fails closed as an error when the database call fails
+Building: hold_originals failed: { message: 'down' }
+Building: stderr | test/checkout-holds.test.ts > releaseOriginalHolds > swallows database failures (holds also expire on their own)
+Building: release_original_holds failed: { message: 'down' }
+Building: stderr | test/checkout-holds.test.ts > resolveFunnelId > drops to null on lookup failure rather than blocking checkout
+Building: funnel attribution lookup failed: { message: 'down' }
+Building: stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > prices a prepared crop while processing, but refuses sizes beyond its actual detail
+Building: buildPricedVariantRow: configuration not sellable canvas 8x10 size_resolution
+Building: stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > never publishes a Live variant it could not price
+Building: buildPricedVariantRow: failed to price canvas 40x44 SizeOutOfBoundsError: no recorded price for 101002|40x44|2,11
+Building: at quoteConfiguration (/vercel/path0/src/lib/pricing/quote.ts:521:17)
+Building: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Building: at Module.buildPricedVariantRow (/vercel/path0/src/lib/pricing/variant-insert.ts:121:21)
+Building: at /vercel/path0/test/pricing/variant-insert-v2.test.ts:472:17
+Building: at async file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20 {
+Building: code: 'SIZE_OUT_OF_BOUNDS'
+Building: }
+Building: stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > falls back to the legacy price path for a family the catalog has no row for
+Building: buildPricedVariantRow: no catalog subcategory for medium, using the legacy price path metal
+Building: stderr | test/festive-registration-route.test.ts > private class confirmation boundary > keeps a provider failure pending rather than inventing a paid state
+Building: [art-class.registration] Provider reconciliation unavailable
+Building: stderr | test/orders/reconcile-embedded.test.ts > shared settlement fail-closed and replay guards > does not mistake two configurations of the same print for a complete one-line order
+Building: Elements order for pi_paid has no buyer email
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > stores a class, not the body of a provider error
+Building: [catalog-sync] chunk failed: provider_error:400 Lumaprints API error (400): MARKER-xyz store=82222 key=abc
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > classifies a budget refusal and a kill switch distinctly
+Building: [catalog-sync] chunk failed: budget_exhausted busy
+Building: stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > classifies a budget refusal and a kill switch distinctly
+Building: [catalog-sync] chunk failed: disabled off
+Building: stderr | test/rls/product-slug-redirects.test.ts > RLS (live): product_slug_redirects > SKIPPED — SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set
+Building: [rls] product_slug_redirects live check SKIPPED: no test instance credentials
+Building: stderr | test/crop-worker.test.ts > automatic crop job ownership > publishes exact dimensions once and leaves the original untouched
+Building: variant reconciliation: catalog unavailable; prices will refresh on the next admin refresh TypeError: build(...).order is not a function
+Building: at readAllPages (/vercel/path0/src/lib/catalog/load.ts:82:42)
+Building: at readSubcategories (/vercel/path0/src/lib/catalog/load.ts:141:10)
+Building: at loadCatalog (/vercel/path0/src/lib/catalog/load.ts:229:5)
+Building: at reconcileVariantsForMaster (/vercel/path0/src/lib/pricing/reconcile-variants.ts:70:23)
+Building: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Building: at processMasterCrop (/vercel/path0/src/lib/artwork/crop-worker.ts:257:28)
+Building: at /vercel/path0/test/crop-worker.test.ts:41:12
+Building: at async file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+Building: stderr | test/anti-bot-token.test.ts > requireAntiBotToken > answers 403 anti_bot when the header is absent
+Building: [anti-bot] rejected request: missing
+Building: stderr | test/anti-bot-token.test.ts > requireAntiBotToken > answers 403 anti_bot when the token is forged
+Building: [anti-bot] rejected request: bad_signature
+Building: stderr | test/require-cron.test.ts > requireCron (AZ-1) > fails closed (503) when CRON_SECRET is unset — even with "Bearer undefined"
+Building: CRON_SECRET is not set — refusing cron request (fail closed)
+Building: CRON_SECRET is not set — refusing cron request (fail closed)
+Building: stderr | test/require-cron.test.ts > requireCron (AZ-1) > fails closed (503) when CRON_SECRET is empty
+Building: CRON_SECRET is not set — refusing cron request (fail closed)
+Building: stderr | test/email-suppression.test.ts > isSuppressed (COM-2) > fails OPEN (does not suppress) on a lookup error
+Building: isSuppressed lookup failed (allowing send): db down
+Building: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+Building: FAIL  test/provider-image.test.ts > provider delivery contract > encodes a large crop with full dimensions, DPI and ICC preserved
+Building: Error: Test timed out in 5000ms.
+Building: If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+Building: ❯ test/provider-image.test.ts:30:3
+Building: 28|     await expect(prepareProviderImage(input, input)).rejects.toThrow(/…
+Building: 29|   })
+Building: 30|   it('encodes a large crop with full dimensions, DPI and ICC preserved…
+Building: |   ^
+Building: 31|     const folder = await mkdtemp(join(tmpdir(), 'delivery-test-')); fo…
+Building: 32|     const input = join(folder, 'source.png'), output = join(folder, 'd…
+Building: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+Building: DotWin build-check
+Building: 2026-11-19T20:19:37.678Z  ·  profile: green  ·  mode: adopt
+Building: Rule 1: ACID invariants outrank module purity
+Building: ✓ typecheck  ·  ok
+Building: ✓ lint  ·  ok
+Building: ✗ test  ·  exit 1: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+Building: ✓ build  ·  ok
+Building: ✓ secrets  ·  no hardcoded secrets
+Building: · grant-boundary (optional)  ·  SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN not set (CI enforces this gate via repository secrets)
+Building: ✓ security  ·  0 advisory
+Building: ✓ supabase-boundaries  ·  client boundaries respected
+Building: ✓ authz  ·  mutation boundaries guarded
+Building: ✓ rls  ·  78 tables, 78 with RLS; 0 blocking
+Building: [medium] read policy "public can read product images" on "product_images" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+Building: [medium] read policy "public can read product variants" on "product_variants" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+Building: [medium] read policy "public can read categories" on "categories" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+Building: [medium] read policy "public can read lessons" on "lessons" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+Building: [medium] read policy "public can read cv_settings" on "cv_settings" uses permissive (true)  supabase/migrations/20260519000001_cv_entries.sql:28
+Building: [medium] read policy "public read lumaprints_mediums" on "lumaprints_mediums" uses permissive (true)  supabase/migrations/20260520000001_lumaprints_mediums.sql:27
+Building: [medium] read policy "public can read product_categories" on "product_categories" uses permissive (true)  supabase/migrations/20260622212139_adopt_rls_conformance.sql:13
+Building: ✓ migrations  ·  112 migration file(s)
+Building: · domain-isolation (optional)  ·  no src/domains or src/modules directory
+Building: · contract (optional)  ·  no src/domains or src/modules (score via audit)
+Building: · read-boundary (optional)  ·  no src/domains or src/modules
+Building: · table-ownership (optional)  ·  no src/domains or src/modules
+Building: · atomicity (optional)  ·  no src/domains or src/modules
+Building: · event-boundaries (optional)  ·  no src/domains or src/modules
+Building: ✓ rpc-exists  ·  2 declared transaction(s); 0 blocking
+Building: · no-duplicate-transactions (optional)  ·  no src/domains or src/modules
+Building: ✓ retired-symbols  ·  7 retired · 2 pending · 728 files scanned
+Building: ✓ anchors (optional)  ·  0 source anchor(s)
+Building: ✓ state  ·  7 tag(s) resolve
+Building: ✓ docs  ·  395 undocumented (0 blocking)
+Building: [medium] exported function/component "AdminAboutPage" has no intent doc comment  src/app/(admin)/admin/about/page.tsx:5
+Building: [medium] exported function/component "EditBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/[id]/page.tsx:22
+Building: [medium] exported function/component "NewBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/new/page.tsx:22
+Building: [medium] exported function/component "AdminBlogPage" has no intent doc comment  src/app/(admin)/admin/blog/page.tsx:9
+Building: [medium] exported function/component "BookingsPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/bookings/page.tsx:9
+Building: [medium] exported function/component "EditClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/page.tsx:8
+Building: [medium] exported function/component "NewClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/new/page.tsx:7
+Building: [medium] exported function/component "AdminClassesPage" has no intent doc comment  src/app/(admin)/admin/classes/page.tsx:32
+Building: [medium] exported function/component "AdminCommissionDetailPage" has no intent doc comment  src/app/(admin)/admin/commissions/[id]/page.tsx:77
+Building: [medium] exported function/component "AdminCommissionsPage" has no intent doc comment  src/app/(admin)/admin/commissions/page.tsx:59
+Building: [medium] exported function/component "ContentEditor" has no intent doc comment  src/app/(admin)/admin/content/ContentEditor.tsx:17
+Building: [medium] exported function/component "AdminContentPage" has no intent doc comment  src/app/(admin)/admin/content/page.tsx:19
+Building: … 383 more
+Building: status: FAILED
+Building: wrote: docs/build-checks/latest.json, STATE.md, BUILD_LOG.md
+Building: Error: [BUILD_UTILS_SPAWN_1] Command "npm run build-check:write" exited with 1
+2026-11-19T20:17:42.724Z  Running build in Washington, D.C., USA (East) – iad1
+2026-11-19T20:17:42.725Z  Build machine configuration: 30 cores, 60 GB (Turbo Build Machine)
+2026-11-19T20:17:42.740Z  Retrieving list of deployment files...
+2026-11-19T20:17:43.205Z  Downloading 1275 deployment files...
+2026-11-19T20:17:45.430Z  Restored build cache from previous deployment (ErfLU5BM3xHzTK6jzExiP7sFpSfo)
+2026-11-19T20:17:45.982Z  Running "vercel build"
+2026-11-19T20:17:45.991Z  Vercel CLI 66.2.0
+2026-11-19T20:17:46.434Z  Installing dependencies...
+2026-11-19T20:17:46.949Z  npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-11-19T20:17:47.923Z  
+2026-11-19T20:17:47.923Z  > margaret-edmonson@0.1.0 prepare
+2026-11-19T20:17:47.923Z  > husky
+2026-11-19T20:17:47.923Z  
+2026-11-19T20:17:48.055Z  .git can't be found
+2026-11-19T20:17:48.056Z  up to date in 2s
+2026-11-19T20:17:48.056Z  
+2026-11-19T20:17:48.056Z  210 packages are looking for funding
+2026-11-19T20:17:48.056Z  run `npm fund` for details
+2026-11-19T20:17:48.057Z  npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+2026-11-19T20:17:48.057Z  npm warn install-scripts   unrs-resolver@1.11.1 (postinstall: napi-postinstall unrs-resolver 1.11.1 check)
+2026-11-19T20:17:48.058Z  npm warn install-scripts
+2026-11-19T20:17:48.058Z  npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+2026-11-19T20:17:48.095Z  Detected Next.js version: 16.3.8
+2026-11-19T20:17:48.140Z  Running "npm run build-check:write"
+2026-11-19T20:17:48.255Z  npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-11-19T20:17:48.280Z  
+2026-11-19T20:17:48.280Z  > margaret-edmonson@0.1.0 build-check:write
+2026-11-19T20:17:48.280Z  > node scripts/build-check.mjs --write-state
+2026-11-19T20:17:48.280Z  
+2026-11-19T20:19:11.505Z  
+2026-11-19T20:19:11.506Z  > margaret-edmonson@0.1.0 test
+2026-11-19T20:19:11.506Z  > vitest run
+2026-11-19T20:19:11.506Z  
+2026-11-19T20:19:11.506Z  
+2026-11-19T20:19:11.506Z  RUN  v4.1.11 /vercel/path0
+2026-11-19T20:19:11.506Z  
+2026-11-19T20:19:11.506Z  ✓ test/master-crop.test.ts (9 tests) 386ms
+2026-11-19T20:19:11.506Z  ✓ test/integrations/lumaprints-budget.test.ts (12 tests) 182ms
+2026-11-19T20:19:11.506Z  ✓ test/order-path.test.ts (16 tests) 213ms
+2026-11-19T20:19:11.506Z  ✓ test/catalog/seed-rules.test.ts (26 tests) 142ms
+2026-11-19T20:19:11.506Z  ✓ test/rls/customer-profiles.test.ts (4 tests) 1525ms
+2026-11-19T20:19:11.506Z  ✓ test/post-purchase-database.test.ts (12 tests) 1569ms
+2026-11-19T20:19:11.506Z  ✓ test/festive-elements.test.tsx (1 test) 191ms
+2026-11-19T20:19:11.506Z  ✓ test/new-product-setup.test.tsx (6 tests) 514ms
+2026-11-19T20:19:11.506Z  ✓ test/shop/frame-preview.test.tsx (12 tests) 209ms
+2026-11-19T20:19:11.506Z  ✓ test/checkout-database.test.ts (7 tests) 1849ms
+2026-11-19T20:19:11.506Z  ✓ test/admin/native-billing.test.tsx (2 tests) 127ms
+2026-11-19T20:19:11.507Z  ✓ test/admin-product-deletion.test.tsx (7 tests) 244ms
+2026-11-19T20:19:11.507Z  ✓ test/integrations/lumaprints-client.test.ts (7 tests) 822ms
+2026-11-19T20:19:11.507Z  ✓ charges the retry too: a 429 then a 200 is two attempts and two slots  806ms
+2026-11-19T20:19:11.507Z  ✓ test/paper-border.test.ts (8 tests) 527ms
+2026-11-19T20:19:11.507Z  ✓ test/password-recovery.test.tsx (16 tests) 290ms
+2026-11-19T20:19:11.507Z  ✓ test/studio-product-profile.test.tsx (4 tests) 124ms
+2026-11-19T20:19:11.508Z  ✓ test/variant-markup-margin.test.tsx (4 tests) 244ms
+2026-11-19T20:19:11.508Z  ✓ test/admin/offer-coverage.test.tsx (4 tests) 151ms
+2026-11-19T20:19:11.508Z  ✓ test/standard-print-size-ui.test.tsx (5 tests) 193ms
+2026-11-19T20:19:11.508Z  ✓ test/markup-margin-fields.test.tsx (5 tests) 99ms
+2026-11-19T20:19:11.508Z  ✓ test/pricing-controls.test.tsx (4 tests) 234ms
+2026-11-19T20:19:11.508Z  ✓ test/api/native-billing.test.ts (6 tests) 67ms
+2026-11-19T20:19:11.508Z  ✓ test/admin-access.test.ts (20 tests) 50ms
+2026-11-19T20:19:11.508Z  ✓ test/admin/print-configurator-section.test.tsx (3 tests) 125ms
+2026-11-19T20:19:11.508Z  ✓ test/api/master-crop-preview-route.test.ts (3 tests) 65ms
+2026-11-19T20:19:11.508Z  ✓ test/orders/order-surfaces.test.tsx (10 tests) 192ms
+2026-11-19T20:19:11.508Z  ✓ test/post-purchase-email.test.ts (8 tests) 66ms
+2026-11-19T20:19:11.508Z  ✓ test/funnel-print-size-label.test.tsx (5 tests) 476ms
+2026-11-19T20:19:11.508Z  ✓ test/admin/catalog-manager.test.tsx (7 tests) 406ms
+2026-11-19T20:19:11.508Z  ✓ test/shop/use-configurator-quote.test.tsx (7 tests) 54ms
+2026-11-19T20:19:11.509Z  ✓ test/print-size-label.test.tsx (5 tests) 237ms
+2026-11-19T20:19:11.509Z  ✓ test/orders/customer-directory.test.tsx (5 tests) 95ms
+2026-11-19T20:19:11.509Z  ✓ test/original-and-prints.test.tsx (4 tests) 253ms
+2026-11-19T20:19:11.509Z  ✓ test/orders/order-history.test.tsx (6 tests) 158ms
+2026-11-19T20:19:11.509Z  ✓ test/admin/variants-tab-v2.test.tsx (9 tests) 972ms
+2026-11-19T20:19:11.509Z  ✓ lets the owner untick a print type for one size, saves the veto, and says when nothing sells the size  573ms
+2026-11-19T20:19:11.509Z  ✓ test/admin/master-crop-modal.test.tsx (5 tests) 1078ms
+2026-11-19T20:19:11.509Z  ✓ blocks a repeated save while preparing and confirms completion once with Done  468ms
+2026-11-19T20:19:11.509Z  ✓ test/launch-entry.test.tsx (3 tests) 738ms
+2026-11-19T20:19:11.509Z  ✓ opens directly to requests for a fresh browser  430ms
+2026-11-19T20:19:11.509Z  ✓ opens directly to requests for a legacy dismissal  301ms
+2026-11-19T20:19:11.509Z  ✓ test/api/pricing-warm-routes.test.ts (12 tests) 21ms
+2026-11-19T20:19:11.509Z  ✓ test/cart-line-identity.test.ts (8 tests) 49ms
+2026-11-19T20:19:11.509Z  ✓ test/api/coverage-route.test.ts (11 tests) 61ms
+2026-11-19T20:19:11.509Z  ✓ test/catalog/load.test.ts (21 tests) 31ms
+2026-11-19T20:19:11.509Z  ✓ test/catalog/assemble.test.ts (5 tests) 24ms
+2026-11-19T20:19:11.509Z  ✓ test/original-product-save.test.ts (5 tests) 24ms
+2026-11-19T20:19:11.509Z  ✓ test/shop/print-configurator.test.tsx (23 tests) 957ms
+2026-11-19T20:19:11.509Z  ✓ test/api/print-quote-route.test.ts (30 tests) 48ms
+2026-11-19T20:19:11.509Z  ✓ test/catalog/catalog-sync-route.test.ts (17 tests) 42ms
+2026-11-19T20:19:11.509Z  ✓ test/password-recovery-gate.test.ts (11 tests) 20ms
+2026-11-19T20:19:11.509Z  ✓ test/catalog/walk.test.ts (11 tests) 2588ms
+2026-11-19T20:19:11.509Z  ✓ defaults to a <=25 requests/minute pace  2405ms
+2026-11-19T20:19:11.509Z  ✓ test/cart-item-title.test.tsx (4 tests) 44ms
+2026-11-19T20:19:11.509Z  ✓ test/sales-tax-routes.test.ts (10 tests) 35ms
+2026-11-19T20:19:11.510Z  ✓ test/stripe-canonical-redirect.test.ts (9 tests) 22ms
+2026-11-19T20:19:11.510Z  ✓ test/catalog/rules.test.ts (24 tests) 19ms
+2026-11-19T20:19:11.510Z  ✓ test/cart-track-route.test.ts (9 tests) 29ms
+2026-11-19T20:19:11.510Z  ✓ test/pricing/quote.test.ts (36 tests) 56ms
+2026-11-19T20:19:11.510Z  ✓ test/launch-guide.test.ts (20 tests) 44ms
+2026-11-19T20:19:11.510Z  ✓ test/cv.test.ts (10 tests) 19ms
+2026-11-19T20:19:11.510Z  ✓ test/catalog/load-pagination.test.ts (2 tests) 30ms
+2026-11-19T20:19:11.510Z  ✓ test/fulfillment/router-guard.test.ts (11 tests) 29ms
+2026-11-19T20:19:11.510Z  ✓ test/api/catalog-admin-routes.test.ts (22 tests) 34ms
+2026-11-19T20:19:11.510Z  ✓ test/checkout-holds.test.ts (18 tests) 28ms
+2026-11-19T20:19:11.510Z  ✓ test/tax-report-route.test.ts (5 tests) 24ms
+2026-11-19T20:19:11.510Z  ✓ test/pricing/variant-insert-v2.test.ts (16 tests) 92ms
+2026-11-19T20:19:11.510Z  ✓ test/festive-registration-route.test.ts (6 tests) 23ms
+2026-11-19T20:19:11.510Z  ✓ test/rate-limit-fallback.test.ts (7 tests) 17ms
+2026-11-19T20:19:11.510Z  ✓ test/inventory-validator.test.ts (4 tests) 13ms
+2026-11-19T20:19:11.510Z  ✓ test/studio-fulfillment.test.ts (18 tests) 17ms
+2026-11-19T20:19:11.510Z  ✓ test/cart-token.test.ts (14 tests) 21ms
+2026-11-19T20:19:11.510Z  ✓ test/checkout-validation-v3.test.ts (12 tests) 26ms
+2026-11-19T20:19:11.510Z  ✓ test/api/generate-defaults-catalog.test.ts (4 tests) 50ms
+2026-11-19T20:19:11.510Z  ✓ test/scripts/verification-report-assembler.test.ts (9 tests) 21ms
+2026-11-19T20:19:11.510Z  ✓ test/festive-reconcile.test.ts (15 tests) 23ms
+2026-11-19T20:19:11.510Z  ✓ test/classes.test.ts (6 tests) 28ms
+2026-11-19T20:19:11.510Z  ✓ test/sql-upsert-ambiguity.test.ts (2 tests) 15ms
+2026-11-19T20:19:11.510Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_subcategories
+2026-11-19T20:19:11.510Z  SKIPPED: lumaprints_subcategories anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.510Z  
+2026-11-19T20:19:11.510Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_subcategories
+2026-11-19T20:19:11.510Z  SKIPPED: lumaprints_subcategories anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.510Z  
+2026-11-19T20:19:11.510Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_option_groups
+2026-11-19T20:19:11.511Z  SKIPPED: lumaprints_option_groups anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_option_groups
+2026-11-19T20:19:11.511Z  SKIPPED: lumaprints_option_groups anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into lumaprints_options
+2026-11-19T20:19:11.511Z  SKIPPED: lumaprints_options anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of lumaprints_options
+2026-11-19T20:19:11.511Z  SKIPPED: lumaprints_options anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous insert into catalog_sync_runs
+2026-11-19T20:19:11.511Z  SKIPPED: catalog_sync_runs anon-insert deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > rejects an anonymous update of catalog_sync_runs
+2026-11-19T20:19:11.511Z  SKIPPED: catalog_sync_runs anon-update deny (SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set)
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  stdout | test/rls/catalog-tables.test.ts > RLS: the print catalog is not anon-writable > reports whether the live half of this suite actually ran
+2026-11-19T20:19:11.511Z  SKIPPED: 8 live catalog RLS deny checks (no test instance configured). The migration audit above ran and is not credential-gated.
+2026-11-19T20:19:11.511Z  
+2026-11-19T20:19:11.511Z  ✓ test/rls/catalog-tables.test.ts (14 tests) 18ms
+2026-11-19T20:19:11.511Z  ✓ test/features-built-links.test.ts (3 tests) 36ms
+2026-11-19T20:19:11.511Z  ✓ test/scripts/v4-configs.test.ts (14 tests) 23ms
+2026-11-19T20:19:11.511Z  ✓ test/sales-tax.test.ts (17 tests) 29ms
+2026-11-19T20:19:11.511Z  ✓ test/help-articles-print-store.test.ts (8 tests) 10ms
+2026-11-19T20:19:11.511Z  ✓ test/public-input.test.ts (5 tests) 17ms
+2026-11-19T20:19:11.511Z  ✓ test/orders/reconcile-embedded.test.ts (12 tests) 20ms
+2026-11-19T20:19:11.511Z  ✓ test/tax-reporting.test.ts (10 tests) 23ms
+2026-11-19T20:19:11.511Z  ✓ test/catalog/sync.test.ts (44 tests) 3005ms
+2026-11-19T20:19:11.511Z  ✓ test/crop-worker-routes.test.ts (5 tests) 27ms
+2026-11-19T20:19:11.512Z  ✓ test/catalog/selection.test.ts (10 tests) 13ms
+2026-11-19T20:19:11.512Z  ✓ test/pricing/quote-cache.test.ts (8 tests) 14ms
+2026-11-19T20:19:11.512Z  ✓ test/festive-payment.test.ts (10 tests) 25ms
+2026-11-19T20:19:11.512Z  ✓ test/festive-offer.test.ts (6 tests) 7ms
+2026-11-19T20:19:11.512Z  ✓ test/rls/product-slug-redirects.test.ts (4 tests) 11ms
+2026-11-19T20:19:11.512Z  ✓ test/checkout-validation.test.ts (12 tests) 17ms
+2026-11-19T20:19:11.512Z  ✓ test/variant-pricing.test.ts (18 tests) 9ms
+2026-11-19T20:19:11.512Z  ✓ test/pricing/offer-coverage.test.ts (10 tests) 14ms
+2026-11-19T20:19:11.512Z  ✓ test/api/print-configurator-settings-route.test.ts (3 tests) 15ms
+2026-11-19T20:19:11.512Z  stdout | test/crop-worker.test.ts > automatic crop job ownership > publishes exact dimensions once and leaves the original untouched
+2026-11-19T20:19:11.512Z  [crop] reconciled print sizes { master: 'master', updated: 0, skipped: 0, failed: 0 }
+2026-11-19T20:19:11.512Z  
+2026-11-19T20:19:11.512Z  ✓ test/anti-bot-token.test.ts (19 tests) 22ms
+2026-11-19T20:19:11.512Z  ✓ test/crop-worker.test.ts (8 tests) 47ms
+2026-11-19T20:19:11.512Z  ✓ test/size-tiers.test.ts (26 tests) 33ms
+2026-11-19T20:19:11.512Z  ✓ test/require-cron.test.ts (4 tests) 10ms
+2026-11-19T20:19:11.512Z  ✓ test/checkout-snapshot-v3.test.ts (4 tests) 9ms
+2026-11-19T20:19:11.512Z  ✓ test/api/master-crop-revert-route.test.ts (3 tests) 13ms
+2026-11-19T20:19:11.512Z  ✓ test/catalog/availability.test.ts (7 tests) 14ms
+2026-11-19T20:19:11.512Z  ✓ test/csp-policy.test.ts (10 tests) 24ms
+2026-11-19T20:19:11.512Z  ✓ test/products/slug-redirect.test.ts (4 tests) 9ms
+2026-11-19T20:19:11.512Z  ✓ test/fulfillability.test.ts (10 tests) 10ms
+2026-11-19T20:19:11.512Z  ✓ test/festive-email.test.ts (4 tests) 13ms
+2026-11-19T20:19:11.512Z  ✓ test/festive-registration.test.ts (4 tests) 12ms
+2026-11-19T20:19:11.512Z  ✓ test/orientation-sizes.test.ts (7 tests) 10ms
+2026-11-19T20:19:11.512Z  ✓ test/markup-margin.test.ts (5 tests) 7ms
+2026-11-19T20:19:11.512Z  ✓ test/pricing/warm.test.ts (11 tests) 24ms
+2026-11-19T20:19:11.512Z  ✓ test/retired-pricing-refresh.test.ts (2 tests) 8ms
+2026-11-19T20:19:11.512Z  ✓ test/fulfillment-queue.test.ts (13 tests) 9ms
+2026-11-19T20:19:11.512Z  ✓ test/pricing/variant-resize.test.ts (3 tests) 7ms
+2026-11-19T20:19:11.513Z  ✓ test/sender-role.test.ts (13 tests) 5ms
+2026-11-19T20:19:11.513Z  ✓ test/page-blocks/featured-grid.test.ts (2 tests) 9ms
+2026-11-19T20:19:11.513Z  ✓ test/lumaprints-switch.test.ts (2 tests) 9ms
+2026-11-19T20:19:11.513Z  ✓ test/catalog/storefront.test.ts (5 tests) 17ms
+2026-11-19T20:19:11.513Z  ✓ test/email-list-unsubscribe.test.ts (3 tests) 8ms
+2026-11-19T20:19:11.513Z  ✓ test/unsubscribe-hardening.test.ts (6 tests) 18ms
+2026-11-19T20:19:11.513Z  ✓ test/catalog/door.test.ts (6 tests) 9ms
+2026-11-19T20:19:11.513Z  ✓ test/fulfillment/provider-guard.test.ts (5 tests) 9ms
+2026-11-19T20:19:11.513Z  ✓ test/email-suppression.test.ts (6 tests) 7ms
+2026-11-19T20:19:11.513Z  ✓ test/orders/print-options.test.ts (9 tests) 8ms
+2026-11-19T20:19:11.513Z  ✓ test/product-utils.test.ts (5 tests) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/page-editor-revisions.test.ts (4 tests) 8ms
+2026-11-19T20:19:11.514Z  ✓ test/rate-limit-window.test.ts (8 tests) 7ms
+2026-11-19T20:19:11.514Z  ✓ test/sales-tax-email.test.ts (2 tests) 6ms
+2026-11-19T20:19:11.514Z  ✓ test/tracking.test.ts (4 tests) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/markdown.test.ts (10 tests) 7ms
+2026-11-19T20:19:11.514Z  ✓ test/unsubscribe-token.test.ts (4 tests) 6ms
+2026-11-19T20:19:11.514Z  ✓ test/placeholders.test.ts (6 tests) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/safe-redirect.test.ts (8 tests) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/catalog/read-host.test.ts (3 tests) 4ms
+2026-11-19T20:19:11.514Z  ✓ test/gallery-order.test.ts (1 test) 4ms
+2026-11-19T20:19:11.514Z  ✓ test/auth-origin.test.ts (3 tests) 4ms
+2026-11-19T20:19:11.514Z  ✓ test/page-editor-schema.test.ts (3 tests) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/rls/unauthorized-write.test.ts (1 test) 5ms
+2026-11-19T20:19:11.514Z  ✓ test/smoke.test.ts (1 test) 3ms
+2026-11-19T20:19:11.514Z  ↓ test/order-fulfillment-db-invariants.test.ts (5 tests | 5 skipped)
+2026-11-19T20:19:11.514Z  ↓ test/acid-transaction-owners.test.ts (2 tests | 2 skipped)
+2026-11-19T20:19:11.514Z  ✓ test/launch-wiring.test.tsx (16 tests) 3141ms
+2026-11-19T20:19:11.514Z  ✓ saves every contact and default-shipping field, protecting drafts and private credentials  320ms
+2026-11-19T20:19:11.514Z  ✓ wires every print field to the save RPC, storefront, checkout charge and frozen order ticket  392ms
+2026-11-19T20:19:11.514Z  ✓ keeps unsaved prices after a failed save and freezes inputs during retry  327ms
+2026-11-19T20:19:11.514Z  ✓ adds a studio size with honest route controls and saves approval/availability independently  362ms
+2026-11-19T20:19:11.514Z  ✓ test/provider-readiness-database.test.ts (1 test) 1322ms
+2026-11-19T20:19:11.514Z  ❯ test/provider-image.test.ts (6 tests | 1 failed) 8887ms
+2026-11-19T20:19:11.514Z  ✓ enforces the exact decimal size limit and rejects unknown formats 2ms
+2026-11-19T20:19:11.515Z  ✓ preserves compliant files byte-for-byte and never overwrites a source 28ms
+2026-11-19T20:19:11.515Z  × encodes a large crop with full dimensions, DPI and ICC preserved 8824ms
+2026-11-19T20:19:11.515Z  ✓ refuses to discard transparency to meet the limit 28ms
+2026-11-19T20:19:11.515Z  ✓ fails closed if the exact stored file cannot be verified 1ms
+2026-11-19T20:19:11.515Z  ✓ blocks an oversized production snapshot before payment and checks each shared file once 2ms
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  Test Files  1 failed | 137 passed | 2 skipped (140)
+2026-11-19T20:19:11.515Z  Tests  1 failed | 1223 passed | 7 skipped (1231)
+2026-11-19T20:19:11.515Z  Start at  20:18:58
+2026-11-19T20:19:11.515Z  Duration  12.72s (transform 39.14s, setup 0ms, import 68.06s, tests 36.64s, environment 42.36s)
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-11-19T20:19:11.515Z  stderr | test/integrations/lumaprints-client.test.ts > the provider client and the key-wide budget > charges the retry too: a 429 then a 200 is two attempts and two slots
+2026-11-19T20:19:11.515Z  [lumaprints] throttled {"status":429,"attempt":0,"limit":null,"remaining":null,"reset":null,"retryAfter":null}
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/order-path.test.ts > submitOrder payload shape > builds the documented order body with width/height/file.imageUrl/externalItemId
+2026-11-19T20:19:11.515Z  [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/order-path.test.ts > checkImageConfig request shape > POSTs the documented checkImageConfig body and returns parsed JSON on 200
+2026-11-19T20:19:11.515Z  [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/order-path.test.ts > checkImageConfig request shape > throws LumaprintsApiError(406) when the image is sized incorrectly
+2026-11-19T20:19:11.515Z  [luma-budget] shared provider counter unavailable, falling back to per-instance pacing: rate_limit_hit returned no decision row
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/funnel-print-size-label.test.tsx > Gallery Spotlight preserves print eligibility, exact variant and price with two-line size choices
+2026-11-19T20:19:11.515Z  Received `true` for a non-boolean attribute `jsx`.
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  If you want to write it to the DOM, pass a string instead: jsx="true" or jsx={value.toString()}.
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/api/native-billing.test.ts > native billing proxy > fails closed without the private server connection key
+2026-11-19T20:19:11.515Z  Subscription billing unavailable { kind: 'upstream_failure' }
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.515Z  stderr | test/post-purchase-email.test.ts > retries with an identical frozen message when the provider times out
+2026-11-19T20:19:11.515Z  Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 timeout
+2026-11-19T20:19:11.515Z  
+2026-11-19T20:19:11.516Z  stderr | test/post-purchase-email.test.ts > fails closed on prepareError without sending
+2026-11-19T20:19:11.516Z  Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not prepare purchase email
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  stderr | test/post-purchase-email.test.ts > fails closed on freezeError without sending
+2026-11-19T20:19:11.516Z  Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not save purchase email before delivery
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  stderr | test/post-purchase-email.test.ts > keeps the identical message for a retry if the provider accepted it but recording failed
+2026-11-19T20:19:11.516Z  Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not record confirmed purchase email
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  stderr | test/post-purchase-email.test.ts > keeps the identical message for a retry if the provider accepted it but recording failed
+2026-11-19T20:19:11.516Z  Post-purchase email will retry: 00000000-0000-4000-8000-000000000001 Could not record confirmed purchase email
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  stderr | test/post-purchase-email.test.ts > refuses unauthenticated cron requests
+2026-11-19T20:19:11.516Z  CRON_SECRET is not set — refusing cron request (fail closed)
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  stderr | test/admin/master-crop-modal.test.tsx > crop save completion > tracks a crop already being prepared when the editor is reopened
+2026-11-19T20:19:11.516Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  act(() => {
+2026-11-19T20:19:11.516Z  /* fire events that update state */
+2026-11-19T20:19:11.516Z  });
+2026-11-19T20:19:11.516Z  /* assert on the output */
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.516Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  act(() => {
+2026-11-19T20:19:11.516Z  /* fire events that update state */
+2026-11-19T20:19:11.516Z  });
+2026-11-19T20:19:11.516Z  /* assert on the output */
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.516Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.516Z  
+2026-11-19T20:19:11.516Z  act(() => {
+2026-11-19T20:19:11.517Z  /* fire events that update state */
+2026-11-19T20:19:11.517Z  });
+2026-11-19T20:19:11.517Z  /* assert on the output */
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  stderr | test/admin/master-crop-modal.test.tsx > saves the chosen rotation and swapped print dimensions, and restores them on reopen
+2026-11-19T20:19:11.517Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  act(() => {
+2026-11-19T20:19:11.517Z  /* fire events that update state */
+2026-11-19T20:19:11.517Z  });
+2026-11-19T20:19:11.517Z  /* assert on the output */
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.517Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  act(() => {
+2026-11-19T20:19:11.517Z  /* fire events that update state */
+2026-11-19T20:19:11.517Z  });
+2026-11-19T20:19:11.517Z  /* assert on the output */
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.517Z  An update to MasterCropWorkspace inside a test was not wrapped in act(...).
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  When testing, code that causes React state updates should be wrapped into act(...):
+2026-11-19T20:19:11.517Z  
+2026-11-19T20:19:11.517Z  act(() => {
+2026-11-19T20:19:11.517Z  /* fire events that update state */
+2026-11-19T20:19:11.517Z  });
+2026-11-19T20:19:11.517Z  /* assert on the output */
+2026-11-19T20:19:11.518Z  
+2026-11-19T20:19:11.518Z  This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+2026-11-19T20:19:11.518Z  
+2026-11-19T20:19:11.518Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — mass-tombstone guard > fails the run instead of tombstoning the catalog when the provider index comes back empty
+2026-11-19T20:19:11.518Z  [catalog-sync] chunk failed: refused_tombstone Refusing to tombstone: saw 0 of 50 known subcategories
+2026-11-19T20:19:11.518Z  
+2026-11-19T20:19:11.518Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > pauses on a 429 with the cursor untouched, then finishes on the next chunk
+2026-11-19T20:19:11.518Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.518Z  
+2026-11-19T20:19:11.518Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > keeps the progress a chunk committed before the throttle hit
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > keeps the progress a chunk committed before the throttle hit
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:429 Lumaprints API error (429): {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — transient provider conditions > fails the run only after five consecutive transient chunks, never on a 400
+2026-11-19T20:19:11.519Z  [catalog-sync] chunk failed: provider_error:400 Lumaprints API error (400): bad request
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/original-product-save.test.ts > archive lookup failures > does not archive or audit after lookup error {"code":"08006","message":"Connection failed"}
+2026-11-19T20:19:11.519Z  [api] admin/products [id] DELETE lookup: {"code":"08006","message":"Connection failed"}
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > answers 503 provider_busy when the provider cannot be reached
+2026-11-19T20:19:11.519Z  [print-quote] provider unavailable (undefined): sandbox 429 after 3 retries
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > answers 503 provider_busy with the same copy when fulfillment is switched off
+2026-11-19T20:19:11.519Z  [print-quote] provider unavailable (Error): kill switch on
+2026-11-19T20:19:11.519Z  
+2026-11-19T20:19:11.519Z  stderr | test/api/print-quote-route.test.ts > POST /api/products/[id]/print-quote > never leaks an unexpected internal error
+2026-11-19T20:19:11.519Z  [api] products/[id]/print-quote POST: relation "lumaprints_pricing_cache" does not exist
+2026-11-19T20:19:11.520Z  
+2026-11-19T20:19:11.520Z  stderr | test/catalog/catalog-sync-route.test.ts > catalog-sync cron route > never puts provider or database text in its body
+2026-11-19T20:19:11.520Z  [cron] lumaprints-catalog-sync: connection to db-MARKER-xyz refused
+2026-11-19T20:19:11.520Z  
+2026-11-19T20:19:11.520Z  stderr | test/sales-tax-routes.test.ts > production file failure before payment > blocks embedded checkout when paper preparation fails
+2026-11-19T20:19:11.520Z  Checkout intent failed Error: private storage detail
+2026-11-19T20:19:11.520Z  at /vercel/path0/test/sales-tax-routes.test.ts:99:37
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+2026-11-19T20:19:11.520Z  at new Promise (<anonymous>)
+2026-11-19T20:19:11.520Z  at runWithCancel (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+2026-11-19T20:19:11.520Z  at new Promise (<anonymous>)
+2026-11-19T20:19:11.520Z  at runWithTimeout (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+2026-11-19T20:19:11.520Z  
+2026-11-19T20:19:11.520Z  stderr | test/sales-tax-routes.test.ts > production file failure before payment > blocks hosted checkout when paper preparation fails
+2026-11-19T20:19:11.520Z  Checkout failed Error: private storage detail
+2026-11-19T20:19:11.520Z  at /vercel/path0/test/sales-tax-routes.test.ts:99:37
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+2026-11-19T20:19:11.520Z  at new Promise (<anonymous>)
+2026-11-19T20:19:11.520Z  at runWithCancel (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+2026-11-19T20:19:11.520Z  at file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+2026-11-19T20:19:11.520Z  at new Promise (<anonymous>)
+2026-11-19T20:19:11.520Z  at runWithTimeout (file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+2026-11-19T20:19:11.520Z  
+2026-11-19T20:19:11.520Z  stderr | test/pricing/quote.test.ts > quoteConfiguration: provider trouble > refuses to price without freight when only the shipping quote fails and nothing is cached
+2026-11-19T20:19:11.521Z  quote: worst-case shipping unavailable, refusing to price without freight: zip 33101 is not serviceable
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/pricing/quote.test.ts > quoteConfiguration: provider trouble > serves the last row with its own freight when only the shipping quote fails
+2026-11-19T20:19:11.521Z  quote: worst-case shipping unavailable, refusing to price without freight: zip 33101 is not serviceable
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — one run at a time > marks a run failed and refuses to continue it
+2026-11-19T20:19:11.521Z  [catalog-sync] chunk failed: internal provider is down
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > never submits a test-mode order to the production host; the item is failed_validation with the reason logged
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > submits the same test-mode order on the sandbox host and passes the frozen colour through
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > submits a live order on the production host without a colour when the line has none
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > blocks an oversized frozen file before any provider submission
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > reuses an exact provider order instead of creating a duplicate
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > holds a conflicting existing provider order without another POST
+2026-11-19T20:19:11.521Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.521Z  
+2026-11-19T20:19:11.521Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > holds a conflicting existing provider order without another POST
+2026-11-19T20:19:11.522Z  Fulfillment submission failed for lumaprints: An existing provider order needs review; its items or status differ. No new order was created.
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/fulfillment/router-guard.test.ts > routeOrderToFulfillment test-mode guard > does not fall back to the uncropped master source when a line has no snapshot path
+2026-11-19T20:19:11.522Z  fulfillment: catalog read failed, using legacy option checks: catalog unavailable in this test
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/api/catalog-admin-routes.test.ts > RPC refusals map by SQLSTATE > turns anything else into a database failure with no raw text
+2026-11-19T20:19:11.522Z  [api] admin/catalog option PATCH: {"code":"23505","message":"duplicate key value violates unique"}
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/checkout-holds.test.ts > holdOriginals > fails closed as an error when the database call fails
+2026-11-19T20:19:11.522Z  hold_originals failed: { message: 'down' }
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/checkout-holds.test.ts > releaseOriginalHolds > swallows database failures (holds also expire on their own)
+2026-11-19T20:19:11.522Z  release_original_holds failed: { message: 'down' }
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/checkout-holds.test.ts > resolveFunnelId > drops to null on lookup failure rather than blocking checkout
+2026-11-19T20:19:11.522Z  funnel attribution lookup failed: { message: 'down' }
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > prices a prepared crop while processing, but refuses sizes beyond its actual detail
+2026-11-19T20:19:11.522Z  buildPricedVariantRow: configuration not sellable canvas 8x10 size_resolution
+2026-11-19T20:19:11.522Z  
+2026-11-19T20:19:11.522Z  stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > never publishes a Live variant it could not price
+2026-11-19T20:19:11.522Z  buildPricedVariantRow: failed to price canvas 40x44 SizeOutOfBoundsError: no recorded price for 101002|40x44|2,11
+2026-11-19T20:19:11.522Z  at quoteConfiguration (/vercel/path0/src/lib/pricing/quote.ts:521:17)
+2026-11-19T20:19:11.523Z  at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-11-19T20:19:11.523Z  at Module.buildPricedVariantRow (/vercel/path0/src/lib/pricing/variant-insert.ts:121:21)
+2026-11-19T20:19:11.523Z  at /vercel/path0/test/pricing/variant-insert-v2.test.ts:472:17
+2026-11-19T20:19:11.523Z  at async file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20 {
+2026-11-19T20:19:11.523Z  code: 'SIZE_OUT_OF_BOUNDS'
+2026-11-19T20:19:11.523Z  }
+2026-11-19T20:19:11.523Z  
+2026-11-19T20:19:11.523Z  stderr | test/pricing/variant-insert-v2.test.ts > buildPricedVariantRow parity with the legacy engine > falls back to the legacy price path for a family the catalog has no row for
+2026-11-19T20:19:11.523Z  buildPricedVariantRow: no catalog subcategory for medium, using the legacy price path metal
+2026-11-19T20:19:11.523Z  
+2026-11-19T20:19:11.523Z  stderr | test/festive-registration-route.test.ts > private class confirmation boundary > keeps a provider failure pending rather than inventing a paid state
+2026-11-19T20:19:11.523Z  [art-class.registration] Provider reconciliation unavailable
+2026-11-19T20:19:11.523Z  
+2026-11-19T20:19:11.524Z  stderr | test/orders/reconcile-embedded.test.ts > shared settlement fail-closed and replay guards > does not mistake two configurations of the same print for a complete one-line order
+2026-11-19T20:19:11.524Z  Elements order for pi_paid has no buyer email
+2026-11-19T20:19:11.524Z  
+2026-11-19T20:19:11.524Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > stores a class, not the body of a provider error
+2026-11-19T20:19:11.524Z  [catalog-sync] chunk failed: provider_error:400 Lumaprints API error (400): MARKER-xyz store=82222 key=abc
+2026-11-19T20:19:11.524Z  
+2026-11-19T20:19:11.524Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > classifies a budget refusal and a kill switch distinctly
+2026-11-19T20:19:11.524Z  [catalog-sync] chunk failed: budget_exhausted busy
+2026-11-19T20:19:11.524Z  
+2026-11-19T20:19:11.524Z  stderr | test/catalog/sync.test.ts > catalog sync v2 — provider text never reaches the database > classifies a budget refusal and a kill switch distinctly
+2026-11-19T20:19:11.524Z  [catalog-sync] chunk failed: disabled off
+2026-11-19T20:19:11.524Z  
+2026-11-19T20:19:11.524Z  stderr | test/rls/product-slug-redirects.test.ts > RLS (live): product_slug_redirects > SKIPPED — SUPABASE_TEST_URL / SUPABASE_TEST_ANON_KEY not set
+2026-11-19T20:19:11.524Z  [rls] product_slug_redirects live check SKIPPED: no test instance credentials
+2026-11-19T20:19:11.524Z  
+2026-11-19T20:19:11.524Z  stderr | test/crop-worker.test.ts > automatic crop job ownership > publishes exact dimensions once and leaves the original untouched
+2026-11-19T20:19:11.524Z  variant reconciliation: catalog unavailable; prices will refresh on the next admin refresh TypeError: build(...).order is not a function
+2026-11-19T20:19:11.524Z  at readAllPages (/vercel/path0/src/lib/catalog/load.ts:82:42)
+2026-11-19T20:19:11.524Z  at readSubcategories (/vercel/path0/src/lib/catalog/load.ts:141:10)
+2026-11-19T20:19:11.524Z  at loadCatalog (/vercel/path0/src/lib/catalog/load.ts:229:5)
+2026-11-19T20:19:11.524Z  at reconcileVariantsForMaster (/vercel/path0/src/lib/pricing/reconcile-variants.ts:70:23)
+2026-11-19T20:19:11.524Z  at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-11-19T20:19:11.524Z  at processMasterCrop (/vercel/path0/src/lib/artwork/crop-worker.ts:257:28)
+2026-11-19T20:19:11.524Z  at /vercel/path0/test/crop-worker.test.ts:41:12
+2026-11-19T20:19:11.524Z  at async file:///vercel/path0/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  stderr | test/anti-bot-token.test.ts > requireAntiBotToken > answers 403 anti_bot when the header is absent
+2026-11-19T20:19:11.525Z  [anti-bot] rejected request: missing
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  stderr | test/anti-bot-token.test.ts > requireAntiBotToken > answers 403 anti_bot when the token is forged
+2026-11-19T20:19:11.525Z  [anti-bot] rejected request: bad_signature
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  stderr | test/require-cron.test.ts > requireCron (AZ-1) > fails closed (503) when CRON_SECRET is unset — even with "Bearer undefined"
+2026-11-19T20:19:11.525Z  CRON_SECRET is not set — refusing cron request (fail closed)
+2026-11-19T20:19:11.525Z  CRON_SECRET is not set — refusing cron request (fail closed)
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  stderr | test/require-cron.test.ts > requireCron (AZ-1) > fails closed (503) when CRON_SECRET is empty
+2026-11-19T20:19:11.525Z  CRON_SECRET is not set — refusing cron request (fail closed)
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  stderr | test/email-suppression.test.ts > isSuppressed (COM-2) > fails OPEN (does not suppress) on a lookup error
+2026-11-19T20:19:11.525Z  isSuppressed lookup failed (allowing send): db down
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+2026-11-19T20:19:11.525Z  
+2026-11-19T20:19:11.525Z  FAIL  test/provider-image.test.ts > provider delivery contract > encodes a large crop with full dimensions, DPI and ICC preserved
+2026-11-19T20:19:11.525Z  Error: Test timed out in 5000ms.
+2026-11-19T20:19:11.525Z  If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+2026-11-19T20:19:11.525Z  ❯ test/provider-image.test.ts:30:3
+2026-11-19T20:19:11.525Z  28|     await expect(prepareProviderImage(input, input)).rejects.toThrow(/…
+2026-11-19T20:19:11.525Z  29|   })
+2026-11-19T20:19:11.525Z  30|   it('encodes a large crop with full dimensions, DPI and ICC preserved…
+2026-11-19T20:19:11.525Z  |   ^
+2026-11-19T20:19:11.525Z  31|     const folder = await mkdtemp(join(tmpdir(), 'delivery-test-')); fo…
+2026-11-19T20:19:11.525Z  32|     const input = join(folder, 'source.png'), output = join(folder, 'd…
+2026-11-19T20:19:11.526Z  
+2026-11-19T20:19:11.526Z  ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+2026-11-19T20:19:11.526Z  
+2026-11-19T20:19:11.526Z  
+2026-11-19T20:19:37.679Z  
+2026-11-19T20:19:37.680Z  DotWin build-check
+2026-11-19T20:19:37.680Z  2026-11-19T20:19:37.678Z  ·  profile: green  ·  mode: adopt
+2026-11-19T20:19:37.680Z  Rule 1: ACID invariants outrank module purity
+2026-11-19T20:19:37.680Z  
+2026-11-19T20:19:37.680Z  ✓ typecheck  ·  ok
+2026-11-19T20:19:37.680Z  ✓ lint  ·  ok
+2026-11-19T20:19:37.680Z  ✗ test  ·  exit 1: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+2026-11-19T20:19:37.680Z  ✓ build  ·  ok
+2026-11-19T20:19:37.680Z  ✓ secrets  ·  no hardcoded secrets
+2026-11-19T20:19:37.680Z  · grant-boundary (optional)  ·  SUPABASE_PROJECT_REF / SUPABASE_ACCESS_TOKEN not set (CI enforces this gate via repository secrets)
+2026-11-19T20:19:37.680Z  ✓ security  ·  0 advisory
+2026-11-19T20:19:37.680Z  ✓ supabase-boundaries  ·  client boundaries respected
+2026-11-19T20:19:37.680Z  ✓ authz  ·  mutation boundaries guarded
+2026-11-19T20:19:37.680Z  ✓ rls  ·  78 tables, 78 with RLS; 0 blocking
+2026-11-19T20:19:37.680Z  [medium] read policy "public can read product images" on "product_images" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+2026-11-19T20:19:37.680Z  [medium] read policy "public can read product variants" on "product_variants" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+2026-11-19T20:19:37.680Z  [medium] read policy "public can read categories" on "categories" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+2026-11-19T20:19:37.681Z  [medium] read policy "public can read lessons" on "lessons" uses permissive (true)  supabase/migrations/20260401003826_add_rls_policies.sql:15
+2026-11-19T20:19:37.681Z  [medium] read policy "public can read cv_settings" on "cv_settings" uses permissive (true)  supabase/migrations/20260519000001_cv_entries.sql:28
+2026-11-19T20:19:37.681Z  [medium] read policy "public read lumaprints_mediums" on "lumaprints_mediums" uses permissive (true)  supabase/migrations/20260520000001_lumaprints_mediums.sql:27
+2026-11-19T20:19:37.681Z  [medium] read policy "public can read product_categories" on "product_categories" uses permissive (true)  supabase/migrations/20260622212139_adopt_rls_conformance.sql:13
+2026-11-19T20:19:37.681Z  ✓ migrations  ·  112 migration file(s)
+2026-11-19T20:19:37.681Z  · domain-isolation (optional)  ·  no src/domains or src/modules directory
+2026-11-19T20:19:37.681Z  · contract (optional)  ·  no src/domains or src/modules (score via audit)
+2026-11-19T20:19:37.681Z  · read-boundary (optional)  ·  no src/domains or src/modules
+2026-11-19T20:19:37.681Z  · table-ownership (optional)  ·  no src/domains or src/modules
+2026-11-19T20:19:37.681Z  · atomicity (optional)  ·  no src/domains or src/modules
+2026-11-19T20:19:37.681Z  · event-boundaries (optional)  ·  no src/domains or src/modules
+2026-11-19T20:19:37.681Z  ✓ rpc-exists  ·  2 declared transaction(s); 0 blocking
+2026-11-19T20:19:37.681Z  · no-duplicate-transactions (optional)  ·  no src/domains or src/modules
+2026-11-19T20:19:37.681Z  ✓ retired-symbols  ·  7 retired · 2 pending · 728 files scanned
+2026-11-19T20:19:37.681Z  ✓ anchors (optional)  ·  0 source anchor(s)
+2026-11-19T20:19:37.681Z  ✓ state  ·  7 tag(s) resolve
+2026-11-19T20:19:37.681Z  ✓ docs  ·  395 undocumented (0 blocking)
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminAboutPage" has no intent doc comment  src/app/(admin)/admin/about/page.tsx:5
+2026-11-19T20:19:37.682Z  [medium] exported function/component "EditBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/[id]/page.tsx:22
+2026-11-19T20:19:37.682Z  [medium] exported function/component "NewBlogPostPage" has no intent doc comment  src/app/(admin)/admin/blog/new/page.tsx:22
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminBlogPage" has no intent doc comment  src/app/(admin)/admin/blog/page.tsx:9
+2026-11-19T20:19:37.682Z  [medium] exported function/component "BookingsPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/bookings/page.tsx:9
+2026-11-19T20:19:37.682Z  [medium] exported function/component "EditClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/[id]/page.tsx:8
+2026-11-19T20:19:37.682Z  [medium] exported function/component "NewClassSessionPage" has no intent doc comment  src/app/(admin)/admin/classes/new/page.tsx:7
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminClassesPage" has no intent doc comment  src/app/(admin)/admin/classes/page.tsx:32
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminCommissionDetailPage" has no intent doc comment  src/app/(admin)/admin/commissions/[id]/page.tsx:77
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminCommissionsPage" has no intent doc comment  src/app/(admin)/admin/commissions/page.tsx:59
+2026-11-19T20:19:37.682Z  [medium] exported function/component "ContentEditor" has no intent doc comment  src/app/(admin)/admin/content/ContentEditor.tsx:17
+2026-11-19T20:19:37.682Z  [medium] exported function/component "AdminContentPage" has no intent doc comment  src/app/(admin)/admin/content/page.tsx:19
+2026-11-19T20:19:37.682Z  … 383 more
+2026-11-19T20:19:37.682Z  
+2026-11-19T20:19:37.682Z  status: FAILED
+2026-11-19T20:19:37.682Z  
+2026-11-19T20:19:37.684Z  wrote: docs/build-checks/latest.json, STATE.md, BUILD_LOG.md
+2026-11-19T20:19:37.684Z  
+2026-11-19T20:19:37.716Z  Error: [BUILD_UTILS_SPAWN_1] Command "npm run build-check:write" exited with 1

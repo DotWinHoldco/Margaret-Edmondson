@@ -38,7 +38,7 @@ describe('provider delivery contract', () => {
     expect((await stat(output)).size).toBeLessThanOrEqual(200_000)
     expect(await sharp(output).metadata()).toMatchObject({ width: 1024, height: 768, density: 300, icc: metadata.icc })
     expect(await readFile(input)).toEqual(before)
-  })
+  }, 30_000)
   it('refuses to discard transparency to meet the limit', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'delivery-test-')); folders.push(folder)
     const input = join(folder, 'source.png')

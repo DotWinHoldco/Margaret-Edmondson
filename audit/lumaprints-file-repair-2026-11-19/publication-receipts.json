@@ -1,0 +1,194 @@
+[
+  {
+    "at": "2026-11-19T20:12:30.692Z",
+    "sourceSha256": "e1d3171274e76e82cca46b875e090d1bba5028c5ca4a8c3cbb3edbdf263da41c",
+    "uploadedSha256": "f60707f454522b733f095d6b578bbe092d54969e6d047044946170c5af590a97",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":2400,\"recommendedHeight\":5066.66,\"expectedAspectRatio\":\"659706976665600:1392712895996887\",\"actualImageWidth\":5400,\"actualImageHeight\":11400,\"actualImageAspectRatio\":\"9:19\"}"
+    },
+    "row": {
+      "id": "1f3a55cf-981c-4608-b7bf-69c7fe75e944",
+      "storage_path": "masters/cactuses/hot-air.jpg",
+      "print_storage_path": "delivery/1f3a55cf-981c-4608-b7bf-69c7fe75e944/1f3a55cf-981c-4608-b7bf-69c7fe75e944-91a73592-f500-44d4-b668-902736d38df6.jpg",
+      "print_width_px": 5400,
+      "print_height_px": 11400
+    }
+  },
+  {
+    "at": "2026-11-19T20:12:55.955Z",
+    "sourceSha256": "20cae41991bad03f651577da183cf3962c6ad865d5946ae16fd1537fc742f310",
+    "uploadedSha256": "d3b2a003677711a95da1f861ccbc91660fc530448b47fb7d70f00db8c5fb5d0c",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":2400,\"recommendedHeight\":3200,\"expectedAspectRatio\":\"3:4\",\"actualImageWidth\":9606,\"actualImageHeight\":12808,\"actualImageAspectRatio\":\"3:4\"}"
+    },
+    "row": {
+      "id": "4051c1f4-7700-41f2-bebc-a76e566eae3c",
+      "storage_path": "masters/new-2026/saguaro.jpg",
+      "print_storage_path": "delivery/4051c1f4-7700-41f2-bebc-a76e566eae3c/4051c1f4-7700-41f2-bebc-a76e566eae3c-4b6afb0c-6758-4217-951b-dbf5de05e2ca.jpg",
+      "print_width_px": 9606,
+      "print_height_px": 12808
+    }
+  },
+  {
+    "at": "2026-11-19T20:13:21.258Z",
+    "sourceSha256": "faea754d10f844fb54f4e8267f1aaf3ac73bc092ba6d7c5577518d1d9b971823",
+    "uploadedSha256": "3196a6146d009a795d3dd351429e4c2dc994e846c7dfd2cb2b59f8a3565d5421",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":2400,\"recommendedHeight\":5066.66,\"expectedAspectRatio\":\"659706976665600:1392712895996887\",\"actualImageWidth\":5427,\"actualImageHeight\":11457,\"actualImageAspectRatio\":\"9:19\"}"
+    },
+    "row": {
+      "id": "612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b",
+      "storage_path": "masters/cactuses/the-dual.jpg",
+      "print_storage_path": "delivery/612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b/612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b-d4ca56c9-df4e-4c42-a85e-7149bddf5853.jpg",
+      "print_width_px": 5427,
+      "print_height_px": 11457
+    }
+  },
+  {
+    "at": "2026-11-19T20:13:50.061Z",
+    "sourceSha256": "158ffa5a7b2d37472520f22484747ae33503a2ec61e1de7ff101dcd7501e2808",
+    "uploadedSha256": "28181f78f57fa1a5be77043c43a972fa66de801d1001d7636b17ed48c7dbd29e",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1885.7199999999998,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"1382247377819839:1759218604441600\",\"actualImageWidth\":10219,\"actualImageHeight\":13006,\"actualImageAspectRatio\":\"11:14\"}"
+    },
+    "row": {
+      "id": "78a8b45f-abdf-4f98-ba96-fd0de6332bef",
+      "storage_path": "masters/texas-themed/spring-break-mountain-boat-dock.jpg",
+      "print_storage_path": "delivery/78a8b45f-abdf-4f98-ba96-fd0de6332bef/78a8b45f-abdf-4f98-ba96-fd0de6332bef-0695b872-ca6f-4088-9ea2-ed02595c4d13.jpg",
+      "print_width_px": 13006,
+      "print_height_px": 10219
+    }
+  },
+  {
+    "at": "2026-11-19T20:14:33.745Z",
+    "sourceSha256": "085e7a57bbee5fa39520b8e3e02b164f353a987176fb5a6e784e0e5c7cbfe6d8",
+    "uploadedSha256": "56af39882362841b99b53c990b32798a87e552c7992f236254590b0e060f5011",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":2400,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"1:1\",\"actualImageWidth\":10594,\"actualImageHeight\":10594,\"actualImageAspectRatio\":\"1:1\"}"
+    },
+    "row": {
+      "id": "9fe96504-3435-44f0-8e89-6a0fd07ec085",
+      "storage_path": "library/858f8900-49af-40e9-b01f-3c09f347759e/Play Ball-dogs.jpg",
+      "print_storage_path": "delivery/9fe96504-3435-44f0-8e89-6a0fd07ec085/9fe96504-3435-44f0-8e89-6a0fd07ec085-ed5b7f3f-daf4-487e-95f2-99f2cc540226.jpg",
+      "print_width_px": 10594,
+      "print_height_px": 10594
+    }
+  },
+  {
+    "at": "2026-11-19T20:15:10.236Z",
+    "sourceSha256": "9aca9e70da9c7fc3b657e32241a107777a640b8321c3b14f7114a87f1276834b",
+    "uploadedSha256": "bbaf5db8acf5e1282cdc395677b541fdc292ff7279fadec2fadb471f4f867412",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1800,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"3:4\",\"actualImageWidth\":7200,\"actualImageHeight\":9600,\"actualImageAspectRatio\":\"3:4\"}"
+    },
+    "row": {
+      "id": "a95fb10a-272c-465c-a75d-dd9ecb406614",
+      "storage_path": "masters/texas-themed/deep-in-the-heart-of-texas.jpg",
+      "print_storage_path": "delivery/a95fb10a-272c-465c-a75d-dd9ecb406614/a95fb10a-272c-465c-a75d-dd9ecb406614-5faf7cb0-6410-4da3-8d79-ddace5563e83.jpg",
+      "print_width_px": 9600,
+      "print_height_px": 7200
+    }
+  },
+  {
+    "at": "2026-11-19T20:17:50.845Z",
+    "sourceSha256": "de9c9ff262985db20f7dcee53bdd395b9660d3f07b31dc8042290d8c564a7b12",
+    "uploadedSha256": "999de8435ab17b09233429c755a7035897a9abca15cb407ee0f686f9f1202f03",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1800,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"3:4\",\"actualImageWidth\":9750,\"actualImageHeight\":13000,\"actualImageAspectRatio\":\"3:4\"}"
+    },
+    "row": {
+      "id": "ad319b0f-87e4-4836-844c-4b8c7b1d6b01",
+      "storage_path": "masters/texas-themed/think-again.jpg",
+      "print_storage_path": "delivery/ad319b0f-87e4-4836-844c-4b8c7b1d6b01/ad319b0f-87e4-4836-844c-4b8c7b1d6b01-fb137175-3850-4a97-a812-df824ba2ff1d.jpg",
+      "print_width_px": 13000,
+      "print_height_px": 9750
+    }
+  },
+  {
+    "at": "2026-11-19T20:15:35.597Z",
+    "sourceSha256": "cc4181c53a590e882e51a86a5a0db6e5144f7df20a22f050e29d926fc7c9ce41",
+    "uploadedSha256": "b2aec84ed4980f5849691244667bef86d2683b0051206a85e3a2371b32a599f6",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1828.58,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"335090828719773:439804651110400\",\"actualImageWidth\":9504,\"actualImageHeight\":12474,\"actualImageAspectRatio\":\"16:21\"}"
+    },
+    "row": {
+      "id": "b40768da-d570-4010-9944-2c60782cb7a0",
+      "storage_path": "masters/texas-themed/keepsake.jpg",
+      "print_storage_path": "delivery/b40768da-d570-4010-9944-2c60782cb7a0/b40768da-d570-4010-9944-2c60782cb7a0-2e8db429-b9de-4b29-936a-f21759985853.jpg",
+      "print_width_px": 12474,
+      "print_height_px": 9504
+    }
+  },
+  {
+    "at": "2026-11-19T20:15:56.614Z",
+    "sourceSha256": "969b287a1b22622a68c41697e5da46419a452c0f4288e75430209ed95895cab6",
+    "uploadedSha256": "d91ff378d31632811bfbe14c40ee1938c7f6d8b9dec42e7b17e09002b3c2b5dc",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1885.7199999999998,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"1382247377819839:1759218604441600\",\"actualImageWidth\":6578,\"actualImageHeight\":8372,\"actualImageAspectRatio\":\"11:14\"}"
+    },
+    "row": {
+      "id": "cada728d-ae70-4629-a7e9-e11cc6f4b23e",
+      "storage_path": "masters/beach-and-sc/fun-at-the-beach.jpg",
+      "print_storage_path": "delivery/cada728d-ae70-4629-a7e9-e11cc6f4b23e/cada728d-ae70-4629-a7e9-e11cc6f4b23e-c07b7b19-f759-49ce-8603-e4ae52b79523.jpg",
+      "print_width_px": 8372,
+      "print_height_px": 6578
+    }
+  },
+  {
+    "at": "2026-11-19T20:16:34.047Z",
+    "sourceSha256": "88143d8cb4920d15e772a4658cf79f46c6ca98ebb9e7aae8604faf651d093c0f",
+    "uploadedSha256": "6395d4b56cb8942673c2aed41628bf06052481916d76e4c53bb31e59b2f593b0",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1600,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"2:3\",\"actualImageWidth\":8610,\"actualImageHeight\":12915,\"actualImageAspectRatio\":\"2:3\"}"
+    },
+    "row": {
+      "id": "db6f20fb-0bae-45a2-b086-d77a8edcb29c",
+      "storage_path": "masters/texas-themed/graze-daze.jpg",
+      "print_storage_path": "delivery/db6f20fb-0bae-45a2-b086-d77a8edcb29c/db6f20fb-0bae-45a2-b086-d77a8edcb29c-a7cf398f-ccf5-4e59-a327-36edea125eca.jpg",
+      "print_width_px": 12915,
+      "print_height_px": 8610
+    }
+  },
+  {
+    "at": "2026-11-19T20:17:04.504Z",
+    "sourceSha256": "daa4308c762144458fb07e46bdebb910073b8d0e16a3cf6028c535e0071b0175",
+    "uploadedSha256": "da3b0e34887422047f7d66222b12474ae7069f3009a90ee032c633c8bc3ae57e",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":2400,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"1:1\",\"actualImageWidth\":13000,\"actualImageHeight\":13000,\"actualImageAspectRatio\":\"1:1\"}"
+    },
+    "row": {
+      "id": "f5acf94f-df92-4285-9d7e-6ee2bb5ea056",
+      "storage_path": "masters/texas-themed/flower-power.jpg",
+      "print_storage_path": "delivery/f5acf94f-df92-4285-9d7e-6ee2bb5ea056/f5acf94f-df92-4285-9d7e-6ee2bb5ea056-2a33c637-0752-4061-b231-ac795a55c906.jpg",
+      "print_width_px": 13000,
+      "print_height_px": 13000
+    }
+  },
+  {
+    "at": "2026-11-19T20:18:12.315Z",
+    "sourceSha256": "f26d016fa820dcebbef4465ad162d451d2325f24dc8ca44c90da5d144ebfafb5",
+    "uploadedSha256": "acbf9d48787e83456ac2ad5b5325ec14f18e24922eb8db8e06889bdac72d2c62",
+    "providerImageCheck": {
+      "status": 200,
+      "body": "{\"message\":\"The aspect ratio of the image is the same as the ordered size. We allow a maximum of 1% difference between the aspect ratio of the image and the ordered size.\",\"imageUrl\":\"[image URL redacted]\",\"recommendedWidth\":1800,\"recommendedHeight\":2400,\"expectedAspectRatio\":\"3:4\",\"actualImageWidth\":10653,\"actualImageHeight\":14204,\"actualImageAspectRatio\":\"3:4\"}"
+    },
+    "row": {
+      "id": "f786858f-b0fb-46fa-8dba-9f73b97681ff",
+      "storage_path": "masters/encouragement-series/unexpected.jpg",
+      "print_storage_path": "delivery/f786858f-b0fb-46fa-8dba-9f73b97681ff/f786858f-b0fb-46fa-8dba-9f73b97681ff-3e4f4e45-bd54-4fbd-8153-a1aeb1170436.jpg",
+      "print_width_px": 14204,
+      "print_height_px": 10653
+    }
+  }
+]

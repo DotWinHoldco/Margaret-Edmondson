@@ -11,3 +11,7 @@ The existing order #9 job was held as needs_attention before repair. Item IDs, q
 Guards cover crop publication, operator crops, paper derivatives, public readiness, checkout snapshots and frozen fulfillment files. Public readiness continues to expose only readiness and dimensions. The database regression confirms anonymous users cannot read private storage metadata. Full build-check: GREEN (typecheck, lint, complete test suite, build and required project checks).
 
 Production application and order acceptance evidence will be recorded after the controlled release.
+
+All 12 replacements were published after hash readback and HTTP 200 provider image validation. A production query verified: 12/12 original references unchanged and present, 12/12 approved PNGs present, 12/12 replacements ready with exact original crop dimensions and compliant byte counts. A separate scan found zero ready masters with missing, oversized or unsupported delivery files. The public-readiness migration was applied. Post-migration health advisors reported no findings; security findings match the pre-existing baseline.
+
+The first staged application build correctly stopped on a five-second timeout in the native image-conversion test (1,223 tests passed; one timed out; seven existing tests skipped). The same test had passed locally; its per-test allowance is now 30 seconds for the highly parallel hosted runner. No quality threshold or production logic was relaxed.
