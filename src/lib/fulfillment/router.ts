@@ -526,11 +526,11 @@ async function submitToLumaprints(
   }
 
   await (await createServiceClient()).from('webhook_logs').insert({
-    provider: 'lumaprints', event_type: 'order_provider_reconciled',
+    source: 'lumaprints', event_type: 'order_provider_reconciled',
     payload: { orderId, submissionExternalId, inspectedOrders: existing.length,
       reusedExisting: matches.length === 1, externalOrderId: String(response.orderNumber),
       providerStatus: response.orderStatus ?? null, itemIds: [...itemIds] },
-    status: 'success',
+    processed: true,
   })
 
   // Lumaprints returns a single order — map its number to every item.

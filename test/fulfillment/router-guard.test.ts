@@ -220,6 +220,10 @@ describe('routeOrderToFulfillment test-mode guard', () => {
       orderItems: [{ externalItemId: ITEM_ID, quantity: 1, subcategoryId: 101002, width: 18, height: 24, orderItemOptions: [{ optionId: 3 }, { optionId: 11 }] }] }]
     const result = await routeOrderToFulfillment(ORDER_ID, { suppressFailureAlert: true })
     expect(result[0]).toMatchObject({ success: true, externalOrderId: 'existing-order' })
+    const audit = state.inserts.find(insert => (insert.payload as { event_type?: string }).event_type === 'order_provider_reconciled')
+    expect(audit?.payload).toMatchObject({ source: 'lumaprints', processed: true, payload: { reusedExisting: true, inspectedOrders: 1 } })
+    expect(audit?.payload).not.toHaveProperty('provider')
+    expect(audit?.payload).not.toHaveProperty('status')
     expect(state.submits).toHaveLength(0)
   })
 

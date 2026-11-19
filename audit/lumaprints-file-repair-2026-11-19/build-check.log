@@ -1,6 +1,6 @@
 
 [1m  DotWin build-check[0m
-[2m  2026-11-19T20:20:51.001Z  ·  profile: green  ·  mode: adopt[0m
+[2m  2026-11-19T20:29:38.522Z  ·  profile: green  ·  mode: adopt[0m
 [2m  Rule 1: ACID invariants outrank module purity[0m
 
   [32m✓[0m typecheck[2m  ·  ok[0m
