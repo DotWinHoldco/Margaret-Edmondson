@@ -1,0 +1,34 @@
+{
+  "orderNumber": 9,
+  "orderId": "9a24f18f-1b6f-4c28-849b-19ecfc4ef972",
+  "providerOrderNumber": "10002173349",
+  "providerAcceptedAt": "2026-11-19T20:30:48.993676Z",
+  "job": {
+    "id": "0fdcf798-f300-40f7-a36f-fa7992419acf",
+    "status": "done",
+    "attempts": 6,
+    "completedAt": "2026-11-19T20:30:49.143Z",
+    "lastError": null
+  },
+  "items": [
+    {
+      "id": "dc3d178b-fc2b-4dd9-b895-ebb027cc0fc9",
+      "title": "Deep in the Heart of Texas",
+      "quantity": 1,
+      "fulfillmentStatus": "submitted"
+    },
+    {
+      "id": "a13a11ba-b119-415b-9e4a-bf1b0191e4a0",
+      "title": "Audubon Swamp",
+      "quantity": 1,
+      "fulfillmentStatus": "submitted"
+    }
+  ],
+  "verifiedCounts": {
+    "itemRows": 2,
+    "totalQuantity": 2,
+    "distinctProviderOrders": 1,
+    "fulfillmentJobRows": 1
+  },
+  "evidence": "Production webhook_logs order_submitted contains successful provider responses for both original item IDs; both point to 10002173349. Existing job and Stripe purchase preserved."
+}

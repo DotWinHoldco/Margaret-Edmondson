@@ -19,3 +19,13 @@ The first staged application build correctly stopped on a five-second timeout in
 The final public-readiness query returned 41/41 ready public print products as provider-file ready. Live checks found zero remaining invalid ready-file references. The real sandbox order-list response was also checked: it returned the documented pagination totals and per-item external IDs/quantity/dimensions/options required by reconciliation. No order was created by this read-only check.
 
 Release 4f8bad1 passed the hosted full build-check and was promoted as dpl_Es4AuJQGBd1BBQMZdyLaqqcHqd6k. The live artbyme.studio domain was confirmed against that deployment before the existing fulfillment job was resumed at 20:28:34 UTC. Final review corrected the supplemental reconciliation log to use webhook_logs.source/processed (the established schema); the duplicate-order decision itself was already active. The corrected audit write has an explicit regression assertion, and the full local build-check passed again.
+
+## Order #9 accepted
+
+At 20:30:48 UTC, the production provider submission succeeded for both original item IDs under Lumaprints order **10002173349**. The existing job completed at 20:30:49 UTC with no error (attempt 6, including the five earlier rejected attempts). Verification confirms exactly two item rows, quantity one each, one distinct provider order number, and one fulfillment-job row. No Stripe checkout, payment, or duplicate internal order was created. Both items are submitted; this is provider acceptance, not a claim that physical printing/shipping has completed. See order-9-result.json.
+
+## Final release and storage
+
+Final application source: 2506761 (DotWin-cx/lumaprints-file-repair). Final deployment: dpl_8k1uzB3PU7MxfRShR5RhvfWPXbdx, promoted to artbyme.studio after the hosted full build-check returned GREEN. The same build was promoted; it was not rebuilt for promotion. Both the full local and production checks passed. Existing unrelated root work was untouched.
+
+The 3.68 GiB of task-only downloaded/generated image duplicates were hash-checked and removed after all 12 cloud copies passed readback and provider validation. Originals and prior approved crops are retained in private storage; about 0.90 GiB of new delivery copies are intentionally retained there for fulfillment. Local cleanup receipts remain under the main root output/lumaprints-file-repair directory. This isolated workspace’s own reproducible node_modules and .next are retired after the final evidence commit; source, lockfile, docs and evidence remain on the pushed branch. No active process held those generated directories at the cleanup check.
