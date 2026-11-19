@@ -1,0 +1,671 @@
+[
+  {
+    "checkedAt": "2026-11-19T20:10:24.785Z",
+    "master": {
+      "id": "1f3a55cf-981c-4608-b7bf-69c7fe75e944",
+      "title": "Hot Air",
+      "storage_path": "masters/cactuses/hot-air.jpg",
+      "print_storage_path": "print/1f3a55cf-981c-4608-b7bf-69c7fe75e944-91a73592-f500-44d4-b668-902736d38df6.png",
+      "print_width_px": 5400,
+      "print_height_px": 11400,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-27T23:56:03.674+00:00",
+      "print_updated_at": "2026-10-27T23:56:27.898+00:00",
+      "crop_box": {
+        "h": 0.9496834388,
+        "w": 0.9083263247,
+        "x": 0.0351555929,
+        "y": 0.0239920027,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 9,
+        "height_in": 19
+      }
+    },
+    "source": {
+      "bytes": 105410735,
+      "sha256": "e1d3171274e76e82cca46b875e090d1bba5028c5ca4a8c3cbb3edbdf263da41c",
+      "width": 5400,
+      "height": 11400,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 100,
+      "quality": {
+        "comparedChannels": 184680000,
+        "psnrDb": 50.581201116543326,
+        "meanAbsoluteDifference": 0.4638372969460689,
+        "maxDifference": 5
+      },
+      "bytes": 53644430,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "f60707f454522b733f095d6b578bbe092d54969e6d047044946170c5af590a97",
+      "objectName": "delivery/1f3a55cf-981c-4608-b7bf-69c7fe75e944/1f3a55cf-981c-4608-b7bf-69c7fe75e944-91a73592-f500-44d4-b668-902736d38df6.jpg"
+    },
+    "quality": {
+      "comparedChannels": 184680000,
+      "psnrDb": 50.581201116543326,
+      "meanAbsoluteDifference": 0.4638372969460689,
+      "maxDifference": 5
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:11:43.274Z",
+    "master": {
+      "id": "4051c1f4-7700-41f2-bebc-a76e566eae3c",
+      "title": "Saguaro",
+      "storage_path": "masters/new-2026/saguaro.jpg",
+      "print_storage_path": "print/4051c1f4-7700-41f2-bebc-a76e566eae3c-4b6afb0c-6758-4217-951b-dbf5de05e2ca.png",
+      "print_width_px": 9606,
+      "print_height_px": 12808,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-27T17:27:54.451+00:00",
+      "print_updated_at": "2026-10-27T17:30:58.197+00:00",
+      "crop_box": {
+        "h": 0.9852307692,
+        "w": 0.9852307692,
+        "x": 0.0147692308,
+        "y": 0.0084615385,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 18,
+        "height_in": 24
+      }
+    },
+    "source": {
+      "bytes": 205421945,
+      "sha256": "20cae41991bad03f651577da183cf3962c6ad865d5946ae16fd1537fc742f310",
+      "width": 9606,
+      "height": 12808,
+      "density": 72,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 100,
+      "quality": {
+        "comparedChannels": 369100944,
+        "psnrDb": 57.63924291320823,
+        "meanAbsoluteDifference": 0.09969721724688951,
+        "maxDifference": 3
+      },
+      "bytes": 78061367,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "d3b2a003677711a95da1f861ccbc91660fc530448b47fb7d70f00db8c5fb5d0c",
+      "objectName": "delivery/4051c1f4-7700-41f2-bebc-a76e566eae3c/4051c1f4-7700-41f2-bebc-a76e566eae3c-4b6afb0c-6758-4217-951b-dbf5de05e2ca.jpg"
+    },
+    "quality": {
+      "comparedChannels": 369100944,
+      "psnrDb": 57.63924291320823,
+      "meanAbsoluteDifference": 0.09969721724688951,
+      "maxDifference": 3
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:12:13.776Z",
+    "master": {
+      "id": "612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b",
+      "title": "The Dual",
+      "storage_path": "masters/cactuses/the-dual.jpg",
+      "print_storage_path": "print/612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b-d4ca56c9-df4e-4c42-a85e-7149bddf5853.png",
+      "print_width_px": 5427,
+      "print_height_px": 11457,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-28T00:22:52.999+00:00",
+      "print_updated_at": "2026-10-28T00:23:28.236+00:00",
+      "crop_box": {
+        "h": 0.954431856,
+        "w": 0.9063126253,
+        "x": 0.0394121576,
+        "y": 0.0220759747,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 9,
+        "height_in": 19
+      }
+    },
+    "source": {
+      "bytes": 123342110,
+      "sha256": "faea754d10f844fb54f4e8267f1aaf3ac73bc092ba6d7c5577518d1d9b971823",
+      "width": 5427,
+      "height": 11457,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 100,
+      "quality": {
+        "comparedChannels": 186531417,
+        "psnrDb": 50.46185159306972,
+        "meanAbsoluteDifference": 0.47127016678375416,
+        "maxDifference": 5
+      },
+      "bytes": 60150156,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "3196a6146d009a795d3dd351429e4c2dc994e846c7dfd2cb2b59f8a3565d5421",
+      "objectName": "delivery/612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b/612ab6ae-72ee-4af2-bdf2-1e8252ac5d1b-d4ca56c9-df4e-4c42-a85e-7149bddf5853.jpg"
+    },
+    "quality": {
+      "comparedChannels": 186531417,
+      "psnrDb": 50.46185159306972,
+      "meanAbsoluteDifference": 0.47127016678375416,
+      "maxDifference": 5
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:12:02.872Z",
+    "master": {
+      "id": "78a8b45f-abdf-4f98-ba96-fd0de6332bef",
+      "title": "Spring Break / Mountain Boat Dock",
+      "storage_path": "masters/texas-themed/spring-break-mountain-boat-dock.jpg",
+      "print_storage_path": "print/78a8b45f-abdf-4f98-ba96-fd0de6332bef-0695b872-ca6f-4088-9ea2-ed02595c4d13.png",
+      "print_width_px": 13006,
+      "print_height_px": 10219,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-22T00:21:54.84+00:00",
+      "print_updated_at": "2026-10-22T00:22:54.308+00:00",
+      "crop_box": {
+        "h": 1,
+        "w": 1,
+        "x": 0,
+        "y": 0
+      },
+      "crop_output": {
+        "fit": "pad",
+        "version": 1,
+        "width_in": 28,
+        "height_in": 22
+      }
+    },
+    "source": {
+      "bytes": 325567810,
+      "sha256": "158ffa5a7b2d37472520f22484747ae33503a2ec61e1de7ff101dcd7501e2808",
+      "width": 13006,
+      "height": 10219,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 99,
+      "quality": {
+        "comparedChannels": 398724942,
+        "psnrDb": 52.56980349110285,
+        "meanAbsoluteDifference": 0.26455482937909613,
+        "maxDifference": 7
+      },
+      "bytes": 88724739,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "28181f78f57fa1a5be77043c43a972fa66de801d1001d7636b17ed48c7dbd29e",
+      "objectName": "delivery/78a8b45f-abdf-4f98-ba96-fd0de6332bef/78a8b45f-abdf-4f98-ba96-fd0de6332bef-0695b872-ca6f-4088-9ea2-ed02595c4d13.jpg"
+    },
+    "quality": {
+      "comparedChannels": 398724942,
+      "psnrDb": 52.56980349110285,
+      "meanAbsoluteDifference": 0.26455482937909613,
+      "maxDifference": 7
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:11:25.269Z",
+    "master": {
+      "id": "9fe96504-3435-44f0-8e89-6a0fd07ec085",
+      "title": "Play Ball -dogs",
+      "storage_path": "library/858f8900-49af-40e9-b01f-3c09f347759e/Play Ball-dogs.jpg",
+      "print_storage_path": "print/9fe96504-3435-44f0-8e89-6a0fd07ec085-ed5b7f3f-daf4-487e-95f2-99f2cc540226.png",
+      "print_width_px": 10594,
+      "print_height_px": 10594,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-22T23:46:31.996+00:00",
+      "print_updated_at": "2026-10-22T23:47:14.89+00:00",
+      "crop_box": {
+        "h": 0.8892806178,
+        "w": 0.8786596998,
+        "x": 0.0546570457,
+        "y": 0.0520439856,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 20,
+        "height_in": 20
+      }
+    },
+    "source": {
+      "bytes": 242706670,
+      "sha256": "085e7a57bbee5fa39520b8e3e02b164f353a987176fb5a6e784e0e5c7cbfe6d8",
+      "width": 10594,
+      "height": 10594,
+      "density": 300,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 99,
+      "quality": {
+        "comparedChannels": 336698508,
+        "psnrDb": 49.105635704867765,
+        "meanAbsoluteDifference": 0.5957214993064359,
+        "maxDifference": 6
+      },
+      "bytes": 92127983,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "56af39882362841b99b53c990b32798a87e552c7992f236254590b0e060f5011",
+      "objectName": "delivery/9fe96504-3435-44f0-8e89-6a0fd07ec085/9fe96504-3435-44f0-8e89-6a0fd07ec085-ed5b7f3f-daf4-487e-95f2-99f2cc540226.jpg"
+    },
+    "quality": {
+      "comparedChannels": 336698508,
+      "psnrDb": 49.105635704867765,
+      "meanAbsoluteDifference": 0.5957214993064359,
+      "maxDifference": 6
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:04:58.737Z",
+    "master": {
+      "id": "a95fb10a-272c-465c-a75d-dd9ecb406614",
+      "title": "Deep in the Heart of Texas",
+      "storage_path": "masters/texas-themed/deep-in-the-heart-of-texas.jpg",
+      "print_storage_path": "print/a95fb10a-272c-465c-a75d-dd9ecb406614-5faf7cb0-6410-4da3-8d79-ddace5563e83.png",
+      "print_width_px": 9600,
+      "print_height_px": 7200,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-28T13:37:38.212+00:00",
+      "print_updated_at": "2026-10-28T13:38:17.244+00:00",
+      "crop_box": {
+        "h": 0.998890122,
+        "w": 0.99979171,
+        "x": 0.000104145,
+        "y": 0.000554939,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 16,
+        "height_in": 12
+      }
+    },
+    "source": {
+      "bytes": 177004118,
+      "sha256": "9aca9e70da9c7fc3b657e32241a107777a640b8321c3b14f7114a87f1276834b",
+      "width": 9600,
+      "height": 7200,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "bytes": 91636350,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "bbaf5db8acf5e1282cdc395677b541fdc292ff7279fadec2fadb471f4f867412",
+      "objectName": "delivery/a95fb10a-272c-465c-a75d-dd9ecb406614/a95fb10a-272c-465c-a75d-dd9ecb406614-5faf7cb0-6410-4da3-8d79-ddace5563e83.jpg"
+    },
+    "quality": {
+      "comparedChannels": 207360000,
+      "psnrDb": 50.29264004140063,
+      "meanAbsoluteDifference": 0.4826534722222222,
+      "maxDifference": 5
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:12:43.561Z",
+    "master": {
+      "id": "ad319b0f-87e4-4836-844c-4b8c7b1d6b01",
+      "title": "Think Again",
+      "storage_path": "masters/texas-themed/think-again.jpg",
+      "print_storage_path": "print/ad319b0f-87e4-4836-844c-4b8c7b1d6b01-fb137175-3850-4a97-a812-df824ba2ff1d.png",
+      "print_width_px": 13000,
+      "print_height_px": 9750,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-22T23:56:57.759+00:00",
+      "print_updated_at": "2026-10-22T23:57:45.836+00:00",
+      "crop_box": {
+        "h": 1,
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 48,
+        "height_in": 36
+      }
+    },
+    "source": {
+      "bytes": 312223500,
+      "sha256": "de9c9ff262985db20f7dcee53bdd395b9660d3f07b31dc8042290d8c564a7b12",
+      "width": 13000,
+      "height": 9750,
+      "density": 592,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 100,
+      "quality": {
+        "comparedChannels": 380250000,
+        "psnrDb": 55.734746095917565,
+        "meanAbsoluteDifference": 0.12990681656804734,
+        "maxDifference": 4
+      },
+      "bytes": 99855588,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "999de8435ab17b09233429c755a7035897a9abca15cb407ee0f686f9f1202f03",
+      "objectName": "delivery/ad319b0f-87e4-4836-844c-4b8c7b1d6b01/ad319b0f-87e4-4836-844c-4b8c7b1d6b01-fb137175-3850-4a97-a812-df824ba2ff1d.jpg"
+    },
+    "quality": {
+      "comparedChannels": 380250000,
+      "psnrDb": 55.734746095917565,
+      "meanAbsoluteDifference": 0.12990681656804734,
+      "maxDifference": 4
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:10:52.226Z",
+    "master": {
+      "id": "b40768da-d570-4010-9944-2c60782cb7a0",
+      "title": "Keepsake",
+      "storage_path": "masters/texas-themed/keepsake.jpg",
+      "print_storage_path": "print/b40768da-d570-4010-9944-2c60782cb7a0-2e8db429-b9de-4b29-936a-f21759985853.png",
+      "print_width_px": 12474,
+      "print_height_px": 9504,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-14T20:19:30.88+00:00",
+      "print_updated_at": "2026-10-14T20:20:27.154+00:00",
+      "crop_box": {
+        "h": 0.9265867213,
+        "w": 0.9595384615,
+        "x": 0.0131538462,
+        "y": 0.0383949598
+      },
+      "crop_output": {
+        "fit": "pad",
+        "version": 1,
+        "width_in": 21,
+        "height_in": 16
+      }
+    },
+    "source": {
+      "bytes": 296576266,
+      "sha256": "cc4181c53a590e882e51a86a5a0db6e5144f7df20a22f050e29d926fc7c9ce41",
+      "width": 12474,
+      "height": 9504,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 99,
+      "quality": {
+        "comparedChannels": 355658688,
+        "psnrDb": 51.89260787567449,
+        "meanAbsoluteDifference": 0.3264085088229308,
+        "maxDifference": 5
+      },
+      "bytes": 85507233,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "b2aec84ed4980f5849691244667bef86d2683b0051206a85e3a2371b32a599f6",
+      "objectName": "delivery/b40768da-d570-4010-9944-2c60782cb7a0/b40768da-d570-4010-9944-2c60782cb7a0-2e8db429-b9de-4b29-936a-f21759985853.jpg"
+    },
+    "quality": {
+      "comparedChannels": 355658688,
+      "psnrDb": 51.89260787567449,
+      "meanAbsoluteDifference": 0.3264085088229308,
+      "maxDifference": 5
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:09:53.129Z",
+    "master": {
+      "id": "cada728d-ae70-4629-a7e9-e11cc6f4b23e",
+      "title": "Fun at the Beach",
+      "storage_path": "masters/beach-and-sc/fun-at-the-beach.jpg",
+      "print_storage_path": "print/cada728d-ae70-4629-a7e9-e11cc6f4b23e-c07b7b19-f759-49ce-8603-e4ae52b79523.png",
+      "print_width_px": 8372,
+      "print_height_px": 6578,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-28T14:33:51.828+00:00",
+      "print_updated_at": "2026-10-28T14:34:13.79+00:00",
+      "crop_box": {
+        "h": 0.9990886998,
+        "w": 0.9964294216,
+        "x": 0.0017852892,
+        "y": 0.0004556501,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 14,
+        "height_in": 11
+      }
+    },
+    "source": {
+      "bytes": 112138527,
+      "sha256": "969b287a1b22622a68c41697e5da46419a452c0f4288e75430209ed95895cab6",
+      "width": 8372,
+      "height": 6578,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 100,
+      "quality": {
+        "comparedChannels": 165213048,
+        "psnrDb": 50.398971662906305,
+        "meanAbsoluteDifference": 0.4756546952635363,
+        "maxDifference": 5
+      },
+      "bytes": 58421661,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "d91ff378d31632811bfbe14c40ee1938c7f6d8b9dec42e7b17e09002b3c2b5dc",
+      "objectName": "delivery/cada728d-ae70-4629-a7e9-e11cc6f4b23e/cada728d-ae70-4629-a7e9-e11cc6f4b23e-c07b7b19-f759-49ce-8603-e4ae52b79523.jpg"
+    },
+    "quality": {
+      "comparedChannels": 165213048,
+      "psnrDb": 50.398971662906305,
+      "meanAbsoluteDifference": 0.4756546952635363,
+      "maxDifference": 5
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:10:15.663Z",
+    "master": {
+      "id": "db6f20fb-0bae-45a2-b086-d77a8edcb29c",
+      "title": "Graze Daze",
+      "storage_path": "masters/texas-themed/graze-daze.jpg",
+      "print_storage_path": "print/db6f20fb-0bae-45a2-b086-d77a8edcb29c-a7cf398f-ccf5-4e59-a327-36edea125eca.png",
+      "print_width_px": 12915,
+      "print_height_px": 8610,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-28T02:21:09.82+00:00",
+      "print_updated_at": "2026-10-28T02:21:59.696+00:00",
+      "crop_box": {
+        "h": 0.9998838695,
+        "w": 0.9934615385,
+        "x": 0.0032307692,
+        "y": 0,
+        "orient": false,
+        "rotation": 0
+      },
+      "crop_output": {
+        "fit": "crop",
+        "version": 1,
+        "width_in": 36,
+        "height_in": 24
+      }
+    },
+    "source": {
+      "bytes": 271893182,
+      "sha256": "88143d8cb4920d15e772a4658cf79f46c6ca98ebb9e7aae8604faf651d093c0f",
+      "width": 12915,
+      "height": 8610,
+      "density": 600,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 99,
+      "quality": {
+        "comparedChannels": 333594450,
+        "psnrDb": 52.23894299172408,
+        "meanAbsoluteDifference": 0.28211177374203916,
+        "maxDifference": 6
+      },
+      "bytes": 84856675,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "6395d4b56cb8942673c2aed41628bf06052481916d76e4c53bb31e59b2f593b0",
+      "objectName": "delivery/db6f20fb-0bae-45a2-b086-d77a8edcb29c/db6f20fb-0bae-45a2-b086-d77a8edcb29c-a7cf398f-ccf5-4e59-a327-36edea125eca.jpg"
+    },
+    "quality": {
+      "comparedChannels": 333594450,
+      "psnrDb": 52.23894299172408,
+      "meanAbsoluteDifference": 0.28211177374203916,
+      "maxDifference": 6
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:09:44.473Z",
+    "master": {
+      "id": "f5acf94f-df92-4285-9d7e-6ee2bb5ea056",
+      "title": "Flower Power",
+      "storage_path": "masters/texas-themed/flower-power.jpg",
+      "print_storage_path": "print/f5acf94f-df92-4285-9d7e-6ee2bb5ea056-2a33c637-0752-4061-b231-ac795a55c906.png",
+      "print_width_px": 13000,
+      "print_height_px": 13000,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-20T20:35:25.374+00:00",
+      "print_updated_at": "2026-10-20T20:36:48.716+00:00",
+      "crop_box": {
+        "h": 1,
+        "w": 1,
+        "x": 0,
+        "y": 0
+      },
+      "crop_output": {
+        "fit": "pad",
+        "version": 1,
+        "width_in": 24,
+        "height_in": 24
+      }
+    },
+    "source": {
+      "bytes": 462686906,
+      "sha256": "daa4308c762144458fb07e46bdebb910073b8d0e16a3cf6028c535e0071b0175",
+      "width": 13000,
+      "height": 13000,
+      "density": 588,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 98,
+      "quality": {
+        "comparedChannels": 507000000,
+        "psnrDb": 50.60210770973497,
+        "meanAbsoluteDifference": 0.36911273570019726,
+        "maxDifference": 11
+      },
+      "bytes": 88679811,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "da3b0e34887422047f7d66222b12474ae7069f3009a90ee032c633c8bc3ae57e",
+      "objectName": "delivery/f5acf94f-df92-4285-9d7e-6ee2bb5ea056/f5acf94f-df92-4285-9d7e-6ee2bb5ea056-2a33c637-0752-4061-b231-ac795a55c906.jpg"
+    },
+    "quality": {
+      "comparedChannels": 507000000,
+      "psnrDb": 50.60210770973497,
+      "meanAbsoluteDifference": 0.36911273570019726,
+      "maxDifference": 11
+    }
+  },
+  {
+    "checkedAt": "2026-11-19T20:13:06.596Z",
+    "master": {
+      "id": "f786858f-b0fb-46fa-8dba-9f73b97681ff",
+      "title": "Unexpected",
+      "storage_path": "masters/encouragement-series/unexpected.jpg",
+      "print_storage_path": "print/f786858f-b0fb-46fa-8dba-9f73b97681ff-3e4f4e45-bd54-4fbd-8153-a1aeb1170436.png",
+      "print_width_px": 14204,
+      "print_height_px": 10653,
+      "print_status": "ready",
+      "print_requested_at": "2026-10-21T19:37:03.14+00:00",
+      "print_updated_at": "2026-10-21T19:38:08.402+00:00",
+      "crop_box": {
+        "h": 1,
+        "w": 1,
+        "x": 0,
+        "y": 0
+      },
+      "crop_output": {
+        "fit": "pad",
+        "version": 1,
+        "width_in": 24,
+        "height_in": 18
+      }
+    },
+    "source": {
+      "bytes": 260916012,
+      "sha256": "f26d016fa820dcebbef4465ad162d451d2325f24dc8ca44c90da5d144ebfafb5",
+      "width": 14204,
+      "height": 10653,
+      "density": 592,
+      "iccSha256": "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+    },
+    "delivery": {
+      "jpegQuality": 99,
+      "quality": {
+        "comparedChannels": 453945636,
+        "psnrDb": 50.11789038181098,
+        "meanAbsoluteDifference": 0.5081774439615937,
+        "maxDifference": 6
+      },
+      "bytes": 81927945,
+      "format": "jpeg",
+      "mimeType": "image/jpeg",
+      "converted": true,
+      "sha256": "acbf9d48787e83456ac2ad5b5325ec14f18e24922eb8db8e06889bdac72d2c62",
+      "objectName": "delivery/f786858f-b0fb-46fa-8dba-9f73b97681ff/f786858f-b0fb-46fa-8dba-9f73b97681ff-3e4f4e45-bd54-4fbd-8153-a1aeb1170436.jpg"
+    },
+    "quality": {
+      "comparedChannels": 453945636,
+      "psnrDb": 50.11789038181098,
+      "meanAbsoluteDifference": 0.5081774439615937,
+      "maxDifference": 6
+    }
+  }
+]

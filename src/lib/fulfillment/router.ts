@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import {
   submitOrder as lumaprintsSubmitOrder,
   checkImageConfig,
+  listOrders,
+  getOrder,
   LumaprintsApiError,
   LumaprintsDisabledError,
   LumaprintsSubmissionUncertainError,
@@ -16,6 +18,7 @@ import { providerGuard } from './provider-guard'
 import { isFramedSubcategory } from './fulfillability'
 import { catalogHost } from '@/lib/catalog/walk'
 import { loadCatalog } from '@/lib/catalog/load'
+import { assertProviderPrintFile } from '@/lib/artwork/provider-file'
 import type { Catalog } from '@/lib/catalog/types'
 
 // ---------------------------------------------------------------------------
@@ -339,6 +342,12 @@ async function validateLumaprintsItem(
 
   // Mint from the snapshotted print master, else the live product master.
   const path = item.print_storage_path || productMasterPath(item.product)
+  if (!path) return { ok: false, reason: 'The print file is not available. Open the artwork, save the print crop, and try again.' }
+  try {
+    await assertProviderPrintFile(await createServiceClient(), path)
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : 'The print file could not be verified.' }
+  }
   const imageUrl = await mintSignedUrl(path)
   if (!imageUrl) {
     return {
@@ -486,7 +495,43 @@ async function submitToLumaprints(
   }))
 
   const submissionExternalId = lumaprintsExternalId(orderId, validatedItems.map((v) => v.item.id))
-  const response = await lumaprintsSubmitOrder({ externalId: submissionExternalId, recipient, orderItems })
+  // Reconcile stable order and item identities before every creation attempt.
+  // This includes old whole-order IDs and prior partial submissions.
+  const existing = await listOrders()
+  const itemIds = new Set(orderItems.map(item => item.externalItemId))
+  const matches = existing.filter(order => order.externalId === submissionExternalId
+    || order.externalId === orderId || order.externalId?.startsWith(`${orderId}-`)
+    || itemIds.has(order.externalId ?? '')
+    || order.orderItems?.some(item => itemIds.has(item.externalItemId ?? '')))
+  let response
+  if (matches.length) {
+    if (matches.length !== 1 || !matches[0].orderNumber) {
+      throw new LumaprintsSubmissionUncertainError('Multiple or incomplete matching provider orders require review.')
+    }
+    response = await getOrder(matches[0].orderNumber)
+    const rows = response.orderItems ?? []
+    const exact = rows.length === orderItems.length && orderItems.every(expected => {
+      const actual = rows.find(row => row.externalItemId === expected.externalItemId)
+      const options = actual?.orderItemOptions?.map(option => Number(typeof option === 'number' ? option : option.optionId)) ?? []
+      return actual && Number(actual.quantity) === expected.quantity
+        && Number(actual.subcategoryId) === expected.subcategoryId
+        && Number(actual.width) === expected.width && Number(actual.height) === expected.height
+        && expected.orderItemOptions.every(option => options.includes(option))
+    })
+    if (!exact || /cancel|refund|reject/i.test(response.orderStatus ?? '')) {
+      throw new LumaprintsSubmissionUncertainError('An existing provider order needs review; its items or status differ. No new order was created.')
+    }
+  } else {
+    response = await lumaprintsSubmitOrder({ externalId: submissionExternalId, recipient, orderItems })
+  }
+
+  await (await createServiceClient()).from('webhook_logs').insert({
+    provider: 'lumaprints', event_type: 'order_provider_reconciled',
+    payload: { orderId, submissionExternalId, inspectedOrders: existing.length,
+      reusedExisting: matches.length === 1, externalOrderId: String(response.orderNumber),
+      providerStatus: response.orderStatus ?? null, itemIds: [...itemIds] },
+    status: 'success',
+  })
 
   // Lumaprints returns a single order — map its number to every item.
   const externalId = response?.orderNumber ?? ''
@@ -800,9 +845,9 @@ export async function routeOrderToFulfillment(
       // A 406 = LumaPrints rejected the image dimensions/aspect. Treat it as a
       // validation failure (admin can re-crop the master + refire), not a
       // transient failure, and capture the expected-vs-actual dims in the log.
-      const is406 = err instanceof LumaprintsApiError && err.status === 406
+      const isValidationRejection = err instanceof LumaprintsApiError && (err.status === 400 || err.status === 406)
       const uncertain = err instanceof LumaprintsSubmissionUncertainError
-      const failStatus = uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed'
+      const failStatus = uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : isValidationRejection ? 'failed_validation' : 'failed'
       console.error(
         `Fulfillment submission failed for ${provider}:`,
         diagnosticMessage,
@@ -811,13 +856,13 @@ export async function routeOrderToFulfillment(
       // Log the failure
       await supabase.from('webhook_logs').insert({
         source: `fulfillment_${provider}`,
-        event_type: is406 ? 'order_failed_validation' : 'order_submission_failed',
+        event_type: isValidationRejection ? 'order_failed_validation' : 'order_submission_failed',
         payload: {
           order_id: orderId,
           provider,
           error: errorMessage,
           diagnostic_error: diagnosticMessage,
-          ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
+          ...(isValidationRejection && err instanceof LumaprintsApiError ? { lumaprints_validation_body: err.body.slice(0, 1600) } : {}),
         } as unknown as Record<string, unknown>,
       })
 
@@ -1026,28 +1071,28 @@ export async function retryFulfillmentForItem(
   } catch (err) {
     const errorMessage = friendlyFulfillmentError(err)
     const diagnosticMessage = err instanceof Error ? err.message : String(err)
-    const is406 = err instanceof LumaprintsApiError && err.status === 406
+    const isValidationRejection = err instanceof LumaprintsApiError && (err.status === 400 || err.status === 406)
     const uncertain = err instanceof LumaprintsSubmissionUncertainError
     console.error(`Fulfillment retry failed for item ${itemId}:`, diagnosticMessage)
 
     // An uncertain create remains non-claimable until provider reconciliation.
     await supabase
       .from('order_items')
-      .update({ fulfillment_status: uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : is406 ? 'failed_validation' : 'failed' })
+      .update({ fulfillment_status: uncertain ? 'submitting' : err instanceof LumaprintsDisabledError ? 'paused' : isValidationRejection ? 'failed_validation' : 'failed' })
       .eq('id', itemId)
 
     if (uncertain) await notifyOrderNeedsAttention(order.id, [errorMessage])
 
     await supabase.from('webhook_logs').insert({
       source: `fulfillment_${provider}`,
-      event_type: is406 ? 'item_failed_validation' : 'item_retry_failed',
+      event_type: isValidationRejection ? 'item_failed_validation' : 'item_retry_failed',
       payload: {
         item_id: itemId,
         order_id: order.id,
         provider,
         error: errorMessage,
         diagnostic_error: diagnosticMessage,
-        ...(is406 && err instanceof LumaprintsApiError ? { lumaprints_406_body: err.body.slice(0, 600) } : {}),
+        ...(isValidationRejection && err instanceof LumaprintsApiError ? { lumaprints_validation_body: err.body.slice(0, 1600) } : {}),
       } as unknown as Record<string, unknown>,
     })
 

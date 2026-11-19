@@ -33,6 +33,8 @@ vi.mock('@/lib/integrations/lumaprints-budget', () => ({
 
 import {
   getSubcategoryOptions,
+  listOrders,
+  LumaprintsApiError,
   LumaprintsBudgetError,
   LumaprintsDisabledError,
 } from '@/lib/integrations/lumaprints'
@@ -109,5 +111,27 @@ describe('the provider client and the key-wide budget', () => {
 
     expect(acquireMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+
+describe('order reconciliation and useful safe errors', () => {
+  it('retains the rejection reason after removing long signed image URLs', () => {
+    const error = new LumaprintsApiError(400, `Image https://private.test/image.png?token=${'x'.repeat(1500)} exceeds the 100 MB limit`)
+    expect(error.message).toContain('exceeds the 100 MB limit')
+    expect(error.body).not.toContain('token=')
+  })
+  it('reads every page and checks totals', async () => {
+    process.env.LUMAPRINTS_STORE_ID = '123'
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(200, { orders: [{ orderNumber: 'one' }], currentPage: 1, totalPages: 2, totalOrders: 2 }))
+      .mockResolvedValueOnce(jsonResponse(200, { orders: [{ orderNumber: 'two' }], currentPage: 2, totalPages: 2, totalOrders: 2 }))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await listOrders()).toHaveLength(2)
+    expect(fetchMock.mock.calls[1][0]).toContain('page=2')
+  })
+  it('fails closed on incomplete order lists', async () => {
+    process.env.LUMAPRINTS_STORE_ID = '123'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, { orders: [], currentPage: 1, totalPages: 1, totalOrders: 1 })))
+    await expect(listOrders()).rejects.toThrow(/incomplete/)
   })
 })

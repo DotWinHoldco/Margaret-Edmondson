@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -9,6 +9,8 @@ import { pipeline } from 'node:stream/promises'
 import sharp from 'sharp'
 import { Upload } from 'tus-js-client'
 import { applyMasterCropFile } from '../../../scripts/lib/crop-transform.mjs'
+import { prepareProviderImage } from '../../../scripts/lib/provider-image.mjs'
+import { assertProviderPrintFile } from './provider-file'
 import { reconcileVariantsForMaster } from '@/lib/pricing/reconcile-variants'
 import type { Catalog } from '@/lib/catalog/types'
 import { previewStoredPrint, uploadPrintPreview } from '@/lib/artwork/print-preview'
@@ -104,7 +106,6 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
   const folder = await mkdtemp(join(tmpdir(), 'artbyme-crop-'))
   const source = join(folder, 'source')
   const output = join(folder, 'print.png')
-  const objectName = `print/${job.id}-${randomUUID()}.png`
   try {
     const { data: signed, error } = await supabase.storage.from(BUCKET).createSignedUrl(job.storage_path, 300)
     if (error || !signed) throw new Error('Could not read the original master. Try saving the crop again.')
@@ -125,7 +126,9 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
       dpi: job.dpi || 300, widthPx: job.width_px, heightPx: job.height_px,
       limitInputPixels: MAX_INPUT_PIXELS, timeoutSeconds: 150, verifyDimensions: true,
     }, MAX_CROP_OUTPUT_BYTES)
-    const size = (await stat(output)).size
+    const delivery = await prepareProviderImage(output, join(folder, 'delivery.jpg'))
+    const size = delivery.bytes
+    const objectName = `print/${job.id}-${randomUUID()}.${delivery.format === 'jpeg' ? 'jpg' : 'png'}`
     // A signed upload token is for the Storage REST upload endpoint. It is not a
     // TUS authorization token: sending it as `x-signature` to the resumable
     // endpoint makes Storage try to parse it as a JWT and return
@@ -156,7 +159,7 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
     }
     const endpoint = `${supabaseUrl}/storage/v1/upload/resumable`
     await new Promise<void>((resolve, reject) => {
-      const stream = createReadStream(output)
+      const stream = createReadStream(delivery.path)
       const finish = (error?: Error) => {
         clearTimeout(timer)
         stream.destroy()
@@ -169,7 +172,7 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
         // Opaque sb_secret keys are API keys, not JWT access tokens. Sending
         // one as Bearer makes Storage reject it as an invalid compact JWS.
         headers: cropUploadHeaders(sessionToken, serviceKey, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),
-        metadata: { bucketName: BUCKET, objectName, contentType: 'image/png', cacheControl: '3600' },
+        metadata: { bucketName: BUCKET, objectName, contentType: delivery.mimeType, cacheControl: '3600' },
         chunkSize: 6 * 1024 * 1024, retryDelays: [0, 1000, 3000], storeFingerprintForResuming: false,
         onError: (err) => {
           const detail = uploadErrorDetail(err, size)
@@ -186,7 +189,7 @@ async function renderAndUpload(supabase: SupabaseClient, job: CropJob) {
     })
     let previewPath: string | null = null
     try {
-      previewPath = await uploadPrintPreview(supabase, job.id, output)
+      previewPath = await uploadPrintPreview(supabase, job.id, delivery.path)
     } catch {
       // A preview failure must not discard a valid print or reuse the old crop's
       // preview. The storefront renders its explicit placeholder until repaired.
@@ -234,6 +237,8 @@ export async function processMasterCrop(supabase: SupabaseClient, id: string, re
         validateCropJob(job)
         result = await render(supabase, job)
       }
+      // This also covers operator-prepared outputs that bypass rendering.
+      await assertProviderPrintFile(supabase, result.objectName)
       // Publish the new file and dimensions while the master remains processing.
       // The final ready transition happens after variants are reconciled, so the
       // storefront and editor never observe a ready crop paired with old sizes.

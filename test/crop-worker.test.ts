@@ -29,7 +29,7 @@ function database() {
     }
     return query
   })
-  return { row, sb: { from } as unknown as SupabaseClient }
+  return { row, sb: { from, storage: { from: () => ({ info: async () => ({ data: { size: 1000, contentType: 'image/png' }, error: null }) }) } } as unknown as SupabaseClient }
 }
 const requestedAt = '2026-09-14T18:00:00Z'
 const output = { objectName: 'print/new-unique.png', width: 6400, height: 8000 }

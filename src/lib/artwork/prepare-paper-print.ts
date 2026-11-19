@@ -4,12 +4,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import sharp from 'sharp'
+import { prepareProviderImage } from '../../../scripts/lib/provider-image.mjs'
+import { assertProviderPrintFile } from './provider-file'
 import { PAPER_BORDER_IN, paperBorderLayout } from './paper-border'
 
 const BUCKET = 'print-masters'
@@ -41,16 +43,14 @@ export async function renderPaperPrint(source: string, output: string, widthIn: 
 /** Create once per immutable cropped master and paper size; failed preparation stops checkout. */
 export async function preparePaperPrint(client: SupabaseClient, sourcePath: string, widthIn: number, heightIn: number): Promise<string> {
   paperBorderLayout(1000, 1000, widthIn, heightIn)
-  const hash = createHash('sha256').update(JSON.stringify(['paper-border-v1', sourcePath, widthIn, heightIn, PAPER_BORDER_IN])).digest('hex')
-  const destination = `paper/${hash}.png`
+  const hash = createHash('sha256').update(JSON.stringify(['paper-border-v2', sourcePath, widthIn, heightIn, PAPER_BORDER_IN])).digest('hex')
   const bucket = client.storage.from(BUCKET)
-  const { data: exists, error: existsError } = await bucket.exists(destination)
-  // Storage HEAD returns an error alongside data=false for a missing object.
-  // Auth/network failures still stop checkout; a validated hash path may be created.
-  if (existsError && !('status' in existsError && [400, 404].includes(Number(existsError.status)))) {
-    throw new Error('Could not check the paper print file')
+  for (const extension of ['png', 'jpg']) {
+    const candidate = `paper/${hash}.${extension}`
+    const { data: exists, error } = await bucket.exists(candidate)
+    if (error && !('status' in error && [400, 404].includes(Number(error.status)))) throw new Error('Could not check the paper print file')
+    if (exists) { await assertProviderPrintFile(client, candidate); return candidate }
   }
-  if (exists) return destination
   const folder = await mkdtemp(join(tmpdir(), 'artbyme-paper-'))
   try {
     const { data: signed, error } = await bucket.createSignedUrl(sourcePath, 300)
@@ -61,11 +61,13 @@ export async function preparePaperPrint(client: SupabaseClient, sourcePath: stri
     if (!response.ok || !response.body) throw new Error('Could not load the cropped artwork')
     await pipeline(Readable.fromWeb(response.body as import('node:stream/web').ReadableStream), byteLimit(), createWriteStream(source, { flags: 'wx' }), { signal })
     await renderPaperPrint(source, output, widthIn, heightIn)
-    const stream = createReadStream(output)
+    const delivery = await prepareProviderImage(output, join(folder, 'delivery.jpg'))
+    const destination = `paper/${hash}.${delivery.format === 'jpeg' ? 'jpg' : 'png'}`
+    const stream = createReadStream(delivery.path)
     try {
       const { error: uploadError } = await bucket.upload(destination, stream, {
-        contentType: 'image/png', upsert: false, duplex: 'half',
-        cacheControl: '31536000', headers: { 'Content-Length': String((await stat(output)).size) },
+        contentType: delivery.mimeType, upsert: false, duplex: 'half',
+        cacheControl: '31536000', headers: { 'Content-Length': String(delivery.bytes) },
       })
       if (uploadError) {
         // A concurrent checkout may have finished the exact same immutable file.
@@ -73,6 +75,7 @@ export async function preparePaperPrint(client: SupabaseClient, sourcePath: stri
         if (check.error || !check.data) throw new Error('Could not save the paper print file')
       }
     } finally { stream.destroy() }
+    await assertProviderPrintFile(client, destination)
     return destination
   } finally { await rm(folder, { recursive: true, force: true }) }
 }

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ValidatedCheckoutItem } from './validation'
+import { assertProviderPrintFile } from '@/lib/artwork/provider-file'
 import { paperBorderIn } from '@/lib/artwork/paper-border'
 import { preparePaperPrint } from '@/lib/artwork/prepare-paper-print'
 
@@ -36,6 +37,7 @@ export async function captureProductionSources(
       items.map((i) => i.variantId),
     )
   if (detailsError) throw detailsError
+  const verified = new Set<string>()
   for (const item of items) {
     if (item.purchaseSpec && item.fulfillmentType === 'self_ship')
       item.purchaseSpec.details =
@@ -48,8 +50,13 @@ export async function captureProductionSources(
       source?.print_status === 'ready' ? source.print_storage_path : null
     if (item.fulfillmentType === 'lumaprints' && !item.printStoragePath)
       throw new Error('The production file is not ready.')
+    if (item.fulfillmentType === 'lumaprints' && item.printStoragePath && !verified.has(item.printStoragePath)) {
+      await assertProviderPrintFile(client, item.printStoragePath)
+      verified.add(item.printStoragePath)
+    }
     if (item.fulfillmentType === 'lumaprints' && item.printStoragePath && item.purchaseSpec && paperBorderIn(item.purchaseSpec.medium)) {
       item.printStoragePath = await preparePaperPrint(client, item.printStoragePath, Number(item.purchaseSpec.width_in), Number(item.purchaseSpec.height_in))
+      await assertProviderPrintFile(client, item.printStoragePath)
       item.purchaseSpec.details = { ...item.purchaseSpec.details, paper_border_in: paperBorderIn(item.purchaseSpec.medium) }
     }
   }

@@ -35,7 +35,7 @@ describe('paper production border', () => {
   it('reuses a prepared private derivative without fetching or rewriting the master', async () => {
     const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock)
     const exists = vi.fn().mockResolvedValue({ data: true, error: null })
-    const client = { storage: { from: vi.fn().mockReturnValue({ exists }) } } as unknown as SupabaseClient
+    const client = { storage: { from: vi.fn().mockReturnValue({ exists, info: async () => ({ data: { size: 1000, contentType: 'image/png' }, error: null }) }) } } as unknown as SupabaseClient
     const first = await preparePaperPrint(client, 'print/immutable.png', 8, 10)
     expect(await preparePaperPrint(client, 'print/immutable.png', 8, 10)).toBe(first)
     expect(await preparePaperPrint(client, 'print/new-crop.png', 8, 10)).not.toBe(first)
@@ -54,6 +54,7 @@ describe('paper production border', () => {
       return { error: null }
     })
     const bucket = {
+      info: async () => ({ data: { size: 1000, contentType: 'image/png' }, error: null }),
       exists: vi.fn().mockResolvedValue({ data: false, error: { status } }),
       createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.test/master.png' }, error: null }),
       upload,

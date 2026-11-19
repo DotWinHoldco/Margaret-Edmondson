@@ -17,6 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { applyMasterCropFile } from './lib/crop-transform.mjs'
+import { prepareProviderImage } from './lib/provider-image.mjs'
 
 sharp.cache(false)
 sharp.concurrency(1)
@@ -41,11 +42,11 @@ function uploadHeaders(key) {
   return { apikey: key, ...(key.startsWith('sb_') ? {} : { authorization: `Bearer ${key}` }), 'x-upsert': 'false' }
 }
 
-async function uploadOutput(sb, url, key, filePath, objectName) {
+async function uploadOutput(sb, url, key, filePath, objectName, contentType) {
   const size = fs.statSync(filePath).size
   if (size < DIRECT_UPLOAD_MAX) {
     const { error } = await sb.storage.from(BUCKET).upload(objectName, fs.readFileSync(filePath), {
-      contentType: 'image/png', upsert: false,
+      contentType, upsert: false,
     })
     if (!error) return 'direct'
     console.warn(`  direct upload failed (${error.message}); retrying resumable`)
@@ -56,7 +57,7 @@ async function uploadOutput(sb, url, key, filePath, objectName) {
     const upload = new Upload(stream, {
       endpoint: `${url.replace(/\/$/, '')}/storage/v1/upload/resumable`, uploadSize: size,
       retryDelays: [0, 1000, 3000, 5000], headers: uploadHeaders(key),
-      metadata: { bucketName: BUCKET, objectName, contentType: 'image/png', cacheControl: '3600' },
+      metadata: { bucketName: BUCKET, objectName, contentType, cacheControl: '3600' },
       chunkSize: 6 * 1024 * 1024, storeFingerprintForResuming: false,
       onError: (error) => finish(new Error(`Upload failed (${error.originalResponse?.getStatus?.() || 'network'}): ${error.originalResponse?.getBody?.()?.slice(0, 200) || 'storage connection failed'}`)),
       onSuccess: () => finish(),
@@ -108,8 +109,9 @@ async function processOne(sb, url, key, reconcile, master, deferReconcile) {
       dpi: master.dpi, widthPx: master.width_px, heightPx: master.height_px,
       verifyDimensions: true, limitInputPixels: 500_000_000, timeoutSeconds: 600,
     }, MAX_BYTES)
-    const objectName = `print/${master.id}-${randomUUID()}.png`
-    const via = await uploadOutput(sb, url, key, output, objectName)
+    const delivery = await prepareProviderImage(output, path.join(folder, 'delivery.jpg'))
+    const objectName = `print/${master.id}-${randomUUID()}.${delivery.format === 'jpeg' ? 'jpg' : 'png'}`
+    const via = await uploadOutput(sb, url, key, delivery.path, objectName, delivery.mimeType)
     const { data: prepared, error: prepareError } = await fence(sb.from('master_artworks').update({
       print_storage_path: objectName, print_width_px: dimensions.width, print_height_px: dimensions.height,
       print_preview_storage_path: null,
@@ -126,7 +128,7 @@ async function processOne(sb, url, key, reconcile, master, deferReconcile) {
         print_status: 'pending', print_error: null, updated_at: new Date().toISOString(),
       })).select('id').maybeSingle()
       if (queueError) throw queueError
-      console.log(`${queued ? 'QUEUED' : 'SUPERSEDED'} ${label}: ${dimensions.width}x${dimensions.height}, ${(fs.statSync(output).size / 1e6).toFixed(1)} MB ${via}; deployed worker will reconcile prices`)
+      console.log(`${queued ? 'QUEUED' : 'SUPERSEDED'} ${label}: ${dimensions.width}x${dimensions.height}, ${(delivery.bytes / 1e6).toFixed(1)} MB ${via}; deployed worker will reconcile prices`)
       return true
     }
     const reconciliation = await reconcile(sb, master.id, dimensions.width, dimensions.height, undefined, master.crop_output, stamp)
@@ -136,7 +138,7 @@ async function processOne(sb, url, key, reconcile, master, deferReconcile) {
     })).select('id').maybeSingle()
     if (readyError) throw readyError
     if (!ready) { console.log(`SKIP ${label}: a newer crop request owns this job`); return true }
-    console.log(`OK ${label}: ${dimensions.width}x${dimensions.height}, ${(fs.statSync(output).size / 1e6).toFixed(1)} MB ${via}; ${reconciliation.updated} sizes updated, ${reconciliation.skipped} unchanged`)
+    console.log(`OK ${label}: ${dimensions.width}x${dimensions.height}, ${(delivery.bytes / 1e6).toFixed(1)} MB ${via}; ${reconciliation.updated} sizes updated, ${reconciliation.skipped} unchanged`)
     return true
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

@@ -35,14 +35,19 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 // Typed API error so callers can branch on the status — e.g. the fulfillment
 // router treats a 406 (image dimension/aspect mismatch) as failed_validation,
 // not a generic failure, and logs the expected-vs-actual dimensions.
+export function sanitizeProviderError(body: string): string {
+  // Remove entire capability URLs BEFORE truncation, retaining the rejection reason.
+  return body.replace(/https?:\/\/[^\s"<>]+/g, '[image URL redacted]')
+}
+
 export class LumaprintsApiError extends Error {
   readonly status: number
   readonly body: string
   constructor(status: number, body: string) {
-    super(`Lumaprints API error (${status}): ${body.slice(0, 300)}`)
+    super(`Lumaprints API error (${status}): ${sanitizeProviderError(body).slice(0, 1200)}`)
     this.name = 'LumaprintsApiError'
     this.status = status
-    this.body = body
+    this.body = sanitizeProviderError(body)
   }
 }
 
@@ -228,6 +233,7 @@ export interface LumaPrintsOrderResponse {
     quantity?: number
     width?: number
     height?: number
+    orderItemOptions?: Array<number | { optionId: number }>
   }>
   recipient?: Record<string, unknown>
   [key: string]: unknown
@@ -270,6 +276,37 @@ export async function submitOrder(input: SubmitOrderInput): Promise<LumaPrintsOr
 
 export async function getOrder(orderNumber: string | number): Promise<LumaPrintsOrderResponse> {
   return request(`/api/v1/orders/${orderNumber}`) as Promise<LumaPrintsOrderResponse>
+}
+
+/** Read every page before deciding no existing order exists. Never treat a
+ * malformed/incomplete list as empty: that could create a duplicate print. */
+export async function listOrders(): Promise<LumaPrintsOrderResponse[]> {
+  const storeId = Number(process.env.LUMAPRINTS_STORE_ID)
+  if (!Number.isSafeInteger(storeId) || storeId <= 0) throw new Error('LUMAPRINTS_STORE_ID is not configured')
+  const orders: LumaPrintsOrderResponse[] = []
+  for (let page = 1; page <= 100; page++) {
+    let result: { orders: LumaPrintsOrderResponse[]; totalPages: number; currentPage: number; totalOrders: number }
+    try {
+      result = await request(`/api/v1/orders?storeId=${storeId}&page=${page}`) as typeof result
+    } catch (error) {
+      // The documented first-page 404 explicitly means there are no orders.
+      if (page === 1 && error instanceof LumaprintsApiError && error.status === 404 && /no orders found/i.test(error.body)) return []
+      throw error
+    }
+    if (!Array.isArray(result.orders) || Number(result.currentPage) !== page
+      || !Number.isSafeInteger(Number(result.totalPages)) || Number(result.totalPages) < 0
+      || !Number.isSafeInteger(Number(result.totalOrders)) || Number(result.totalOrders) < 0) {
+      throw new Error('Could not verify the complete print-provider order list. Submission stopped.')
+    }
+    orders.push(...result.orders)
+    if (page >= Number(result.totalPages)) {
+      if (orders.length !== Number(result.totalOrders) || new Set(orders.map(o => o.orderNumber)).size !== orders.length) {
+        throw new Error('The provider order list changed or was incomplete. Submission stopped.')
+      }
+      return orders
+    }
+  }
+  throw new Error('The provider order list exceeded the reconciliation limit. Submission stopped.')
 }
 
 export async function getShipments(orderNumber: string | number): Promise<unknown> {

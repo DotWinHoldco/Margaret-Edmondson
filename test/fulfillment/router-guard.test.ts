@@ -17,6 +17,8 @@ const state = vi.hoisted(() => ({
   inserts: [] as Array<{ table: string; payload: unknown }>,
   submits: [] as Array<Record<string, unknown>>,
   host: 'us.api.lumaprints.com',
+  providerOrders: [] as Array<Record<string, unknown>>,
+  fileBytes: 1000,
   catalog: null as unknown,
 }))
 
@@ -44,6 +46,7 @@ function builder(table: string) {
 }
 
 const client = {
+  storage: { from: () => ({ info: async () => ({ data: { size: state.fileBytes, contentType: 'image/png' }, error: null }) }) },
   rpc: async (name: string, args?: Record<string, unknown>) => {
     if (name === 'get_fulfillment_policy') return { data: { lumaprints_enabled: true, version: 1, shipping_mode: 'included', shipping_fee_cents: 0, lead_days: 10, ship_akhi: true }, error: null }
     if (name === 'start_studio_fulfillment') return { data: null, error: null }
@@ -59,6 +62,9 @@ vi.mock('@/lib/integrations/lumaprints', () => {
   class LumaprintsDisabledError extends Error {}
   return {
     submitOrder: async (input: Record<string, unknown>) => { state.submits.push(input); return { orderNumber: 10000339999 } },
+    listOrders: async () => state.providerOrders,
+    getOrder: async () => state.providerOrders[0],
+    LumaprintsSubmissionUncertainError: class extends Error {},
     checkImageConfig: async () => ({ ok: true }),
     LumaprintsApiError,
     LumaprintsDisabledError,
@@ -141,6 +147,8 @@ const address = { name: 'Test Buyer', line1: '1 Main St', city: 'Austin', state:
 
 describe('routeOrderToFulfillment test-mode guard', () => {
   beforeEach(() => {
+    state.fileBytes = 1000
+    state.providerOrders = []
     state.updates.length = 0
     state.inserts.length = 0
     state.submits.length = 0
@@ -194,6 +202,35 @@ describe('routeOrderToFulfillment test-mode guard', () => {
     const orderItems = state.submits[0].orderItems as Array<Record<string, unknown>>
     expect(orderItems[0]).not.toHaveProperty('solidColorHexCode')
     expect(orderItems[0].orderItemOptions).toEqual([2, 11])
+  })
+
+  it('blocks an oversized frozen file before any provider submission', async () => {
+    state.host = 'us.api.lumaprints.com'
+    state.order = { id: ORDER_ID, shipping_address: address, stripe_mode: 'live' }
+    state.fileBytes = 100_000_001
+    const result = await routeOrderToFulfillment(ORDER_ID, { suppressFailureAlert: true })
+    expect(result[0].error).toMatch(/100 MB/)
+    expect(state.submits).toHaveLength(0)
+  })
+
+  it('reuses an exact provider order instead of creating a duplicate', async () => {
+    state.host = 'us.api.lumaprints.com'
+    state.order = { id: ORDER_ID, shipping_address: address, stripe_mode: 'live' }
+    state.providerOrders = [{ orderNumber: 'existing-order', externalId: ITEM_ID, orderStatus: 'Awaiting Fulfillment',
+      orderItems: [{ externalItemId: ITEM_ID, quantity: 1, subcategoryId: 101002, width: 18, height: 24, orderItemOptions: [{ optionId: 3 }, { optionId: 11 }] }] }]
+    const result = await routeOrderToFulfillment(ORDER_ID, { suppressFailureAlert: true })
+    expect(result[0]).toMatchObject({ success: true, externalOrderId: 'existing-order' })
+    expect(state.submits).toHaveLength(0)
+  })
+
+  it('holds a conflicting existing provider order without another POST', async () => {
+    state.host = 'us.api.lumaprints.com'
+    state.order = { id: ORDER_ID, shipping_address: address, stripe_mode: 'live' }
+    state.providerOrders = [{ orderNumber: 'existing-order', externalId: ITEM_ID, orderItems: [] }]
+    const result = await routeOrderToFulfillment(ORDER_ID, { suppressFailureAlert: true })
+    expect(result[0].success).toBe(false)
+    expect(state.submits).toHaveLength(0)
+    expect(state.updates.some(update => update.payload.fulfillment_status === 'submitting')).toBe(true)
   })
 
   it('does not fall back to the uncropped master source when a line has no snapshot path', async () => {
